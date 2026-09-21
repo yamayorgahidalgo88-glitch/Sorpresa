@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Flores Amarillas · Mi Universo · V6</title>
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000}
+body{font-family:Georgia,"Times New Roman",serif;touch-action:none}
+#app{position:fixed;inset:0;background:#000}
+#webgl{position:absolute;inset:0}
+#webgl canvas{width:100%!important;height:100%!important;display:block}
+#vignette{position:absolute;inset:0;pointer-events:none;background:
+ radial-gradient(ellipse at center,transparent 43%,rgba(0,0,0,.15) 70%,rgba(0,0,0,.78) 100%),
+ linear-gradient(180deg,rgba(0,0,0,.32),transparent 24%,transparent 78%,rgba(0,0,0,.4))}
+#grain{position:absolute;inset:-50%;pointer-events:none;opacity:.045;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");mix-blend-mode:screen}
+#intro{position:absolute;inset:0;z-index:30;display:grid;place-items:center;background:#020201;transition:opacity 1.4s ease,transform 1.4s ease}
+#intro.hide{opacity:0;transform:scale(1.045);pointer-events:none}
+.introBox{text-align:center;color:#fff0a3;transform:translateY(-2vh)}
+.eyebrow{font:700 10px Arial,sans-serif;letter-spacing:5px;opacity:.72;margin-bottom:20px}
+.introBox h1{font-size:clamp(31px,8vw,72px);line-height:.96;margin:0;text-shadow:0 0 30px rgba(255,209,47,.45)}
+.introBox p{margin:22px 0 26px;color:#d7bf67;font:12px Arial,sans-serif;letter-spacing:2px}
+#enter{margin-top:18px;outline:none;-webkit-tap-highlight-color:transparent;border:1px solid rgba(255,222,92,.6);border-radius:999px;padding:13px 28px;background:rgba(255,194,22,.09);color:#ffe87d;font:700 10px Arial,sans-serif;letter-spacing:2px;box-shadow:0 0 30px rgba(255,196,28,.16);cursor:pointer}
+#tip{position:absolute;top:4.5%;left:50%;transform:translateX(-50%);z-index:8;color:rgba(255,226,102,.48);font:9px Arial,sans-serif;letter-spacing:2px;opacity:0;transition:opacity 1s;white-space:nowrap}
+#tip.show{opacity:1}
+#caption{position:absolute;left:50%;bottom:7%;transform:translateX(-50%);z-index:8;text-align:center;pointer-events:none;color:#fff4bd;opacity:0;transition:opacity 1.2s;width:92%;text-shadow:0 2px 12px #000,0 0 14px rgba(255,201,44,.35)}
+#caption.show{opacity:1}
+#caption .line{font-size:clamp(17px,4.8vw,34px);font-weight:700}
+#caption .sub{margin-top:9px;font:12px/1.45 Arial,sans-serif;letter-spacing:.7px;color:#f2df91}
+#letterOverlay{position:absolute;inset:0;z-index:50;display:grid;place-items:center;background:rgba(0,0,0,.58);backdrop-filter:blur(7px);opacity:0;pointer-events:none;transition:opacity .55s}
+#letterOverlay.open{opacity:1;pointer-events:auto}
+.letter{position:relative;width:min(86vw,520px);padding:44px 30px 38px;border-radius:26px;border:1px solid rgba(255,222,107,.55);
+background:radial-gradient(circle at 50% 0%,rgba(255,213,64,.13),transparent 48%),linear-gradient(145deg,rgba(31,24,9,.98),rgba(5,5,3,.99));
+box-shadow:0 0 80px rgba(255,191,27,.18),inset 0 1px rgba(255,255,255,.06);color:#fff2ad;text-align:center}
+.letter:before{content:"✦";position:absolute;top:12px;left:50%;transform:translateX(-50%);font-size:19px;color:#ffd83e;text-shadow:0 0 18px #ffc928}
+.letter h2{margin:0 0 21px;font-size:12px;letter-spacing:4px;font-family:Arial,sans-serif;color:#d6bd63}
+.letter p{margin:0;font-size:clamp(20px,5.2vw,31px);line-height:1.42;font-weight:700;text-shadow:0 0 18px rgba(255,205,54,.35)}
+.close{margin-top:27px;border:1px solid rgba(255,224,111,.45);border-radius:999px;background:rgba(255,204,40,.08);color:#ffe991;padding:10px 22px;font:700 10px Arial,sans-serif;letter-spacing:2px}
+
+#enter{
+  transition:transform .16s ease,box-shadow .16s ease,background .16s ease;
+}
+#enter:active{
+  transform:scale(.96);
+  background:rgba(255,194,22,.20);
+  box-shadow:0 0 42px rgba(255,211,60,.48),0 0 12px rgba(255,232,125,.42);
+}
+
+#enter.pressed{
+  transform:scale(.96);
+  background:rgba(255,194,22,.20);
+  box-shadow:0 0 42px rgba(255,211,60,.48),0 0 12px rgba(255,232,125,.42);
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="webgl"></div><div id="vignette"></div><div id="grain"></div>
+  <div id="intro"><div class="introBox">
+    <div class="eyebrow">21 · SEPTIEMBRE</div>
+    <h1>Feliz Dia de las<br>Flores Amarillas</h1>
+    <button id="enter">BIENVENIDA A MI UNIVERSO ✦</button>
+  </div></div>
+  <div id="tip">DESLIZA · GIRA EL UNIVERSO</div>
+  <div id="caption"><div class="line">Te amo</div><div class="sub">Eres lo mas bonito del mundo</div></div>
+  <div id="letterOverlay"><div class="letter">
+    <h2>PARA TI, MI AMOR</h2>
+    <p>Eres lo mas bonito del universo, y lo mas preciado del mío. Te amo 💚🦁.</p>
+    <button class="close" id="closeLetter">CERRAR</button>
+  </div></div>
+</div>
+
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+import {FontLoader} from 'three/addons/loaders/FontLoader.js';
+import {TextGeometry} from 'three/addons/geometries/TextGeometry.js';
+
+const host=document.getElementById('webgl'),intro=document.getElementById('intro'),enter=document.getElementById('enter');
+const tip=document.getElementById('tip'),caption=document.getElementById('caption');
+const letterOverlay=document.getElementById('letterOverlay'),closeLetter=document.getElementById('closeLetter');
+
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x010101); scene.fog=new THREE.FogExp2(0x030200,.05);
+const camera=new THREE.PerspectiveCamera(46,innerWidth/innerHeight,.05,100); camera.position.set(0,1.5,9.4);
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.7)); renderer.setSize(innerWidth,innerHeight);
+renderer.outputColorSpace=THREE.SRGBColorSpace; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=.96;
+host.appendChild(renderer.domElement);
+
+const composer=new EffectComposer(renderer); composer.setPixelRatio(Math.min(devicePixelRatio,1.35)); composer.setSize(innerWidth,innerHeight);
+composer.addPass(new RenderPass(scene,camera));
+const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),0.68,.62,.94); composer.addPass(bloom); composer.addPass(new OutputPass());
+
+scene.add(new THREE.AmbientLight(0x241a08,.26));
+const key=new THREE.PointLight(0xffc62c,13,15,2); key.position.set(0,1,.7); scene.add(key);
+const fill=new THREE.PointLight(0xffe9a0,3.2,18,2); fill.position.set(-4,3,2); scene.add(fill);
+
+const root=new THREE.Group(); scene.add(root);
+const center=new THREE.Group(); center.position.set(0,.08,.18); root.add(center);
+
+// ---- Real sunflower photography, loaded WITHOUT blocking the scene ----
+// The old V2 used top-level await here. If the remote image was slow/blocked,
+// the module stopped before the button handler and animation were attached.
+const flowerUrl='https://images.unsplash.com/photo-1593003520833-5c874a3cef28?auto=format&fit=crop&fm=jpg&ixlib=rb-4.1.0&q=88&w=1200';
+const flowerLoader=new THREE.TextureLoader();
+
+// Immediate local fallback so the universe is already renderable.
+const fallbackCanvas=document.createElement('canvas'); fallbackCanvas.width=128; fallbackCanvas.height=128;
+const fc=fallbackCanvas.getContext('2d'); fc.clearRect(0,0,128,128); fc.translate(64,64);
+for(let i=0;i<18;i++){const a=i*Math.PI*2/18;fc.save();fc.rotate(a);fc.beginPath();fc.ellipse(0,-27,10,24,0,0,Math.PI*2);fc.fillStyle='rgba(255,213,55,.96)';fc.shadowBlur=10;fc.shadowColor='rgba(255,191,20,.9)';fc.fill();fc.restore();}
+fc.beginPath();fc.arc(0,0,13,0,Math.PI*2);fc.fillStyle='rgba(102,55,8,.98)';fc.shadowBlur=7;fc.shadowColor='rgba(255,190,30,.8)';fc.fill();
+const flowerTexture=new THREE.CanvasTexture(fallbackCanvas); flowerTexture.colorSpace=THREE.SRGBColorSpace;
+
+const flowerVertex=`varying vec2 vUv; void main(){vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`;
+const flowerFragment=`uniform sampler2D map; varying vec2 vUv;
+void main(){
+ vec4 c=texture2D(map,vUv);
+ float lum=dot(c.rgb,vec3(.2126,.7152,.0722));
+ float blueBg=step(c.r*1.12,c.b)*step(c.g*1.04,c.b);
+ float edgeMask=smoothstep(.008,.065,lum);
+ float a=edgeMask*(1.0-blueBg);
+ if(a<.012) discard; c.a*=a; c.rgb*=.92; gl_FragColor=c;
+}`;
+const flowerMat=new THREE.ShaderMaterial({uniforms:{map:{value:flowerTexture}},vertexShader:flowerVertex,fragmentShader:flowerFragment,transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.NormalBlending});
+
+// Replace fallback with the real photo when it arrives. If it fails, nothing breaks.
+flowerLoader.load(flowerUrl,(tex)=>{tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=Math.min(renderer.capabilities.getMaxAnisotropy(),4);flowerMat.uniforms.map.value=tex;flowerMat.needsUpdate=true;},undefined,()=>{});
+
+function photoFlower(size){
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(size,size*1.18),flowerMat);
+  m.userData.photo=true; return m;
+}
+
+// ---- flowers across the 360° space ----
+const spaceFlowers=new THREE.Group(); root.add(spaceFlowers);
+const flowerData=[];
+for(let i=0;i<145;i++){
+  const a=Math.random()*Math.PI*2, r=Math.pow(Math.random(),.52)*5.9+1.25;
+  const m=photoFlower(THREE.MathUtils.randFloat(.17,.46));
+  m.position.set(Math.cos(a)*r,THREE.MathUtils.randFloat(-.55,1.8),Math.sin(a)*r*.52);
+  m.rotation.set(THREE.MathUtils.randFloat(-.28,.28),THREE.MathUtils.randFloat(-.3,.3),Math.random()*Math.PI*2);
+  spaceFlowers.add(m); flowerData.push({m,a,r,phase:Math.random()*10,speed:THREE.MathUtils.randFloat(.015,.055)});
+}
+
+// ---- galaxy dust ----
+const particleCount=26000,pos=new Float32Array(particleCount*3);
+for(let i=0;i<particleCount;i++){
+  const a=Math.random()*Math.PI*2,r=Math.pow(Math.random(),.53)*7.8+.45,arm=Math.sin(a*3+r*1.8);
+  const rr=r+arm*.42+THREE.MathUtils.randFloatSpread(.65);
+  pos[i*3]=Math.cos(a)*rr; pos[i*3+1]=THREE.MathUtils.randFloatSpread(1.0)*(1-r*.035); pos[i*3+2]=Math.sin(a)*rr*.42;
+}
+const dustGeo=new THREE.BufferGeometry(); dustGeo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+const dustMat=new THREE.PointsMaterial({color:0xffdc62,size:.022,sizeAttenuation:true,transparent:true,opacity:.66,blending:THREE.AdditiveBlending,depthWrite:false});
+const dust=new THREE.Points(dustGeo,dustMat); root.add(dust);
+
+// ---- heart above the planet, made of glowing stars ----
+const heartGroup=new THREE.Group(); heartGroup.position.set(0,2.05,.12); heartGroup.scale.y=-1; root.add(heartGroup);
+function hp(t){const a=t*Math.PI*2;return new THREE.Vector3(16*Math.pow(Math.sin(a),3)/18,-(13*Math.cos(a)-5*Math.cos(2*a)-2*Math.cos(3*a)-Math.cos(4*a))/18,0)}
+const heartPos=[];
+for(let i=0;i<620;i++){
+  const h=hp(Math.random()), inside=Math.random()<.72, s=inside?(Math.random()*.72+.08):1;
+  const p=h.multiplyScalar(s).add(new THREE.Vector3(THREE.MathUtils.randFloatSpread(.06),THREE.MathUtils.randFloatSpread(.06),THREE.MathUtils.randFloatSpread(.12)));
+  heartPos.push(p);
+}
+const heartGeo=new THREE.BufferGeometry(); const heartArr=new Float32Array(heartPos.length*3);
+heartPos.forEach((p,i)=>{heartArr[i*3]=p.x;heartArr[i*3+1]=p.y;heartArr[i*3+2]=p.z});
+heartGeo.setAttribute('position',new THREE.BufferAttribute(heartArr,3));
+const heartMat=new THREE.PointsMaterial({color:0xffd72f,size:.038,sizeAttenuation:true,transparent:true,opacity:.95,blending:THREE.AdditiveBlending,depthWrite:false});
+const heartStars=new THREE.Points(heartGeo,heartMat); heartGroup.add(heartStars);
+for(let i=0;i<85;i++){
+  const s=new THREE.Mesh(new THREE.SphereGeometry(.018+Math.random()*.025,8,8),new THREE.MeshBasicMaterial({color:0xfff0a0,transparent:true,opacity:.9,blending:THREE.AdditiveBlending}));
+  const p=hp(Math.random()).multiplyScalar(THREE.MathUtils.randFloat(.72,1.02)); s.position.copy(p); heartGroup.add(s);
+}
+
+// ---- central planet: luminous sunflower sphere + Saturn-like rings ----
+// The sphere itself is never rendered as a black/blue rectangle: it is a warm
+// luminous core covered by hundreds of real sunflower photo sprites.
+const planetGlow=new THREE.Mesh(
+  new THREE.SphereGeometry(1.055,72,72),
+  new THREE.MeshPhysicalMaterial({
+    color:0x8a5a12,roughness:.86,metalness:.02,
+    emissive:0x7a4305,emissiveIntensity:.10,
+    transparent:false,opacity:1
+  })
+); center.add(planetGlow);
+
+// Dense spherical bouquet: many small real sunflower heads packed around the
+// surface so the planet reads as a single ball of flowers rather than a black ball.
+const planetFlowers=new THREE.Group(); center.add(planetFlowers);
+for(let i=0;i<980;i++){
+  const u=(i+.5)/980;
+  const phi=Math.acos(1-2*u);
+  const theta=Math.PI*(3-Math.sqrt(5))*i;
+  const x=Math.sin(phi)*Math.cos(theta), y=Math.cos(phi), z=Math.sin(phi)*Math.sin(theta);
+  const f=photoFlower(THREE.MathUtils.randFloat(.11,.18));
+  const rr=1.058+THREE.MathUtils.randFloatSpread(.018);
+  f.position.set(x*rr,y*rr,z*rr);
+  f.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),new THREE.Vector3(x,y,z));
+  f.rotateZ(THREE.MathUtils.randFloat(-.8,.8));
+  planetFlowers.add(f);
+}
+
+// A solid warm inner sphere fills microscopic gaps between flowers. It is opaque,
+// so the planet never becomes a transparent/black silhouette when seen from behind.
+const coreGlow=new THREE.Mesh(
+  new THREE.SphereGeometry(.99,56,56),
+  new THREE.MeshPhysicalMaterial({
+    color:0x9a6814,roughness:.90,metalness:.02,
+    emissive:0x6d3c04,emissiveIntensity:.06,
+    transparent:false,opacity:1
+  })
+); center.add(coreGlow);
+
+// Saturn-like ring system. The rings are kept screen-readable instead of
+// becoming edge-on during the user's 360° rotation.
+const ringGroup=new THREE.Group();
+center.add(ringGroup);
+
+for(let i=0;i<7;i++){
+  const radius=1.34+i*.105;
+  const r=new THREE.Mesh(
+    new THREE.TorusGeometry(radius,.018+i*.004,18,320),
+    new THREE.MeshBasicMaterial({
+      color:i%2?0xffe06a:0xffb914,
+      transparent:true,
+      opacity:.88-i*.045,
+      blending:THREE.AdditiveBlending,
+      side:THREE.DoubleSide,
+      depthTest:false,
+      depthWrite:false
+    })
+  );
+  // A classic Saturn tilt, but without flattening the torus itself.
+  r.rotation.x=Math.PI*.34;
+  r.rotation.z=(i-3)*.012;
+  ringGroup.add(r);
+}
+
+// A second, slightly wider luminous band gives the silhouette a clear Saturn look.
+const outerRing=new THREE.Mesh(
+  new THREE.TorusGeometry(2.10,.010,12,360),
+  new THREE.MeshBasicMaterial({
+    color:0xffd95a,transparent:true,opacity:.58,
+    blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
+    depthTest:false,depthWrite:false
+  })
+);
+outerRing.rotation.x=Math.PI*.34;
+ringGroup.add(outerRing);
+
+const corona=new THREE.PointLight(0xffbd20,12,7,2); center.add(corona);
+
+// Invisible hit areas: touching the planet OR the heart opens the letter.
+// There is deliberately no visible square/cursor.
+const hit=new THREE.Mesh(
+  new THREE.SphereGeometry(1.34,32,32),
+  new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false})
+);
+hit.userData.planetHit=true; center.add(hit);
+
+const heartHit=new THREE.Mesh(
+  new THREE.SphereGeometry(.72,24,24),
+  new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false})
+);
+heartHit.position.set(0,0,0);
+heartHit.userData.heartHit=true;
+heartGroup.add(heartHit);
+
+// ---- small planets ----
+for(let i=0;i<10;i++){
+ const a=Math.random()*Math.PI*2,r=2.2+Math.random()*3.8;
+ const p=new THREE.Mesh(new THREE.SphereGeometry(.07+Math.random()*.13,20,20),new THREE.MeshStandardMaterial({color:i%2?0x705a23:0xc49319,roughness:.86,emissive:0x130a00,emissiveIntensity:.25}));
+ p.position.set(Math.cos(a)*r,Math.random()*.65-.2,Math.sin(a)*r*.44);p.userData={a,r,speed:.018+Math.random()*.055};root.add(p);
+}
+
+// ---- true 3D phrases, loaded WITHOUT blocking the scene ----
+const phraseMaterial=new THREE.MeshStandardMaterial({color:0xffe8a0,emissive:0x8a5600,emissiveIntensity:.58,roughness:.52,metalness:.04,transparent:true,opacity:.93});
+const phrases=[
+ ['Te amo',-3.25,.70,-1.15,.25],['Eres preciosa',2.75,1.18,-.82,.24],['Eres genial',-2.85,1.62,.45,.22],['Eres guapisima',2.15,.05,1.60,.22],['Me encantas',-1.95,.08,1.72,.25],['Te amo con locura',.35,1.95,-1.25,.20],['Eres lo mas bonito',-.55,-.15,-2.05,.20],['Mi persona favorita',3.15,1.85,.35,.18],['Siempre tu',-3.25,2.28,.75,.22],['Mi amor',1.05,2.55,.35,.24],['Me haces feliz',-1.15,1.12,2.05,.19],['Mi lugar favorito eres tu',1.75,2.72,-.20,.16],['Te elegiria una y mil veces',-2.1,2.95,-.45,.15],['Eres mi universo',.15,3.25,.80,.19],['Te quiero muchisimo',-3.45,-.15,.15,.17],['Eres unica',3.4,.05,.8,.20],['Me vuelves loco',-3.0,2.7,-1.4,.17],['Que guapa eres',2.9,2.35,1.45,.17],['Te adoro',-.2,3.0,-1.65,.21],['Contigo todo es mejor',1.0,.15,-2.65,.16],['Mi chica preciosa',-1.25,2.55,1.45,.17],['Te amo cada dia mas',1.7,3.15,1.15,.15],['Eres increible',-1.9,3.15,-1.05,.18],['Mi vida',2.35,1.95,-1.85,.20]
+];
+function addPhrases(font){for(const [txt,x,y,z,size] of phrases){
+ const geo=new TextGeometry(txt,{font,size,depth:size*.055,curveSegments:5,bevelEnabled:true,bevelThickness:size*.018,bevelSize:size*.012,bevelSegments:2});
+ geo.computeBoundingBox();const off=new THREE.Vector3();geo.boundingBox.getCenter(off);geo.translate(-off.x,-off.y,-off.z);
+ const mesh=new THREE.Mesh(geo,phraseMaterial.clone());
+ mesh.position.set(x,y,z);
+ mesh.userData.phrase=true;
+ // Each phrase gets its own spatial facing: some frontal, some three-quarter,
+ // and a few almost side-on, instead of every word pointing identically.
+ mesh.userData.phraseYaw=THREE.MathUtils.randFloatSpread(1.05);
+ mesh.userData.phrasePitch=THREE.MathUtils.randFloatSpread(.20);
+ mesh.userData.phraseRoll=THREE.MathUtils.randFloatSpread(.10);
+ root.add(mesh);
+}}
+new FontLoader().load('https://threejs.org/examples/fonts/helvetiker_bold.typeface.json',addPhrases,undefined,()=>{});
+
+// ---- raycaster / letter ----
+const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();
+let targetRot=0,rot=0,drag=false,lastX=0,velocity=0,downX=0,downY=0;
+renderer.domElement.addEventListener('pointerdown',e=>{drag=true;lastX=e.clientX;downX=e.clientX;downY=e.clientY;velocity=0;renderer.domElement.setPointerCapture?.(e.pointerId)});
+renderer.domElement.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-lastX;lastX=e.clientX;targetRot+=dx*.0042;velocity=dx*.0009});
+renderer.domElement.addEventListener('pointerup',e=>{
+ drag=false;
+ if(Math.hypot(e.clientX-downX,e.clientY-downY)<9) {
+   pointer.x=e.clientX/innerWidth*2-1; pointer.y=-(e.clientY/innerHeight)*2+1;
+   raycaster.setFromCamera(pointer,camera);
+   if(raycaster.intersectObjects([hit,heartHit],true).length) letterOverlay.classList.add('open');
+ }
+});
+renderer.domElement.addEventListener('pointercancel',()=>drag=false);
+renderer.domElement.addEventListener('wheel',e=>{targetRot+=(e.deltaX+e.deltaY)*.0007},{passive:true});
+closeLetter.addEventListener('click',()=>letterOverlay.classList.remove('open'));
+letterOverlay.addEventListener('click',e=>{if(e.target===letterOverlay)letterOverlay.classList.remove('open')});
+
+let started=false,clock=new THREE.Clock(),elapsed=0;
+// Button is independent of remote textures/fonts. The scene is already running underneath.
+function start(){if(started)return;started=true;intro.classList.add('hide');setTimeout(()=>{tip.classList.add('show');caption.classList.add('show')},500)}
+enter.addEventListener('pointerup',e=>{e.preventDefault();start();});
+enter.addEventListener('click',e=>{e.preventDefault();start();});
+enter.addEventListener('pointerdown',()=>enter.classList.add('pressed'));
+enter.addEventListener('pointerup',()=>enter.classList.remove('pressed'));
+enter.addEventListener('pointercancel',()=>enter.classList.remove('pressed'));
+function animate(){
+ requestAnimationFrame(animate); const dt=Math.min(clock.getDelta(),.033);elapsed+=dt;
+ rot+=(targetRot-rot)*.055;if(!drag){targetRot+=velocity;velocity*=Math.pow(.06,dt)}
+ root.rotation.y=rot; dust.rotation.y=rot*.20;
+ heartGroup.rotation.y=Math.sin(elapsed*.22)*.055; heartGroup.rotation.z=Math.sin(elapsed*.7)*.012;
+ center.scale.setScalar(1+Math.sin(elapsed*.9)*.012); planetFlowers.rotation.y=elapsed*.045;
+ // Saturn-like ring plane: it belongs to the planet, so its perspective
+ // naturally changes as the user turns around the universe.
+ ringGroup.rotation.x=Math.PI*.34;
+ ringGroup.rotation.y=0;
+ ringGroup.rotation.z=Math.sin(elapsed*.18)*.018;
+ corona.intensity=19+Math.sin(elapsed*1.5)*2;
+ spaceFlowers.rotation.y=rot*.42;
+ spaceFlowers.children.forEach((m,i)=>{m.lookAt(camera.position);m.rotation.z+=dt*(.025+Math.sin(i)*.002);m.position.y+=Math.sin(elapsed*.6+flowerData[i].phase)*.0008});
+  root.children.forEach(o=>{
+  if(o.userData?.phrase){
+    o.quaternion.copy(camera.quaternion);
+    o.rotateY(o.userData.phraseYaw);
+    o.rotateX(o.userData.phrasePitch);
+    o.rotateZ(o.userData.phraseRoll);
+  }
+});
+ root.children.forEach(o=>{if(o.userData?.a!==undefined){o.userData.a+=o.userData.speed*dt;o.position.x=Math.cos(o.userData.a)*o.userData.r;o.position.z=Math.sin(o.userData.a)*o.userData.r*.44}});
+ camera.position.x+=(Math.sin(rot*.30)*.55-camera.position.x)*.024;camera.lookAt(0,.42,0);
+ bloom.strength=.66+Math.sin(elapsed*.55)*.025; composer.render(dt);
+}
+animate();
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(innerWidth,innerHeight);composer.setPixelRatio(Math.min(devicePixelRatio,1.35));composer.setSize(innerWidth,innerHeight);bloom.setSize(innerWidth,innerHeight)});
+</script>
+</body>
+</html>
