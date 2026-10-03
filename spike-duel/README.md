@@ -5,7 +5,7 @@ Juego de vóley 1 contra 1 para navegador, pensado para publicarse en CrazyGames
 - **Modos:**
   - **Spike Career:** 50 niveles en 5 mundos (playa, selva, nieve, azotea y almacén), con un camino de casillas. Cada 10 niveles hay un jefe que se juega en el volcán.
   - **Torneo:** 8 rivales aleatorios que cambian en cada torneo, de dificultad creciente. Si pierdes, vuelves a la ronda 1.
-  - **2 jugadores:** en el mismo teclado o pantalla.
+  - **2 jugadores:** en el mismo teclado (oculto en móviles por ahora).
 - **Controles:** 1 jugador con A/D o flechas para moverse y W, flecha arriba o espacio para saltar. En 2 jugadores, A/D/W contra las flechas. En móvil aparecen botones táctiles.
 - **Remate:** si tocas el balón en el aire, rematas. Cada toque carga la barra; llena, el siguiente remate es un súper remate. Quien saca no carga la barra hasta que el rival toque el balón. Un súper sigue activo hasta que lo toca el rival o termina el punto, aunque toque la red.
 - **Súpers:** 21 súpers que se compran en la tienda. Fuego es el inicial. Los demás son Chicle, Encoger, Meteorito, Hielo, Gravedad cero, Rayo, Fantasma, Clones, Confusión, Tornado, Caracol, Imán, Tinta, Vendaval, Globo, Bumerán, Teletransporte, Bomba, Terremoto y Minibola (encoge el balón hasta que lo toca el rival). Los rivales usan súpers cada vez más fuertes.
@@ -13,6 +13,8 @@ Juego de vóley 1 contra 1 para navegador, pensado para publicarse en CrazyGames
 - **Remontada:** quien pierde un punto carga un 30 % de la barra de súper, sin llegar a llenarla de golpe.
 - **Rivales:** se llaman como su skin (dos Cyborg se llaman los dos Cyborg); los jefes conservan su título. Con la barra llena, incluso los rivales fáciles buscan el remate para usar su súper.
 - **Escenarios:** playa, selva, nieve, ciudad nocturna con focos y neones, almacén y volcán, con el fondo estático guardado en caché para que vaya fluido.
+- **Final de partida:** primero se ofrece ver un anuncio con recompensa (monedas extra) o «No, gracias»; después, siguiente rival/nivel o menú.
+- **Móvil:** se puede instalar como app (pantalla completa, solo horizontal). En pantallas más alargadas que 16:9 el escenario se extiende a los lados en lugar de dejar bandas negras.
 - **Cuenta atrás:** 3, 2, 1 al empezar cada partido y al volver de la pausa.
 - **Tienda:** cada objeto tiene su precio en monedas. Para hacer pruebas, `FREE_SHOP = true` en `game.js` hace que todo cueste 0 sin perder los precios.
 - **Idioma:** inglés, o español si el navegador está en español.

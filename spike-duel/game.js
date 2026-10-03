@@ -28,7 +28,7 @@
       career: 'Spike Career', world: 'World {n}', level: 'Level {n}', boss: 'BOSS', nextLevel: 'Next level',
       newTour: 'New tournament', round: 'Round {n} of 8', tourRule: 'Rivals change every tournament. Lose once and you start again from round 1.',
       backToStart: 'Back to round 1', tourPrize: '+{n} champion bonus', play: 'Play', beaten: 'Beaten', careerDone: 'All levels cleared!',
-      superHint: 'Fill the bar, then spike in the air', go: 'GO!', free: 'Free', rotate: 'Turn your phone sideways to play',
+      superHint: 'Fill the bar, then spike in the air', go: 'GO!', watchAd: 'Watch an ad: +{n} coins', free: 'Free', rotate: 'Turn your phone sideways to play',
       s_fire: 'Fire', s_fire_d: 'A blazing fast spike',
       s_sticky: 'Bubblegum', s_sticky_d: 'Whoever stops it can\'t jump this point',
       s_shrink: 'Shrink', s_shrink_d: 'Whoever stops it shrinks this point',
@@ -66,7 +66,7 @@
       career: 'Spike Career', world: 'Mundo {n}', level: 'Nivel {n}', boss: 'JEFE', nextLevel: 'Siguiente nivel',
       newTour: 'Nuevo torneo', round: 'Ronda {n} de 8', tourRule: 'Los rivales cambian en cada torneo. Si pierdes, vuelves a la ronda 1.',
       backToStart: 'Vuelves a la ronda 1', tourPrize: '+{n} de premio de campeón', play: 'Jugar', beaten: 'Ganado', careerDone: '¡Todos los niveles superados!',
-      superHint: 'Llena la barra y remata en el aire', go: '¡YA!', free: 'Gratis', rotate: 'Gira el móvil en horizontal para jugar',
+      superHint: 'Llena la barra y remata en el aire', go: '¡YA!', watchAd: 'Ver anuncio: +{n} monedas', free: 'Gratis', rotate: 'Gira el móvil en horizontal para jugar',
       s_fire: 'Fuego', s_fire_d: 'Un remate rapidísimo',
       s_sticky: 'Chicle', s_sticky_d: 'Quien la para no puede saltar en este punto',
       s_shrink: 'Encoger', s_shrink_d: 'Quien la para se encoge en este punto',
@@ -275,10 +275,14 @@
   const stage = document.getElementById('stage');
   const canvas = document.getElementById('game');
   let ctx = canvas.getContext('2d');
+  // Wider screens (e.g. 20:9 phones) get extra scenery at the sides instead of black bars.
+  let viewW = W, offX = 0;
   function fit() {
     const vw = window.innerWidth, vh = window.innerHeight;
     const scale = Math.min(vw / W, vh / H);
-    const cw = Math.round(W * scale), ch = Math.round(H * scale);
+    viewW = Math.min(W * 1.45, Math.max(W, vw / scale));
+    offX = (viewW - W) / 2;
+    const cw = Math.round(viewW * scale), ch = Math.round(H * scale);
     stage.style.width = cw + 'px';
     stage.style.height = ch + 'px';
     stage.style.left = Math.round((vw - cw) / 2) + 'px';
@@ -287,7 +291,7 @@
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = Math.round(cw * dpr);
     canvas.height = Math.round(ch * dpr);
-    ctx.setTransform(canvas.width / W, 0, 0, canvas.height / H, 0, 0);
+    ctx.setTransform(canvas.width / viewW, 0, 0, canvas.height / H, 0, 0);
   }
   const touchDev = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
   const portraitPhone = () => touchDev && window.innerHeight > window.innerWidth;
@@ -876,7 +880,10 @@
 
     // A win in the tour offers an optional rewarded ad instead of a midgame ad,
     // so the two are never combined on the same transition.
-    const offerReward = kind !== 'duo' && won;
+    // Solo matches always offer an optional rewarded ad first (never combined with a
+    // midgame ad on the same transition); local 2-player matches get a midgame ad.
+    const offerReward = kind !== 'duo';
+    lastResult.bonus = won ? coins : Math.max(15, coins * 2);
     if (!offerReward) await runAd('midgame');
     showResult(offerReward);
   }
@@ -896,13 +903,20 @@
     document.getElementById('resCoins').textContent = t('coinsEarned', { n: r.coins });
     document.getElementById('resNote').textContent = r.note || '';
     document.getElementById('rewardRow').classList.toggle('hidden', !offerReward);
-    document.getElementById('btnDouble').textContent = t('double') + ' (+' + r.coins + ')';
+    document.getElementById('nextRow').classList.toggle('hidden', offerReward);
+    document.getElementById('btnDouble').textContent = t('watchAd', { n: r.bonus });
     const next = document.getElementById('btnNext');
     if (kind === 'duo') next.textContent = t('rematch');
     else if (kind === 'career') next.textContent = r.won ? (careerLevel < CAREER_LEVELS ? t('nextLevel') : t('career')) : t('retry');
     else if (r.won && save.tourRun) next.textContent = t('next');
     else next.textContent = t('newTour');
     showScreen('result');
+  }
+
+  function afterRewardChoice() {
+    document.getElementById('rewardRow').classList.add('hidden');
+    document.getElementById('nextRow').classList.remove('hidden');
+    refreshCoins();
   }
 
   // ---------- Pause ----------
@@ -2273,7 +2287,8 @@
   function render() {
     ctx.save();
     if (shake > 0) ctx.translate((Math.random() - 0.5) * shake * 30, (Math.random() - 0.5) * shake * 30);
-    drawBackground();
+    ctx.save(); ctx.scale(viewW / W, 1); drawBackground(); ctx.restore();
+    ctx.translate(offX, 0);
     if (players.length) {
       drawNet();
       for (const p of players) drawPlayer(p, p.x, p.y, 1, ball.x, ball.y);
@@ -2555,18 +2570,22 @@
     on('btnDouble', async () => {
       const ok = await runAd('rewarded');
       if (ok) {
-        save.coins += lastResult.coins; persist();
-        document.getElementById('resCoins').textContent = t('coinsEarned', { n: lastResult.coins * 2 });
+        save.coins += lastResult.bonus; persist();
+        document.getElementById('resCoins').textContent = t('coinsEarned', { n: lastResult.coins + lastResult.bonus });
         Sound.win();
       } else {
         toast(t('adUnavailable'));
       }
-      document.getElementById('rewardRow').classList.add('hidden');
-      refreshCoins();
+      afterRewardChoice();
     });
-    on('btnNoThanks', () => { document.getElementById('rewardRow').classList.add('hidden'); });
+    on('btnNoThanks', afterRewardChoice);
     document.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click', () => { Sound.click(); goMenu(); }));
-    if (isTouch) document.querySelector('#menu .hint').classList.add('hidden');
+    if (isTouch) {
+      document.querySelector('#menu .hint').classList.add('hidden');
+      document.getElementById('btn2p').classList.add('hidden');      // 2 players is keyboard-only for now
+    }
+    const standalone = matchMedia('(display-mode: fullscreen)').matches || matchMedia('(display-mode: standalone)').matches;
+    if (standalone) document.getElementById('btnFull').classList.add('hidden');
   }
 
   // ---------- Loop ----------
