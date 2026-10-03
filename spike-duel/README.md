@@ -7,9 +7,9 @@ Juego de vóley 1 contra 1 para navegador, pensado para publicarse en CrazyGames
   - **Torneo:** 8 rivales aleatorios que cambian en cada torneo, de dificultad creciente. Si pierdes, vuelves a la ronda 1.
   - **2 jugadores:** en el mismo teclado o pantalla.
 - **Controles:** 1 jugador con A/D o flechas para moverse y W, flecha arriba o espacio para saltar. En 2 jugadores, A/D/W contra las flechas. En móvil aparecen botones táctiles.
-- **Remate:** si tocas el balón en el aire, rematas. Cada toque carga la barra; llena, el siguiente remate es un súper remate.
-- **Súpers:** 10 súpers que se compran en la tienda. Fuego es el inicial. Los demás son Chicle, Encoger, Meteorito, Hielo, Gravedad cero, Rayo, Fantasma, Clones y Confusión; casi todos afectan al rival que para el balón. Los rivales usan súpers cada vez más fuertes.
-- **Progresión:** las monedas de cada partido desbloquean 8 personajes, 7 balones (con diseños especiales de lava y de agua) y los súpers.
+- **Remate:** si tocas el balón en el aire, rematas. Cada toque carga la barra; llena, el siguiente remate es un súper remate. Quien saca no carga la barra hasta que el rival toque el balón.
+- **Súpers:** 20 súpers que se compran en la tienda. Fuego es el inicial. Los demás son Chicle, Encoger, Meteorito, Hielo, Gravedad cero, Rayo, Fantasma, Clones, Confusión, Tornado, Caracol, Imán, Tinta, Vendaval, Globo, Bumerán, Teletransporte, Bomba y Terremoto. Los rivales usan súpers cada vez más fuertes.
+- **Progresión:** las monedas de cada partido desbloquean 16 personajes (8 con accesorios: casco, pinchos, gafas de sol, tatuajes, corona, pirata, cascos de DJ y ninja; solo son estéticos) y 16 balones con diseño propio.
 - **Idioma:** inglés, o español si el navegador está en español.
 
 ## Probarlo en local
