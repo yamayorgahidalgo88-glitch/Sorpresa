@@ -54,9 +54,8 @@ class Matcher:
             if norm(a) in self.by_norm: return self.by_norm[norm(a)]
             hit = self.by_core.get(core(a), [])
             if len(hit) == 1: return hit[0]
-            fuzzy = False
-        else:
-            fuzzy = True
+            name = a; k = norm(a)
+        fuzzy = True
         if k in self.by_norm: return self.by_norm[k]
         c = core(name)
         if len(self.by_core.get(c, [])) == 1: return self.by_core[c][0]
@@ -66,7 +65,8 @@ class Matcher:
         for n in self.names:
             nt = set(core(n).split())
             if not nt: continue
-            j = len(ct & nt) / len(ct | nt)
+            inter = sum(1 for x in ct if any(x == y or (min(len(x), len(y)) >= 4 and (x.startswith(y) or y.startswith(x))) for y in nt))
+            j = inter / max(1, len(ct) + len(nt) - inter)
             if j > bs: best, bs, tie = n, j, False
             elif j == bs: tie = True
         return best if bs >= 0.5 and not tie else None

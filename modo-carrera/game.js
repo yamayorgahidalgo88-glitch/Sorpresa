@@ -528,7 +528,7 @@ function aiOffers(){
   const lvl=clubLevel(S.user.clubId);
   squad(S.user.clubId).forEach(p=>{
     if(S.news.some(n=>n.type==='offer'&&!n.done&&n.data.pid===p.id))return;
-    const chance=p.listed?0.22:(p.ovr>=lvl+2?0.03:0.006);
+    const chance=p.listed?0.22:(p.ovr>=lvl+2?0.015:0.003);
     if(R()<chance){const b=buyerClubFor(p);if(!b)return;const fee=roundMoney(valueOf(p)*(p.listed?0.75+R()*0.3:1.05+R()*0.35));
       addNews(`Oferta de ${esc(b.name)} por ${esc(p.name)}`,`${esc(b.name)} ofrece <b>${money(fee)}</b> por ${esc(p.name)} (${p.pos}, ${p.ovr}). Valor de mercado: ${money(valueOf(p))}. La oferta caduca el ${fmtDate(addDays(S.date,7))}.`,'offer',{pid:p.id,cid:b.id,fee,exp:addDays(S.date,7)});}
   });

@@ -344,9 +344,15 @@ def ols(X, y):  # mínimos cuadrados (ecuaciones normales) sin numpy
     return x
 import math
 pairs = [(p, r) for L in tm_matched.values() for p, r in L if r and tm_value(p['value']) > 0 and p['dob']]
-OV = ols([[1, math.log10(tm_value(p['value'])), age_on(p['dob'])] for p, r in pairs], [num(r['overall']) for p, r in pairs]) if pairs else [50, 4, 0]
+def fit_group(sel, key):
+    g = [(p, r) for p, r in pairs if sel(age_on(p['dob']))]
+    return ols([[1, math.log10(tm_value(p['value'])), age_on(p['dob'])] for p, r in g], [num(r[key]) for p, r in g]) if len(g) > 30 else [40, 4, 0]
+OV = fit_group(lambda a: a >= 25, 'overall')      # adultos: media a partir del valor de mercado
+OVY = fit_group(lambda a: a <= 24, 'overall')     # jóvenes: el valor incluye el potencial
+POTY = fit_group(lambda a: a <= 24, 'potential')
+est = lambda m, lv, age: m[0] + m[1] * math.log10(lv) + m[2] * age
 WG = ols([[1, math.log10(tm_value(p['value']))] for p, r in pairs if num(r['wage_eur']) > 0], [math.log10(num(r['wage_eur'])) for p, r in pairs if num(r['wage_eur']) > 0]) if pairs else [2, 0.5]
-if pairs: print('modelo de media (sin FC26):', [round(v, 2) for v in OV], 'sobre', len(pairs), 'jugadores emparejados')
+if pairs: print('modelos de media (sin FC26) adultos/jóvenes/potencial:', [round(v, 2) for v in OV], [round(v, 2) for v in OVY], [round(v, 2) for v in POTY], 'sobre', len(pairs), 'jugadores emparejados')
 
 def add_player(r, ci):
     pos = []
@@ -373,13 +379,16 @@ def add_tm_player(p, r, ci):
             if m and m not in pos: pos.append(m)
         st = [num(r[k]) for k in ('pace', 'shooting', 'passing', 'dribbling', 'defending', 'physic')]
         face_needed.append(r['player_id'])
-        players.append([r['short_name'], '/'.join(pos or ['MC']), num(r['overall']), num(r['potential']), v or num(r['value_eur']), num(r['wage_eur']), age,
+        ovr, pot = num(r['overall']), num(r['potential'])
+        if age <= 24 and tm_value(p['value']) > 0:   # FC 26 es de hace un año: sube a quien se ha disparado desde entonces
+            lv_ = tm_value(p['value']); eo, ep = est(OVY, lv_, age), est(POTY, lv_, age)
+            if eo > ovr + 4: ovr = int(round(ovr + 0.6 * (eo - ovr))); pot = max(pot, ovr, int(round(ep)))
+        players.append([r['short_name'], '/'.join(pos or ['MC']), ovr, pot, v or num(r['value_eur']), num(r['wage_eur']), age,
                         nat(r['nationality_name']), ci] + st + [1 if r['preferred_foot'] == 'Left' else 0, face_index.get(r['player_id'], -1), signed, cy, 0, p['num']])
     else:
         lv = max(v, 50000)
-        ovr = int(round(max(42, min(84, OV[0] + OV[1] * math.log10(lv) + OV[2] * age))))
-        pot = ovr + (max(0, (24 - age)) * 2 if age <= 23 else (1 if age <= 25 else 0))
-        pot = min(90, pot + (2 if lv >= 5e6 and age <= 21 else 0))
+        ovr = int(round(max(42, min(84, est(OVY if age <= 24 else OV, lv, age)))))
+        pot = int(round(max(ovr, min(90, est(POTY, lv, age))))) if age <= 24 else ovr + (1 if age <= 26 else 0)
         main, alt = TM_POS.get(p['pos'], ('MC', []))
         wage = max(1500, int(10 ** (WG[0] + WG[1] * math.log10(lv))))
         nt = (p['nat'] or ['Spain'])[0]; nt = TM_NAT.get(nt, nt)
