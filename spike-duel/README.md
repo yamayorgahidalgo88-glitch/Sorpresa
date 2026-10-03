@@ -9,8 +9,10 @@ Juego de vóley 1 contra 1 para navegador, pensado para publicarse en CrazyGames
 - **Controles:** 1 jugador con A/D o flechas para moverse y W, flecha arriba o espacio para saltar. En 2 jugadores, A/D/W contra las flechas. En móvil aparecen botones táctiles.
 - **Remate:** si tocas el balón en el aire, rematas. Cada toque carga la barra; llena, el siguiente remate es un súper remate. Quien saca no carga la barra hasta que el rival toque el balón. Un súper sigue activo hasta que lo toca el rival o termina el punto, aunque toque la red.
 - **Súpers:** 21 súpers que se compran en la tienda. Fuego es el inicial. Los demás son Chicle, Encoger, Meteorito, Hielo, Gravedad cero, Rayo, Fantasma, Clones, Confusión, Tornado, Caracol, Imán, Tinta, Vendaval, Globo, Bumerán, Teletransporte, Bomba, Terremoto y Minibola (encoge el balón hasta que lo toca el rival). Los rivales usan súpers cada vez más fuertes.
-- **Progresión:** las monedas de cada partido desbloquean 16 personajes (8 con accesorios: casco de piloto de Fórmula 1, pinchos, cyborg con visor rojo, punk negro con cresta y piercings, rey con corona y capa, pirata, DJ con auriculares de neón y ecualizador y ninja; solo son estéticos) y 16 balones con diseño propio.
-- **Rivales:** se llaman como su skin (dos Cyborg se llaman los dos Cyborg); los jefes conservan su título.
+- **Progresión:** las monedas de cada partido desbloquean 18 personajes (casco de piloto de Fórmula 1, pinchos, cyborg, punk, rey con corona y capa, pirata con loro, astronauta, ninja, nigiri de salmón y Slimy, un slime viscoso; los accesorios solo son estéticos) y 16 balones con diseño propio.
+- **Remontada:** quien pierde un punto carga un 30 % de la barra de súper, sin llegar a llenarla de golpe.
+- **Rivales:** se llaman como su skin (dos Cyborg se llaman los dos Cyborg); los jefes conservan su título. Con la barra llena, incluso los rivales fáciles buscan el remate para usar su súper.
+- **Escenarios:** playa, selva, nieve, ciudad nocturna con focos y neones, almacén y volcán, con el fondo estático guardado en caché para que vaya fluido.
 - **Cuenta atrás:** 3, 2, 1 al empezar cada partido y al volver de la pausa.
 - **Tienda gratis (temporal):** `FREE_SHOP = true` en `game.js` hace que todo cueste 0 para probarlo. Los precios siguen guardados en cada objeto y en la tienda se ven entre paréntesis; con `FREE_SHOP = false` vuelven a cobrarse.
 - **Idioma:** inglés, o español si el navegador está en español.
