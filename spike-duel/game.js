@@ -1650,37 +1650,71 @@
   }
 
   // Characters whose whole body is a special material.
-  const RICE = Array.from({ length: 70 }, (_, i) => {
+  const RICE = Array.from({ length: 120 }, (_, i) => {
     const a = Math.PI + hash(i * 3.1) * Math.PI, d = Math.sqrt(hash(i * 5.7)) * (PR - 5);
     return [Math.cos(a) * d, Math.min(-3, Math.sin(a) * d), hash(i * 2.3) * Math.PI];
   });
   function drawSkinBody(c, ch, f, dark) {
     const half = () => { c.beginPath(); c.arc(0, 0, PR, Math.PI, 0); c.lineTo(PR, 0); c.closePath(); };
     if (ch.skin === 'nigiri') {
-      // rice mound with individual grains
-      const rg = c.createRadialGradient(-10, -24, 4, 0, -10, PR);
-      rg.addColorStop(0, '#ffffff'); rg.addColorStop(1, '#e3dccb');
-      c.fillStyle = rg; half(); c.fill();
-      c.lineWidth = 2.5; c.strokeStyle = '#8d8270'; c.stroke();
+      // --- rice bed: lumpy silhouette packed with individual, shaded grains
+      const lumpy = () => {
+        c.beginPath();
+        for (let i = 0; i <= 40; i++) {
+          const a = Math.PI + (i / 40) * Math.PI, r = PR + (hash(i * 9.1) - 0.5) * 3.5;
+          c.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+        }
+        c.lineTo(PR, 0); c.lineTo(-PR, 0); c.closePath();
+      };
+      const rg = c.createRadialGradient(-8, -20, 4, 0, -8, PR + 4);
+      rg.addColorStop(0, '#fffdf7'); rg.addColorStop(0.7, '#f1ebdd'); rg.addColorStop(1, '#ddd3bf');
+      c.fillStyle = rg; lumpy(); c.fill();
+      c.save(); lumpy(); c.clip();
       for (const [gx, gy, ga] of RICE) {
-        c.fillStyle = '#fffdf6'; c.strokeStyle = 'rgba(150,135,110,0.55)'; c.lineWidth = 0.8;
-        c.beginPath(); c.ellipse(gx, gy, 4, 2, ga, 0, Math.PI * 2); c.fill(); c.stroke();
+        c.fillStyle = 'rgba(120,100,70,0.22)';                       // soft shadow under each grain
+        c.beginPath(); c.ellipse(gx + 0.8, gy + 1, 4.4, 2.2, ga, 0, Math.PI * 2); c.fill();
+        const gg = c.createLinearGradient(gx - 3, gy - 2, gx + 3, gy + 2);
+        gg.addColorStop(0, '#ffffff'); gg.addColorStop(1, '#ece5d6');
+        c.fillStyle = gg; c.strokeStyle = 'rgba(165,150,125,0.55)'; c.lineWidth = 0.6;
+        c.beginPath(); c.ellipse(gx, gy, 4.2, 2, ga, 0, Math.PI * 2); c.fill(); c.stroke();
+        c.fillStyle = 'rgba(255,255,255,0.9)';
+        c.beginPath(); c.ellipse(gx - Math.cos(ga) * 1.4, gy - Math.sin(ga) * 1.4 - 0.4, 1.4, 0.6, ga, 0, Math.PI * 2); c.fill();
       }
-      // salmon slice draped over the top, with fat lines and a glossy sheen
-      const sg = c.createLinearGradient(-PR, -PR, PR, 0);
-      sg.addColorStop(0, '#ff9566'); sg.addColorStop(0.5, '#ff7043'); sg.addColorStop(1, '#f4511e');
-      c.fillStyle = sg; c.strokeStyle = '#c63b16'; c.lineWidth = 2;
-      c.beginPath();
-      c.moveTo(-(PR + 6), -4);
-      c.bezierCurveTo(-(PR + 4), -PR - 4, PR + 4, -PR - 10, PR + 8, -8);
-      c.quadraticCurveTo(PR - 4, -14, PR - 8, -16);
-      c.bezierCurveTo(PR - 12, -PR + 6, -PR + 10, -PR + 8, -(PR - 6), -12);
-      c.closePath(); c.fill(); c.stroke();
-      c.save(); c.clip();
-      c.strokeStyle = 'rgba(255,240,225,0.85)'; c.lineWidth = 3;
-      for (let k = -4; k <= 4; k++) { c.beginPath(); c.moveTo(k * 12 - 14, -PR - 12); c.quadraticCurveTo(k * 12, -PR + 4, k * 12 + 10, -4); c.stroke(); }
-      c.fillStyle = 'rgba(255,255,255,0.35)'; c.beginPath(); c.ellipse(-12, -PR + 2, 16, 4, -0.2, 0, Math.PI * 2); c.fill();
       c.restore();
+      c.strokeStyle = 'rgba(150,135,110,0.8)'; c.lineWidth = 1.5; lumpy(); c.stroke();
+      // --- salmon slice draped over the rice, thick in the middle and tapering at both ends
+      const slab = () => {
+        c.beginPath();
+        c.moveTo(-(PR + 7), -2);
+        c.bezierCurveTo(-(PR + 8), -PR - 16, PR + 8, -PR - 16, PR + 9, -6);
+        c.quadraticCurveTo(PR + 6, -2, PR + 1, -6);                   // rounded front tip
+        c.bezierCurveTo(PR - 6, -PR + 8, -PR + 8, -PR + 12, -(PR - 4), -8);
+        c.quadraticCurveTo(-(PR + 2), -2, -(PR + 7), -2);
+        c.closePath();
+      };
+      c.save(); c.translate(1, 3); c.fillStyle = 'rgba(80,40,20,0.22)'; slab(); c.fill(); c.restore();   // shadow on the rice
+      const sg = c.createLinearGradient(-PR, -PR - 8, PR * 0.6, -4);
+      sg.addColorStop(0, '#ff9a62'); sg.addColorStop(0.45, '#fb6f3c'); sg.addColorStop(1, '#e2522a');
+      c.fillStyle = sg; slab(); c.fill();
+      c.save(); slab(); c.clip();
+      // translucent flesh: lighter band through the middle
+      const fl = c.createLinearGradient(0, -PR - 8, 0, -8);
+      fl.addColorStop(0, 'rgba(255,190,150,0.35)'); fl.addColorStop(0.5, 'rgba(255,190,150,0)'); fl.addColorStop(1, 'rgba(160,40,10,0.25)');
+      c.fillStyle = fl; c.fillRect(-PR - 10, -PR - 14, PR * 2 + 20, PR + 12);
+      // the characteristic white fat lines, soft-edged and curving with the drape
+      for (let k = -3; k <= 3; k++) {
+        const x0 = k * 15 - 10, sway = 6;
+        const line = () => { c.beginPath(); c.moveTo(x0 - 6, -PR - 14); c.bezierCurveTo(x0 + sway, -PR + 2, x0 + 2, -PR + 18, x0 + 14, -2); };
+        c.strokeStyle = 'rgba(255,236,220,0.45)'; c.lineWidth = 5.5; line(); c.stroke();
+        c.strokeStyle = 'rgba(255,248,240,0.95)'; c.lineWidth = 1.8; line(); c.stroke();
+      }
+      // glossy sheen and a few wet highlights
+      c.strokeStyle = 'rgba(255,255,255,0.5)'; c.lineWidth = 3; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(-PR + 6, -PR + 2); c.quadraticCurveTo(-6, -PR - 8, 18, -PR - 4); c.stroke();
+      c.fillStyle = 'rgba(255,255,255,0.8)';
+      for (const [hx, hy] of [[-18, -PR], [4, -PR - 5], [24, -PR + 2]]) { c.beginPath(); c.arc(hx, hy, 1.4, 0, Math.PI * 2); c.fill(); }
+      c.restore();
+      c.strokeStyle = '#b8401c'; c.lineWidth = 1.6; slab(); c.stroke();
     } else if (ch.skin === 'slime') {
       // wobbly, translucent goo with bubbles and drips
       const wob = a => PR * (1 + 0.05 * Math.sin(a * 3 + time * 5) + 0.03 * Math.sin(a * 7 - time * 3));
