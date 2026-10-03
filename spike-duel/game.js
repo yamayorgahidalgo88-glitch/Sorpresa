@@ -28,7 +28,7 @@
       career: 'Spike Career', world: 'World {n}', level: 'Level {n}', boss: 'BOSS', nextLevel: 'Next level',
       newTour: 'New tournament', round: 'Round {n} of 8', tourRule: 'Rivals change every tournament. Lose once and you start again from round 1.',
       backToStart: 'Back to round 1', tourPrize: '+{n} champion bonus', play: 'Play', beaten: 'Beaten', careerDone: 'All levels cleared!',
-      superHint: 'Fill the bar, then spike in the air', go: 'GO!', free: 'Free',
+      superHint: 'Fill the bar, then spike in the air', go: 'GO!', free: 'Free', rotate: 'Turn your phone sideways to play',
       s_fire: 'Fire', s_fire_d: 'A blazing fast spike',
       s_sticky: 'Bubblegum', s_sticky_d: 'Whoever stops it can\'t jump this point',
       s_shrink: 'Shrink', s_shrink_d: 'Whoever stops it shrinks this point',
@@ -66,7 +66,7 @@
       career: 'Spike Career', world: 'Mundo {n}', level: 'Nivel {n}', boss: 'JEFE', nextLevel: 'Siguiente nivel',
       newTour: 'Nuevo torneo', round: 'Ronda {n} de 8', tourRule: 'Los rivales cambian en cada torneo. Si pierdes, vuelves a la ronda 1.',
       backToStart: 'Vuelves a la ronda 1', tourPrize: '+{n} de premio de campeón', play: 'Jugar', beaten: 'Ganado', careerDone: '¡Todos los niveles superados!',
-      superHint: 'Llena la barra y remata en el aire', go: '¡YA!', free: 'Gratis',
+      superHint: 'Llena la barra y remata en el aire', go: '¡YA!', free: 'Gratis', rotate: 'Gira el móvil en horizontal para jugar',
       s_fire: 'Fuego', s_fire_d: 'Un remate rapidísimo',
       s_sticky: 'Chicle', s_sticky_d: 'Quien la para no puede saltar en este punto',
       s_shrink: 'Encoger', s_shrink_d: 'Quien la para se encoge en este punto',
@@ -289,7 +289,23 @@
     canvas.height = Math.round(ch * dpr);
     ctx.setTransform(canvas.width / W, 0, 0, canvas.height / H, 0, 0);
   }
-  window.addEventListener('resize', () => { fit(); if (careerOpen) sizeMap(); });
+  const touchDev = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  const portraitPhone = () => touchDev && window.innerHeight > window.innerWidth;
+  window.addEventListener('resize', () => {
+    fit(); if (careerOpen) sizeMap();
+    if (portraitPhone() && (state === 'playing' || state === 'countdown')) pauseGame();
+  });
+
+  // Fullscreen + landscape lock on phones (outside CrazyGames, which has its own fullscreen).
+  const onCrazy = /crazygames/.test(location.hostname);
+  const canFull = !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
+  function goFullscreen() {
+    const el = document.documentElement;
+    if (document.fullscreenElement || document.webkitFullscreenElement) return;
+    const req = el.requestFullscreen ? el.requestFullscreen({ navigationUI: 'hide' }) : el.webkitRequestFullscreen && el.webkitRequestFullscreen();
+    Promise.resolve(req).then(() => screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape')).catch(() => {});
+  }
+  if (touchDev && !onCrazy && canFull) window.addEventListener('pointerdown', goFullscreen, { once: true });
 
   // ---------- Input ----------
   const input = [{ left: false, right: false, jump: false }, { left: false, right: false, jump: false }];
@@ -2518,6 +2534,10 @@
     on('tabBalls', () => { shopTab = 'balls'; buildShop(); });
     on('tabSupers', () => { shopTab = 'supers'; buildShop(); });
     on('btnMute', () => { save.muted = !save.muted; persist(); updateMute(); });
+    on('btnFull', () => {
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); else goFullscreen();
+    });
+    if (onCrazy || !canFull) document.getElementById('btnFull').classList.add('hidden');
     on('btnPause', pauseGame);
     on('btnResume', resumeGame);
     on('btnQuit', () => { Platform.gameplayStop(); goMenu(); });
