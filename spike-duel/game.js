@@ -18,23 +18,49 @@
   const TEXT = {
     en: {
       tagline: 'Jump. Spike. Win the beach.', tour: 'Tour', twoPlayers: '2 Players', shop: 'Shop', back: 'Back',
-      characters: 'Characters', balls: 'Balls', paused: 'Paused', resume: 'Resume', menu: 'Menu',
+      characters: 'Characters', balls: 'Balls', supers: 'Supers', paused: 'Paused', resume: 'Resume', menu: 'Menu',
       noThanks: 'No, thanks', youWin: 'You win!', youLose: 'You lose', p1Wins: 'Player 1 wins!', p2Wins: 'Player 2 wins!',
       next: 'Next rival', retry: 'Retry', rematch: 'Rematch', double: 'Double coins', coinsEarned: '+{n} coins',
       champion: 'Tour champion!', locked: 'Beat the previous rival', select: 'Select', selected: 'Selected',
       adUnavailable: 'Ad not available, try again later', serve: 'Serve!', point: 'Point!', superReady: 'SUPER',
       controls: '1P: A/D or arrows to move, W / up / space to jump  ·  2P: A/D/W vs arrows',
       rival: 'Rival {n}', beach: 'beach', gym: 'gym', rooftop: 'rooftop', snow: 'snow',
+      superHint: 'Fill the bar, then spike in the air',
+      s_fire: 'Fire', s_fire_d: 'A blazing fast spike',
+      s_sticky: 'Bubblegum', s_sticky_d: 'Whoever stops it can\'t jump this point',
+      s_shrink: 'Shrink', s_shrink_d: 'Whoever stops it shrinks this point',
+      s_heavy: 'Meteor', s_heavy_d: 'Falls hard and barely bounces back',
+      s_ice: 'Ice', s_ice_d: 'Whoever stops it freezes for 2 seconds',
+      s_zerog: 'Zero Gravity', s_zerog_d: 'Whoever stops it floats this point',
+      s_lightning: 'Lightning', s_lightning_d: 'Zigzags and stuns for 1 second',
+      s_ghost: 'Ghost', s_ghost_d: 'Turns invisible past the net',
+      s_clones: 'Clones', s_clones_d: 'Splits into 3 balls; only one is real',
+      s_confusion: 'Confusion', s_confusion_d: 'Whoever stops it gets reversed controls this point',
+      e_sticky: 'Stuck!', e_shrink: 'Tiny!', e_heavy: 'Too heavy!', e_ice: 'Frozen!', e_zerog: 'Floating!',
+      e_lightning: 'Zapped!', e_confusion: 'Confused!',
     },
     es: {
       tagline: 'Salta. Remata. Conquista la playa.', tour: 'Torneo', twoPlayers: '2 Jugadores', shop: 'Tienda', back: 'Volver',
-      characters: 'Personajes', balls: 'Balones', paused: 'Pausa', resume: 'Seguir', menu: 'Menú',
+      characters: 'Personajes', balls: 'Balones', supers: 'Súpers', paused: 'Pausa', resume: 'Seguir', menu: 'Menú',
       noThanks: 'No, gracias', youWin: '¡Has ganado!', youLose: 'Has perdido', p1Wins: '¡Gana el jugador 1!', p2Wins: '¡Gana el jugador 2!',
       next: 'Siguiente rival', retry: 'Reintentar', rematch: 'Revancha', double: 'Duplicar monedas', coinsEarned: '+{n} monedas',
       champion: '¡Campeón del torneo!', locked: 'Gana al rival anterior', select: 'Elegir', selected: 'Elegido',
       adUnavailable: 'Anuncio no disponible, prueba más tarde', serve: '¡Saca!', point: '¡Punto!', superReady: 'SÚPER',
       controls: '1J: A/D o flechas para moverte, W / arriba / espacio para saltar  ·  2J: A/D/W contra flechas',
       rival: 'Rival {n}', beach: 'playa', gym: 'pabellón', rooftop: 'azotea', snow: 'nieve',
+      superHint: 'Llena la barra y remata en el aire',
+      s_fire: 'Fuego', s_fire_d: 'Un remate rapidísimo',
+      s_sticky: 'Chicle', s_sticky_d: 'Quien la para no puede saltar en este punto',
+      s_shrink: 'Encoger', s_shrink_d: 'Quien la para se encoge en este punto',
+      s_heavy: 'Meteorito', s_heavy_d: 'Cae a plomo y apenas rebota',
+      s_ice: 'Hielo', s_ice_d: 'Quien la para se congela 2 segundos',
+      s_zerog: 'Gravedad cero', s_zerog_d: 'Quien la para flota en este punto',
+      s_lightning: 'Rayo', s_lightning_d: 'Va en zigzag y paraliza 1 segundo',
+      s_ghost: 'Fantasma', s_ghost_d: 'Se vuelve invisible al pasar la red',
+      s_clones: 'Clones', s_clones_d: 'Se divide en 3 balones; solo uno es real',
+      s_confusion: 'Confusión', s_confusion_d: 'Quien la para tiene los controles al revés en este punto',
+      e_sticky: '¡Pegado!', e_shrink: '¡Mini!', e_heavy: '¡Pesa mucho!', e_ice: '¡Congelado!', e_zerog: '¡Flotando!',
+      e_lightning: '¡Electrocutado!', e_confusion: '¡Confundido!',
     },
   };
   const t = (k, vars) => {
@@ -62,28 +88,45 @@
     { name: 'Melon', a: '#2ec27e', b: '#1b7d50', c: '#ff5d8f', price: 280 },
     { name: 'Gold', a: '#ffd60a', b: '#e09b00', c: '#fff1a8', price: 450 },
   ];
+  // Supers: the spike you throw when the power bar is full. `effect` is applied to
+  // the opponent who touches the ball; flight behaviours live in updateBallSuper.
+  const SUPERS = [
+    { id: 'fire', price: 0, color: '#ff6b35', glow: '#ffb627', speed: 1180 },
+    { id: 'sticky', price: 80, color: '#f72585', glow: '#ffb3c6', speed: 1040 },
+    { id: 'shrink', price: 120, color: '#6bd425', glow: '#d8f3dc', speed: 1040 },
+    { id: 'heavy', price: 160, color: '#495057', glow: '#e85d04', speed: 1000 },
+    { id: 'ice', price: 200, color: '#48cae4', glow: '#caf0f8', speed: 1040 },
+    { id: 'zerog', price: 250, color: '#c77dff', glow: '#f3d9ff', speed: 1040 },
+    { id: 'lightning', price: 300, color: '#ffd60a', glow: '#fff3b0', speed: 1100 },
+    { id: 'ghost', price: 360, color: '#e9ecef', glow: '#ffffff', speed: 1040 },
+    { id: 'clones', price: 420, color: '#2a9df4', glow: '#a2d2ff', speed: 1040 },
+    { id: 'confusion', price: 500, color: '#9d4edd', glow: '#e0aaff', speed: 1040 },
+  ];
+  const SUPER = id => SUPERS.find(s => s.id === id);
   const VENUES = ['beach', 'gym', 'rooftop', 'snow'];
+  // Each rival brings a stronger super than the last.
   const RIVALS = [
-    { char: 1, venue: 0, nick: 'Wave' },
-    { char: 2, venue: 1, nick: 'Lime' },
-    { char: 3, venue: 0, nick: 'Coral' },
-    { char: 4, venue: 2, nick: 'Tank' },
-    { char: 6, venue: 3, nick: 'Frost' },
-    { char: 5, venue: 1, nick: 'Volt' },
-    { char: 0, venue: 2, nick: 'Shadow', dark: true },
-    { char: 7, venue: 3, nick: 'Ace' },
+    { char: 1, venue: 0, nick: 'Wave', super: 0 },
+    { char: 2, venue: 1, nick: 'Lime', super: 1 },
+    { char: 3, venue: 0, nick: 'Coral', super: 2 },
+    { char: 4, venue: 2, nick: 'Tank', super: 3 },
+    { char: 6, venue: 3, nick: 'Frost', super: 4 },
+    { char: 5, venue: 1, nick: 'Volt', super: 6 },
+    { char: 0, venue: 2, nick: 'Shadow', super: 7, dark: true },
+    { char: 7, venue: 3, nick: 'Ace', super: 9 },
   ];
 
   // ---------- Save ----------
-  const save = Object.assign(
-    { coins: 0, tour: 0, stars: [], chars: [0], balls: [0], char: 0, ball: 0, muted: false },
-    {}
-  );
+  const save = { coins: 0, tour: 0, stars: [], chars: [0], balls: [0], supers: [0], char: 0, ball: 0, superSel: 0, muted: false };
   function loadSave() {
     try {
       const raw = Platform.load(SAVE_KEY);
       if (raw) Object.assign(save, JSON.parse(raw));
     } catch (e) { /* corrupt save: start fresh */ }
+    if (!Array.isArray(save.supers) || !save.supers.includes(0)) save.supers = [0].concat(save.supers || []);
+    if (!save.supers.includes(save.superSel)) save.superSel = 0;
+    if (!save.chars.includes(save.char)) save.char = 0;
+    if (!save.balls.includes(save.ball)) save.ball = 0;
   }
   function persist() { Platform.save(SAVE_KEY, JSON.stringify(save)); }
 
@@ -114,6 +157,7 @@
       hit: () => tone(320, 0.09, 'triangle', 0.25, 180),
       spike: () => { tone(160, 0.18, 'sawtooth', 0.22, 60); tone(900, 0.08, 'square', 0.08, 300); },
       superSpike: () => { tone(120, 0.35, 'sawtooth', 0.3, 40); tone(1400, 0.2, 'square', 0.1, 200); },
+      effect: () => { tone(900, 0.25, 'square', 0.12, 150); tone(220, 0.3, 'triangle', 0.2, 440); },
       jump: () => tone(420, 0.08, 'sine', 0.12, 620),
       point: () => { tone(660, 0.12, 'triangle', 0.2); setTimeout(() => tone(880, 0.16, 'triangle', 0.2), 110); },
       lose: () => tone(300, 0.3, 'triangle', 0.2, 120),
@@ -126,10 +170,9 @@
   const stage = document.getElementById('stage');
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
-  let scale = 1;
   function fit() {
     const vw = window.innerWidth, vh = window.innerHeight;
-    scale = Math.min(vw / W, vh / H);
+    const scale = Math.min(vw / W, vh / H);
     const cw = Math.round(W * scale), ch = Math.round(H * scale);
     stage.style.width = cw + 'px';
     stage.style.height = ch + 'px';
@@ -158,7 +201,7 @@
   window.addEventListener('blur', () => { keys.clear(); if (state === 'playing') pauseGame(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'playing') pauseGame(); });
 
-  const touchHeld = new Map(); // pointerId -> [player, key]
+  const touchHeld = new Map(); // pointerId -> [player, key, button]
   document.querySelectorAll('#touch button').forEach(b => {
     const p = +b.dataset.p, k = b.dataset.k;
     b.addEventListener('pointerdown', e => {
@@ -177,8 +220,7 @@
 
   function readInput() {
     for (const i of input) i.left = i.right = i.jump = false;
-    const two = mode === 'duo';
-    if (two) {
+    if (mode === 'duo') {
       input[0].left = keys.has('KeyA'); input[0].right = keys.has('KeyD'); input[0].jump = keys.has('KeyW');
       input[1].left = keys.has('ArrowLeft'); input[1].right = keys.has('ArrowRight'); input[1].jump = keys.has('ArrowUp');
     } else {
@@ -194,31 +236,36 @@
   let mode = 'solo';       // solo | duo
   let rivalIndex = 0;
   let venue = 'beach';
-  let players = [], ball = null, particles = [];
+  let players = [], ball = null, fakes = [], particles = [];
   let score = [0, 0];
   let server = 0;
-  let pointTimer = 0, banner = '', bannerTimer = 0;
+  let pointTimer = 0, banner = '', bannerTimer = 0, bannerColor = '#ffb627';
   let shake = 0, time = 0;
   let adPlaying = false;
   let lastResult = null;
 
-  function makePlayer(side, charIdx, isAI, level) {
+  function freshFx() { return { confused: false, frozen: 0, stunned: 0, float: false, shrink: false, sticky: false }; }
+
+  function makePlayer(side, charIdx, isAI, level, superIdx) {
     return {
       side, x: side === 0 ? 200 : 760, y: GROUND, vx: 0, vy: 0, onGround: true,
       char: CHARS[charIdx], dark: false, isAI, level: level || 1,
-      power: 0, hitCooldown: 0, squash: 0,
-      ai: { target: side === 0 ? 200 : 760, think: 0, jumpPlan: null, err: 0 },
+      superId: SUPERS[superIdx || 0].id,
+      power: 0, hitCooldown: 0, squash: 0, r: PR, fx: freshFx(),
+      ai: { target: side === 0 ? 200 : 760, think: 0, jumpPlan: null, err: 0, follow: null },
     };
   }
 
   function resetRally() {
-    const s = players[server];
-    ball = { x: server === 0 ? 200 : 760, y: 170, vx: 0, vy: 0, spin: 0, angle: 0, fire: 0, trail: [], lastTouch: -1 };
+    ball = { x: server === 0 ? 200 : 760, y: 170, vx: 0, vy: 0, spin: 0, angle: 0, trail: [], lastTouch: -1,
+      super: null, superOwner: -1, superTime: 0, zig: 0 };
+    fakes = [];
     for (const p of players) {
       p.x = p.side === 0 ? 200 : 760; p.y = GROUND; p.vx = p.vy = 0; p.onGround = true; p.hitCooldown = 0;
-      p.ai.jumpPlan = null; p.ai.err = 0;
+      p.ai.jumpPlan = null; p.ai.err = 0; p.ai.follow = null;
+      p.fx = freshFx(); p.r = PR;
     }
-    if (s.isAI) s.x += 10; // AI serves with a slight forward push
+    if (players[server].isAI) players[server].x += 10; // AI serves with a slight forward push
     showBanner(t('serve'), 0.8);
   }
 
@@ -231,13 +278,12 @@
       rivalIndex = rival;
       const r = RIVALS[rival];
       venue = VENUES[r.venue];
-      players = [makePlayer(0, save.char, false), makePlayer(1, r.char, true, rival + 1)];
-      players[1].dark = !!r.dark;
-      if (players[1].char === players[0].char && !r.dark) players[1].dark = true;
+      players = [makePlayer(0, save.char, false, 1, save.superSel), makePlayer(1, r.char, true, rival + 1, r.super)];
+      players[1].dark = !!r.dark || r.char === save.char;
     } else {
       venue = VENUES[Math.floor(Math.random() * VENUES.length)];
       const other = save.char === 1 ? 0 : 1;
-      players = [makePlayer(0, save.char, false), makePlayer(1, other, false)];
+      players = [makePlayer(0, save.char, false, 1, save.superSel), makePlayer(1, other, false, 1, save.superSel)];
     }
     resetRally();
     showScreen(null);
@@ -250,79 +296,113 @@
     Platform.gameplayStart();
   }
 
-  function showBanner(text, dur) { banner = text; bannerTimer = dur; }
+  function showBanner(text, dur, color) { banner = text; bannerTimer = dur; bannerColor = color || '#ffb627'; }
 
   // ---------- Physics ----------
   function updatePlayer(p, inp, dt) {
+    const fx = p.fx;
+    fx.frozen = Math.max(0, fx.frozen - dt);
+    fx.stunned = Math.max(0, fx.stunned - dt);
+    const locked = fx.frozen > 0 || fx.stunned > 0;
     let dir = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
+    if (fx.confused) dir = -dir;
+    if (locked) dir = 0;
     const speed = p.isAI ? P_SPEED * aiSpeed(p) : P_SPEED;
     p.vx = dir * speed;
-    if (inp.jump && p.onGround) { p.vy = -P_JUMP; p.onGround = false; Sound.jump(); }
-    p.vy += P_GRAV * dt;
+    const canJump = !locked && !fx.sticky;
+    if (inp.jump && p.onGround && canJump) {
+      p.vy = fx.float ? -P_JUMP * 0.75 : -P_JUMP;
+      p.onGround = false; Sound.jump();
+    }
+    p.vy += P_GRAV * (fx.float ? 0.28 : 1) * dt;
     p.x += p.vx * dt;
     p.y += p.vy * dt;
+    if (p.y < 150) { p.y = 150; p.vy = Math.max(p.vy, 0); }
     if (p.y >= GROUND) {
       if (!p.onGround && p.vy > 300) p.squash = 0.18;
       p.y = GROUND; p.vy = 0; p.onGround = true;
     }
-    const minX = p.side === 0 ? PR : NET_X + NET_HALF + PR;
-    const maxX = p.side === 0 ? NET_X - NET_HALF - PR : W - PR;
+    const target = fx.shrink ? PR * 0.6 : PR;
+    p.r += (target - p.r) * Math.min(1, dt * 10);
+    const minX = p.side === 0 ? p.r : NET_X + NET_HALF + p.r;
+    const maxX = p.side === 0 ? NET_X - NET_HALF - p.r : W - p.r;
     p.x = Math.max(minX, Math.min(maxX, p.x));
     p.hitCooldown = Math.max(0, p.hitCooldown - dt);
     p.squash = Math.max(0, p.squash - dt);
   }
 
-  function clampBall() {
-    const sp = Math.hypot(ball.vx, ball.vy);
-    const max = ball.fire > 0 ? B_MAX * 1.25 : B_MAX;
-    if (sp > max) { ball.vx *= max / sp; ball.vy *= max / sp; }
+  function clampBall(b) {
+    const sp = Math.hypot(b.vx, b.vy);
+    const max = b.super ? B_MAX * 1.25 : B_MAX;
+    if (sp > max) { b.vx *= max / sp; b.vy *= max / sp; }
   }
 
   // Direction from the ball that clears the net and lands on the opponent's side.
-  function spikeDirection(p) {
+  function spikeDirection(p, b) {
     const towards = p.side === 0 ? 1 : -1;
     const clearY = NET_TOP - BR - 14;
     const nearNet = Math.abs(p.x - NET_X) < 190;
     let tx, ty;
-    if (nearNet && ball.y < NET_TOP - 30) {
-      // steep spike aimed deep into the opponent court, if the line clears the net
+    if (nearNet && b.y < NET_TOP - 30) {
       tx = NET_X + towards * 230; ty = GROUND;
-      const k = (NET_X - ball.x) / (tx - ball.x);
-      const yAtNet = ball.y + (ty - ball.y) * k;
-      if (k > 0 && k < 1 && yAtNet < clearY) return norm(tx - ball.x, ty - ball.y);
+      const k = (NET_X - b.x) / (tx - b.x);
+      const yAtNet = b.y + (ty - b.y) * k;
+      if (k > 0 && k < 1 && yAtNet < clearY) return norm(tx - b.x, ty - b.y);
     }
-    // otherwise aim over the top of the net
     tx = NET_X; ty = clearY - 30;
-    if ((tx - ball.x) * towards <= 10) return norm(towards, -0.6);
-    const d = norm(tx - ball.x, ty - ball.y);
+    if ((tx - b.x) * towards <= 10) return norm(towards, -0.6);
+    const d = norm(tx - b.x, ty - b.y);
     if (d.y > -0.15) d.y = -0.15;
     return norm(d.x, d.y);
   }
   function norm(x, y) { const l = Math.hypot(x, y) || 1; return { x: x / l, y: y / l }; }
 
+  // Applies the effect of a super ball to the player who touched it.
+  function applySuperEffect(p, id) {
+    const fx = p.fx;
+    const s = SUPER(id);
+    let key = null;
+    if (id === 'confusion') { fx.confused = true; key = 'e_confusion'; }
+    else if (id === 'ice') { fx.frozen = 2; key = 'e_ice'; burst(p.x, p.y - 20, 18, ['#caf0f8', '#48cae4', '#ffffff']); }
+    else if (id === 'lightning') { fx.stunned = 1; key = 'e_lightning'; burst(p.x, p.y - 20, 16, ['#ffd60a', '#ffffff']); }
+    else if (id === 'zerog') { fx.float = true; key = 'e_zerog'; }
+    else if (id === 'shrink') { fx.shrink = true; key = 'e_shrink'; }
+    else if (id === 'sticky') { fx.sticky = true; key = 'e_sticky'; }
+    else if (id === 'heavy') { key = 'e_heavy'; }
+    if (key) { showBanner(t(key), 1.1, s.color); Sound.effect(); }
+    return id === 'heavy';
+  }
+
   function collidePlayer(p) {
     const dx = ball.x - p.x, dy = ball.y - p.y;
     const dist = Math.hypot(dx, dy);
-    if (dist >= PR + BR || dist === 0 || p.hitCooldown > 0) return;
+    if (dist >= p.r + BR || dist === 0 || p.hitCooldown > 0) return;
     const nx = dx / dist, ny = dy / dist;
-    ball.x = p.x + nx * (PR + BR + 0.5);
-    ball.y = p.y + ny * (PR + BR + 0.5);
+    ball.x = p.x + nx * (p.r + BR + 0.5);
+    ball.y = p.y + ny * (p.r + BR + 0.5);
     p.hitCooldown = 0.08;
+
+    // a super from the other side hits this player first
+    let weak = false;
+    if (ball.super && ball.superOwner !== p.side) {
+      weak = applySuperEffect(p, ball.super);
+      endSuper();
+    }
 
     const towards = p.side === 0 ? 1 : -1;
     const onOwnSide = (ball.x - NET_X) * towards < 0;
-    const canSpike = !p.onGround && ny < -0.25 && nx * towards > -0.55 && onOwnSide;
+    const canSpike = !weak && !p.onGround && ny < -0.25 && nx * towards > -0.55 && onOwnSide;
 
     if (canSpike) {
       const isSuper = p.power >= 1;
-      const d = spikeDirection(p);
-      const sp = isSuper ? 1180 : 820;
-      ball.vx = d.x * sp; ball.vy = d.y * sp;
-      ball.fire = isSuper ? 1.6 : 0;
+      const d = spikeDirection(p, ball);
       if (isSuper) {
-        p.power = 0; shake = 0.35; Sound.superSpike();
-        burst(ball.x, ball.y, 26, ['#ffb627', '#ff6b35', '#fff1a8']);
+        const s = SUPER(p.superId);
+        ball.vx = d.x * s.speed; ball.vy = d.y * s.speed;
+        startSuper(p, s);
       } else {
+        ball.vx = d.x * 820; ball.vy = d.y * 820;
+        endSuper();
         p.power = Math.min(1, p.power + 0.12); shake = 0.12; Sound.spike();
         burst(ball.x, ball.y, 12, ['#ffffff', '#ffd23f']);
       }
@@ -332,39 +412,59 @@
       const vn = rvx * nx + rvy * ny;
       if (vn < 0) { rvx -= 1.85 * vn * nx; rvy -= 1.85 * vn * ny; }
       ball.vx = rvx + p.vx * 0.6; ball.vy = rvy + Math.min(0, p.vy) * 0.4;
+      const minHit = weak ? B_MIN_HIT * 0.45 : B_MIN_HIT;
       const out = ball.vx * nx + ball.vy * ny;
-      if (out < B_MIN_HIT) { ball.vx += nx * (B_MIN_HIT - out); ball.vy += ny * (B_MIN_HIT - out); }
-      if (ball.vy > -260 && ny < 0) ball.vy = Math.min(ball.vy, -420);
-      ball.fire = 0;
+      if (out < minHit) { ball.vx += nx * (minHit - out); ball.vy += ny * (minHit - out); }
+      if (weak) { ball.vx *= 0.45; ball.vy *= 0.45; }
+      else if (ball.vy > -260 && ny < 0) ball.vy = Math.min(ball.vy, -420);
+      if (ball.superOwner === p.side) endSuper();
       p.power = Math.min(1, p.power + 0.25);
       Sound.hit();
       burst(ball.x - nx * BR, ball.y - ny * BR, 5, ['#ffffff']);
     }
-    ball.spin = (ball.vx) / 40;
+    ball.spin = ball.vx / 40;
     ball.lastTouch = p.side;
     p.squash = 0.12;
-    clampBall();
+    clampBall(ball);
   }
 
-  function collideNet() {
+  function startSuper(p, s) {
+    p.power = 0; shake = 0.35; Sound.superSpike();
+    ball.super = s.id; ball.superOwner = p.side; ball.superTime = 3; ball.zig = 0;
+    burst(ball.x, ball.y, 26, [s.color, s.glow, '#ffffff']);
+    fakes = [];
+    if (s.id === 'clones') {
+      for (const a of [-0.16, 0.13]) {
+        const c = Math.cos(a), sn = Math.sin(a);
+        fakes.push({ x: ball.x, y: ball.y, vx: ball.vx * c - ball.vy * sn, vy: ball.vx * sn + ball.vy * c,
+          angle: 0, spin: ball.spin, fake: true });
+      }
+      // weaker AIs often chase a fake
+      for (const q of players) {
+        if (q.isAI && q.side !== p.side && Math.random() < 0.6 - q.level * 0.06) q.ai.follow = fakes[Math.random() < 0.5 ? 0 : 1];
+      }
+    }
+  }
+  function endSuper() { ball.super = null; ball.superOwner = -1; ball.superTime = 0; }
+
+  function collideNet(b) {
     const left = NET_X - NET_HALF, right = NET_X + NET_HALF;
-    const cx = Math.max(left, Math.min(right, ball.x));
-    const cy = Math.max(NET_TOP, Math.min(GROUND, ball.y));
-    let dx = ball.x - cx, dy = ball.y - cy;
+    const cx = Math.max(left, Math.min(right, b.x));
+    const cy = Math.max(NET_TOP, Math.min(GROUND, b.y));
+    let dx = b.x - cx, dy = b.y - cy;
     const d = Math.hypot(dx, dy);
-    if (d >= BR) return;
-    if (d === 0) { dx = ball.vx > 0 ? -1 : 1; dy = 0; } else { dx /= d; dy /= d; }
-    ball.x = cx + dx * (BR + 0.5);
-    ball.y = cy + dy * (BR + 0.5);
-    const vn = ball.vx * dx + ball.vy * dy;
-    if (vn < 0) { ball.vx -= 1.6 * vn * dx; ball.vy -= 1.6 * vn * dy; }
-    ball.vx *= 0.85;
-    if (ball.fire > 0) ball.fire = 0;
-    Sound.hit();
+    if (d >= BR) return false;
+    if (d === 0) { dx = b.vx > 0 ? -1 : 1; dy = 0; } else { dx /= d; dy /= d; }
+    b.x = cx + dx * (BR + 0.5);
+    b.y = cy + dy * (BR + 0.5);
+    const vn = b.vx * dx + b.vy * dy;
+    if (vn < 0) { b.vx -= 1.6 * vn * dx; b.vy -= 1.6 * vn * dy; }
+    b.vx *= 0.85;
+    return true;
   }
 
-  function stepBall(b, dt, withNet) {
-    b.vy += B_GRAV * dt;
+  function stepBall(b, dt, withNet, gravMul) {
+    b.vy += B_GRAV * (gravMul || 1) * dt;
     b.x += b.vx * dt;
     b.y += b.vy * dt;
     if (b.x < BR) { b.x = BR; b.vx = Math.abs(b.vx) * 0.85; }
@@ -374,11 +474,31 @@
     }
   }
 
-  // ---------- AI ----------
-  function aiSpeed(p) { return Math.min(1.05, 0.66 + p.level * 0.05); }
+  // Flight behaviour of super balls.
+  function updateBallSuper(dt) {
+    if (!ball.super) return 1;
+    ball.superTime -= dt;
+    if (ball.superTime <= 0) { endSuper(); return 1; }
+    if (ball.super === 'lightning') {
+      ball.zig -= dt;
+      if (ball.zig <= 0) {
+        ball.zig = 0.11;
+        const side = Math.random() < 0.5 ? -1 : 1;
+        ball.vx += side * 300;
+        ball.vy += 120;
+        if (Math.random() < 0.6) burst(ball.x, ball.y, 3, ['#ffd60a', '#ffffff']);
+      }
+    }
+    if (ball.super === 'heavy') return 2.2;
+    return 1;
+  }
 
-  function predictLanding(hitY) {
-    const b = { x: ball.x, y: ball.y, vx: ball.vx, vy: ball.vy };
+  // ---------- AI ----------
+  // Rival 1 is gentle; each rival moves faster, misjudges less and spikes more.
+  function aiSpeed(p) { return Math.min(1.05, 0.56 + p.level * 0.06); }
+
+  function predictLanding(src, hitY) {
+    const b = { x: src.x, y: src.y, vx: src.vx, vy: src.vy };
     for (let i = 0; i < 240; i++) {
       stepBall(b, 1 / 60, true);
       if (b.y >= hitY && b.vy > 0) return b.x;
@@ -391,13 +511,16 @@
     const towards = p.side === 0 ? 1 : -1;
     const home = p.side === 0 ? 240 : 720;
     const ownSide = x => (x - NET_X) * towards < 0;
+    if (ai.follow && !fakes.includes(ai.follow)) ai.follow = null;
+    const tracked = ai.follow || ball;
     ai.think -= dt;
     if (ai.think <= 0) {
-      ai.think = Math.max(0.03, 0.2 - p.level * 0.02);
-      const coming = ownSide(ball.x) || ball.vx * towards < 0;
+      ai.think = Math.max(0.03, 0.24 - p.level * 0.025);
+      const coming = ownSide(tracked.x) || tracked.vx * towards < 0;
       if (coming) {
-        const land = predictLanding(GROUND - PR - 10);
-        if (Math.random() < 0.15) ai.err = (Math.random() - 0.5) * Math.max(6, 70 - p.level * 8);
+        const land = predictLanding(tracked, GROUND - p.r - 10);
+        const ghost = ball.super === 'ghost' && ball.superOwner !== p.side;
+        if (Math.random() < 0.15 || ghost) ai.err = (Math.random() - 0.5) * Math.max(8, 90 - p.level * 10) * (ghost ? 2 : 1);
         // stand slightly behind the ball so the touch sends it towards the net
         ai.target = ownSide(land) ? land - towards * (16 + (8 - p.level) * 2) + ai.err : home;
       } else {
@@ -411,7 +534,7 @@
     const near = Math.abs(ball.x - p.x) < 80 && ownSide(ball.x);
     const height = GROUND - ball.y;
     if (p.onGround && near && height > 150 && height < 300 && ball.vy > -120) {
-      if (ai.jumpPlan === null) ai.jumpPlan = Math.random() < 0.15 + p.level * 0.1;
+      if (ai.jumpPlan === null) ai.jumpPlan = Math.random() < 0.08 + p.level * 0.11;
       if (ai.jumpPlan && Math.abs(p.x - NET_X) < 260) inp.jump = true;
     }
     if (!ownSide(ball.x)) ai.jumpPlan = null;
@@ -443,7 +566,7 @@
 
     if (state === 'point') {
       pointTimer -= dt;
-      if (ball) { ball.vx *= 0.96; }
+      if (ball) ball.vx *= 0.96;
       if (pointTimer <= 0) {
         if (score[0] >= WIN_POINTS || score[1] >= WIN_POINTS) endMatch();
         else { resetRally(); state = 'playing'; }
@@ -458,12 +581,24 @@
 
     ball.trail.push({ x: ball.x, y: ball.y });
     if (ball.trail.length > 10) ball.trail.shift();
-    stepBall(ball, dt, false);
-    collideNet();
+    const grav = updateBallSuper(dt);
+    stepBall(ball, dt, false, grav);
+    if (collideNet(ball)) { Sound.hit(); endSuper(); fakes = []; }
     for (const p of players) collidePlayer(p);
     ball.angle += ball.spin * dt;
-    ball.fire = Math.max(0, ball.fire - dt);
+    clampBall(ball);
     if (ball.y < -600) ball.y = -600;
+
+    // fake clones vanish when they touch anything
+    for (const f of fakes) {
+      stepBall(f, dt, false);
+      f.angle += f.spin * dt;
+      if (collideNet(f)) f.dead = true;
+      for (const p of players) if (Math.hypot(f.x - p.x, f.y - p.y) < p.r + BR) f.dead = true;
+      if (f.y + BR >= GROUND) f.dead = true;
+      if (f.dead) burst(f.x, f.y, 10, ['#a2d2ff', '#ffffff']);
+    }
+    fakes = fakes.filter(f => !f.dead);
 
     if (ball.y + BR >= GROUND) {
       ball.y = GROUND - BR;
@@ -473,6 +608,8 @@
       server = winner;
       sand(ball.x);
       ball.vy = -Math.abs(ball.vy) * 0.35; ball.vx *= 0.5;
+      endSuper();
+      fakes = [];
       shake = Math.max(shake, 0.15);
       state = 'point';
       pointTimer = 1.1;
@@ -492,7 +629,7 @@
     let coins = 0, title;
     if (mode === 'solo') {
       if (won) {
-        coins = 20 + rivalIndex * 6 + (score[1] === 0 ? 10 : 0);
+        coins = 25 + rivalIndex * 8 + (score[1] === 0 ? 10 : 0);
         const stars = score[1] <= 2 ? 3 : score[1] <= 4 ? 2 : 1;
         save.stars[rivalIndex] = Math.max(save.stars[rivalIndex] || 0, stars);
         if (save.tour === rivalIndex && save.tour < RIVALS.length) save.tour = rivalIndex + 1;
@@ -520,11 +657,10 @@
   }
 
   async function runAd(type) {
-    const prev = state;
     state = 'ad';
     const ok = await Platform.showAd(type, () => { adPlaying = true; });
     adPlaying = false;
-    state = prev === 'ad' ? 'result' : prev;
+    state = 'result';
     return ok;
   }
 
@@ -533,8 +669,7 @@
     document.getElementById('resTitle').textContent = r.title;
     document.getElementById('resScore').textContent = score[0] + ' - ' + score[1];
     document.getElementById('resCoins').textContent = t('coinsEarned', { n: r.coins });
-    const rewardRow = document.getElementById('rewardRow');
-    rewardRow.classList.toggle('hidden', !offerReward);
+    document.getElementById('rewardRow').classList.toggle('hidden', !offerReward);
     document.getElementById('btnDouble').textContent = t('double') + ' (+' + r.coins + ')';
     const next = document.getElementById('btnNext');
     if (mode === 'duo') next.textContent = t('rematch');
@@ -545,6 +680,7 @@
   }
 
   // ---------- Pause ----------
+  let pausedFrom = 'playing';
   function pauseGame() {
     if (state !== 'playing' && state !== 'point') return;
     pausedFrom = state;
@@ -552,7 +688,6 @@
     Platform.gameplayStop();
     showScreen('pause');
   }
-  let pausedFrom = 'playing';
   function resumeGame() {
     showScreen(null);
     state = pausedFrom;
@@ -579,7 +714,7 @@
       ctx.fillStyle = '#3d405b'; ctx.fillRect(0, 0, W, GROUND);
       ctx.fillStyle = '#4a4e6d';
       for (let r = 0; r < 4; r++) ctx.fillRect(0, 150 + r * 60, W, 30);
-      ctx.fillStyle = '#ffffff14'; for (let i = 0; i < 5; i++) { ctx.fillRect(80 + i * 200, 20, 120, 16); }
+      ctx.fillStyle = '#ffffff14'; for (let i = 0; i < 5; i++) ctx.fillRect(80 + i * 200, 20, 120, 16);
       ctx.fillStyle = '#ffb627'; ctx.fillRect(0, GROUND - 8, W, 8);
       g = ctx.createLinearGradient(0, GROUND, 0, H);
       g.addColorStop(0, '#d8a35d'); g.addColorStop(1, '#b07a3a');
@@ -641,35 +776,81 @@
   function drawPlayer(p, x, y, sc, lookX, lookY, cv) {
     const c = cv || ctx;
     const ch = p.char;
+    const fx = p.fx || freshFx();
+    const size = (p.r || PR) / PR;
     const sq = p.squash > 0 ? 1 - p.squash * 1.2 : 1;
     const stretch = !p.onGround ? 1.06 : 1;
-    c.save();
-    c.translate(x, y);
-    c.scale(sc / sq, sc * sq * stretch);
     if (!cv) { // shadow
-      c.save(); c.scale(1 / (sc / sq), 1 / (sc * sq * stretch));
       const h = Math.max(0, GROUND - p.y);
       c.fillStyle = 'rgba(0,0,0,' + Math.max(0.08, 0.28 - h / 900) + ')';
-      c.beginPath(); c.ellipse(0, GROUND - p.y + 2, PR * (1 - h / 700), 8, 0, 0, Math.PI * 2); c.fill();
-      c.restore();
+      c.beginPath(); c.ellipse(x, GROUND + 2, PR * size * (1 - h / 700), 8, 0, 0, Math.PI * 2); c.fill();
+      if (fx.sticky) { // bubblegum puddle at the feet
+        c.fillStyle = '#f72585cc'; c.beginPath(); c.ellipse(x, GROUND + 1, PR * size * 1.1, 9, 0, 0, Math.PI * 2); c.fill();
+      }
     }
+    c.save();
+    c.translate(x, y);
+    c.scale(sc * size / sq, sc * size * sq * stretch);
     const body = p.dark ? shade(ch.body, -0.45) : ch.body;
     c.fillStyle = body;
     c.beginPath(); c.arc(0, 0, PR, Math.PI, 0); c.lineTo(PR, 0); c.closePath(); c.fill();
     c.lineWidth = 3; c.strokeStyle = '#1b1b1bcc'; c.stroke();
     c.fillStyle = '#ffffff33';
     c.beginPath(); c.ellipse(-14, -26, 10, 6, -0.5, 0, Math.PI * 2); c.fill();
-    // headband
     c.fillStyle = ch.band;
     c.beginPath(); c.arc(0, 0, PR, Math.PI * 1.13, Math.PI * 1.87); c.arc(0, 0, PR - 9, Math.PI * 1.87, Math.PI * 1.13, true); c.fill();
-    // eyes follow the ball
+    // eyes follow the ball; spirals when confused, crosses when zapped
     const facing = p.side === 0 ? 1 : -1;
     const ex = 10 * facing, ey = -16;
-    let lx = lookX - (x + ex * sc), ly = lookY - (y + ey * sc);
-    const ll = Math.hypot(lx, ly) || 1; lx /= ll; ly /= ll;
     c.fillStyle = '#fff'; c.beginPath(); c.arc(ex, ey, 8, 0, Math.PI * 2); c.fill();
-    c.fillStyle = '#1b1b1b'; c.beginPath(); c.arc(ex + lx * 4, ey + ly * 4, 4, 0, Math.PI * 2); c.fill();
+    if (fx.confused) {
+      c.strokeStyle = '#9d4edd'; c.lineWidth = 2; c.beginPath();
+      for (let a = 0; a < 12; a += 0.4) c.lineTo(ex + Math.cos(a + time * 8) * a * 0.55, ey + Math.sin(a + time * 8) * a * 0.55);
+      c.stroke();
+    } else if (fx.stunned > 0) {
+      c.strokeStyle = '#1b1b1b'; c.lineWidth = 2.5; c.beginPath();
+      c.moveTo(ex - 4, ey - 4); c.lineTo(ex + 4, ey + 4); c.moveTo(ex + 4, ey - 4); c.lineTo(ex - 4, ey + 4); c.stroke();
+    } else {
+      let lx = lookX - (x + ex * sc), ly = lookY - (y + ey * sc);
+      const ll = Math.hypot(lx, ly) || 1; lx /= ll; ly /= ll;
+      c.fillStyle = '#1b1b1b'; c.beginPath(); c.arc(ex + lx * 4, ey + ly * 4, 4, 0, Math.PI * 2); c.fill();
+    }
     c.restore();
+    if (cv) return;
+
+    // status effects on top
+    const top = y - PR * size;
+    if (fx.frozen > 0) {
+      c.save();
+      c.globalAlpha = 0.75;
+      c.fillStyle = '#caf0f8';
+      c.fillRect(x - PR * size - 8, top - 12, (PR * size + 8) * 2, PR * size + 12);
+      c.globalAlpha = 1;
+      c.strokeStyle = '#48cae4'; c.lineWidth = 3;
+      c.strokeRect(x - PR * size - 8, top - 12, (PR * size + 8) * 2, PR * size + 12);
+      c.strokeStyle = '#ffffffcc'; c.lineWidth = 2; c.beginPath();
+      c.moveTo(x - PR * size, top - 4); c.lineTo(x - PR * size + 18, top + 10); c.stroke();
+      c.restore();
+    }
+    if (fx.confused) {
+      c.fillStyle = '#9d4edd'; c.font = '900 22px "Trebuchet MS",sans-serif'; c.textAlign = 'center';
+      for (let i = 0; i < 3; i++) {
+        const a = time * 4 + i * 2.1;
+        c.fillText('?', x + Math.cos(a) * 30, top - 12 + Math.sin(a) * 8);
+      }
+    }
+    if (fx.stunned > 0) {
+      c.strokeStyle = '#ffd60a'; c.lineWidth = 3; c.beginPath();
+      for (let i = 0; i < 3; i++) {
+        const bx = x - 30 + i * 30 + Math.sin(time * 40 + i) * 4;
+        c.moveTo(bx, top - 26); c.lineTo(bx + 6, top - 16); c.lineTo(bx - 2, top - 14); c.lineTo(bx + 4, top - 2);
+      }
+      c.stroke();
+    }
+    if (fx.float) {
+      c.strokeStyle = '#c77dffaa'; c.lineWidth = 3;
+      c.beginPath(); c.arc(x, y - PR * size * 0.4, PR * size + 14, 0, Math.PI * 2); c.stroke();
+    }
   }
   function shade(hex, amt) {
     const n = parseInt(hex.slice(1), 16);
@@ -691,6 +872,80 @@
     c.restore();
   }
 
+  // Small emblem for each super, used in the shop, tour cards and HUD.
+  function drawSuperIcon(c, id, x, y, R) {
+    const s = SUPER(id);
+    c.save(); c.translate(x, y);
+    c.fillStyle = s.color; c.beginPath(); c.arc(0, 0, R, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = '#00000055'; c.lineWidth = 2; c.stroke();
+    c.fillStyle = '#ffffff'; c.strokeStyle = '#ffffff'; c.lineWidth = R * 0.14; c.lineCap = 'round'; c.lineJoin = 'round';
+    const k = R / 20;
+    c.beginPath();
+    if (id === 'fire') {
+      c.moveTo(0, -12 * k); c.quadraticCurveTo(10 * k, -2 * k, 7 * k, 7 * k); c.quadraticCurveTo(0, 13 * k, -7 * k, 7 * k);
+      c.quadraticCurveTo(-10 * k, -1 * k, 0, -12 * k); c.fillStyle = '#ffd23f'; c.fill();
+    } else if (id === 'sticky') {
+      c.arc(0, 0, 8 * k, 0, Math.PI * 2); c.fillStyle = '#ffb3c6'; c.fill();
+      c.beginPath(); c.arc(-3 * k, -3 * k, 2.5 * k, 0, Math.PI * 2); c.fillStyle = '#fff'; c.fill();
+    } else if (id === 'shrink') {
+      c.moveTo(-9 * k, -9 * k); c.lineTo(-2 * k, -2 * k); c.moveTo(9 * k, 9 * k); c.lineTo(2 * k, 2 * k);
+      c.moveTo(-2 * k, -7 * k); c.lineTo(-2 * k, -2 * k); c.lineTo(-7 * k, -2 * k);
+      c.moveTo(2 * k, 7 * k); c.lineTo(2 * k, 2 * k); c.lineTo(7 * k, 2 * k); c.stroke();
+    } else if (id === 'heavy') {
+      c.arc(2 * k, 2 * k, 7 * k, 0, Math.PI * 2); c.fillStyle = '#e85d04'; c.fill();
+      c.beginPath(); c.moveTo(-4 * k, -4 * k); c.lineTo(-12 * k, -12 * k); c.moveTo(0, -7 * k); c.lineTo(-5 * k, -14 * k); c.stroke();
+    } else if (id === 'ice') {
+      for (let i = 0; i < 3; i++) { const a = i * Math.PI / 3; c.moveTo(Math.cos(a) * 11 * k, Math.sin(a) * 11 * k); c.lineTo(-Math.cos(a) * 11 * k, -Math.sin(a) * 11 * k); }
+      c.stroke();
+    } else if (id === 'zerog') {
+      c.arc(0, 2 * k, 6 * k, 0, Math.PI * 2); c.fill();
+      c.beginPath(); c.moveTo(-9 * k, -6 * k); c.lineTo(0, -12 * k); c.lineTo(9 * k, -6 * k); c.stroke();
+    } else if (id === 'lightning') {
+      c.moveTo(3 * k, -13 * k); c.lineTo(-6 * k, 2 * k); c.lineTo(1 * k, 2 * k); c.lineTo(-3 * k, 13 * k); c.lineTo(7 * k, -3 * k);
+      c.lineTo(0, -3 * k); c.closePath(); c.fillStyle = '#1b1b1b'; c.fill();
+    } else if (id === 'ghost') {
+      c.moveTo(-8 * k, 10 * k); c.lineTo(-8 * k, -2 * k); c.arc(0, -2 * k, 8 * k, Math.PI, 0); c.lineTo(8 * k, 10 * k);
+      c.lineTo(4 * k, 6 * k); c.lineTo(0, 10 * k); c.lineTo(-4 * k, 6 * k); c.closePath(); c.fillStyle = '#6c757d'; c.fill();
+      c.beginPath(); c.arc(-3 * k, -2 * k, 1.8 * k, 0, Math.PI * 2); c.arc(3 * k, -2 * k, 1.8 * k, 0, Math.PI * 2); c.fillStyle = '#fff'; c.fill();
+    } else if (id === 'clones') {
+      c.arc(-6 * k, 4 * k, 5 * k, 0, Math.PI * 2); c.arc(6 * k, 4 * k, 5 * k, 0, Math.PI * 2); c.fill();
+      c.beginPath(); c.arc(0, -6 * k, 5 * k, 0, Math.PI * 2); c.fill();
+    } else if (id === 'confusion') {
+      c.font = '900 ' + Math.round(22 * k) + 'px "Trebuchet MS",sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText('?', 0, 1 * k);
+    }
+    c.restore();
+  }
+
+  function drawSuperBall(b) {
+    const s = SUPER(b.super);
+    let alpha = 1;
+    if (b.super === 'ghost' && (b.x - NET_X) * (b.superOwner === 0 ? 1 : -1) > 0) {
+      alpha = (time % 0.6) < 0.08 ? 0.7 : 0.04; // blinks now and then once past the net
+    }
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    b.trail.forEach((tp, i) => {
+      ctx.globalAlpha = alpha * (i / b.trail.length) * 0.8;
+      ctx.fillStyle = i % 2 ? s.color : s.glow;
+      circle(tp.x, tp.y, BR * (0.4 + i / b.trail.length * 0.7));
+    });
+    ctx.globalAlpha = alpha;
+    if (b.super === 'lightning') {
+      ctx.strokeStyle = '#ffd60a'; ctx.lineWidth = 3; ctx.beginPath();
+      for (let i = 0; i < 4; i++) {
+        const a = Math.random() * Math.PI * 2;
+        ctx.moveTo(b.x, b.y); ctx.lineTo(b.x + Math.cos(a) * 22, b.y + Math.sin(a) * 22); ctx.lineTo(b.x + Math.cos(a + 0.4) * 32, b.y + Math.sin(a + 0.4) * 32);
+      }
+      ctx.stroke();
+    }
+    ctx.fillStyle = s.glow; ctx.globalAlpha = alpha * 0.5; circle(b.x, b.y, BR + 7);
+    ctx.globalAlpha = alpha;
+    drawBall(b, BALLS[save.ball]);
+    drawSuperIcon(ctx, b.super, b.x, b.y, BR * 0.75);
+    ctx.restore();
+  }
+
   function drawHUD() {
     ctx.textAlign = 'center';
     ctx.fillStyle = '#0008';
@@ -702,21 +957,24 @@
     const n1 = mode === 'duo' ? 'P2' : RIVALS[rivalIndex].nick;
     ctx.textAlign = 'left'; ctx.fillText(n0, 20, 28);
     ctx.textAlign = 'right'; ctx.fillText(n1, W - 76, 28);
-    powerBar(20, 38, players[0].power, false);
-    powerBar(W - 76 - 140, 38, players[1].power, true);
+    powerBar(44, 38, players[0], false);
+    powerBar(W - 76 - 140 - 24, 38, players[1], true);
     if (bannerTimer > 0) {
       ctx.save();
       ctx.globalAlpha = Math.min(1, bannerTimer * 3);
       ctx.textAlign = 'center'; ctx.font = '900 54px "Trebuchet MS",sans-serif';
       ctx.fillStyle = '#0006'; ctx.fillText(banner, W / 2 + 3, 173);
-      ctx.fillStyle = '#ffb627'; ctx.fillText(banner, W / 2, 170);
+      ctx.fillStyle = bannerColor; ctx.fillText(banner, W / 2, 170);
       ctx.restore();
     }
   }
-  function powerBar(x, y, v, right) {
+  function powerBar(x, y, p, right) {
+    const v = p.power;
+    const s = SUPER(p.superId);
+    drawSuperIcon(ctx, p.superId, right ? x + 140 + 14 : x - 14, y + 7, 11);
     ctx.fillStyle = '#0007'; roundRect(x, y, 140, 14, 7); ctx.fill();
     const full = v >= 1;
-    ctx.fillStyle = full ? (Math.sin(time * 12) > 0 ? '#ffb627' : '#ff6b35') : '#ffd23f';
+    ctx.fillStyle = full ? (Math.sin(time * 12) > 0 ? s.color : s.glow) : '#ffd23f';
     const w = 140 * Math.min(1, v);
     roundRect(right ? x + 140 - w : x, y, Math.max(w, 0.1), 14, 7); ctx.fill();
     if (full) {
@@ -736,22 +994,18 @@
     if (players.length) {
       drawNet();
       for (const p of players) drawPlayer(p, p.x, p.y, 1, ball.x, ball.y);
-      if (ball.fire > 0) {
-        ball.trail.forEach((tp, i) => {
-          ctx.globalAlpha = i / ball.trail.length * 0.8;
-          ctx.fillStyle = i % 2 ? '#ff6b35' : '#ffb627';
-          circle(tp.x, tp.y, BR * (0.4 + i / ball.trail.length * 0.7));
-        });
-        ctx.globalAlpha = 1;
+      for (const f of fakes) drawSuperBall(Object.assign({}, f, { super: 'clones', trail: [] }));
+      if (ball.super) {
+        drawSuperBall(ball);
       } else {
         ball.trail.forEach((tp, i) => {
           ctx.globalAlpha = i / ball.trail.length * 0.18; ctx.fillStyle = '#fff'; circle(tp.x, tp.y, BR * 0.7);
         });
         ctx.globalAlpha = 1;
+        drawBall(ball, BALLS[save.ball]);
       }
       // marker when the ball is above the screen
-      if (ball.y < -BR) { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(ball.x, 6); ctx.lineTo(ball.x - 8, 20); ctx.lineTo(ball.x + 8, 20); ctx.fill(); }
-      drawBall(ball, BALLS[save.ball]);
+      if (ball.y < -BR && ball.super !== 'ghost') { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(ball.x, 6); ctx.lineTo(ball.x - 8, 20); ctx.lineTo(ball.x + 8, 20); ctx.fill(); }
       for (const pt of particles) { ctx.globalAlpha = Math.max(0, pt.life / pt.max); ctx.fillStyle = pt.color; circle(pt.x, pt.y, pt.r); }
       ctx.globalAlpha = 1;
       if (state === 'playing' || state === 'point' || state === 'paused') drawHUD();
@@ -773,7 +1027,7 @@
   }
   function goMenu() {
     state = 'menu';
-    players = []; ball = null;
+    players = []; ball = null; fakes = [];
     document.getElementById('hud').classList.add('hidden');
     document.getElementById('touch').classList.add('hidden');
     venue = 'beach';
@@ -798,11 +1052,17 @@
       const locked = i > save.tour;
       card.className = 'card' + (locked ? ' locked' : '');
       const fake = { char: CHARS[r.char], dark: !!r.dark, side: 1, squash: 0, onGround: true, y: GROUND };
-      card.appendChild(previewCanvas(g => drawPlayer(fake, 45, 62, 0.85, 10, 30, g)));
+      card.appendChild(previewCanvas(g => {
+        drawPlayer(fake, 45, 62, 0.85, 10, 30, g);
+        drawSuperIcon(g, SUPERS[r.super].id, 76, 18, 11);
+      }));
       const name = document.createElement('div'); name.textContent = r.nick; card.appendChild(name);
       const info = document.createElement('small');
       info.textContent = locked ? t('locked') : t('rival', { n: i + 1 }) + ' · ' + t(VENUES[r.venue]);
       card.appendChild(info);
+      const sup = document.createElement('small');
+      sup.textContent = t('s_' + SUPERS[r.super].id);
+      card.appendChild(sup);
       const st = document.createElement('div'); st.className = 'stars';
       const s = save.stars[i] || 0; st.textContent = '★'.repeat(s) + '☆'.repeat(3 - s);
       card.appendChild(st);
@@ -818,29 +1078,42 @@
   function buildShop() {
     const grid = document.getElementById('items');
     grid.innerHTML = '';
+    grid.classList.toggle('five', shopTab === 'supers');
     document.getElementById('tabChars').classList.toggle('on', shopTab === 'chars');
     document.getElementById('tabBalls').classList.toggle('on', shopTab === 'balls');
-    const list = shopTab === 'chars' ? CHARS : BALLS;
-    const owned = shopTab === 'chars' ? save.chars : save.balls;
-    const current = shopTab === 'chars' ? save.char : save.ball;
-    list.forEach((it, i) => {
+    document.getElementById('tabSupers').classList.toggle('on', shopTab === 'supers');
+    const cfg = {
+      chars: { list: CHARS, owned: save.chars, cur: 'char' },
+      balls: { list: BALLS, owned: save.balls, cur: 'ball' },
+      supers: { list: SUPERS, owned: save.supers, cur: 'superSel' },
+    }[shopTab];
+    cfg.list.forEach((it, i) => {
       const card = document.createElement('button');
-      const has = owned.includes(i);
-      card.className = 'card' + (i === current ? ' sel' : '');
+      const has = cfg.owned.includes(i);
+      const isCur = save[cfg.cur] === i;
+      card.className = 'card' + (isCur ? ' sel' : '');
       card.appendChild(previewCanvas(g => {
         if (shopTab === 'chars') drawPlayer({ char: it, dark: false, side: 0, squash: 0, onGround: true, y: GROUND }, 45, 62, 0.85, 80, 30, g);
-        else drawBall({ x: 45, y: 36, angle: 0.4 }, it, g, 26);
+        else if (shopTab === 'balls') drawBall({ x: 45, y: 36, angle: 0.4 }, it, g, 26);
+        else drawSuperIcon(g, it.id, 45, 36, 26);
       }));
-      const name = document.createElement('div'); name.textContent = it.name; card.appendChild(name);
+      const name = document.createElement('div');
+      name.textContent = shopTab === 'supers' ? t('s_' + it.id) : it.name;
+      card.appendChild(name);
+      if (shopTab === 'supers') {
+        const desc = document.createElement('small'); desc.className = 'desc'; desc.textContent = t('s_' + it.id + '_d');
+        card.appendChild(desc);
+      }
       const info = document.createElement('small');
-      info.textContent = i === current ? t('selected') : has ? t('select') : '● ' + it.price;
+      info.className = 'price';
+      info.textContent = isCur ? t('selected') : has ? t('select') : '● ' + it.price;
       card.appendChild(info);
       card.addEventListener('click', () => {
         if (!has) {
           if (save.coins < it.price) { toast('● ' + it.price); return; }
-          save.coins -= it.price; owned.push(i);
+          save.coins -= it.price; cfg.owned.push(i);
         }
-        if (shopTab === 'chars') save.char = i; else save.ball = i;
+        save[cfg.cur] = i;
         persist(); Sound.click(); buildShop(); refreshCoins();
       });
       grid.appendChild(card);
@@ -857,6 +1130,7 @@
     on('btnShop', () => { Sound.click(); shopTab = 'chars'; buildShop(); showScreen('shop'); });
     on('tabChars', () => { shopTab = 'chars'; buildShop(); });
     on('tabBalls', () => { shopTab = 'balls'; buildShop(); });
+    on('tabSupers', () => { shopTab = 'supers'; buildShop(); });
     on('btnMute', () => { save.muted = !save.muted; persist(); updateMute(); });
     on('btnPause', pauseGame);
     on('btnResume', resumeGame);
@@ -911,8 +1185,9 @@
   // Exposed for automated tests only.
   window.__spike = {
     get state() { return state; }, get score() { return score; }, get ball() { return ball; },
-    get players() { return players; }, startMatch, save,
+    get players() { return players; }, get fakes() { return fakes; }, startMatch, save,
     tick(n) { for (let i = 0; i < n; i++) update(STEP); },
+    effect(side, id) { applySuperEffect(players[side], id); },
   };
 
   boot();

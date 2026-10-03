@@ -5,7 +5,8 @@ Juego de vóley 1 contra 1 para navegador, pensado para publicarse en CrazyGames
 - **Modos:** Torneo contra 8 rivales de dificultad creciente y 2 jugadores en el mismo teclado o pantalla.
 - **Controles:** 1 jugador con A/D o flechas para moverse y W, flecha arriba o espacio para saltar. En 2 jugadores, A/D/W contra las flechas. En móvil aparecen botones táctiles.
 - **Remate:** si tocas el balón en el aire, rematas. Cada toque carga la barra; llena, el siguiente remate es un súper remate.
-- **Progresión:** las monedas de cada partido desbloquean 8 personajes y 6 balones.
+- **Súpers:** 10 súpers que se compran en la tienda. Fuego es el inicial. Los demás son Chicle, Encoger, Meteorito, Hielo, Gravedad cero, Rayo, Fantasma, Clones y Confusión; casi todos afectan al rival que para el balón. Cada rival del torneo usa un súper más fuerte que el anterior.
+- **Progresión:** las monedas de cada partido desbloquean 8 personajes, 6 balones y los súpers.
 - **Idioma:** inglés, o español si el navegador está en español.
 
 ## Probarlo en local

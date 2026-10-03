@@ -38,6 +38,12 @@ button.reward::before{content:"\25B6";display:inline-block;margin-right:calc(10*
 .grid{display:grid;grid-template-columns:repeat(4,calc(190*var(--u)));gap:calc(12*var(--u))}
 .card{background:#ffffff18;border-radius:calc(14*var(--u));padding:calc(10*var(--u));display:flex;flex-direction:column;align-items:center;gap:calc(4*var(--u));
   font-size:calc(16*var(--u));font-weight:700;min-height:calc(150*var(--u));position:relative}
+.grid.five{grid-template-columns:repeat(5,calc(168*var(--u)))}
+.grid.five .card{min-height:0;padding:calc(6*var(--u)) calc(8*var(--u));gap:calc(2*var(--u))}
+.grid.five .card canvas{width:calc(66*var(--u));height:calc(52*var(--u))}
+.card .desc{font-size:calc(12*var(--u));line-height:1.2;text-align:center;opacity:.85}
+.card .price{color:#ffcd3c;opacity:1}
+#shop{gap:calc(10*var(--u))}
 .card canvas{width:calc(90*var(--u));height:calc(70*var(--u))}
 .card small{opacity:.75;font-weight:600}
 .card.locked{opacity:.45}
