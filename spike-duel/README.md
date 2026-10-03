@@ -2,11 +2,14 @@
 
 Juego de vóley 1 contra 1 para navegador, pensado para publicarse en CrazyGames.
 
-- **Modos:** Torneo contra 8 rivales de dificultad creciente y 2 jugadores en el mismo teclado o pantalla.
+- **Modos:**
+  - **Spike Career:** 50 niveles en 5 mundos (playa, selva, nieve, azotea y pabellón), con un camino de casillas. Cada 10 niveles hay un jefe que se juega en el volcán.
+  - **Torneo:** 8 rivales aleatorios que cambian en cada torneo, de dificultad creciente. Si pierdes, vuelves a la ronda 1.
+  - **2 jugadores:** en el mismo teclado o pantalla.
 - **Controles:** 1 jugador con A/D o flechas para moverse y W, flecha arriba o espacio para saltar. En 2 jugadores, A/D/W contra las flechas. En móvil aparecen botones táctiles.
 - **Remate:** si tocas el balón en el aire, rematas. Cada toque carga la barra; llena, el siguiente remate es un súper remate.
-- **Súpers:** 10 súpers que se compran en la tienda. Fuego es el inicial. Los demás son Chicle, Encoger, Meteorito, Hielo, Gravedad cero, Rayo, Fantasma, Clones y Confusión; casi todos afectan al rival que para el balón. Cada rival del torneo usa un súper más fuerte que el anterior.
-- **Progresión:** las monedas de cada partido desbloquean 8 personajes, 6 balones y los súpers.
+- **Súpers:** 10 súpers que se compran en la tienda. Fuego es el inicial. Los demás son Chicle, Encoger, Meteorito, Hielo, Gravedad cero, Rayo, Fantasma, Clones y Confusión; casi todos afectan al rival que para el balón. Los rivales usan súpers cada vez más fuertes.
+- **Progresión:** las monedas de cada partido desbloquean 8 personajes, 7 balones (con diseños especiales de lava y de agua) y los súpers.
 - **Idioma:** inglés, o español si el navegador está en español.
 
 ## Probarlo en local

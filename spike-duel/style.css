@@ -29,6 +29,15 @@ button.alt{background:#2a9df4;box-shadow:0 calc(6*var(--u)) 0 #1a6aa8}
 button.ghost{background:#ffffff22;box-shadow:0 calc(6*var(--u)) 0 #0005}
 button.reward{background:#2ec27e;box-shadow:0 calc(6*var(--u)) 0 #1b7d50}
 button.reward::before{content:"\25B6";display:inline-block;margin-right:calc(10*var(--u));font-size:.8em;background:#fff3;border-radius:calc(6*var(--u));padding:0 calc(6*var(--u))}
+button.career{background:linear-gradient(180deg,#ffb627,#ff6b35);box-shadow:0 calc(6*var(--u)) 0 #b8441b;font-size:calc(30*var(--u));min-width:calc(360*var(--u))}
+.row.small button.big{min-width:calc(173*var(--u));font-size:calc(22*var(--u))}
+#menu .col{gap:calc(10*var(--u))}
+#menu .logo{font-size:calc(80*var(--u))}
+.note{font-size:calc(16*var(--u));opacity:.85;min-height:calc(20*var(--u));text-align:center}
+.worldbar{display:flex;align-items:center;gap:calc(16*var(--u));font-size:calc(22*var(--u));font-weight:800}
+#worldName{min-width:calc(320*var(--u));text-align:center}
+#careerMap{width:calc(860*var(--u));height:calc(300*var(--u));border-radius:calc(18*var(--u));cursor:pointer}
+.card.current{outline:calc(3*var(--u)) solid #2ec27e}
 .iconBtn{width:calc(48*var(--u));height:calc(48*var(--u));border-radius:50%;background:#0008;font-weight:900;font-size:calc(18*var(--u))}
 #hud{position:absolute;top:calc(12*var(--u));right:calc(12*var(--u))}
 

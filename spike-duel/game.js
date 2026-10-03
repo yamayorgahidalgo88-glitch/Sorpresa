@@ -24,7 +24,10 @@
       champion: 'Tour champion!', locked: 'Beat the previous rival', select: 'Select', selected: 'Selected',
       adUnavailable: 'Ad not available, try again later', serve: 'Serve!', point: 'Point!', superReady: 'SUPER',
       controls: '1P: A/D or arrows to move, W / up / space to jump  ·  2P: A/D/W vs arrows',
-      rival: 'Rival {n}', beach: 'beach', gym: 'gym', rooftop: 'rooftop', snow: 'snow',
+      rival: 'Rival {n}', beach: 'beach', gym: 'gym', rooftop: 'rooftop', snow: 'snow', jungle: 'jungle', volcano: 'volcano',
+      career: 'Spike Career', world: 'World {n}', level: 'Level {n}', boss: 'BOSS', nextLevel: 'Next level',
+      newTour: 'New tournament', round: 'Round {n} of 8', tourRule: 'Rivals change every tournament. Lose once and you start again from round 1.',
+      backToStart: 'Back to round 1', tourPrize: '+{n} champion bonus', play: 'Play', beaten: 'Beaten', careerDone: 'All levels cleared!',
       superHint: 'Fill the bar, then spike in the air',
       s_fire: 'Fire', s_fire_d: 'A blazing fast spike',
       s_sticky: 'Bubblegum', s_sticky_d: 'Whoever stops it can\'t jump this point',
@@ -47,7 +50,10 @@
       champion: '¡Campeón del torneo!', locked: 'Gana al rival anterior', select: 'Elegir', selected: 'Elegido',
       adUnavailable: 'Anuncio no disponible, prueba más tarde', serve: '¡Saca!', point: '¡Punto!', superReady: 'SÚPER',
       controls: '1J: A/D o flechas para moverte, W / arriba / espacio para saltar  ·  2J: A/D/W contra flechas',
-      rival: 'Rival {n}', beach: 'playa', gym: 'pabellón', rooftop: 'azotea', snow: 'nieve',
+      rival: 'Rival {n}', beach: 'playa', gym: 'pabellón', rooftop: 'azotea', snow: 'nieve', jungle: 'selva', volcano: 'volcán',
+      career: 'Spike Career', world: 'Mundo {n}', level: 'Nivel {n}', boss: 'JEFE', nextLevel: 'Siguiente nivel',
+      newTour: 'Nuevo torneo', round: 'Ronda {n} de 8', tourRule: 'Los rivales cambian en cada torneo. Si pierdes, vuelves a la ronda 1.',
+      backToStart: 'Vuelves a la ronda 1', tourPrize: '+{n} de premio de campeón', play: 'Jugar', beaten: 'Ganado', careerDone: '¡Todos los niveles superados!',
       superHint: 'Llena la barra y remata en el aire',
       s_fire: 'Fuego', s_fire_d: 'Un remate rapidísimo',
       s_sticky: 'Chicle', s_sticky_d: 'Quien la para no puede saltar en este punto',
@@ -83,7 +89,8 @@
   const BALLS = [
     { name: 'Classic', a: '#ffffff', b: '#ffd23f', c: '#2a9df4', price: 0 },
     { name: 'Beach', a: '#ffffff', b: '#ff3b30', c: '#2ec27e', price: 50 },
-    { name: 'Lava', a: '#ffb627', b: '#ff3b30', c: '#7a1f00', price: 120 },
+    { name: 'Lava', type: 'lava', price: 150 },
+    { name: 'Water', type: 'water', price: 150 },
     { name: 'Galaxy', a: '#3a0ca3', b: '#7209b7', c: '#4cc9f0', price: 200 },
     { name: 'Melon', a: '#2ec27e', b: '#1b7d50', c: '#ff5d8f', price: 280 },
     { name: 'Gold', a: '#ffd60a', b: '#e09b00', c: '#fff1a8', price: 450 },
@@ -103,21 +110,58 @@
     { id: 'confusion', price: 500, color: '#9d4edd', glow: '#e0aaff', speed: 1040 },
   ];
   const SUPER = id => SUPERS.find(s => s.id === id);
-  const VENUES = ['beach', 'gym', 'rooftop', 'snow'];
-  // Each rival brings a stronger super than the last.
-  const RIVALS = [
-    { char: 1, venue: 0, nick: 'Wave', super: 0 },
-    { char: 2, venue: 1, nick: 'Lime', super: 1 },
-    { char: 3, venue: 0, nick: 'Coral', super: 2 },
-    { char: 4, venue: 2, nick: 'Tank', super: 3 },
-    { char: 6, venue: 3, nick: 'Frost', super: 4 },
-    { char: 5, venue: 1, nick: 'Volt', super: 6 },
-    { char: 0, venue: 2, nick: 'Shadow', super: 7, dark: true },
-    { char: 7, venue: 3, nick: 'Ace', super: 9 },
-  ];
+  const VENUES = ['beach', 'gym', 'rooftop', 'snow', 'jungle', 'volcano'];
+  const NICKS = ['Wave', 'Lime', 'Coral', 'Tank', 'Frost', 'Volt', 'Shadow', 'Ace', 'Blaze', 'Storm', 'Pixel', 'Rocket',
+    'Nova', 'Bolt', 'Kiwi', 'Mango', 'Turbo', 'Ziggy', 'Sunny', 'Echo'];
+  const BOSSES = ['Magma King', 'Obsidian', 'Inferno', 'Eclipse', 'Dark Ace'];
+  const BOSS_SUPERS = [4, 6, 7, 8, 9];             // ice, lightning, ghost, clones, confusion
+  const WORLD_VENUES = ['beach', 'jungle', 'snow', 'rooftop', 'gym'];
+  const TOUR_SIZE = 8, CAREER_LEVELS = 50;
+
+  function rng(seed) { // mulberry32
+    let a = seed >>> 0;
+    return () => {
+      a = (a + 0x6D2B79F5) >>> 0;
+      let x = Math.imul(a ^ (a >>> 15), 1 | a);
+      x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x;
+      return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  const pick = (r, arr) => arr[Math.floor(r() * arr.length)];
+
+  // A fresh tournament: 8 random rivals, each one tougher and with a stronger super.
+  function newTourRun() {
+    const r = rng((Math.random() * 1e9) | 0);
+    const nicks = NICKS.slice().sort(() => r() - 0.5);
+    const rivals = [];
+    for (let i = 0; i < TOUR_SIZE; i++) {
+      const lo = Math.max(0, i - 1), hi = Math.min(9, i + 2);
+      rivals.push({
+        nick: nicks[i], char: Math.floor(r() * CHARS.length),
+        venue: pick(r, VENUES.slice(0, 5)), super: lo + Math.floor(r() * (hi - lo + 1)), ai: i + 1,
+      });
+    }
+    return { rivals, round: 0 };
+  }
+
+  // Career levels are fixed (seeded by level number); every 10th is a boss on the volcano.
+  function careerRival(level) {
+    const r = rng(level * 7919 + 13);
+    const world = Math.floor((level - 1) / 10);
+    if (level % 10 === 0) {
+      return { nick: BOSSES[world], char: Math.floor(r() * CHARS.length), venue: 'volcano', super: BOSS_SUPERS[world],
+        ai: Math.min(9.5, 3.2 + world * 1.6), boss: true };
+    }
+    const cap = Math.min(9, Math.floor(level / 5));
+    return {
+      nick: pick(r, NICKS), char: Math.floor(r() * CHARS.length), venue: WORLD_VENUES[world],
+      super: Math.max(0, cap - 3) + Math.floor(r() * (Math.min(cap, 3) + 1)), ai: 1 + (level - 1) * 7 / 49,
+    };
+  }
 
   // ---------- Save ----------
-  const save = { coins: 0, tour: 0, stars: [], chars: [0], balls: [0], supers: [0], char: 0, ball: 0, superSel: 0, muted: false };
+  const save = { coins: 0, chars: [0], balls: [0], supers: [0], char: 0, ball: 0, superSel: 0, muted: false,
+    tourRun: null, career: 1, cstars: {} };
   function loadSave() {
     try {
       const raw = Platform.load(SAVE_KEY);
@@ -184,7 +228,7 @@
     canvas.height = Math.round(ch * dpr);
     ctx.setTransform(canvas.width / W, 0, 0, canvas.height / H, 0, 0);
   }
-  window.addEventListener('resize', fit);
+  window.addEventListener('resize', () => { fit(); if (careerOpen) sizeMap(); });
 
   // ---------- Input ----------
   const input = [{ left: false, right: false, jump: false }, { left: false, right: false, jump: false }];
@@ -234,7 +278,9 @@
   // ---------- Game state ----------
   let state = 'loading';   // loading | menu | playing | point | paused | result | ad
   let mode = 'solo';       // solo | duo
-  let rivalIndex = 0;
+  let kind = 'tour';       // tour | career | duo
+  let rival = null;        // the AI opponent of a solo match
+  let careerLevel = 1;
   let venue = 'beach';
   let players = [], ball = null, fakes = [], particles = [];
   let score = [0, 0];
@@ -251,7 +297,7 @@
       side, x: side === 0 ? 200 : 760, y: GROUND, vx: 0, vy: 0, onGround: true,
       char: CHARS[charIdx], dark: false, isAI, level: level || 1,
       superId: SUPERS[superIdx || 0].id,
-      power: 0, hitCooldown: 0, squash: 0, r: PR, fx: freshFx(),
+      power: 0, hitCooldown: 0, squash: 0, r: PR, baseR: PR, boss: false, powerMul: 1, fx: freshFx(),
       ai: { target: side === 0 ? 200 : 760, think: 0, jumpPlan: null, err: 0, follow: null },
     };
   }
@@ -263,23 +309,27 @@
     for (const p of players) {
       p.x = p.side === 0 ? 200 : 760; p.y = GROUND; p.vx = p.vy = 0; p.onGround = true; p.hitCooldown = 0;
       p.ai.jumpPlan = null; p.ai.err = 0; p.ai.follow = null;
-      p.fx = freshFx(); p.r = PR;
+      p.fx = freshFx(); p.r = p.baseR;
     }
     if (players[server].isAI) players[server].x += 10; // AI serves with a slight forward push
     showBanner(t('serve'), 0.8);
   }
 
-  function startMatch(newMode, rival) {
-    mode = newMode;
+  function startMatch(newKind, level) {
+    careerOpen = false;
+    kind = newKind;
+    mode = kind === 'duo' ? 'duo' : 'solo';
     score = [0, 0];
     server = 0;
     particles = [];
     if (mode === 'solo') {
-      rivalIndex = rival;
-      const r = RIVALS[rival];
-      venue = VENUES[r.venue];
-      players = [makePlayer(0, save.char, false, 1, save.superSel), makePlayer(1, r.char, true, rival + 1, r.super)];
-      players[1].dark = !!r.dark || r.char === save.char;
+      if (kind === 'career') { careerLevel = level; rival = careerRival(level); }
+      else rival = save.tourRun.rivals[save.tourRun.round];
+      venue = rival.venue;
+      players = [makePlayer(0, save.char, false, 1, save.superSel), makePlayer(1, rival.char, true, rival.ai, rival.super)];
+      const opp = players[1];
+      opp.dark = !!rival.boss || rival.char === save.char;
+      if (rival.boss) { opp.boss = true; opp.baseR = PR * 1.15; opp.powerMul = 1.5; }
     } else {
       venue = VENUES[Math.floor(Math.random() * VENUES.length)];
       const other = save.char === 1 ? 0 : 1;
@@ -322,7 +372,7 @@
       if (!p.onGround && p.vy > 300) p.squash = 0.18;
       p.y = GROUND; p.vy = 0; p.onGround = true;
     }
-    const target = fx.shrink ? PR * 0.6 : PR;
+    const target = fx.shrink ? p.baseR * 0.6 : p.baseR;
     p.r += (target - p.r) * Math.min(1, dt * 10);
     const minX = p.side === 0 ? p.r : NET_X + NET_HALF + p.r;
     const maxX = p.side === 0 ? NET_X - NET_HALF - p.r : W - p.r;
@@ -403,7 +453,7 @@
       } else {
         ball.vx = d.x * 820; ball.vy = d.y * 820;
         endSuper();
-        p.power = Math.min(1, p.power + 0.12); shake = 0.12; Sound.spike();
+        p.power = Math.min(1, p.power + 0.12 * p.powerMul); shake = 0.12; Sound.spike();
         burst(ball.x, ball.y, 12, ['#ffffff', '#ffd23f']);
       }
     } else {
@@ -418,7 +468,7 @@
       if (weak) { ball.vx *= 0.45; ball.vy *= 0.45; }
       else if (ball.vy > -260 && ny < 0) ball.vy = Math.min(ball.vy, -420);
       if (ball.superOwner === p.side) endSuper();
-      p.power = Math.min(1, p.power + 0.25);
+      p.power = Math.min(1, p.power + 0.25 * p.powerMul);
       Sound.hit();
       burst(ball.x - nx * BR, ball.y - ny * BR, 5, ['#ffffff']);
     }
@@ -549,7 +599,8 @@
     }
   }
   function sand(x) {
-    const c = venue === 'snow' ? ['#ffffff', '#dfefff'] : venue === 'beach' ? ['#f4d58d', '#e6be6a'] : ['#cccccc', '#999999'];
+    const c = venue === 'snow' ? ['#ffffff', '#dfefff'] : venue === 'beach' ? ['#f4d58d', '#e6be6a']
+      : venue === 'volcano' ? ['#ff8c1a', '#3a2a26'] : venue === 'jungle' ? ['#9c6644', '#52b788'] : ['#cccccc', '#999999'];
     for (let i = 0; i < 14; i++) {
       particles.push({ x: x + (Math.random() - 0.5) * 30, y: GROUND - 2, vx: (Math.random() - 0.5) * 260,
         vy: -120 - Math.random() * 260, life: 0.6, max: 0.6, color: c[i % 2], r: 2 + Math.random() * 3 });
@@ -587,6 +638,15 @@
     for (const p of players) collidePlayer(p);
     ball.angle += ball.spin * dt;
     clampBall(ball);
+    const skin = BALLS[save.ball];
+    const sp = Math.hypot(ball.vx, ball.vy);
+    if (skin.type && sp > 150 && Math.random() < dt * (sp / 40)) {
+      particles.push(skin.type === 'lava'
+        ? { x: ball.x, y: ball.y, vx: (Math.random() - 0.5) * 60, vy: -60 - Math.random() * 60, life: 0.5, max: 0.5,
+            color: Math.random() < 0.5 ? '#ff8c1a' : '#ffe066', r: 1.5 + Math.random() * 2 }
+        : { x: ball.x, y: ball.y, vx: (Math.random() - 0.5) * 80, vy: -20 - Math.random() * 60, life: 0.45, max: 0.45,
+            color: Math.random() < 0.5 ? '#90e0ef' : '#ffffff', r: 1.5 + Math.random() * 2.5 });
+    }
     if (ball.y < -600) ball.y = -600;
 
     // fake clones vanish when they touch anything
@@ -627,17 +687,35 @@
     document.getElementById('touch').classList.add('hidden');
     const won = score[0] > score[1];
     let coins = 0, title;
-    if (mode === 'solo') {
+    let note = '';
+    if (kind === 'tour') {
+      const run = save.tourRun;
       if (won) {
-        coins = 25 + rivalIndex * 8 + (score[1] === 0 ? 10 : 0);
-        const stars = score[1] <= 2 ? 3 : score[1] <= 4 ? 2 : 1;
-        save.stars[rivalIndex] = Math.max(save.stars[rivalIndex] || 0, stars);
-        if (save.tour === rivalIndex && save.tour < RIVALS.length) save.tour = rivalIndex + 1;
-        title = rivalIndex === RIVALS.length - 1 ? t('champion') : t('youWin');
+        coins = 25 + run.round * 8 + (score[1] === 0 ? 10 : 0);
+        run.round++;
+        if (run.round >= TOUR_SIZE) {
+          coins += 150; note = t('tourPrize', { n: 150 });
+          title = t('champion'); save.tourRun = null;
+        } else title = t('youWin');
         Sound.win();
         Platform.happytime();
       } else {
         coins = 4 + score[0];
+        title = t('youLose'); note = t('backToStart');
+        save.tourRun = null;
+      }
+    } else if (kind === 'career') {
+      if (won) {
+        coins = 20 + careerLevel * 2 + (rival.boss ? 80 : 0);
+        const stars = score[1] <= 2 ? 3 : score[1] <= 4 ? 2 : 1;
+        save.cstars[careerLevel] = Math.max(save.cstars[careerLevel] || 0, stars);
+        if (save.career === careerLevel) save.career = Math.min(CAREER_LEVELS + 1, careerLevel + 1);
+        title = careerLevel === CAREER_LEVELS ? t('careerDone') : t('youWin');
+        note = '★'.repeat(stars) + '☆'.repeat(3 - stars);
+        Sound.win();
+        Platform.happytime();
+      } else {
+        coins = 3 + score[0];
         title = t('youLose');
       }
     } else {
@@ -647,11 +725,11 @@
     }
     save.coins += coins;
     persist();
-    lastResult = { won, coins, title };
+    lastResult = { won, coins, title, note };
 
     // A win in the tour offers an optional rewarded ad instead of a midgame ad,
     // so the two are never combined on the same transition.
-    const offerReward = mode === 'solo' && won;
+    const offerReward = kind !== 'duo' && won;
     if (!offerReward) await runAd('midgame');
     showResult(offerReward);
   }
@@ -669,13 +747,14 @@
     document.getElementById('resTitle').textContent = r.title;
     document.getElementById('resScore').textContent = score[0] + ' - ' + score[1];
     document.getElementById('resCoins').textContent = t('coinsEarned', { n: r.coins });
+    document.getElementById('resNote').textContent = r.note || '';
     document.getElementById('rewardRow').classList.toggle('hidden', !offerReward);
     document.getElementById('btnDouble').textContent = t('double') + ' (+' + r.coins + ')';
     const next = document.getElementById('btnNext');
-    if (mode === 'duo') next.textContent = t('rematch');
-    else if (r.won && rivalIndex < RIVALS.length - 1) next.textContent = t('next');
-    else if (r.won) next.textContent = t('tour');
-    else next.textContent = t('retry');
+    if (kind === 'duo') next.textContent = t('rematch');
+    else if (kind === 'career') next.textContent = r.won ? (careerLevel < CAREER_LEVELS ? t('nextLevel') : t('career')) : t('retry');
+    else if (r.won && save.tourRun) next.textContent = t('next');
+    else next.textContent = t('newTour');
     showScreen('result');
   }
 
@@ -735,6 +814,68 @@
       }
       ctx.fillStyle = '#3c3c50'; ctx.fillRect(0, GROUND, W, H - GROUND);
       ctx.fillStyle = '#ffb627'; ctx.fillRect(0, GROUND, W, 5);
+    } else if (venue === 'jungle') {
+      g = ctx.createLinearGradient(0, 0, 0, GROUND);
+      g.addColorStop(0, '#1b4332'); g.addColorStop(0.6, '#40916c'); g.addColorStop(1, '#95d5b2');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, GROUND);
+      // light shafts through the canopy
+      ctx.fillStyle = '#fff3b022';
+      for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.moveTo(150 + i * 220, 0); ctx.lineTo(210 + i * 220, 0); ctx.lineTo(120 + i * 220, GROUND); ctx.lineTo(40 + i * 220, GROUND); ctx.fill(); }
+      // trunks
+      for (const [tx, tw, col] of [[40, 34, '#3e2a1e'], [250, 22, '#4a3424'], [700, 26, '#4a3424'], [890, 40, '#3e2a1e']]) {
+        ctx.fillStyle = col; ctx.fillRect(tx, 40, tw, GROUND - 40);
+      }
+      // canopy
+      for (let i = 0; i < 16; i++) {
+        ctx.fillStyle = ['#081c15', '#1b4332', '#2d6a4f'][i % 3];
+        circle((i * 67) % (W + 60) - 20, 20 + (i * 29) % 60, 60 + (i * 13) % 30);
+      }
+      // hanging vines with leaves
+      ctx.strokeStyle = '#2d6a4f'; ctx.lineWidth = 4;
+      for (let i = 0; i < 7; i++) {
+        const vx = 90 + i * 135, len = 120 + (i * 53) % 140, sway = Math.sin(time * 1.2 + i) * 8;
+        ctx.beginPath(); ctx.moveTo(vx, 60); ctx.quadraticCurveTo(vx + sway, 60 + len / 2, vx + sway * 1.5, 60 + len); ctx.stroke();
+        ctx.fillStyle = '#52b788';
+        for (let k = 1; k < 4; k++) { ctx.beginPath(); ctx.ellipse(vx + sway * k / 3 + 6, 60 + len * k / 4, 8, 4, 0.6, 0, Math.PI * 2); ctx.fill(); }
+      }
+      // ferns on the ground line
+      ctx.fillStyle = '#2d6a4f';
+      for (let i = 0; i < 12; i++) { ctx.beginPath(); ctx.ellipse(i * 85 + 20, GROUND - 6, 34, 12, (i % 2 ? 0.3 : -0.3), 0, Math.PI * 2); ctx.fill(); }
+      ctx.fillStyle = '#40916c'; ctx.fillRect(0, GROUND, W, 10);
+      ctx.fillStyle = '#7f5539'; ctx.fillRect(0, GROUND + 10, W, H - GROUND - 10);
+      ctx.fillStyle = '#9c6644'; for (let i = 0; i < 30; i++) ctx.fillRect((i * 101) % W, GROUND + 22 + (i * 31) % 40, 6, 3);
+    } else if (venue === 'volcano') {
+      g = ctx.createLinearGradient(0, 0, 0, GROUND);
+      g.addColorStop(0, '#120202'); g.addColorStop(0.55, '#4a0808'); g.addColorStop(1, '#c1440e');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, GROUND);
+      // volcanoes with glowing craters and lava streams
+      for (const [vx, vw, vh] of [[170, 260, 300], [780, 300, 340]]) {
+        ctx.fillStyle = '#1f0b08';
+        ctx.beginPath(); ctx.moveTo(vx - vw, GROUND); ctx.lineTo(vx - 34, GROUND - vh); ctx.lineTo(vx + 34, GROUND - vh); ctx.lineTo(vx + vw, GROUND); ctx.fill();
+        const glow = 0.6 + Math.sin(time * 3 + vx) * 0.3;
+        ctx.fillStyle = 'rgba(255,120,0,' + glow + ')';
+        ctx.beginPath(); ctx.ellipse(vx, GROUND - vh, 36, 9, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#ff6b00'; ctx.lineWidth = 5;
+        ctx.beginPath(); ctx.moveTo(vx - 10, GROUND - vh + 4); ctx.quadraticCurveTo(vx - 40, GROUND - vh / 2, vx - 70, GROUND - 20); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(vx + 14, GROUND - vh + 4); ctx.quadraticCurveTo(vx + 30, GROUND - vh / 2, vx + 90, GROUND - 30); ctx.stroke();
+      }
+      // floating embers
+      for (let i = 0; i < 30; i++) {
+        const ex = (i * 97 + Math.sin(time + i) * 20) % W, ey = GROUND - ((time * (30 + (i % 5) * 12) + i * 53) % GROUND);
+        ctx.fillStyle = i % 2 ? '#ffb627' : '#ff6b35'; ctx.fillRect(ex, ey, 3, 3);
+      }
+      // lava river behind the court
+      g = ctx.createLinearGradient(0, GROUND - 40, 0, GROUND);
+      g.addColorStop(0, '#ffd60a'); g.addColorStop(1, '#e85d04');
+      ctx.fillStyle = g; ctx.fillRect(0, GROUND - 34, W, 34);
+      ctx.fillStyle = '#ff8c1a';
+      for (let i = 0; i < 10; i++) ctx.fillRect(((i * 120 + time * 50) % (W + 80)) - 80, GROUND - 26 + (i % 2) * 10, 60, 4);
+      // basalt floor with glowing cracks
+      ctx.fillStyle = '#211a19'; ctx.fillRect(0, GROUND, W, H - GROUND);
+      ctx.strokeStyle = 'rgba(255,110,0,' + (0.55 + Math.sin(time * 4) * 0.25) + ')'; ctx.lineWidth = 3;
+      ctx.beginPath();
+      for (let i = 0; i < 9; i++) { const cx = 40 + i * 110; ctx.moveTo(cx, GROUND + 4); ctx.lineTo(cx + 18, GROUND + 26); ctx.lineTo(cx + 6, GROUND + 48); ctx.moveTo(cx + 18, GROUND + 26); ctx.lineTo(cx + 46, GROUND + 34); }
+      ctx.stroke();
     } else {
       g = ctx.createLinearGradient(0, 0, 0, GROUND);
       g.addColorStop(0, '#90e0ef'); g.addColorStop(1, '#e0fbfc');
@@ -788,10 +929,23 @@
         c.fillStyle = '#f72585cc'; c.beginPath(); c.ellipse(x, GROUND + 1, PR * size * 1.1, 9, 0, 0, Math.PI * 2); c.fill();
       }
     }
+    if (p.boss && !cv) { // dark flickering aura
+      for (let i = 0; i < 7; i++) {
+        const a = Math.PI + (i / 6) * Math.PI;
+        const fl = 10 + Math.sin(time * 9 + i * 1.7) * 6;
+        c.fillStyle = i % 2 ? 'rgba(20,0,0,0.45)' : 'rgba(120,0,0,0.35)';
+        c.beginPath(); c.arc(x + Math.cos(a) * PR * size * 0.9, y + Math.sin(a) * PR * size * 0.9, fl, 0, Math.PI * 2); c.fill();
+      }
+    }
     c.save();
     c.translate(x, y);
     c.scale(sc * size / sq, sc * size * sq * stretch);
-    const body = p.dark ? shade(ch.body, -0.45) : ch.body;
+    if (p.boss) { // horns
+      c.fillStyle = '#1b1b1b';
+      c.beginPath(); c.moveTo(-26, -30); c.lineTo(-36, -62); c.lineTo(-12, -38); c.fill();
+      c.beginPath(); c.moveTo(26, -30); c.lineTo(36, -62); c.lineTo(12, -38); c.fill();
+    }
+    const body = p.boss ? '#1b1b1b' : p.dark ? shade(ch.body, -0.45) : ch.body;
     c.fillStyle = body;
     c.beginPath(); c.arc(0, 0, PR, Math.PI, 0); c.lineTo(PR, 0); c.closePath(); c.fill();
     c.lineWidth = 3; c.strokeStyle = '#1b1b1bcc'; c.stroke();
@@ -813,7 +967,7 @@
     } else {
       let lx = lookX - (x + ex * sc), ly = lookY - (y + ey * sc);
       const ll = Math.hypot(lx, ly) || 1; lx /= ll; ly /= ll;
-      c.fillStyle = '#1b1b1b'; c.beginPath(); c.arc(ex + lx * 4, ey + ly * 4, 4, 0, Math.PI * 2); c.fill();
+      c.fillStyle = p.boss ? '#ff3b30' : '#1b1b1b'; c.beginPath(); c.arc(ex + lx * 4, ey + ly * 4, 4, 0, Math.PI * 2); c.fill();
     }
     c.restore();
     if (cv) return;
@@ -859,10 +1013,67 @@
     return 'rgb(' + r + ',' + g + ',' + b + ')';
   }
 
+  // Glowing cracks of the lava ball, in unit-circle coordinates.
+  const LAVA_CRACKS = [
+    [[-0.9, -0.2], [-0.45, -0.1], [-0.2, -0.45], [0.15, -0.5], [0.55, -0.8]],
+    [[-0.2, -0.45], [-0.05, 0.05], [0.4, 0.15], [0.85, 0.35]],
+    [[-0.05, 0.05], [-0.35, 0.4], [-0.25, 0.9]],
+    [[0.4, 0.15], [0.35, 0.55], [0.6, 0.75]],
+    [[-0.45, -0.1], [-0.75, 0.35]],
+  ];
+  function drawLavaBall(c, R) {
+    const g = c.createRadialGradient(-R * 0.3, -R * 0.35, R * 0.1, 0, 0, R);
+    g.addColorStop(0, '#5c3a2e'); g.addColorStop(0.7, '#2e1b16'); g.addColorStop(1, '#140b09');
+    c.fillStyle = g; c.beginPath(); c.arc(0, 0, R, 0, Math.PI * 2); c.fill();
+    c.save(); c.beginPath(); c.arc(0, 0, R, 0, Math.PI * 2); c.clip();
+    const pulse = 0.65 + Math.sin(time * 6) * 0.25;
+    c.lineCap = 'round'; c.lineJoin = 'round';
+    for (const [w, col] of [[R * 0.32, 'rgba(255,90,0,' + (0.45 * pulse) + ')'], [R * 0.14, '#ff8c1a'], [R * 0.06, '#ffe066']]) {
+      c.strokeStyle = col; c.lineWidth = w;
+      for (const line of LAVA_CRACKS) {
+        c.beginPath();
+        line.forEach(([x, y], i) => (i ? c.lineTo(x * R, y * R) : c.moveTo(x * R, y * R)));
+        c.stroke();
+      }
+    }
+    // a few rough rock bumps
+    c.fillStyle = '#ffffff14';
+    for (const [x, y, rr] of [[-0.5, -0.55, 0.18], [0.45, -0.25, 0.14], [-0.6, 0.55, 0.16], [0.2, 0.6, 0.12]]) {
+      c.beginPath(); c.arc(x * R, y * R, rr * R, 0, Math.PI * 2); c.fill();
+    }
+    c.restore();
+    c.strokeStyle = '#000000aa'; c.lineWidth = 1.5; c.beginPath(); c.arc(0, 0, R, 0, Math.PI * 2); c.stroke();
+  }
+  function drawWaterBall(c, R) {
+    const wob = Math.sin(time * 9) * 0.07;
+    c.save();
+    c.scale(1 + wob, 1 - wob);
+    const g = c.createRadialGradient(-R * 0.35, -R * 0.4, R * 0.05, 0, 0, R);
+    g.addColorStop(0, 'rgba(230,248,255,0.95)'); g.addColorStop(0.45, 'rgba(76,201,240,0.85)'); g.addColorStop(1, 'rgba(0,95,170,0.9)');
+    c.fillStyle = g; c.beginPath(); c.arc(0, 0, R, 0, Math.PI * 2); c.fill();
+    c.save(); c.beginPath(); c.arc(0, 0, R, 0, Math.PI * 2); c.clip();
+    // swirling current inside
+    c.strokeStyle = 'rgba(255,255,255,0.35)'; c.lineWidth = R * 0.12;
+    c.beginPath(); c.arc(R * 0.1, R * 0.15, R * 0.55, time * 2, time * 2 + 2.2); c.stroke();
+    // rising bubbles
+    c.fillStyle = 'rgba(255,255,255,0.7)';
+    for (let i = 0; i < 4; i++) {
+      const ph = (time * 0.6 + i * 0.27) % 1;
+      c.beginPath(); c.arc((i - 1.5) * R * 0.35, R * (0.8 - ph * 1.6), R * (0.06 + i * 0.02), 0, Math.PI * 2); c.fill();
+    }
+    c.restore();
+    c.fillStyle = 'rgba(255,255,255,0.85)';
+    c.beginPath(); c.ellipse(-R * 0.38, -R * 0.45, R * 0.28, R * 0.14, -0.6, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = 'rgba(0,70,140,0.6)'; c.lineWidth = 1.5; c.beginPath(); c.arc(0, 0, R, 0, Math.PI * 2); c.stroke();
+    c.restore();
+  }
+
   function drawBall(b, skin, cv, r) {
     const c = cv || ctx;
     const R = r || BR;
     c.save(); c.translate(b.x, b.y); c.rotate(b.angle || 0);
+    if (skin.type === 'lava') { drawLavaBall(c, R); c.restore(); return; }
+    if (skin.type === 'water') { c.rotate(-(b.angle || 0)); drawWaterBall(c, R); c.restore(); return; }
     c.fillStyle = skin.a; c.beginPath(); c.arc(0, 0, R, 0, Math.PI * 2); c.fill();
     c.fillStyle = skin.b;
     c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, R, -0.3, 1.5); c.closePath(); c.fill();
@@ -952,9 +1163,13 @@
     roundRect(W / 2 - 90, 12, 180, 56, 14); ctx.fill();
     ctx.fillStyle = '#fff'; ctx.font = '900 40px "Trebuchet MS",sans-serif';
     ctx.fillText(score[0] + ' : ' + score[1], W / 2, 54);
+    if (kind === 'career' || kind === 'tour') {
+      ctx.font = '700 13px "Trebuchet MS",sans-serif'; ctx.fillStyle = '#ffffffcc';
+      ctx.fillText(kind === 'career' ? t('level', { n: careerLevel }) : t('round', { n: save.tourRun ? save.tourRun.round + 1 : TOUR_SIZE }), W / 2, 84);
+    }
     ctx.font = '700 15px "Trebuchet MS",sans-serif';
     const n0 = mode === 'duo' ? 'P1' : CHARS[save.char].name;
-    const n1 = mode === 'duo' ? 'P2' : RIVALS[rivalIndex].nick;
+    const n1 = mode === 'duo' ? 'P2' : (rival.boss ? '☠ ' : '') + rival.nick;
     ctx.textAlign = 'left'; ctx.fillText(n0, 20, 28);
     ctx.textAlign = 'right'; ctx.fillText(n1, W - 76, 28);
     powerBar(44, 38, players[0], false);
@@ -1014,7 +1229,7 @@
   }
 
   // ---------- Menus ----------
-  const screens = ['menu', 'tour', 'shop', 'pause', 'result'];
+  const screens = ['menu', 'tour', 'career', 'shop', 'pause', 'result'];
   function showScreen(id) {
     for (const s of screens) document.getElementById(s).classList.toggle('hidden', s !== id);
     if (id) refreshCoins();
@@ -1026,6 +1241,7 @@
     clearTimeout(toast.h); toast.h = setTimeout(() => el.classList.add('hidden'), 2200);
   }
   function goMenu() {
+    careerOpen = false;
     state = 'menu';
     players = []; ball = null; fakes = [];
     document.getElementById('hud').classList.add('hidden');
@@ -1044,35 +1260,144 @@
     return c;
   }
 
+  function openTour() {
+    if (!save.tourRun) { save.tourRun = newTourRun(); persist(); }
+    state = 'menu'; players = []; ball = null;
+    document.getElementById('hud').classList.add('hidden');
+    document.getElementById('touch').classList.add('hidden');
+    buildTour(); showScreen('tour');
+  }
+
   function buildTour() {
+    const run = save.tourRun;
     const grid = document.getElementById('rivals');
     grid.innerHTML = '';
-    RIVALS.forEach((r, i) => {
+    document.getElementById('tourNote').textContent = t('round', { n: run.round + 1 }) + ' · ' + t('tourRule');
+    run.rivals.forEach((r, i) => {
       const card = document.createElement('button');
-      const locked = i > save.tour;
-      card.className = 'card' + (locked ? ' locked' : '');
-      const fake = { char: CHARS[r.char], dark: !!r.dark, side: 1, squash: 0, onGround: true, y: GROUND };
+      const done = i < run.round, current = i === run.round;
+      card.className = 'card' + (i > run.round ? ' locked' : '') + (current ? ' current' : '');
+      const fake = { char: CHARS[r.char], dark: r.char === save.char, side: 1, squash: 0, onGround: true, y: GROUND };
       card.appendChild(previewCanvas(g => {
         drawPlayer(fake, 45, 62, 0.85, 10, 30, g);
         drawSuperIcon(g, SUPERS[r.super].id, 76, 18, 11);
       }));
       const name = document.createElement('div'); name.textContent = r.nick; card.appendChild(name);
       const info = document.createElement('small');
-      info.textContent = locked ? t('locked') : t('rival', { n: i + 1 }) + ' · ' + t(VENUES[r.venue]);
+      info.textContent = t('rival', { n: i + 1 }) + ' · ' + t(r.venue);
       card.appendChild(info);
       const sup = document.createElement('small');
       sup.textContent = t('s_' + SUPERS[r.super].id);
       card.appendChild(sup);
       const st = document.createElement('div'); st.className = 'stars';
-      const s = save.stars[i] || 0; st.textContent = '★'.repeat(s) + '☆'.repeat(3 - s);
+      st.textContent = done ? '✔ ' + t('beaten') : current ? '▶ ' + t('play') : '';
       card.appendChild(st);
       card.addEventListener('click', () => {
-        if (locked) { toast(t('locked')); return; }
-        Sound.click(); startMatch('solo', i);
+        if (!current) { if (i > run.round) toast(t('locked')); return; }
+        Sound.click(); startMatch('tour');
       });
       grid.appendChild(card);
     });
   }
+
+  // ---------- Career map ----------
+  let careerWorld = 0, careerOpen = false;
+  const mapCanvas = document.getElementById('careerMap');
+  const mapCtx = mapCanvas.getContext('2d');
+  const MAP_W = 860, MAP_H = 300;
+  function tilePos(i) { // snake through the map, left to right
+    return { x: 70 + i * 80, y: 160 + Math.sin(i * 0.95 + 0.4) * 78 };
+  }
+  function openCareer() {
+    state = 'menu'; players = []; ball = null;
+    document.getElementById('hud').classList.add('hidden');
+    document.getElementById('touch').classList.add('hidden');
+    careerWorld = Math.min(4, Math.floor((Math.min(save.career, CAREER_LEVELS) - 1) / 10));
+    careerOpen = true;
+    showScreen('career');
+    sizeMap();
+    updateWorldBar();
+  }
+  function sizeMap() {
+    const r = mapCanvas.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    mapCanvas.width = Math.max(1, Math.round(r.width * dpr));
+    mapCanvas.height = Math.max(1, Math.round(r.height * dpr));
+  }
+  function updateWorldBar() {
+    const v = WORLD_VENUES[careerWorld];
+    document.getElementById('worldName').textContent = t('world', { n: careerWorld + 1 }) + ' · ' + t(v);
+    document.getElementById('worldPrev').style.visibility = careerWorld > 0 ? 'visible' : 'hidden';
+    document.getElementById('worldNext').style.visibility = careerWorld < 4 ? 'visible' : 'hidden';
+  }
+  const WORLD_TINT = {
+    beach: ['#4cc9f0', '#f4d58d'], jungle: ['#2d6a4f', '#74c69d'], snow: ['#90e0ef', '#f8f9fa'],
+    rooftop: ['#240046', '#7b2cbf'], gym: ['#3d405b', '#d8a35d'],
+  };
+  function drawCareerMap() {
+    const c = mapCtx;
+    c.setTransform(mapCanvas.width / MAP_W, 0, 0, mapCanvas.height / MAP_H, 0, 0);
+    const [top, bottom] = WORLD_TINT[WORLD_VENUES[careerWorld]];
+    const g = c.createLinearGradient(0, 0, 0, MAP_H);
+    g.addColorStop(0, top); g.addColorStop(1, bottom);
+    c.fillStyle = g; c.fillRect(0, 0, MAP_W, MAP_H);
+    // volcano glow behind the boss tile
+    const bossPos = tilePos(9);
+    const rg = c.createRadialGradient(bossPos.x, bossPos.y, 10, bossPos.x, bossPos.y, 140);
+    rg.addColorStop(0, '#ff6b35aa'); rg.addColorStop(1, '#ff6b3500');
+    c.fillStyle = rg; c.fillRect(0, 0, MAP_W, MAP_H);
+    // dotted path
+    c.strokeStyle = '#ffffffaa'; c.lineWidth = 6; c.setLineDash([2, 14]); c.lineCap = 'round';
+    c.beginPath();
+    for (let i = 0; i < 10; i++) { const q = tilePos(i); if (i) c.lineTo(q.x, q.y); else c.moveTo(q.x, q.y); }
+    c.stroke(); c.setLineDash([]);
+    for (let i = 0; i < 10; i++) {
+      const level = careerWorld * 10 + i + 1;
+      const q = tilePos(i);
+      const boss = level % 10 === 0;
+      const done = level < save.career, current = level === save.career, locked = level > save.career;
+      const R = boss ? 34 : 25;
+      c.fillStyle = '#0005'; c.beginPath(); c.ellipse(q.x, q.y + R * 0.75, R, R * 0.35, 0, 0, Math.PI * 2); c.fill();
+      if (current) {
+        c.fillStyle = '#ffffff55'; c.beginPath(); c.arc(q.x, q.y, R + 8 + Math.sin(time * 5) * 3, 0, Math.PI * 2); c.fill();
+      }
+      c.fillStyle = boss ? '#1b1b1b' : done ? '#2ec27e' : current ? '#ff6b35' : '#6c757d';
+      c.beginPath(); c.arc(q.x, q.y, R, 0, Math.PI * 2); c.fill();
+      c.lineWidth = 4; c.strokeStyle = boss ? '#ff3b30' : '#ffffff'; c.stroke();
+      c.textAlign = 'center'; c.textBaseline = 'middle';
+      if (boss) {
+        // horns and glowing eyes
+        c.fillStyle = '#1b1b1b';
+        c.beginPath(); c.moveTo(q.x - 22, q.y - 20); c.lineTo(q.x - 30, q.y - 46); c.lineTo(q.x - 8, q.y - 30); c.fill();
+        c.beginPath(); c.moveTo(q.x + 22, q.y - 20); c.lineTo(q.x + 30, q.y - 46); c.lineTo(q.x + 8, q.y - 30); c.fill();
+        c.fillStyle = '#ff3b30'; c.beginPath(); c.arc(q.x - 10, q.y - 4, 5, 0, Math.PI * 2); c.arc(q.x + 10, q.y - 4, 5, 0, Math.PI * 2); c.fill();
+        c.font = '900 12px "Trebuchet MS",sans-serif'; c.fillStyle = '#ffd60a'; c.fillText(t('boss'), q.x, q.y + 15);
+      } else {
+        c.fillStyle = '#fff'; c.font = '900 18px "Trebuchet MS",sans-serif';
+        c.fillText(locked ? '🔒' : String(level), q.x, q.y + 1);
+      }
+      const st = save.cstars[level] || 0;
+      if (done) {
+        c.font = '900 13px "Trebuchet MS",sans-serif'; c.fillStyle = '#ffd60a';
+        c.fillText('★'.repeat(st) + '☆'.repeat(3 - st), q.x, q.y + R + 14);
+      }
+      if (current) { // your character waiting on the tile
+        drawPlayer({ char: CHARS[save.char], dark: false, side: 0, squash: 0, onGround: true, y: GROUND }, q.x, q.y - R - 2, 0.5, q.x + 40, q.y, c);
+      }
+    }
+  }
+  mapCanvas.addEventListener('click', e => {
+    const r = mapCanvas.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width * MAP_W, y = (e.clientY - r.top) / r.height * MAP_H;
+    for (let i = 0; i < 10; i++) {
+      const q = tilePos(i), level = careerWorld * 10 + i + 1;
+      if (Math.hypot(x - q.x, y - q.y) < 38) {
+        if (level > save.career) { toast(t('locked')); return; }
+        Sound.click(); careerOpen = false; startMatch('career', level);
+        return;
+      }
+    }
+  });
 
   let shopTab = 'chars';
   function buildShop() {
@@ -1125,7 +1450,10 @@
   function wireUI() {
     document.querySelectorAll('[data-t]').forEach(el => { el.textContent = t(el.dataset.t); });
     const on = (id, fn) => document.getElementById(id).addEventListener('click', () => { Sound.unlock(); fn(); });
-    on('btnTour', () => { Sound.click(); buildTour(); showScreen('tour'); });
+    on('btnTour', () => { Sound.click(); openTour(); });
+    on('btnCareer', () => { Sound.click(); openCareer(); });
+    on('worldPrev', () => { careerWorld = Math.max(0, careerWorld - 1); updateWorldBar(); });
+    on('worldNext', () => { careerWorld = Math.min(4, careerWorld + 1); updateWorldBar(); });
     on('btn2p', () => { Sound.click(); startMatch('duo'); });
     on('btnShop', () => { Sound.click(); shopTab = 'chars'; buildShop(); showScreen('shop'); });
     on('tabChars', () => { shopTab = 'chars'; buildShop(); });
@@ -1137,10 +1465,14 @@
     on('btnQuit', () => { Platform.gameplayStop(); goMenu(); });
     on('btnMenu', goMenu);
     on('btnNext', () => {
-      if (mode === 'duo') startMatch('duo');
-      else if (lastResult.won && rivalIndex < RIVALS.length - 1) startMatch('solo', rivalIndex + 1);
-      else if (lastResult.won) { buildTour(); showScreen('tour'); state = 'menu'; }
-      else startMatch('solo', rivalIndex);
+      const r = lastResult;
+      if (kind === 'duo') startMatch('duo');
+      else if (kind === 'career') {
+        if (r.won && careerLevel < CAREER_LEVELS) startMatch('career', careerLevel + 1);
+        else if (r.won) openCareer();
+        else startMatch('career', careerLevel);
+      } else if (r.won && save.tourRun) startMatch('tour');
+      else openTour();
     });
     on('btnDouble', async () => {
       const ok = await runAd('rewarded');
@@ -1168,6 +1500,7 @@
     acc += dt;
     while (acc >= STEP) { update(STEP); acc -= STEP; }
     render();
+    if (careerOpen) drawCareerMap();
     requestAnimationFrame(frame);
   }
 
@@ -1185,7 +1518,8 @@
   // Exposed for automated tests only.
   window.__spike = {
     get state() { return state; }, get score() { return score; }, get ball() { return ball; },
-    get players() { return players; }, get fakes() { return fakes; }, startMatch, save,
+    get players() { return players; }, get fakes() { return fakes; }, startMatch, save, openCareer, openTour,
+    newTourRun, careerRival,
     tick(n) { for (let i = 0; i < n; i++) update(STEP); },
     effect(side, id) { applySuperEffect(players[side], id); },
   };

@@ -34,9 +34,12 @@
     <div class="logo"><span>SPIKE</span><span class="accent">DUEL</span></div>
     <div class="sub" data-t="tagline"></div>
     <div class="col">
+      <button class="big career" id="btnCareer" data-t="career"></button>
       <button class="big" id="btnTour" data-t="tour"></button>
-      <button class="big alt" id="btn2p" data-t="twoPlayers"></button>
-      <button class="big ghost" id="btnShop" data-t="shop"></button>
+      <div class="row small">
+        <button class="big alt" id="btn2p" data-t="twoPlayers"></button>
+        <button class="big ghost" id="btnShop" data-t="shop"></button>
+      </div>
     </div>
     <div class="topbar"><span class="coins"></span><button id="btnMute" class="iconBtn" aria-label="Sound"></button></div>
     <div class="hint" data-t="controls"></div>
@@ -44,7 +47,20 @@
 
   <div id="tour" class="screen hidden">
     <h2 data-t="tour"></h2>
+    <div class="note" id="tourNote"></div>
     <div class="grid" id="rivals"></div>
+    <button class="ghost" data-back data-t="back"></button>
+  </div>
+
+  <div id="career" class="screen hidden">
+    <h2 data-t="career"></h2>
+    <div class="topbar"><span class="coins"></span></div>
+    <div class="worldbar">
+      <button class="iconBtn" id="worldPrev" aria-label="Previous world">&#9664;</button>
+      <div id="worldName"></div>
+      <button class="iconBtn" id="worldNext" aria-label="Next world">&#9654;</button>
+    </div>
+    <canvas id="careerMap"></canvas>
     <button class="ghost" data-back data-t="back"></button>
   </div>
 
@@ -68,6 +84,7 @@
     <h2 id="resTitle"></h2>
     <div id="resScore" class="score"></div>
     <div id="resCoins" class="coinsWon"></div>
+    <div id="resNote" class="note"></div>
     <div class="row" id="rewardRow">
       <button class="big reward" id="btnDouble"></button>
       <button class="big ghost" id="btnNoThanks" data-t="noThanks"></button>
