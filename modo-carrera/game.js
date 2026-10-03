@@ -119,7 +119,7 @@ function makePlayer(o){
   const p={id,name:genName(nat),nat,age,pos:o.pos,alt:[o.pos],ovr,ovr0:ovr,pot,clubId:o.clubId??null,youth:!!o.youth,contract:o.contract??ri(1,5),wage:0,vm:1,face:-1,
     morale:ri(60,80),fitness:100,injury:0,susp:0,yellows:0,prog:0,training:0,form:0,listed:false,stats:newStats(),hist:[],var:[0,0,0,0,0,0].map(()=>ri(-4,4)),num:0,gen:1};
   p.wage=p.youth?1000:wageFor(p,club?club.rep:2);
-  S.players[id]=p;invalidate();return p;}
+  S.players[id]=p;if(ROSTER&&p.clubId!=null){let a=ROSTER.get(p.clubId);if(!a)ROSTER.set(p.clubId,a=[]);a.push(p);}return p;}
 const SQUAD_TEMPLATE=['POR','LD','DFC','DFC','LI','MCD','MC','MC','ED','DC','EI','POR','LD','DFC','DFC','LI','MC','MCO','MCO','EI','ED','DC','POR','MC','DC'];
 function buildGenSquad(cid,lvl,nat){SQUAD_TEMPLATE.forEach((pos,i)=>{const ovr=i<11?lvl+ri(-3,3):i<22?lvl-4+ri(-4,2):lvl-11+ri(-3,3);const age=i<11?ri(22,32):i<22?ri(19,33):ri(17,20);
   makePlayer({pos,ovr,age,clubId:cid,nat:R()<0.8?nat:undefined});});}
@@ -327,7 +327,8 @@ function doSub(m,s,outId,inId){const i=s.xi.indexOf(outId);if(i<0)return;const m
   push(m,min,'sub',fill(COM.sub[0],{t:S.clubs[s.cid].short,i:nm(inId),o:nm(outId)}),s===m.home?'h':'a');}
 function simToEnd(m){let g=0;while(!m.ended&&g++<200){m.paused=false;stepMinute(m);}}
 
-let RATING_BASE=6.3,AI_DEV=0.7; // AI_DEV frena el progreso de los equipos de la IA para que las ligas no se inflen
+let RATING_BASE=6.3,AI_DEV=0.7;
+const aiScale=p=>AI_DEV*clamp((90-p.ovr)/12,0.15,1); // las estrellas de la IA crecen menos // AI_DEV frena el progreso de los equipos de la IA para que las ligas no se inflen
 function finalizeMatch(m){
   const fx=m.fx;fx.hg=m.home.goals;fx.ag=m.away.goals;fx.played=true;
   const ratings={};const userGame=m.home.isUser||m.away.isUser;const progs={},levels=[];
@@ -346,7 +347,7 @@ function finalizeMatch(m){
       p.stats.apps++;p.stats.goals+=c.g;p.stats.assists+=c.a;p.stats.rsum+=r;
       if((g==='DEF'||g==='POR')&&o.goals===0&&mins>=60)p.stats.cs++;
       const dev=matchDevelopment(p,{minutes:mins,rating:r,goals:c.g,assists:c.a,teamResult:res});
-      if(dev){const ob=p.ovr;applyProgress(p,s.isUser?dev:dev*AI_DEV);if(s.isUser){progs[id]=Math.round(dev*10)/10;if(p.ovr!==ob)levels.push([p.name,ob,p.ovr]);}}
+      if(dev){const ob=p.ovr;applyProgress(p,s.isUser?dev:dev*aiScale(p));if(s.isUser){progs[id]=Math.round(dev*10)/10;if(p.ovr!==ob)levels.push([p.name,ob,p.ovr]);}}
       p.pdir=dev<-0.15?'down':dev>0.15?'up':(p.pdir||'up');
       p.form=clamp((p.form||0)*0.9+clamp((r-6.8)*1.2,-2,2),-10,10);
       p.fitness=clamp(Math.round(s.fit[id]??p.fitness),15,100);
@@ -483,7 +484,7 @@ function trainPlayer(id){
 function aiTraining(){
   if(dayDiff(DB.start,S.date)%3!==0)return;
   S.clubs.forEach(c=>{if(c.id===S.user.clubId||c.partial)return;const sq=squad(c.id);if(!sq.length)return;
-    for(let i=0;i<3;i++){const p=pick(sq);if(p.ovr<99)applyProgress(p,trainingGain(p)*AI_DEV);}});}
+    for(let i=0;i<3;i++){const p=pick(sq);if(p.ovr<99)applyProgress(p,trainingGain(p)*aiScale(p));}});}
 function contractAlerts(first){const exp=squad(S.user.clubId).filter(p=>p.contract<=1);if(!exp.length)return;
   addNews(first?'Contratos en su último año':'Contratos a punto de expirar',`Estos jugadores terminan contrato el 30/06/${S.year+1} y se irán gratis si no los renuevas:<br>${exp.map(p=>`${esc(p.name)} (${p.pos}, ${p.ovr})`).join('<br>')}`,'info');}
 function afterUserMatch(f,my,op){
@@ -642,10 +643,12 @@ async function gunz(b64){const bin=atob(b64);const b=new Uint8Array(bin.length);
   return new Response(new Blob([b]).stream().pipeThrough(new DecompressionStream('gzip'))).text();}
 async function packSave(){const txt=JSON.stringify(S,(k,v)=>k==='i'&&typeof v==='number'?undefined:v);return window.CompressionStream?'gz:'+await gz(txt):txt;}
 async function parseSave(t){if(!t)return null;t=t.trim();if(t.startsWith('gz:'))t=await gunz(t.slice(3));return JSON.parse(t);}
-let saveSeq=0,saveWarned=false;
-function save(){if(!S)return;const seq=++saveSeq;const meta=JSON.stringify({name:S.user.name,club:S.clubs[S.user.clubId].name,season:seasonLabel(),date:S.date});
+let saveSeq=0,saveWarned=false,saveTimer=null;
+function save(){if(!S)return;clearTimeout(saveTimer);saveTimer=setTimeout(doSave,350);} // junta guardados seguidos
+function doSave(){if(!S)return;const seq=++saveSeq;const meta=JSON.stringify({name:S.user.name,club:S.clubs[S.user.clubId].name,season:seasonLabel(),date:S.date});
   packSave().then(z=>{if(seq!==saveSeq)return;localStorage.setItem(SAVE_KEY,z);localStorage.setItem(META_KEY,meta);})
     .catch(()=>{if(!saveWarned){saveWarned=true;toast('No se ha podido guardar la partida en este navegador. Usa «Exportar partida» en Club.');}});}
+addEventListener('pagehide',()=>{if(saveTimer){clearTimeout(saveTimer);doSave();}});
 async function load(){try{return await parseSave(localStorage.getItem(SAVE_KEY));}catch(e){return null;}}
 function loadMeta(){try{return JSON.parse(localStorage.getItem(META_KEY));}catch(e){return null;}}
 function boot(s){S=s;if(!S.trainSel)S.trainSel=[];for(const k in S.players){const p=S.players[k];if(p.training==null)p.training=p.prog||0;if(p.form==null)p.form=0;}invalidate();rebuildIndex();}
@@ -1126,7 +1129,7 @@ function act(a,t){
   case 'start':{const name=(document.getElementById('mgr').value||'').trim()||'Míster';busy(t,'Cargando la base de datos…',()=>{newGame(name,UI.newClub);UI.view='home';});break;}
   case 'continue':t.disabled=true;t.textContent='Cargando…';load().then(s=>{if(!s||!s.fx){toast('No se ha podido leer la partida guardada.');renderStart();return;}boot(s);UI.view='home';render();});break;
   case 'newCareer':modal(`<h2>¿Nueva carrera?</h2><p>Se borrará la partida guardada en este navegador.</p><div class="row"><button class="btn danger" data-act="confirmNew">Sí, empezar de cero</button><button class="btn" data-close>Cancelar</button></div>`);break;
-  case 'confirmNew':saveSeq++;try{localStorage.removeItem(SAVE_KEY);localStorage.removeItem(META_KEY);}catch(e){}S=null;UI.newClub=null;closeModal();render();break;
+  case 'confirmNew':clearTimeout(saveTimer);saveSeq++;try{localStorage.removeItem(SAVE_KEY);localStorage.removeItem(META_KEY);}catch(e){}S=null;UI.newClub=null;closeModal();render();break;
   case 'play':startMatch(true);break;
   case 'sim':startMatch(false);break;
   case 'train':{const r=trainPlayer(id);if(!r)break;const p=P(id);render();
