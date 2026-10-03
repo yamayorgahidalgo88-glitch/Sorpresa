@@ -445,6 +445,14 @@ for code, (ename, dates, ko, teams) in EURO.items():
         ids.append(ci)
     euro_out[code] = {'n': ename, 'dates': dates, 'ko': ko, 'clubs': ids}
 
+# resto de clubes con plantilla 2026/27 conocida (ligas europeas): mercado internacional, solo jugadores de media >= 68
+for key, c in tm_by_key.items():
+    if key in cidx: continue
+    start = len(players)
+    add_club(key, -1, c['comp'] and c['name'], '')
+    clubs[cidx[key]]['partial'] = True; clubs[cidx[key]]['l'] = {'PO1': 'Liga Portugal', 'NL1': 'Eredivisie', 'BE1': 'Pro League', 'TR1': 'Süper Lig', 'GR1': 'Super League', 'SC1': 'Scottish Premiership', 'DK1': 'Superliga', 'A1': 'Bundesliga (AUT)', 'C1': 'Super League (SUI)', 'TS1': 'Chance Liga', 'PL1': 'Ekstraklasa', 'KR1': 'HNL', 'RO1': 'SuperLiga', 'UKR1': 'Premier Liga', 'SER1': 'SuperLiga (SRB)', 'BU1': 'efbet Liga', 'ZYP1': 'First Division'}.get(c['comp'], 'Internacional')
+    players[start:] = [p for p in players[start:] if p[2] >= 68]
+
 # jugadores de FC26 que no aparecen en ninguna plantilla de Transfermarkt
 tm_fc_clubs = {k for k in tm_matched if not k.startswith('TM:')}
 row_ci = None
