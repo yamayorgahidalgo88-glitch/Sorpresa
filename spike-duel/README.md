@@ -15,6 +15,8 @@ Juego de vóley 1 contra 1 para navegador, pensado para publicarse en CrazyGames
 - **Escenarios:** playa, selva, nieve, ciudad nocturna con focos y neones, almacén y volcán, con el fondo estático guardado en caché para que vaya fluido.
 - **Final de partida:** primero se ofrece ver un anuncio con recompensa (monedas extra) o «No, gracias»; después, siguiente rival/nivel o menú.
 - **Móvil:** se puede instalar como app (pantalla completa, solo horizontal). En pantallas más alargadas que 16:9 el escenario se extiende a los lados en lugar de dejar bandas negras.
+- **Botones (móvil):** desde el menú se abre una práctica en un mapa al azar contra un rival quieto. Manteniendo pulsado 2,5 s el botón de salto se ajustan su tamaño y su posición; manteniendo una flecha, el tamaño, la posición y la separación de las dos flechas. Se guarda.
+- **Bordes:** en pantallas anchas la pista llega hasta los bordes reales de la pantalla (ahí rebota la pelota) y los personajes corren un poco más rápido.
 - **Cuenta atrás:** 3, 2, 1 al empezar cada partido y al volver de la pausa.
 - **Tienda:** cada objeto tiene su precio en monedas. Para hacer pruebas, `FREE_SHOP = true` en `game.js` hace que todo cueste 0 sin perder los precios.
 - **Idioma:** inglés, o español si el navegador está en español.

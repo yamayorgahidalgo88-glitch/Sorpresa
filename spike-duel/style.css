@@ -83,3 +83,19 @@ button.career{background:linear-gradient(180deg,#ffb627,#ff6b35);box-shadow:0 ca
 @keyframes turn{0%,25%{transform:rotate(0)}60%,100%{transform:rotate(-90deg)}}
 @media (orientation: portrait) and (pointer: coarse){#rotate{display:flex}}
 #menu .row.small button.big:only-child,#menu .row.small:has(.hidden) button.big{min-width:calc(360*var(--u))}
+
+/* menu: touch-control editor entry */
+.chip.topleft{position:absolute;top:calc(14*var(--u));left:calc(16*var(--u));font-size:calc(18*var(--u));font-weight:800;
+  padding:calc(10*var(--u)) calc(18*var(--u));border-radius:calc(30*var(--u));background:#0008}
+/* long press feedback on touch buttons (practice) */
+#touch button.charging{animation:charge 2.5s linear forwards}
+@keyframes charge{from{box-shadow:0 0 0 0 #ffb627}to{box-shadow:0 0 0 calc(10*var(--u)) #ffb627aa}}
+/* button editor panel */
+#editor{position:absolute;inset:0;display:flex;align-items:flex-start;justify-content:center;padding-top:calc(70*var(--u));pointer-events:none}
+#editor .panel{pointer-events:auto;touch-action:auto;background:#0d1b2aee;border:calc(2*var(--u)) solid #ffb627;border-radius:calc(18*var(--u));
+  padding:calc(14*var(--u)) calc(22*var(--u));display:flex;flex-direction:column;gap:calc(10*var(--u));min-width:calc(420*var(--u))}
+#editor h3{margin:0;font-size:calc(22*var(--u));text-align:center}
+#editor .slider{display:grid;grid-template-columns:calc(120*var(--u)) 1fr;align-items:center;gap:calc(12*var(--u));font-size:calc(17*var(--u));font-weight:700}
+#editor input[type=range]{width:100%;accent-color:#ffb627;height:calc(28*var(--u));touch-action:auto}
+#editor button.small{min-width:calc(150*var(--u));font-size:calc(18*var(--u));padding:calc(8*var(--u)) calc(16*var(--u))}
+#menu>button.chip.topleft{min-width:0;box-shadow:none;background:#0008;font-size:calc(18*var(--u));padding:calc(10*var(--u)) calc(20*var(--u))}

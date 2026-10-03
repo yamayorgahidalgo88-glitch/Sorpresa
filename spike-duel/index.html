@@ -38,6 +38,7 @@
   </div>
 
   <div id="menu" class="screen hidden">
+    <button id="btnControls" class="chip topleft hidden" data-t="controlsBtn"></button>
     <div class="logo"><span>SPIKE</span><span class="accent">DUEL</span></div>
     <div class="sub" data-t="tagline"></div>
     <div class="col">
@@ -99,6 +100,14 @@
     <div class="row" id="nextRow">
       <button class="big" id="btnNext"></button>
       <button class="big ghost" id="btnMenu" data-t="menu"></button>
+    </div>
+  </div>
+
+  <div id="editor" class="hidden">
+    <div class="panel">
+      <h3 id="editorTitle"></h3>
+      <div id="editorSliders"></div>
+      <div class="row"><button class="ghost small" id="editorReset" data-t="reset"></button><button class="big small" id="editorDone" data-t="done"></button></div>
     </div>
   </div>
 

@@ -28,7 +28,9 @@
       career: 'Spike Career', world: 'World {n}', level: 'Level {n}', boss: 'BOSS', nextLevel: 'Next level',
       newTour: 'New tournament', round: 'Round {n} of 8', tourRule: 'Rivals change every tournament. Lose once and you start again from round 1.',
       backToStart: 'Back to round 1', tourPrize: '+{n} champion bonus', play: 'Play', beaten: 'Beaten', careerDone: 'All levels cleared!',
-      superHint: 'Fill the bar, then spike in the air', go: 'GO!', watchAd: 'Watch an ad: +{n} coins', free: 'Free', rotate: 'Turn your phone sideways to play',
+      superHint: 'Fill the bar, then spike in the air', go: 'GO!', watchAd: 'Watch an ad: +{n} coins',
+      controlsBtn: 'Buttons', practiceHint: 'Practice · hold a button for 2.5 s to edit it', ctlJump: 'Jump button',
+      ctlDir: 'Direction buttons', ctlSize: 'Size', ctlPos: 'Position', ctlGap: 'Spacing', done: 'Done', reset: 'Reset', free: 'Free', rotate: 'Turn your phone sideways to play',
       s_fire: 'Fire', s_fire_d: 'A blazing fast spike',
       s_sticky: 'Bubblegum', s_sticky_d: 'Whoever stops it can\'t jump this point',
       s_shrink: 'Shrink', s_shrink_d: 'Whoever stops it shrinks this point',
@@ -66,7 +68,9 @@
       career: 'Spike Career', world: 'Mundo {n}', level: 'Nivel {n}', boss: 'JEFE', nextLevel: 'Siguiente nivel',
       newTour: 'Nuevo torneo', round: 'Ronda {n} de 8', tourRule: 'Los rivales cambian en cada torneo. Si pierdes, vuelves a la ronda 1.',
       backToStart: 'Vuelves a la ronda 1', tourPrize: '+{n} de premio de campeón', play: 'Jugar', beaten: 'Ganado', careerDone: '¡Todos los niveles superados!',
-      superHint: 'Llena la barra y remata en el aire', go: '¡YA!', watchAd: 'Ver anuncio: +{n} monedas', free: 'Gratis', rotate: 'Gira el móvil en horizontal para jugar',
+      superHint: 'Llena la barra y remata en el aire', go: '¡YA!', watchAd: 'Ver anuncio: +{n} monedas',
+      controlsBtn: 'Botones', practiceHint: 'Práctica · mantén pulsado un botón 2,5 s para editarlo', ctlJump: 'Botón de salto',
+      ctlDir: 'Botones de dirección', ctlSize: 'Tamaño', ctlPos: 'Posición', ctlGap: 'Separación', done: 'Listo', reset: 'Restablecer', free: 'Gratis', rotate: 'Gira el móvil en horizontal para jugar',
       s_fire: 'Fuego', s_fire_d: 'Un remate rapidísimo',
       s_sticky: 'Chicle', s_sticky_d: 'Quien la para no puede saltar en este punto',
       s_shrink: 'Encoger', s_shrink_d: 'Quien la para se encoge en este punto',
@@ -221,7 +225,8 @@
 
   // ---------- Save ----------
   const save = { coins: 0, chars: [0], balls: [0], supers: [0], char: 0, ball: 0, superSel: 0, muted: false,
-    tourRun: null, career: 1, cstars: {} };
+    tourRun: null, career: 1, cstars: {},
+    controls: { dirSize: 92, dirGap: 48, dirX: 20, jumpSize: 92, jumpX: 20 } };
   function loadSave() {
     try {
       const raw = Platform.load(SAVE_KEY);
@@ -231,6 +236,7 @@
     if (!save.supers.includes(save.superSel)) save.superSel = 0;
     if (!save.chars.includes(save.char)) save.char = 0;
     if (!save.balls.includes(save.ball)) save.ball = 0;
+    save.controls = Object.assign({ dirSize: 92, dirGap: 48, dirX: 20, jumpSize: 92, jumpX: 20 }, save.controls || {});
   }
   function persist() { Platform.save(SAVE_KEY, JSON.stringify(save)); }
 
@@ -329,12 +335,18 @@
   const touchHeld = new Map(); // pointerId -> [player, key, button]
   document.querySelectorAll('#touch button').forEach(b => {
     const p = +b.dataset.p, k = b.dataset.k;
+    let hold = null;
     b.addEventListener('pointerdown', e => {
       e.preventDefault(); Sound.unlock();
       touchHeld.set(e.pointerId, [p, k, b]); b.classList.add('on');
       try { b.setPointerCapture(e.pointerId); } catch (_) {}
+      if (kind === 'practice' && state === 'playing') {
+        b.classList.add('charging');
+        hold = setTimeout(() => { b.classList.remove('charging'); openEditor(k === 'jump' ? 'jump' : 'dir'); }, 2500);
+      }
     });
     const up = e => {
+      clearTimeout(hold); b.classList.remove('charging');
       const h = touchHeld.get(e.pointerId);
       if (h) { h[2].classList.remove('on'); touchHeld.delete(e.pointerId); }
     };
@@ -408,12 +420,16 @@
     particles = [];
     if (mode === 'solo') {
       if (kind === 'career') { careerLevel = level; rival = careerRival(level); }
+      else if (kind === 'practice') {
+        rival = { nick: '', char: Math.floor(Math.random() * CHARS.length), venue: VENUES[Math.floor(Math.random() * VENUES.length)], super: 0, ai: 1 };
+      }
       else rival = save.tourRun.rivals[save.tourRun.round];
       venue = rival.venue;
       players = [makePlayer(0, save.char, false, 1, save.superSel), makePlayer(1, rival.char, true, rival.ai, rival.super)];
       const opp = players[1];
       opp.dark = !!rival.boss || rival.char === save.char;
       if (rival.boss) { opp.boss = true; opp.baseR = PR * 1.15; opp.powerMul = 1.5; }
+      if (kind === 'practice') opp.isAI = false;          // the practice dummy never moves
     } else {
       venue = VENUES[Math.floor(Math.random() * VENUES.length)];
       const other = save.char === 1 ? 0 : 1;
@@ -449,7 +465,8 @@
     let dir = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
     if (fx.confused) dir = -dir;
     if (locked) dir = 0;
-    let speed = p.isAI ? P_SPEED * aiSpeed(p) : P_SPEED;
+    // a slightly faster run on wide screens, where the court reaches the screen edges
+    let speed = (p.isAI ? P_SPEED * aiSpeed(p) : P_SPEED) * (1 + 0.6 * offX / W);
     if (fx.slow) speed *= 0.5;
     if (fx.balloon) speed *= 0.75;
     p.vx = dir * speed;
@@ -472,8 +489,8 @@
     }
     const target = fx.shrink ? p.baseR * 0.6 : fx.balloon ? p.baseR * 1.3 : p.baseR;
     p.r += (target - p.r) * Math.min(1, dt * 10);
-    const minX = p.side === 0 ? p.r : NET_X + NET_HALF + p.r;
-    const maxX = p.side === 0 ? NET_X - NET_HALF - p.r : W - p.r;
+    const minX = p.side === 0 ? -offX + p.r : NET_X + NET_HALF + p.r;
+    const maxX = p.side === 0 ? NET_X - NET_HALF - p.r : W + offX - p.r;
     p.x = Math.max(minX, Math.min(maxX, p.x));
     p.hitCooldown = Math.max(0, p.hitCooldown - dt);
     p.squash = Math.max(0, p.squash - dt);
@@ -630,8 +647,8 @@
     b.x += b.vx * dt;
     b.y += b.vy * dt;
     const rb = b.r || BR;
-    if (b.x < rb) { b.x = rb; b.vx = Math.abs(b.vx) * 0.85; }
-    if (b.x > W - rb) { b.x = W - rb; b.vx = -Math.abs(b.vx) * 0.85; }
+    if (b.x < -offX + rb) { b.x = -offX + rb; b.vx = Math.abs(b.vx) * 0.85; }
+    if (b.x > W + offX - rb) { b.x = W + offX - rb; b.vx = -Math.abs(b.vx) * 0.85; }
     if (withNet && b.y > NET_TOP - BR && Math.abs(b.x - NET_X) < NET_HALF + BR) {
       b.vx = -b.vx * 0.85; b.x = NET_X + Math.sign(b.x - NET_X || -b.vx) * (NET_HALF + BR + 0.5);
     }
@@ -765,7 +782,7 @@
       pointTimer -= dt;
       if (ball) ball.vx *= 0.96;
       if (pointTimer <= 0) {
-        if (score[0] >= WIN_POINTS || score[1] >= WIN_POINTS) endMatch();
+        if ((score[0] >= WIN_POINTS || score[1] >= WIN_POINTS) && kind !== 'practice') endMatch();
         else { resetRally(); state = 'playing'; }
       }
       return;
@@ -917,6 +934,48 @@
     document.getElementById('rewardRow').classList.add('hidden');
     document.getElementById('nextRow').classList.remove('hidden');
     refreshCoins();
+  }
+
+  // ---------- Touch button layout + editor ----------
+  const CTRL_LIMITS = {
+    dirSize: [64, 140], dirGap: [12, 220], dirX: [8, 320], jumpSize: [64, 170], jumpX: [8, 420],
+  };
+  function applyControls() {
+    const c = save.controls, u = v => 'calc(' + v + '*var(--u))';
+    const left = document.querySelector('#touch .pad.left');
+    left.style.left = u(c.dirX); left.style.gap = u(c.dirGap);
+    left.querySelectorAll('button').forEach(b => {
+      b.style.width = b.style.height = u(c.dirSize); b.style.fontSize = u(Math.round(c.dirSize * 0.37));
+    });
+    const right = document.querySelector('#touch .pad.right');
+    right.style.right = u(c.jumpX);
+    const j = right.querySelector('.solojump');
+    j.style.width = j.style.height = u(c.jumpSize); j.style.fontSize = u(Math.round(c.jumpSize * 0.37));
+  }
+  let editorFrom = 'playing';
+  function openEditor(which) {
+    if (state !== 'playing' && state !== 'point') return;
+    editorFrom = state; state = 'editing';
+    touchHeld.clear(); document.querySelectorAll('#touch button').forEach(b => b.classList.remove('on'));
+    const list = which === 'jump' ? [['jumpSize', 'ctlSize'], ['jumpX', 'ctlPos']] : [['dirSize', 'ctlSize'], ['dirX', 'ctlPos'], ['dirGap', 'ctlGap']];
+    const box = document.getElementById('editorSliders');
+    box.innerHTML = '';
+    document.getElementById('editorTitle').textContent = t(which === 'jump' ? 'ctlJump' : 'ctlDir');
+    for (const [key, label] of list) {
+      const [lo, hi] = CTRL_LIMITS[key];
+      const row = document.createElement('label'); row.className = 'slider';
+      const name = document.createElement('span'); name.textContent = t(label);
+      const input = document.createElement('input');
+      input.type = 'range'; input.min = lo; input.max = hi; input.step = 1; input.value = save.controls[key]; input.id = 'ctl-' + key;
+      input.addEventListener('input', () => { save.controls[key] = +input.value; applyControls(); });
+      row.appendChild(name); row.appendChild(input); box.appendChild(row);
+    }
+    document.getElementById('editor').classList.remove('hidden');
+  }
+  function closeEditor() {
+    document.getElementById('editor').classList.add('hidden');
+    persist();
+    if (state === 'editing') state = editorFrom;
   }
 
   // ---------- Pause ----------
@@ -2245,6 +2304,10 @@
     roundRect(W / 2 - 90, 12, 180, 56, 14); ctx.fill();
     ctx.fillStyle = '#fff'; ctx.font = '900 40px "Trebuchet MS",sans-serif';
     ctx.fillText(score[0] + ' : ' + score[1], W / 2, 54);
+    if (kind === 'practice') {
+      ctx.font = '700 14px "Trebuchet MS",sans-serif'; ctx.fillStyle = '#ffffffdd';
+      ctx.fillText(t('practiceHint'), W / 2, 86);
+    }
     if (kind === 'career' || kind === 'tour') {
       ctx.font = '700 13px "Trebuchet MS",sans-serif'; ctx.fillStyle = '#ffffffcc';
       ctx.fillText(kind === 'career' ? t('level', { n: careerLevel }) : t('round', { n: save.tourRun ? save.tourRun.round + 1 : TOUR_SIZE }), W / 2, 84);
@@ -2307,7 +2370,7 @@
       for (const pt of particles) { ctx.globalAlpha = Math.max(0, pt.life / pt.max); ctx.fillStyle = pt.color; circle(pt.x, pt.y, pt.r); }
       ctx.globalAlpha = 1;
       for (const p of players) if (p.fx.ink > 0) drawInk(p);
-      if (state === 'playing' || state === 'point' || state === 'paused' || state === 'countdown') drawHUD();
+      if (state === 'playing' || state === 'point' || state === 'paused' || state === 'countdown' || state === 'editing') drawHUD();
       if (state === 'countdown') drawCountdown();
     }
     ctx.restore();
@@ -2540,6 +2603,12 @@
     document.querySelectorAll('[data-t]').forEach(el => { el.textContent = t(el.dataset.t); });
     const on = (id, fn) => document.getElementById(id).addEventListener('click', () => { Sound.unlock(); fn(); });
     on('btnTour', () => { Sound.click(); openTour(); });
+    on('btnControls', () => { Sound.click(); startMatch('practice'); });
+    on('editorDone', closeEditor);
+    on('editorReset', () => {
+      save.controls = { dirSize: 92, dirGap: 48, dirX: 20, jumpSize: 92, jumpX: 20 }; applyControls();
+      document.querySelectorAll('#editorSliders input').forEach(i => { i.value = save.controls[i.id.slice(4)]; });
+    });
     on('btnCareer', () => { Sound.click(); openCareer(); });
     on('worldPrev', () => { careerWorld = Math.max(0, careerWorld - 1); updateWorldBar(); });
     on('worldNext', () => { careerWorld = Math.min(4, careerWorld + 1); updateWorldBar(); });
@@ -2583,6 +2652,7 @@
     if (isTouch) {
       document.querySelector('#menu .hint').classList.add('hidden');
       document.getElementById('btn2p').classList.add('hidden');      // 2 players is keyboard-only for now
+      document.getElementById('btnControls').classList.remove('hidden');
     }
     const standalone = matchMedia('(display-mode: fullscreen)').matches || matchMedia('(display-mode: standalone)').matches;
     if (standalone) document.getElementById('btnFull').classList.add('hidden');
@@ -2607,6 +2677,7 @@
     Platform.loadingStart();
     loadSave();
     wireUI();
+    applyControls();
     Platform.loadingStop();
     goMenu();
     requestAnimationFrame(frame);
