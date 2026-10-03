@@ -453,7 +453,7 @@
       } else {
         ball.vx = d.x * 820; ball.vy = d.y * 820;
         endSuper();
-        p.power = Math.min(1, p.power + 0.12 * p.powerMul); shake = 0.12; Sound.spike();
+        p.power = Math.min(1, p.power + 0.06 * p.powerMul); shake = 0.12; Sound.spike();
         burst(ball.x, ball.y, 12, ['#ffffff', '#ffd23f']);
       }
     } else {
@@ -468,7 +468,7 @@
       if (weak) { ball.vx *= 0.45; ball.vy *= 0.45; }
       else if (ball.vy > -260 && ny < 0) ball.vy = Math.min(ball.vy, -420);
       if (ball.superOwner === p.side) endSuper();
-      p.power = Math.min(1, p.power + 0.25 * p.powerMul);
+      p.power = Math.min(1, p.power + 0.1 * p.powerMul);
       Sound.hit();
       burst(ball.x - nx * BR, ball.y - ny * BR, 5, ['#ffffff']);
     }
