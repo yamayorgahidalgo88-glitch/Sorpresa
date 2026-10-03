@@ -12,7 +12,7 @@ path = lambda i: os.path.join(cache, i + ('.jpg' if i.startswith('tm') else '.pn
 have = [i for i in dict.fromkeys(ids) if os.path.exists(path(i))]
 index, sheet, n = {}, None, 0
 def flush(sheet, k):
-    sheet.save(os.path.join(out, f'faces-{k}.webp'), 'WEBP', quality=72, method=6)
+    sheet.save(os.path.join(out, f'faces-{k}.webp'), 'WEBP', quality=62, method=6)
 for i, pid in enumerate(have):
     k, cell = divmod(i, PER)
     if cell == 0:
