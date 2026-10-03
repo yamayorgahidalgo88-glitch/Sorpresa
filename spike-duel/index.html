@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Spike Duel: Volleyball</title>
+<meta name="description" content="Spike Duel is a fast 1v1 volleyball game: jump, spike and charge your super smash to beat 8 rivals or a friend on the same keyboard.">
+<link rel="stylesheet" href="style.css">
+<script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
+</head>
+<body>
+<div id="stage">
+  <canvas id="game"></canvas>
+
+  <div id="hud" class="hidden">
+    <button id="btnPause" class="iconBtn" aria-label="Pause">II</button>
+  </div>
+
+  <div id="touch" class="hidden">
+    <div class="pad left">
+      <button data-p="0" data-k="left" aria-label="Left">&#9664;</button>
+      <button data-p="0" data-k="right" aria-label="Right">&#9654;</button>
+      <button data-p="0" data-k="jump" class="jump p1jump" aria-label="Jump">&#9650;</button>
+    </div>
+    <div class="pad right">
+      <button data-p="1" data-k="left" class="p2" aria-label="Left">&#9664;</button>
+      <button data-p="1" data-k="right" class="p2" aria-label="Right">&#9654;</button>
+      <button data-p="0" data-k="jump" class="jump solojump" aria-label="Jump">&#9650;</button>
+      <button data-p="1" data-k="jump" class="jump p2" aria-label="Jump">&#9650;</button>
+    </div>
+  </div>
+
+  <div id="menu" class="screen hidden">
+    <div class="logo"><span>SPIKE</span><span class="accent">DUEL</span></div>
+    <div class="sub" data-t="tagline"></div>
+    <div class="col">
+      <button class="big" id="btnTour" data-t="tour"></button>
+      <button class="big alt" id="btn2p" data-t="twoPlayers"></button>
+      <button class="big ghost" id="btnShop" data-t="shop"></button>
+    </div>
+    <div class="topbar"><span class="coins"></span><button id="btnMute" class="iconBtn" aria-label="Sound"></button></div>
+    <div class="hint" data-t="controls"></div>
+  </div>
+
+  <div id="tour" class="screen hidden">
+    <h2 data-t="tour"></h2>
+    <div class="grid" id="rivals"></div>
+    <button class="ghost" data-back data-t="back"></button>
+  </div>
+
+  <div id="shop" class="screen hidden">
+    <h2 data-t="shop"></h2>
+    <div class="topbar"><span class="coins"></span></div>
+    <div class="tabs"><button id="tabChars" class="tab on" data-t="characters"></button><button id="tabBalls" class="tab" data-t="balls"></button></div>
+    <div class="grid" id="items"></div>
+    <button class="ghost" data-back data-t="back"></button>
+  </div>
+
+  <div id="pause" class="screen dim hidden">
+    <h2 data-t="paused"></h2>
+    <div class="col">
+      <button class="big" id="btnResume" data-t="resume"></button>
+      <button class="big ghost" id="btnQuit" data-t="menu"></button>
+    </div>
+  </div>
+
+  <div id="result" class="screen dim hidden">
+    <h2 id="resTitle"></h2>
+    <div id="resScore" class="score"></div>
+    <div id="resCoins" class="coinsWon"></div>
+    <div class="row" id="rewardRow">
+      <button class="big reward" id="btnDouble"></button>
+      <button class="big ghost" id="btnNoThanks" data-t="noThanks"></button>
+    </div>
+    <div class="row" id="nextRow">
+      <button class="big" id="btnNext"></button>
+      <button class="big ghost" id="btnMenu" data-t="menu"></button>
+    </div>
+  </div>
+
+  <div id="toast" class="hidden"></div>
+</div>
+<script src="sdk.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
