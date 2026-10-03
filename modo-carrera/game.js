@@ -87,7 +87,7 @@ function genName(nat){const d=NAMES[nat]||NAMES[NAME_POOL[nat]]||NAMES.Spain;ret
 /* ================= estado ================= */
 let S=null;
 const UI={view:'home',sqSort:'pos',sqMode:'cards',selSlot:null,mk:{pos:'',maxAge:40,minOvr:70,maxPrice:0,q:'',league:'',page:0},leagueTab:'tabla',leagueComp:null,round:null,newClub:null,startDiv:0,match:null,pendingSubOut:null};
-const SAVE_KEY='modo_carrera_mister_2627_v3';
+const SAVE_KEY='modo_carrera_mister_2627_v4';
 
 function P(id){return S.players[id];}
 function me(){return S.clubs[S.user.clubId];}
