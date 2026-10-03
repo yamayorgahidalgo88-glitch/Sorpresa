@@ -108,13 +108,13 @@
     { name: 'Frost', body: '#a2d2ff', band: '#0077b6', price: 400 },
     { name: 'Ace', body: '#7b2cbf', band: '#ffb627', price: 550 },
     // accessories are cosmetic only: the hitbox stays the same half circle
-    { name: 'Rider', body: '#e63946', band: '#e63946', acc: 'helmet', accColor: '#f1faee', price: 600 },
+    { name: 'Rider', body: '#d00000', band: '#d00000', acc: 'helmet', accColor: '#111111', price: 600 },
     { name: 'Spiky', body: '#2ec4b6', band: '#011627', acc: 'spikes', accColor: '#e0e1dd', price: 650 },
     { name: 'Cyborg', body: '#5c677d', band: '#5c677d', acc: 'shades', accColor: '#ff1f3d', price: 700 },
-    { name: 'Inked', body: '#e9c46a', band: '#e9c46a', acc: 'tattoo', accColor: '#1b4332', price: 750 },
+    { name: 'Inked', body: '#f2cc8f', band: '#f2cc8f', acc: 'tattoo', accColor: '#9d4edd', price: 750 },
     { name: 'King', body: '#3a86ff', band: '#3a86ff', acc: 'crown', price: 850 },
     { name: 'Pirate', body: '#bc6c25', band: '#d62828', acc: 'pirate', price: 900 },
-    { name: 'DJ', body: '#8338ec', band: '#8338ec', acc: 'headphones', accColor: '#ff006e', price: 950 },
+    { name: 'DJ', body: '#8338ec', band: '#8338ec', acc: 'headphones', accColor: '#00f5d4', price: 950 },
     { name: 'Ninja', body: '#343a40', band: '#343a40', acc: 'ninja', accColor: '#d00000', price: 1000 },
   ];
   const BALLS = [
@@ -181,6 +181,8 @@
     };
   }
   const pick = (r, arr) => arr[Math.floor(r() * arr.length)];
+  // Rivals are called by their skin's name; bosses keep their title.
+  const rivalName = r => (r.boss ? '☠ ' + r.nick : CHARS[r.char].name);
 
   // A fresh tournament: 8 random rivals, each one tougher and with a stronger super.
   function newTourRun() {
@@ -437,9 +439,11 @@
     p.x += p.vx * dt;
     p.y += p.vy * dt;
     if (p.y < 150) { p.y = 150; p.vy = Math.max(p.vy, 0); }
-    if (p.y >= GROUND) {
-      if (!p.onGround && p.vy > 300) p.squash = 0.18;
-      p.y = GROUND; p.vy = 0; p.onGround = true;
+    const floor = fx.float ? GROUND - 26 - Math.sin(time * 3 + p.side * 2) * 8 : GROUND;
+    if (p.y >= floor) {
+      if (fx.float) { p.y = Math.max(floor, p.y - 90 * dt); }      // rise slowly and hover, bobbing
+      else { if (!p.onGround && p.vy > 300) p.squash = 0.18; p.y = GROUND; }
+      p.vy = 0; p.onGround = true;
     }
     const target = fx.shrink ? p.baseR * 0.6 : fx.balloon ? p.baseR * 1.3 : p.baseR;
     p.r += (target - p.r) * Math.min(1, dt * 10);
@@ -1204,6 +1208,7 @@
       c.beginPath(); c.moveTo(-26, -30); c.lineTo(-36, -62); c.lineTo(-12, -38); c.fill();
       c.beginPath(); c.moveTo(26, -30); c.lineTo(36, -62); c.lineTo(12, -38); c.fill();
     }
+    if (!p.boss && ch.acc === 'crown') drawCape(c, p.side === 0 ? 1 : -1, !!cv);
     const body = p.boss ? '#1b1b1b' : p.dark ? shade(ch.body, -0.45) : ch.body;
     c.fillStyle = body;
     c.beginPath(); c.arc(0, 0, PR, Math.PI, 0); c.lineTo(PR, 0); c.closePath(); c.fill();
@@ -1279,9 +1284,12 @@
       for (let a = 0; a < 10; a += 0.4) c.lineTo(x + Math.cos(a) * a * 0.9, top - 6 + Math.sin(a) * a * 0.9);
       c.stroke();
     }
-    if (fx.float) {
-      c.strokeStyle = '#c77dffaa'; c.lineWidth = 3;
-      c.beginPath(); c.arc(x, y - PR * size * 0.4, PR * size + 14, 0, Math.PI * 2); c.stroke();
+    if (fx.float) { // soft sparkles drifting under the hovering player
+      for (let i = 0; i < 4; i++) {
+        const ph = (time * 0.8 + i * 0.25) % 1;
+        c.fillStyle = 'rgba(199,125,255,' + (0.7 * (1 - ph)) + ')';
+        c.beginPath(); c.arc(x + (i - 1.5) * 16, y + 4 + ph * 18, 3 - ph * 2, 0, Math.PI * 2); c.fill();
+      }
     }
   }
   // Cosmetic extras, drawn in the player's local space (body = half circle of radius PR).
@@ -1299,48 +1307,58 @@
         c.beginPath(); c.moveTo(bx + nx, by + ny); c.lineTo(tx, ty); c.lineTo(bx - nx, by - ny); c.closePath(); c.fill(); c.stroke();
       }
     } else if (acc === 'helmet') {
-      // racing helmet shell with a clear visor window around the eye
-      c.fillStyle = col; c.strokeStyle = '#1b1b1b'; c.lineWidth = 3;
-      c.beginPath(); c.arc(0, 0, PR + 2, Math.PI, 0); c.closePath(); c.fill(); c.stroke();
-      c.fillStyle = ch.body;                       // racing stripes over the crown
-      c.beginPath(); c.arc(0, 0, PR + 2, Math.PI * 1.42, Math.PI * 1.58); c.lineTo(0, 0); c.closePath(); c.fill();
-      c.fillStyle = '#1b1b1b';
-      c.beginPath(); c.arc(0, 0, PR + 2, Math.PI * 1.39, Math.PI * 1.42); c.lineTo(0, 0); c.closePath(); c.fill();
-      c.beginPath(); c.arc(0, 0, PR + 2, Math.PI * 1.58, Math.PI * 1.61); c.lineTo(0, 0); c.closePath(); c.fill();
-      c.fillStyle = col; c.beginPath(); c.arc(0, 0, PR - 14, Math.PI, 0); c.fill();   // keep the stripes on the shell only
-      // visor opening: tinted glass, the eye is drawn on top of it
-      const vx = 10 * f;
-      c.fillStyle = '#1d3557'; c.strokeStyle = '#1b1b1b'; c.lineWidth = 3;
-      c.beginPath(); c.ellipse(vx + 6 * f, -16, 22, 12, 0, 0, Math.PI * 2); c.fill(); c.stroke();
-      const vg = c.createLinearGradient(0, -28, 0, -4);
-      vg.addColorStop(0, 'rgba(120,200,255,0.55)'); vg.addColorStop(1, 'rgba(20,60,120,0.2)');
-      c.fillStyle = vg; c.beginPath(); c.ellipse(vx + 6 * f, -16, 20, 10, 0, 0, Math.PI * 2); c.fill();
-      // chin guard and a number on the side
-      c.fillStyle = '#1b1b1b'; c.fillRect(-6 * f - (f < 0 ? 0 : 0), -6, 28 * f, 5);
-      c.fillStyle = ch.body; c.font = '900 13px "Trebuchet MS",sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
-      c.fillText('7', -22 * f, -18);
+      // full-face motorbike helmet: glossy shell, spoiler, vents and a wide visor
+      const shell = c.createLinearGradient(-PR, -PR, PR * 0.4, 0);
+      shell.addColorStop(0, '#ff5a5f'); shell.addColorStop(0.5, ch.body); shell.addColorStop(1, '#6a040f');
+      c.fillStyle = shell; c.strokeStyle = '#111'; c.lineWidth = 3;
+      c.beginPath(); c.arc(0, 0, PR + 3, Math.PI, 0); c.closePath(); c.fill(); c.stroke();
+      // rear spoiler
+      c.fillStyle = '#111';
+      c.beginPath(); c.moveTo(-26 * f, -36); c.lineTo(-44 * f, -40); c.lineTo(-40 * f, -30); c.closePath(); c.fill();
+      // graphic stripes sweeping back
+      c.strokeStyle = '#ffffff'; c.lineWidth = 4; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(-36 * f, -12); c.quadraticCurveTo(-24 * f, -34, 4 * f, -42); c.stroke();
+      c.strokeStyle = '#111'; c.lineWidth = 2;
+      c.beginPath(); c.moveTo(-38 * f, -4); c.quadraticCurveTo(-24 * f, -28, 0, -36); c.stroke();
+      // chin bar with vents
+      c.fillStyle = '#111';
+      c.beginPath(); c.moveTo(-4 * f, 0); c.lineTo(-4 * f, -6); c.quadraticCurveTo(20 * f, -6, (PR + 3) * f, -2); c.lineTo((PR + 3) * f, 0); c.closePath(); c.fill();
+      c.fillStyle = '#495057'; for (let i = 0; i < 3; i++) c.fillRect((16 + i * 6) * f - 1.5, -5, 3, 3);
+      // visor: smoked, iridescent glass; the eye shows through it
+      const vg = c.createLinearGradient(0, -32, 0, -6);
+      vg.addColorStop(0, 'rgba(90,24,154,0.55)'); vg.addColorStop(0.5, 'rgba(255,0,110,0.35)'); vg.addColorStop(1, 'rgba(255,190,11,0.45)');
+      c.fillStyle = '#0b0b0f';
+      c.beginPath(); c.moveTo(-4 * f, -8); c.quadraticCurveTo(-6 * f, -30, 18 * f, -32); c.quadraticCurveTo(36 * f, -28, (PR + 2) * f, -10); c.lineTo((PR + 2) * f, -8); c.closePath(); c.fill();
+      c.fillStyle = vg; c.fill();
+      c.strokeStyle = '#111'; c.lineWidth = 2.5; c.stroke();
+      c.fillStyle = '#ffffff'; c.font = '900 11px "Trebuchet MS",sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText('07', -24 * f, -22);
     } else if (acc === 'tattoo') {
-      // a snake coiling from the top of the head down to the bottom
-      const P = [[-4, -38], [-24, -32], [-10, -22], [-30, -14], [-14, -6], [-26, -1]].map(([x, y]) => [x * f, y]);
-      const path = () => {
-        c.beginPath(); c.moveTo(P[0][0], P[0][1]);
-        for (let i = 1; i < P.length - 1; i++) {
-          const mx = (P[i][0] + P[i + 1][0]) / 2, my = (P[i][1] + P[i + 1][1]) / 2;
-          c.quadraticCurveTo(P[i][0], P[i][1], mx, my);
-        }
-        c.lineTo(P[P.length - 1][0], P[P.length - 1][1]);
-      };
+      // punk: purple-to-green mohawk, a small snake tattoo and piercings (front layer)
+      const spikes = 7;
+      for (let i = 0; i < spikes; i++) {
+        const a = Math.PI * (1.18 + i * 0.105);
+        const ang = f > 0 ? Math.PI * 3 - a : a;               // crest runs front to back over the top
+        const bx = Math.cos(ang) * (PR - 4), by = Math.sin(ang) * (PR - 4);
+        const len = 20 + Math.sin(i * 1.7) * 4;
+        const tx = Math.cos(ang) * (PR + len), ty = Math.sin(ang) * (PR + len) + Math.sin(time * 6 + i) * 1.2;
+        const nx = -Math.sin(ang) * 6, ny = Math.cos(ang) * 6;
+        const gcr = c.createLinearGradient(bx, by, tx, ty);
+        gcr.addColorStop(0, '#7b2cbf'); gcr.addColorStop(0.6, '#9d4edd'); gcr.addColorStop(1, '#70e000');
+        c.fillStyle = gcr; c.strokeStyle = '#240046'; c.lineWidth = 1.5;
+        c.beginPath(); c.moveTo(bx + nx, by + ny); c.lineTo(tx, ty); c.lineTo(bx - nx, by - ny); c.closePath(); c.fill(); c.stroke();
+      }
+      // shaved sides
+      c.fillStyle = 'rgba(60,40,30,0.25)';
+      c.beginPath(); c.arc(0, 0, PR - 2, Math.PI * 1.05, Math.PI * 1.95); c.arc(0, 0, PR - 10, Math.PI * 1.95, Math.PI * 1.05, true); c.fill();
+      // snake tattoo on the back of the head
+      const P = [[-14, -28], [-30, -22], [-18, -14], [-32, -6], [-22, -1]].map(([x, y]) => [x * f, y]);
       c.lineCap = 'round'; c.lineJoin = 'round';
-      c.strokeStyle = '#081c15'; c.lineWidth = 12; path(); c.stroke();
-      c.strokeStyle = '#2d6a4f'; c.lineWidth = 8; path(); c.stroke();
-      c.strokeStyle = '#95d5b2'; c.lineWidth = 1.5; c.setLineDash([2, 4]); path(); c.stroke(); c.setLineDash([]);
-      // head with red eyes and a forked tongue
-      const [hx, hy] = P[0];
-      c.fillStyle = '#081c15'; c.beginPath(); c.ellipse(hx + 4 * f, hy, 10, 7, 0.3 * f, 0, Math.PI * 2); c.fill();
-      c.fillStyle = '#2d6a4f'; c.beginPath(); c.ellipse(hx + 4 * f, hy, 8, 5.5, 0.3 * f, 0, Math.PI * 2); c.fill();
-      c.fillStyle = '#e63946'; c.beginPath(); c.arc(hx + 6 * f, hy - 2, 1.6, 0, Math.PI * 2); c.fill();
-      c.strokeStyle = '#e63946'; c.lineWidth = 1.5;
-      c.beginPath(); c.moveTo(hx + 11 * f, hy + 1); c.lineTo(hx + 16 * f, hy + 2); c.lineTo(hx + 19 * f, hy); c.moveTo(hx + 16 * f, hy + 2); c.lineTo(hx + 19 * f, hy + 4); c.stroke();
+      const path = () => { c.beginPath(); c.moveTo(P[0][0], P[0][1]); for (let i = 1; i < P.length; i++) c.lineTo(P[i][0], P[i][1]); };
+      c.strokeStyle = '#081c15'; c.lineWidth = 7; path(); c.stroke();
+      c.strokeStyle = '#2d6a4f'; c.lineWidth = 4; path(); c.stroke();
+      c.fillStyle = '#081c15'; c.beginPath(); c.ellipse(P[0][0] + 3 * f, P[0][1], 6, 4.5, 0.4 * f, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#e63946'; c.beginPath(); c.arc(P[0][0] + 5 * f, P[0][1] - 1, 1.3, 0, Math.PI * 2); c.fill();
     } else if (acc === 'shades') {
       // cyborg: riveted metal plating over the back of the head and an antenna
       c.fillStyle = '#adb5bd'; c.strokeStyle = '#343a40'; c.lineWidth = 2;
@@ -1389,28 +1407,72 @@
       c.strokeStyle = 'rgba(255,255,255,0.75)'; c.lineWidth = 2.5; c.lineCap = 'round';   // glare on the visor
       c.beginPath(); c.moveTo(ex - 4 * f, ey - 7); c.quadraticCurveTo(ex + 6 * f, ey - 11, ex + 16 * f, ey - 7); c.stroke();
     } else if (acc === 'crown') {
+      drawCollar(c, f);
       c.fillStyle = '#ffd60a'; c.strokeStyle = '#b8860b'; c.lineWidth = 2;
       c.beginPath(); c.moveTo(-20, -36); c.lineTo(-22, -58); c.lineTo(-10, -46); c.lineTo(0, -62); c.lineTo(10, -46); c.lineTo(22, -58); c.lineTo(20, -36); c.closePath();
       c.fill(); c.stroke();
       for (const [dx, colr] of [[-11, '#e63946'], [0, '#3a86ff'], [11, '#2ec27e']]) { c.fillStyle = colr; c.beginPath(); c.arc(dx, -41, 3, 0, Math.PI * 2); c.fill(); }
     } else if (acc === 'headphones') {
-      // padded headband over the top and big ear cups on the sides of the head
-      c.strokeStyle = '#1b1b1b'; c.lineWidth = 7; c.lineCap = 'round';
-      c.beginPath(); c.arc(0, -6, PR + 4, Math.PI * 1.12, Math.PI * 1.88); c.stroke();
-      c.strokeStyle = '#495057'; c.lineWidth = 3;
-      c.beginPath(); c.arc(0, -6, PR + 4, Math.PI * 1.3, Math.PI * 1.7); c.stroke();
-      const cup = (cx, cy, sc) => {
-        c.save(); c.translate(cx, cy); c.scale(sc, sc);
-        c.fillStyle = '#1b1b1b'; c.beginPath(); c.ellipse(0, 0, 11, 16, 0, 0, Math.PI * 2); c.fill();
-        c.fillStyle = col; c.beginPath(); c.ellipse(0, 0, 8, 12, 0, 0, Math.PI * 2); c.fill();
-        c.fillStyle = '#212529'; c.beginPath(); c.ellipse(0, 0, 5, 8, 0, 0, Math.PI * 2); c.fill();
-        c.fillStyle = '#ffffff55'; c.beginPath(); c.ellipse(-2, -4, 2, 3, 0, 0, Math.PI * 2); c.fill();
-        c.restore();
-      };
-      cup(-(PR - 4) * f, -16, 1);        // near cup at the back of the head
-      cup((PR - 6) * f, -18, 0.6);       // far cup peeking out at the front
-      c.strokeStyle = '#1b1b1b'; c.lineWidth = 2;   // cable
-      c.beginPath(); c.moveTo(-(PR - 4) * f, -1); c.quadraticCurveTo(-(PR + 6) * f, 4, -(PR - 10) * f, 0); c.stroke();
+      // only the near ear cup is visible in side view
+      const cx = -12 * f, cy = -20;
+      c.strokeStyle = '#1b1b1b'; c.lineWidth = 8; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(cx, cy - 14); c.quadraticCurveTo(cx + 2 * f, -PR - 12, cx + 26 * f, -PR - 4); c.stroke();
+      c.strokeStyle = '#6c757d'; c.lineWidth = 3;
+      c.beginPath(); c.moveTo(cx, cy - 14); c.quadraticCurveTo(cx + 2 * f, -PR - 12, cx + 26 * f, -PR - 4); c.stroke();
+      // cup: cushion, metal ring, glowing accent and logo
+      c.fillStyle = '#111'; c.beginPath(); c.ellipse(cx, cy, 15, 18, 0, 0, Math.PI * 2); c.fill();
+      const metal = c.createLinearGradient(cx - 12, cy - 14, cx + 12, cy + 14);
+      metal.addColorStop(0, '#dee2e6'); metal.addColorStop(0.5, '#868e96'); metal.addColorStop(1, '#343a40');
+      c.fillStyle = metal; c.beginPath(); c.ellipse(cx, cy, 12, 15, 0, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#1b1b1b'; c.beginPath(); c.ellipse(cx, cy, 9, 12, 0, 0, Math.PI * 2); c.fill();
+      const led = 0.55 + 0.45 * Math.sin(time * 6);
+      c.strokeStyle = col; c.globalAlpha = led; c.lineWidth = 2.5;
+      c.beginPath(); c.ellipse(cx, cy, 7, 10, 0, 0, Math.PI * 2); c.stroke(); c.globalAlpha = 1;
+      c.fillStyle = col; c.font = '900 9px "Trebuchet MS",sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText('DJ', cx, cy + 1);
+      // microphone boom towards the mouth
+      c.strokeStyle = '#1b1b1b'; c.lineWidth = 2.5;
+      c.beginPath(); c.moveTo(cx + 6 * f, cy + 12); c.quadraticCurveTo(cx + 14 * f, cy + 22, cx + 28 * f, cy + 16); c.stroke();
+      c.fillStyle = '#1b1b1b'; c.beginPath(); c.arc(cx + 29 * f, cy + 15, 3, 0, Math.PI * 2); c.fill();
+    } else if (acc === 'tattoo') {
+      // piercings: brow rings, a nose ring and a lip stud
+      c.strokeStyle = '#ced4da'; c.lineWidth = 1.8;
+      c.beginPath(); c.arc(ex + 6 * f, ey - 11, 3, 0, Math.PI * 2); c.stroke();
+      c.beginPath(); c.arc(ex + 1 * f, ey - 12, 2.5, 0, Math.PI * 2); c.stroke();
+      c.beginPath(); c.arc((PR - 6) * f, -10, 3.2, 0, Math.PI * 2); c.stroke();
+      c.fillStyle = '#e9ecef'; c.beginPath(); c.arc((PR - 10) * f, -4, 1.8, 0, Math.PI * 2); c.fill();
+      c.beginPath(); c.arc(-20 * f, -36, 1.6, 0, Math.PI * 2); c.arc(-24 * f, -32, 1.6, 0, Math.PI * 2); c.fill();
+    }
+  }
+
+  // King's royal cape: red velvet flaring out behind the body down to the ground.
+  function drawCape(c, f, still) {
+    const sway = still ? 0 : Math.sin(time * 3) * 4;
+    const back = -f;
+    const g = c.createLinearGradient(0, -PR, back * (PR + 30), 0);
+    g.addColorStop(0, '#d00000'); g.addColorStop(1, '#6a040f');
+    c.fillStyle = g; c.strokeStyle = '#370617'; c.lineWidth = 2.5;
+    c.beginPath();
+    c.moveTo(back * 4, -PR + 4);
+    c.bezierCurveTo(back * (PR + 6), -PR + 2, back * (PR + 30 + sway), -PR * 0.4, back * (PR + 34 + sway * 1.5), 0);
+    c.lineTo(back * (PR - 6), 0);
+    c.closePath(); c.fill(); c.stroke();
+    // velvet folds and a gold hem
+    c.strokeStyle = 'rgba(255,255,255,0.18)'; c.lineWidth = 2;
+    for (const k of [0.45, 0.7]) {
+      c.beginPath(); c.moveTo(back * (8 + k * 20), -PR + 8); c.quadraticCurveTo(back * (PR + k * 20), -PR * 0.4, back * (PR + k * 30 + sway), -2); c.stroke();
+    }
+    c.strokeStyle = '#ffd60a'; c.lineWidth = 3;
+    c.beginPath(); c.moveTo(back * (PR - 4), -1.5); c.lineTo(back * (PR + 33 + sway * 1.5), -1.5); c.stroke();
+  }
+  // ermine collar over the shoulders, drawn on top of the body
+  function drawCollar(c, f) {
+    const back = -f;
+    c.fillStyle = '#f8f9fa'; c.strokeStyle = '#ced4da'; c.lineWidth = 1.5;
+    c.beginPath(); c.ellipse(back * 18, -PR + 12, 22, 8, back * 0.6, 0, Math.PI * 2); c.fill(); c.stroke();
+    c.fillStyle = '#111';
+    for (const [dx, dy] of [[8, -PR + 8], [17, -PR + 13], [26, -PR + 16], [22, -PR + 7]]) {
+      c.beginPath(); c.ellipse(back * dx, dy, 1.6, 2.8, 0, 0, Math.PI * 2); c.fill();
     }
   }
 
@@ -1819,7 +1881,7 @@
     }
     ctx.font = '700 15px "Trebuchet MS",sans-serif';
     const n0 = mode === 'duo' ? 'P1' : CHARS[save.char].name;
-    const n1 = mode === 'duo' ? 'P2' : (rival.boss ? '☠ ' : '') + rival.nick;
+    const n1 = mode === 'duo' ? 'P2' : rivalName(rival);
     ctx.textAlign = 'left'; ctx.fillText(n0, 20, 28);
     ctx.textAlign = 'right'; ctx.fillText(n1, W - 76, 28);
     powerBar(44, 38, players[0], false);
@@ -1934,7 +1996,7 @@
         drawPlayer(fake, 45, 62, 0.85, 10, 30, g);
         drawSuperIcon(g, SUPERS[r.super].id, 76, 18, 11);
       }));
-      const name = document.createElement('div'); name.textContent = r.nick; card.appendChild(name);
+      const name = document.createElement('div'); name.textContent = rivalName(r); card.appendChild(name);
       const info = document.createElement('small');
       info.textContent = t('rival', { n: i + 1 }) + ' · ' + t(r.venue);
       card.appendChild(info);
