@@ -9,8 +9,9 @@ Juego de vóley 1 contra 1 para navegador, pensado para publicarse en CrazyGames
 - **Controles:** 1 jugador con A/D o flechas para moverse y W, flecha arriba o espacio para saltar. En 2 jugadores, A/D/W contra las flechas. En móvil aparecen botones táctiles.
 - **Remate:** si tocas el balón en el aire, rematas. Cada toque carga la barra; llena, el siguiente remate es un súper remate. Quien saca no carga la barra hasta que el rival toque el balón. Un súper sigue activo hasta que lo toca el rival o termina el punto, aunque toque la red.
 - **Súpers:** 20 súpers que se compran en la tienda. Fuego es el inicial. Los demás son Chicle, Encoger, Meteorito, Hielo, Gravedad cero, Rayo, Fantasma, Clones, Confusión, Tornado, Caracol, Imán, Tinta, Vendaval, Globo, Bumerán, Teletransporte, Bomba y Terremoto. Los rivales usan súpers cada vez más fuertes.
-- **Progresión:** las monedas de cada partido desbloquean 16 personajes (8 con accesorios: casco, pinchos, gafas de sol, tatuajes, corona, pirata, cascos de DJ y ninja; solo son estéticos) y 16 balones con diseño propio.
+- **Progresión:** las monedas de cada partido desbloquean 16 personajes (8 con accesorios: casco de carreras, pinchos, cyborg con visor rojo, tatuaje de serpiente, corona, pirata, cascos de DJ y ninja; solo son estéticos) y 16 balones con diseño propio.
 - **Cuenta atrás:** 3, 2, 1 al empezar cada partido y al volver de la pausa.
+- **Tienda gratis (temporal):** `FREE_SHOP = true` en `game.js` hace que todo cueste 0 para probarlo. Los precios siguen guardados en cada objeto y en la tienda se ven entre paréntesis; con `FREE_SHOP = false` vuelven a cobrarse.
 - **Idioma:** inglés, o español si el navegador está en español.
 
 ## Probarlo en local

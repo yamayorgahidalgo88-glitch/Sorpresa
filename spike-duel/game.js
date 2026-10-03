@@ -28,7 +28,7 @@
       career: 'Spike Career', world: 'World {n}', level: 'Level {n}', boss: 'BOSS', nextLevel: 'Next level',
       newTour: 'New tournament', round: 'Round {n} of 8', tourRule: 'Rivals change every tournament. Lose once and you start again from round 1.',
       backToStart: 'Back to round 1', tourPrize: '+{n} champion bonus', play: 'Play', beaten: 'Beaten', careerDone: 'All levels cleared!',
-      superHint: 'Fill the bar, then spike in the air', go: 'GO!',
+      superHint: 'Fill the bar, then spike in the air', go: 'GO!', free: 'Free',
       s_fire: 'Fire', s_fire_d: 'A blazing fast spike',
       s_sticky: 'Bubblegum', s_sticky_d: 'Whoever stops it can\'t jump this point',
       s_shrink: 'Shrink', s_shrink_d: 'Whoever stops it shrinks this point',
@@ -65,7 +65,7 @@
       career: 'Spike Career', world: 'Mundo {n}', level: 'Nivel {n}', boss: 'JEFE', nextLevel: 'Siguiente nivel',
       newTour: 'Nuevo torneo', round: 'Ronda {n} de 8', tourRule: 'Los rivales cambian en cada torneo. Si pierdes, vuelves a la ronda 1.',
       backToStart: 'Vuelves a la ronda 1', tourPrize: '+{n} de premio de campeón', play: 'Jugar', beaten: 'Ganado', careerDone: '¡Todos los niveles superados!',
-      superHint: 'Llena la barra y remata en el aire', go: '¡YA!',
+      superHint: 'Llena la barra y remata en el aire', go: '¡YA!', free: 'Gratis',
       s_fire: 'Fuego', s_fire_d: 'Un remate rapidísimo',
       s_sticky: 'Chicle', s_sticky_d: 'Quien la para no puede saltar en este punto',
       s_shrink: 'Encoger', s_shrink_d: 'Quien la para se encoge en este punto',
@@ -110,8 +110,8 @@
     // accessories are cosmetic only: the hitbox stays the same half circle
     { name: 'Rider', body: '#e63946', band: '#e63946', acc: 'helmet', accColor: '#f1faee', price: 600 },
     { name: 'Spiky', body: '#2ec4b6', band: '#011627', acc: 'spikes', accColor: '#e0e1dd', price: 650 },
-    { name: 'Shades', body: '#ffbe0b', band: '#fb5607', acc: 'shades', price: 700 },
-    { name: 'Inked', body: '#adb5bd', band: '#212529', acc: 'tattoo', accColor: '#212529', price: 750 },
+    { name: 'Cyborg', body: '#5c677d', band: '#5c677d', acc: 'shades', accColor: '#ff1f3d', price: 700 },
+    { name: 'Inked', body: '#e9c46a', band: '#e9c46a', acc: 'tattoo', accColor: '#1b4332', price: 750 },
     { name: 'King', body: '#3a86ff', band: '#3a86ff', acc: 'crown', price: 850 },
     { name: 'Pirate', body: '#bc6c25', band: '#d62828', acc: 'pirate', price: 900 },
     { name: 'DJ', body: '#8338ec', band: '#8338ec', acc: 'headphones', accColor: '#ff006e', price: 950 },
@@ -160,6 +160,9 @@
     { id: 'quake', price: 1100, color: '#7f5539', glow: '#ddb892', speed: 1040 },
   ];
   const SUPER = id => SUPERS.find(s => s.id === id);
+  // TEMPORARY for playtesting: everything in the shop costs 0. Prices above are kept;
+  // set this back to false to restore them.
+  const FREE_SHOP = true;
   const VENUES = ['beach', 'gym', 'rooftop', 'snow', 'jungle', 'volcano'];
   const NICKS = ['Wave', 'Lime', 'Coral', 'Tank', 'Frost', 'Volt', 'Shadow', 'Ace', 'Blaze', 'Storm', 'Pixel', 'Rocket',
     'Nova', 'Bolt', 'Kiwi', 'Mango', 'Turbo', 'Ziggy', 'Sunny', 'Echo'];
@@ -997,20 +1000,54 @@
       for (let x = 0; x < W; x += 160) { ctx.beginPath(); ctx.moveTo(x, GROUND); ctx.lineTo(x - 40, H); ctx.stroke(); }
       ctx.fillStyle = 'rgba(255,255,255,0.75)'; ctx.fillRect(40, GROUND + 4, W - 80, 4);
       ctx.fillStyle = 'rgba(255,182,39,0.8)'; ctx.fillRect(NET_X - 170, GROUND + 4, 4, 30); ctx.fillRect(NET_X + 166, GROUND + 4, 4, 30);
-    } else if (venue === 'rooftop') {
+    } else if (venue === 'rooftop') { // neon night city
       g = ctx.createLinearGradient(0, 0, 0, GROUND);
-      g.addColorStop(0, '#10002b'); g.addColorStop(1, '#5a189a');
+      g.addColorStop(0, '#07001a'); g.addColorStop(0.6, '#240046'); g.addColorStop(1, '#5a189a');
       ctx.fillStyle = g; ctx.fillRect(0, 0, W, GROUND);
-      ctx.fillStyle = '#ffffffaa'; for (let i = 0; i < 40; i++) ctx.fillRect((i * 131) % W, (i * 53) % 220, 2, 2);
-      for (let i = 0; i < 12; i++) {
-        const bw = 60 + (i * 37) % 50, bh = 120 + (i * 71) % 180, bx = i * 82;
-        ctx.fillStyle = '#240046'; ctx.fillRect(bx, GROUND - bh, bw, bh);
-        ctx.fillStyle = '#ffd60a55';
-        for (let wy = GROUND - bh + 12; wy < GROUND - 20; wy += 22)
-          for (let wx = bx + 8; wx < bx + bw - 8; wx += 16) if (((wx + wy) * 7) % 5 < 2) ctx.fillRect(wx, wy, 7, 9);
+      ctx.fillStyle = '#ffffffaa'; for (let i = 0; i < 40; i++) ctx.fillRect((i * 131) % W, (i * 53) % 200, 2, 2);
+      ctx.fillStyle = '#f8f9fa22'; circle(150, 80, 34); ctx.fillStyle = '#f1f3f5cc'; circle(150, 80, 26);
+      // far skyline
+      ctx.fillStyle = '#1a0038';
+      for (let i = 0; i < 16; i++) { const bh = 150 + (i * 97) % 140; ctx.fillRect(i * 62 - 10, GROUND - bh, 56, bh); }
+      // near buildings with neon edges and coloured windows
+      const NEON = ['#ff2e88', '#00f0ff', '#ffe600', '#7cff4f', '#b14dff'];
+      for (let i = 0; i < 10; i++) {
+        const bw = 70 + (i * 37) % 40, bh = 120 + (i * 71) % 170, bx = i * 98 - 10;
+        ctx.fillStyle = '#12002b'; ctx.fillRect(bx, GROUND - bh, bw, bh);
+        const nc = NEON[i % NEON.length];
+        const pulse = 0.35 + 0.25 * Math.sin(time * 1.6 + i * 1.3);
+        ctx.strokeStyle = nc; ctx.globalAlpha = pulse; ctx.lineWidth = 2;
+        ctx.strokeRect(bx + 1, GROUND - bh + 1, bw - 2, bh);
+        ctx.globalAlpha = 1;
+        for (let wy = GROUND - bh + 14; wy < GROUND - 20; wy += 22)
+          for (let wx = bx + 9; wx < bx + bw - 9; wx += 16)
+            if (((wx * 3 + wy) * 7) % 5 < 2) { ctx.fillStyle = ((wx + wy) % 3 ? '#ffd60a' : nc) + '66'; ctx.fillRect(wx, wy, 7, 9); }
       }
-      ctx.fillStyle = '#3c3c50'; ctx.fillRect(0, GROUND, W, H - GROUND);
-      ctx.fillStyle = '#ffb627'; ctx.fillRect(0, GROUND, W, 5);
+      // neon signs that breathe (and one that flickers)
+      const signs = [[70, 250, 'BAR', '#ff2e88'], [300, 205, 'PIZZA', '#ffe600'], [520, 238, 'HOTEL', '#00f0ff'],
+        [700, 190, '24H', '#7cff4f'], [850, 260, '★ SPIKE ★', '#b14dff']];
+      ctx.save();
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '900 18px "Trebuchet MS",sans-serif';
+      signs.forEach(([sx, sy, txt, col], i) => {
+        let a = 0.55 + 0.35 * Math.sin(time * (1.2 + i * 0.35) + i);
+        if (i === 2 && Math.sin(time * 23) > 0.93) a = 0.15;          // the faulty one
+        const w = ctx.measureText(txt).width + 22;
+        ctx.globalAlpha = a;
+        ctx.shadowColor = col; ctx.shadowBlur = 14;
+        ctx.strokeStyle = col; ctx.lineWidth = 2.5; roundRect(sx - w / 2, sy - 15, w, 30, 8); ctx.stroke();
+        ctx.fillStyle = col; ctx.fillText(txt, sx, sy + 1);
+      });
+      ctx.restore();
+      // rooftop floor with a ledge and puddle reflections
+      ctx.fillStyle = '#2b2d42'; ctx.fillRect(0, GROUND, W, H - GROUND);
+      ctx.fillStyle = '#3d405b'; ctx.fillRect(0, GROUND, W, 8);
+      for (let i = 0; i < 5; i++) {
+        const col = NEON[i % NEON.length];
+        ctx.globalAlpha = 0.18 + 0.1 * Math.sin(time * 1.6 + i);
+        ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(90 + i * 200, GROUND + 38, 50, 6, 0, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#ffb627'; ctx.fillRect(0, GROUND + 8, W, 3);
     } else if (venue === 'jungle') {
       g = ctx.createLinearGradient(0, 0, 0, GROUND);
       g.addColorStop(0, '#1b4332'); g.addColorStop(0.6, '#40916c'); g.addColorStop(1, '#95d5b2');
@@ -1175,7 +1212,7 @@
     c.beginPath(); c.ellipse(-14, -26, 10, 6, -0.5, 0, Math.PI * 2); c.fill();
     const facing = p.side === 0 ? 1 : -1;
     const acc = p.boss ? null : ch.acc;
-    if (!acc || acc === 'tattoo' || acc === 'shades') {
+    if (!acc) {
       c.fillStyle = ch.band;
       c.beginPath(); c.arc(0, 0, PR, Math.PI * 1.13, Math.PI * 1.87); c.arc(0, 0, PR - 9, Math.PI * 1.87, Math.PI * 1.13, true); c.fill();
     }
@@ -1248,6 +1285,7 @@
     }
   }
   // Cosmetic extras, drawn in the player's local space (body = half circle of radius PR).
+  // Back = drawn before the eye (so the eye shows on top); front = drawn over the eye.
   function drawAccessoryBack(c, ch, acc, f) {
     const col = ch.accColor || '#ffffff';
     if (acc === 'spikes') {
@@ -1260,14 +1298,59 @@
         const nx = -Math.sin(ang) * 7, ny = Math.cos(ang) * 7;
         c.beginPath(); c.moveTo(bx + nx, by + ny); c.lineTo(tx, ty); c.lineTo(bx - nx, by - ny); c.closePath(); c.fill(); c.stroke();
       }
+    } else if (acc === 'helmet') {
+      // racing helmet shell with a clear visor window around the eye
+      c.fillStyle = col; c.strokeStyle = '#1b1b1b'; c.lineWidth = 3;
+      c.beginPath(); c.arc(0, 0, PR + 2, Math.PI, 0); c.closePath(); c.fill(); c.stroke();
+      c.fillStyle = ch.body;                       // racing stripes over the crown
+      c.beginPath(); c.arc(0, 0, PR + 2, Math.PI * 1.42, Math.PI * 1.58); c.lineTo(0, 0); c.closePath(); c.fill();
+      c.fillStyle = '#1b1b1b';
+      c.beginPath(); c.arc(0, 0, PR + 2, Math.PI * 1.39, Math.PI * 1.42); c.lineTo(0, 0); c.closePath(); c.fill();
+      c.beginPath(); c.arc(0, 0, PR + 2, Math.PI * 1.58, Math.PI * 1.61); c.lineTo(0, 0); c.closePath(); c.fill();
+      c.fillStyle = col; c.beginPath(); c.arc(0, 0, PR - 14, Math.PI, 0); c.fill();   // keep the stripes on the shell only
+      // visor opening: tinted glass, the eye is drawn on top of it
+      const vx = 10 * f;
+      c.fillStyle = '#1d3557'; c.strokeStyle = '#1b1b1b'; c.lineWidth = 3;
+      c.beginPath(); c.ellipse(vx + 6 * f, -16, 22, 12, 0, 0, Math.PI * 2); c.fill(); c.stroke();
+      const vg = c.createLinearGradient(0, -28, 0, -4);
+      vg.addColorStop(0, 'rgba(120,200,255,0.55)'); vg.addColorStop(1, 'rgba(20,60,120,0.2)');
+      c.fillStyle = vg; c.beginPath(); c.ellipse(vx + 6 * f, -16, 20, 10, 0, 0, Math.PI * 2); c.fill();
+      // chin guard and a number on the side
+      c.fillStyle = '#1b1b1b'; c.fillRect(-6 * f - (f < 0 ? 0 : 0), -6, 28 * f, 5);
+      c.fillStyle = ch.body; c.font = '900 13px "Trebuchet MS",sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText('7', -22 * f, -18);
     } else if (acc === 'tattoo') {
-      c.strokeStyle = col; c.lineWidth = 3; c.lineCap = 'round';
-      const bx = -18 * f;
-      c.beginPath();
-      c.moveTo(bx - 10 * f, -6); c.lineTo(bx, -16); c.lineTo(bx + 10 * f * 0.2, -6); c.lineTo(bx + 4 * f, -2);
-      c.moveTo(bx - 14 * f, -18); c.quadraticCurveTo(bx - 4 * f, -28, bx + 6 * f, -22);
-      c.stroke();
-      c.beginPath(); c.arc(bx + 2 * f, -10, 3, 0, Math.PI * 2); c.fillStyle = col; c.fill();
+      // a snake coiling from the top of the head down to the bottom
+      const P = [[-4, -38], [-24, -32], [-10, -22], [-30, -14], [-14, -6], [-26, -1]].map(([x, y]) => [x * f, y]);
+      const path = () => {
+        c.beginPath(); c.moveTo(P[0][0], P[0][1]);
+        for (let i = 1; i < P.length - 1; i++) {
+          const mx = (P[i][0] + P[i + 1][0]) / 2, my = (P[i][1] + P[i + 1][1]) / 2;
+          c.quadraticCurveTo(P[i][0], P[i][1], mx, my);
+        }
+        c.lineTo(P[P.length - 1][0], P[P.length - 1][1]);
+      };
+      c.lineCap = 'round'; c.lineJoin = 'round';
+      c.strokeStyle = '#081c15'; c.lineWidth = 12; path(); c.stroke();
+      c.strokeStyle = '#2d6a4f'; c.lineWidth = 8; path(); c.stroke();
+      c.strokeStyle = '#95d5b2'; c.lineWidth = 1.5; c.setLineDash([2, 4]); path(); c.stroke(); c.setLineDash([]);
+      // head with red eyes and a forked tongue
+      const [hx, hy] = P[0];
+      c.fillStyle = '#081c15'; c.beginPath(); c.ellipse(hx + 4 * f, hy, 10, 7, 0.3 * f, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#2d6a4f'; c.beginPath(); c.ellipse(hx + 4 * f, hy, 8, 5.5, 0.3 * f, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#e63946'; c.beginPath(); c.arc(hx + 6 * f, hy - 2, 1.6, 0, Math.PI * 2); c.fill();
+      c.strokeStyle = '#e63946'; c.lineWidth = 1.5;
+      c.beginPath(); c.moveTo(hx + 11 * f, hy + 1); c.lineTo(hx + 16 * f, hy + 2); c.lineTo(hx + 19 * f, hy); c.moveTo(hx + 16 * f, hy + 2); c.lineTo(hx + 19 * f, hy + 4); c.stroke();
+    } else if (acc === 'shades') {
+      // cyborg: riveted metal plating over the back of the head and an antenna
+      c.fillStyle = '#adb5bd'; c.strokeStyle = '#343a40'; c.lineWidth = 2;
+      c.beginPath(); c.arc(0, 0, PR, Math.PI * (f > 0 ? 1 : 1.5), Math.PI * (f > 0 ? 1.5 : 2)); c.lineTo(0, 0); c.closePath(); c.fill(); c.stroke();
+      c.strokeStyle = '#6c757d'; c.lineWidth = 1.5;
+      c.beginPath(); c.moveTo(-PR * 0.7 * f, -PR * 0.7); c.lineTo(-8 * f, -10); c.moveTo(-PR * f, -4); c.lineTo(-10 * f, -4); c.stroke();
+      c.fillStyle = '#343a40';
+      for (const [dx, dy] of [[-30, -10], [-20, -30], [-8, -36], [-32, -24]]) { c.beginPath(); c.arc(dx * f, dy, 1.8, 0, Math.PI * 2); c.fill(); }
+      c.strokeStyle = '#343a40'; c.lineWidth = 2.5; c.beginPath(); c.moveTo(-14 * f, -38); c.lineTo(-18 * f, -56); c.stroke();
+      c.fillStyle = 'rgba(255,31,61,' + (0.4 + 0.6 * Math.abs(Math.sin(time * 4))) + ')'; c.beginPath(); c.arc(-18 * f, -57, 3.5, 0, Math.PI * 2); c.fill();
     } else if (acc === 'ninja') {
       c.fillStyle = '#111111';
       c.fillRect(-PR + 3, -24, PR * 2 - 6, 14);
@@ -1286,38 +1369,48 @@
   function drawAccessoryFront(c, ch, acc, f, ex, ey) {
     const col = ch.accColor || '#ffffff';
     if (acc === 'shades') {
-      c.fillStyle = '#111111';
-      c.beginPath(); c.ellipse(ex + 2 * f, ey, 16, 10, 0, 0, Math.PI * 2); c.fill();
-      c.fillStyle = '#ff006e55'; c.beginPath(); c.ellipse(ex + 2 * f, ey + 2, 12, 6, 0, 0, Math.PI * 2); c.fill();
-      c.fillStyle = '#111111';
-      c.fillRect(ex - 34 * f - (f < 0 ? 0 : 0), ey - 3, 34 * f, 3);
-      c.fillStyle = '#ffffff88';
-      c.beginPath(); c.ellipse(ex - 3 * f, ey - 3, 4, 2, -0.4 * f, 0, Math.PI * 2); c.fill();
+      // glowing red robotic visor with a moving scan line
+      c.fillStyle = '#1b1b1b';
+      c.beginPath(); c.ellipse(ex + 4 * f, ey, 20, 9, 0, 0, Math.PI * 2); c.fill();
+      const pulse = 0.65 + Math.sin(time * 5) * 0.3;
+      const glow = c.createRadialGradient(ex + 2 * f, ey, 1, ex + 2 * f, ey, 22);
+      glow.addColorStop(0, 'rgba(255,60,80,' + pulse + ')'); glow.addColorStop(1, 'rgba(255,0,40,0)');
+      c.fillStyle = glow; c.beginPath(); c.ellipse(ex + 2 * f, ey, 26, 14, 0, 0, Math.PI * 2); c.fill();
+      c.fillStyle = col; c.beginPath(); c.ellipse(ex + 4 * f, ey, 15, 5, 0, 0, Math.PI * 2); c.fill();
+      const sx = ex + 4 * f + Math.sin(time * 3) * 11;
+      c.fillStyle = '#ffd1d8'; c.fillRect(sx - 1.5, ey - 4, 3, 8);
+      c.fillStyle = '#ffffffaa'; c.beginPath(); c.arc(ex + 9 * f, ey - 2, 1.8, 0, Math.PI * 2); c.fill();
     } else if (acc === 'pirate') {
       c.fillStyle = '#111111';
       c.beginPath(); c.arc(ex, ey, 9, 0, Math.PI * 2); c.fill();
       c.strokeStyle = '#111111'; c.lineWidth = 2;
       c.beginPath(); c.moveTo(ex - 8, ey - 6); c.lineTo(-30 * f, -30); c.moveTo(ex + 6 * f, ey - 7); c.lineTo(14 * f, -38); c.stroke();
     } else if (acc === 'helmet') {
-      c.fillStyle = col; c.strokeStyle = '#1b1b1bcc'; c.lineWidth = 3;
-      c.beginPath(); c.arc(0, -2, PR + 3, Math.PI * 1.02, Math.PI * 1.98); c.lineTo((PR + 3) * Math.cos(Math.PI * 1.98), -10); c.lineTo(-(PR + 3), -10); c.closePath();
-      c.fill(); c.stroke();
-      c.fillStyle = ch.body;   // stripe down the middle
-      c.fillRect(-6, -PR - 4, 12, PR - 4);
-      c.fillStyle = '#1b1b1b';   // face guard bars in front of the eye
-      c.fillRect(ex + 6 * f - 1.5, ey - 10, 3, 20); c.fillRect(ex - 4 * f - 1.5, ey - 10, 3, 20);
-      c.fillRect(Math.min(ex - 6 * f, ex + 8 * f), ey + 7, 14, 3);
+      c.strokeStyle = 'rgba(255,255,255,0.75)'; c.lineWidth = 2.5; c.lineCap = 'round';   // glare on the visor
+      c.beginPath(); c.moveTo(ex - 4 * f, ey - 7); c.quadraticCurveTo(ex + 6 * f, ey - 11, ex + 16 * f, ey - 7); c.stroke();
     } else if (acc === 'crown') {
       c.fillStyle = '#ffd60a'; c.strokeStyle = '#b8860b'; c.lineWidth = 2;
       c.beginPath(); c.moveTo(-20, -36); c.lineTo(-22, -58); c.lineTo(-10, -46); c.lineTo(0, -62); c.lineTo(10, -46); c.lineTo(22, -58); c.lineTo(20, -36); c.closePath();
       c.fill(); c.stroke();
       for (const [dx, colr] of [[-11, '#e63946'], [0, '#3a86ff'], [11, '#2ec27e']]) { c.fillStyle = colr; c.beginPath(); c.arc(dx, -41, 3, 0, Math.PI * 2); c.fill(); }
     } else if (acc === 'headphones') {
-      c.strokeStyle = '#1b1b1b'; c.lineWidth = 6;
-      c.beginPath(); c.arc(0, -4, PR + 4, Math.PI * 1.15, Math.PI * 1.85); c.stroke();
-      c.fillStyle = col; c.strokeStyle = '#1b1b1b'; c.lineWidth = 2;
-      c.beginPath(); c.ellipse(-12 * f, -20, 9, 13, 0, 0, Math.PI * 2); c.fill(); c.stroke();
-      c.fillStyle = '#ffffff55'; c.beginPath(); c.ellipse(-12 * f, -20, 4, 7, 0, 0, Math.PI * 2); c.fill();
+      // padded headband over the top and big ear cups on the sides of the head
+      c.strokeStyle = '#1b1b1b'; c.lineWidth = 7; c.lineCap = 'round';
+      c.beginPath(); c.arc(0, -6, PR + 4, Math.PI * 1.12, Math.PI * 1.88); c.stroke();
+      c.strokeStyle = '#495057'; c.lineWidth = 3;
+      c.beginPath(); c.arc(0, -6, PR + 4, Math.PI * 1.3, Math.PI * 1.7); c.stroke();
+      const cup = (cx, cy, sc) => {
+        c.save(); c.translate(cx, cy); c.scale(sc, sc);
+        c.fillStyle = '#1b1b1b'; c.beginPath(); c.ellipse(0, 0, 11, 16, 0, 0, Math.PI * 2); c.fill();
+        c.fillStyle = col; c.beginPath(); c.ellipse(0, 0, 8, 12, 0, 0, Math.PI * 2); c.fill();
+        c.fillStyle = '#212529'; c.beginPath(); c.ellipse(0, 0, 5, 8, 0, 0, Math.PI * 2); c.fill();
+        c.fillStyle = '#ffffff55'; c.beginPath(); c.ellipse(-2, -4, 2, 3, 0, 0, Math.PI * 2); c.fill();
+        c.restore();
+      };
+      cup(-(PR - 4) * f, -16, 1);        // near cup at the back of the head
+      cup((PR - 6) * f, -18, 0.6);       // far cup peeking out at the front
+      c.strokeStyle = '#1b1b1b'; c.lineWidth = 2;   // cable
+      c.beginPath(); c.moveTo(-(PR - 4) * f, -1); c.quadraticCurveTo(-(PR + 6) * f, 4, -(PR - 10) * f, 0); c.stroke();
     }
   }
 
@@ -1992,12 +2085,13 @@
       }
       const info = document.createElement('small');
       info.className = 'price';
-      info.textContent = isCur ? t('selected') : has ? t('select') : '● ' + it.price;
+      info.textContent = isCur ? t('selected') : has ? t('select') : FREE_SHOP ? t('free') + ' (● ' + it.price + ')' : '● ' + it.price;
       card.appendChild(info);
       card.addEventListener('click', () => {
         if (!has) {
-          if (save.coins < it.price) { toast('● ' + it.price); return; }
-          save.coins -= it.price; cfg.owned.push(i);
+          const cost = FREE_SHOP ? 0 : it.price;
+          if (save.coins < cost) { toast('● ' + cost); return; }
+          save.coins -= cost; cfg.owned.push(i);
         }
         save[cfg.cur] = i;
         persist(); Sound.click(); buildShop(); refreshCoins();
