@@ -21,6 +21,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument('--csv', required=True); ap.add_argument('--seed', required=True)
 ap.add_argument('--fixtures', required=True); ap.add_argument('--logos', required=True)
 ap.add_argument('--faces'); ap.add_argument('--badges'); ap.add_argument('--out', required=True)
+ap.add_argument('--tm'); ap.add_argument('--portraits')  # squads.json de scrape_tm.py e índice de retratos
 A = ap.parse_args()
 
 rows = [r for r in csv.DictReader(open(A.csv, encoding='utf-8'))]
@@ -35,6 +36,48 @@ M = Matcher(sorted(by_club))
 def num(v):
     try: return int(round(float(v)))
     except Exception: return 0
+
+# ---------------------------------------------------------------- plantillas 2026/27 de Transfermarkt
+from match_players import FCIndex
+for r in rows: r['dob'] = r['dob'][:10]
+FCI = FCIndex(rows)
+TM = json.load(open(A.tm, encoding='utf-8')) if A.tm else {}
+COMP_DIV = {'ES1': 'es1', 'ES2': 'es2', 'GB1': 'en1', 'GB2': 'en2', 'IT1': 'it1', 'IT2': 'it2', 'L1': 'de1', 'L2': 'de2', 'FR1': 'fr1', 'FR2': 'fr2'}
+TM_NAT = {'Korea, South': 'Korea Republic', 'Czech Republic': 'Czechia', 'Turkey': 'Türkiye', 'Bosnia-Herzegovina': 'Bosnia and Herzegovina',
+          'DR Congo': 'Congo DR', 'Cape Verde': 'Cabo Verde', 'Ireland': 'Republic of Ireland', 'China': 'China PR', 'The Gambia': 'Gambia',
+          'Curacao': 'Curaçao', 'Cote d\'Ivoire': "Côte d'Ivoire", 'Congo': 'Congo', 'North Macedonia': 'North Macedonia'}
+TM_POS = {'Goalkeeper': ('POR', []), 'Centre-Back': ('DFC', []), 'Left-Back': ('LI', ['DFC']), 'Right-Back': ('LD', ['DFC']),
+          'Defensive Midfield': ('MCD', ['MC']), 'Central Midfield': ('MC', ['MCD', 'MCO']), 'Attacking Midfield': ('MCO', ['MC']),
+          'Left Midfield': ('EI', ['MC']), 'Right Midfield': ('ED', ['MC']), 'Left Winger': ('EI', []), 'Right Winger': ('ED', []),
+          'Second Striker': ('DC', ['MCO']), 'Centre-Forward': ('DC', []), 'Defender': ('DFC', []), 'Midfield': ('MC', []), 'Attack': ('DC', [])}
+def tm_value(v):
+    m = re.match(r'€([\d.]+)(k|m|bn)?', v or '')
+    if not m: return 0
+    return int(float(m.group(1)) * {'k': 1e3, 'm': 1e6, 'bn': 1e9, None: 1}[m.group(2)])
+def age_on(dob, ref='2026-07-01'):
+    if not dob: return 0
+    y, mo, d = map(int, dob.split('-')); ry, rm, rd = map(int, ref.split('-'))
+    return ry - y - ((rm, rd) < (mo, d))
+def short_name(n):
+    parts = n.split()
+    if len(parts) < 2: return n
+    return parts[0][0] + '. ' + ' '.join(parts[1:])
+
+# club de Transfermarkt -> clave (nombre de FC 26 si existe; si no 'TM:nombre')
+tm_key, tm_by_key = {}, {}
+if TM:
+    cand = {cid: M.find(c['name']) for cid, c in TM.items()}
+    groups = defaultdict(list)
+    for cid, fc in cand.items():
+        if fc: groups[fc].append(cid)
+    for cid, c in TM.items():
+        fc = cand[cid]
+        if fc and len(groups[fc]) > 1:
+            win = min(groups[fc], key=lambda x: (norm(TM[x]['name']) != norm(fc), abs(len(norm(TM[x]['name'])) - len(norm(fc)))))
+            if win != cid: fc = None
+        if fc and re.search(r'(\bII\b|\bB$|\bU\d\d\b|Fortuna$|Castilla|Reserves?|Amateure|\bJuvenil)', c['name']) and norm(c['name']) != norm(fc): fc = None
+        tm_key[cid] = fc if fc else 'TM:' + c['name']
+        tm_by_key[tm_key[cid]] = c
 
 # ---------------------------------------------------------------- divisiones 2026/27
 DIVS = [  # id, nombre, país, nivel, feed, liga FC26, ascensos/descensos, tamaño
@@ -55,28 +98,40 @@ EXCLUDE = {'Dynamo Kyiv', 'Shakhtar Donetsk', 'Barcelona de Guayaquil', 'Indepen
            'WSG Tirol', 'Wolfsberger AC'}
 
 def level(club):
-    s = sorted((num(r['overall']) for r in by_club[club]), reverse=True)[:11]
+    s = sorted((num(r['overall']) for r in by_club.get(club, [])), reverse=True)[:11]
     return sum(s) / len(s) if s else 60
 
-def load_feed(code):
+def div_members(did):
+    return [(cid, c) for cid, c in TM.items() if COMP_DIV.get(c['comp']) == did]
+def load_feed(code, did=None):
     p = os.path.join(A.fixtures, code + '.json')
     if not os.path.exists(p): return None
     d = json.load(open(p, encoding='utf-8'))
     out = []
+    if TM:
+        mem = div_members(did); mm = Matcher([c['name'] for _, c in mem]); n2k = {c['name']: tm_key[cid] for cid, c in mem}
+        res = lambda t: n2k.get(mm.find(t) or '')
+    else: res = M.find
     for m in d.get('matches', []):
-        h, a = M.find(m['team1']), M.find(m['team2'])
+        h, a = res(m['team1']), res(m['team2'])
         if not h or not a: sys.exit(f'Equipo sin emparejar en {code}: {m["team1"]} / {m["team2"]}')
         rn = int(re.sub(r'\D', '', m.get('round', '0')) or 0)
         out.append((m['date'], rn, h, a))
     return out
 
-feeds = {d[0]: load_feed(d[4]) for d in DIVS}
+feeds = {d[0]: load_feed(d[4], d[0]) for d in DIVS}
 div_clubs = {}
-for did, name, country, tier, code, fcl, sw, size in DIVS:
+if TM:
+    for did, *_ in DIVS: div_clubs[did] = [tm_key[cid] for cid, c in div_members(did)]
+    for did, name, country, tier, code, fcl, sw, size in DIVS:
+        if feeds[did]:
+            fk = {f[2] for f in feeds[did]} | {f[3] for f in feeds[did]}
+            if fk != set(div_clubs[did]): print('AVISO: el calendario de', did, 'no coincide con Transfermarkt; se genera uno nuevo. Faltan:', set(div_clubs[did]) - fk, 'Sobran:', fk - set(div_clubs[did])); feeds[did] = None
+for did, name, country, tier, code, fcl, sw, size in ([] if TM else DIVS):
     if feeds[did]:
         div_clubs[did] = sorted({f[2] for f in feeds[did]} | {f[3] for f in feeds[did]})
 in_feed = {c for v in div_clubs.values() for c in v}
-for did, name, country, tier, code, fcl, sw, size in DIVS:
+for did, name, country, tier, code, fcl, sw, size in ([] if TM else DIVS):
     if did in div_clubs: continue
     top = next(d for d in DIVS if d[2] == country and d[3] == 1)
     base = [c for c, l in club_league.items() if l == fcl and c not in EXCLUDE and c not in in_feed]
@@ -263,7 +318,35 @@ def nat(n):
     return nat_idx[n]
 
 face_index = json.load(open(A.faces)) if A.faces and os.path.exists(A.faces) else {}
-face_needed = []
+portrait_index = json.load(open(A.portraits)) if A.portraits and os.path.exists(A.portraits) else {}
+face_needed, portraits_needed = [], {}
+
+tm_matched = {}
+for cid, c in TM.items():
+    key = tm_key[cid]; fcname = None if key.startswith('TM:') else key
+    out = []
+    for p in c['players']:
+        hints = {norm(fcname)} if fcname else set()
+        if p['joined']: hints.add(norm(p['joined']))
+        out.append((p, FCI.find(p['name'], p['dob'], hints)))
+    tm_matched[key] = out
+
+def ols(X, y):  # mínimos cuadrados (ecuaciones normales) sin numpy
+    n = len(X[0]); A_ = [[sum(r[i] * r[j] for r in X) for j in range(n)] for i in range(n)]; b = [sum(r[i] * v for r, v in zip(X, y)) for i in range(n)]
+    for i in range(n):
+        piv = max(range(i, n), key=lambda k: abs(A_[k][i])); A_[i], A_[piv] = A_[piv], A_[i]; b[i], b[piv] = b[piv], b[i]
+        for k in range(i + 1, n):
+            f_ = A_[k][i] / A_[i][i]
+            for j in range(i, n): A_[k][j] -= f_ * A_[i][j]
+            b[k] -= f_ * b[i]
+    x = [0] * n
+    for i in reversed(range(n)): x[i] = (b[i] - sum(A_[i][j] * x[j] for j in range(i + 1, n))) / A_[i][i]
+    return x
+import math
+pairs = [(p, r) for L in tm_matched.values() for p, r in L if r and tm_value(p['value']) > 0 and p['dob']]
+OV = ols([[1, math.log10(tm_value(p['value'])), age_on(p['dob'])] for p, r in pairs], [num(r['overall']) for p, r in pairs]) if pairs else [50, 4, 0]
+WG = ols([[1, math.log10(tm_value(p['value']))] for p, r in pairs if num(r['wage_eur']) > 0], [math.log10(num(r['wage_eur'])) for p, r in pairs if num(r['wage_eur']) > 0]) if pairs else [2, 0.5]
+if pairs: print('modelo de media (sin FC26):', [round(v, 2) for v in OV], 'sobre', len(pairs), 'jugadores emparejados')
 
 def add_player(r, ci):
     pos = []
@@ -273,27 +356,61 @@ def add_player(r, ci):
     st = [num(r[k]) for k in ('pace','shooting','passing','dribbling','defending','physic')]
     face_needed.append(r['player_id'])
     players.append([r['short_name'], '/'.join(pos or ['MC']), num(r['overall']), num(r['potential']), num(r['value_eur']),
-                    num(r['wage_eur']), num(r['age']), nat(r['nationality_name']), ci] + st +
-                   [1 if r['preferred_foot'] == 'Left' else 0, face_index.get(r['player_id'], -1)])
+                    num(r['wage_eur']), num(r['age']) + 1, nat(r['nationality_name']), ci] + st +
+                   [1 if r['preferred_foot'] == 'Left' else 0, face_index.get(r['player_id'], -1), 0, 0, 0, 0])
+
+def add_tm_player(p, r, ci):
+    age = age_on(p['dob']) or (num(r['age']) + 1 if r else 19)
+    v = tm_value(p['value']) or (num(r['value_eur']) if r else 0)
+    jd = p['joinedDate']; arrived = bool(jd) and jd[6:] + '-' + jd[3:5] >= '2026-06'
+    signed = (p['joined'] or 'otro club') if arrived else 0
+    cy = int(p['contract'][6:]) - 2026 if p['contract'] else (2 if age < 33 else 1)
+    cy = max(1, min(6, cy))
+    if r:
+        pos = []
+        for x in r['player_positions'].split(','):
+            m = POSMAP.get(x.strip())
+            if m and m not in pos: pos.append(m)
+        st = [num(r[k]) for k in ('pace', 'shooting', 'passing', 'dribbling', 'defending', 'physic')]
+        face_needed.append(r['player_id'])
+        players.append([r['short_name'], '/'.join(pos or ['MC']), num(r['overall']), num(r['potential']), v or num(r['value_eur']), num(r['wage_eur']), age,
+                        nat(r['nationality_name']), ci] + st + [1 if r['preferred_foot'] == 'Left' else 0, face_index.get(r['player_id'], -1), signed, cy, 0, p['num']])
+    else:
+        lv = max(v, 50000)
+        ovr = int(round(max(42, min(84, OV[0] + OV[1] * math.log10(lv) + OV[2] * age))))
+        pot = ovr + (max(0, (24 - age)) * 2 if age <= 23 else (1 if age <= 25 else 0))
+        pot = min(90, pot + (2 if lv >= 5e6 and age <= 21 else 0))
+        main, alt = TM_POS.get(p['pos'], ('MC', []))
+        wage = max(1500, int(10 ** (WG[0] + WG[1] * math.log10(lv))))
+        nt = (p['nat'] or ['Spain'])[0]; nt = TM_NAT.get(nt, nt)
+        key = 'tm%d' % p['id']; portraits_needed[key] = p['portrait']
+        pf = portrait_index.get(key, -1)
+        players.append([short_name(p['name']), '/'.join([main] + alt), ovr, pot, v or lv, wage, age, nat(nt), ci, 0, 0, 0, 0, 0, 0,
+                        1 if p['foot'] == 'left' else 0, pf, signed, cy, 1 if pf >= 0 else 0, p['num']])
+        face_needed.append(key)
 
 def add_club(src, div, league, country, display=None, gen=None, alt=None):
     if src in cidx: return cidx[src]
     if src in TOP: disp, short, c1, c2, stad = TOP[src]
     else:
-        disp, stad = display or src, ''
+        disp, stad = display or src.replace('TM:', ''), ''
         short = short_for(disp); c1, c2 = color_for(src)
     cidx[src] = len(clubs)
-    crest = crest_for(src, disp, display, alt, country=COUNTRY_EN.get(country))
+    crest = crest_for(src.replace('TM:', ''), disp, display, alt, country=COUNTRY_EN.get(country))
     if crest and norm(crest) not in (norm(src), norm(disp)): crest_review.append((disp, crest))
     clubs.append({'n': disp, 's': short, 'c1': c1, 'c2': c2, 'st': stad, 'd': div, 'l': league, 'cc': country,
                   'src': src, 'crest': crest, 'g': gen})
     if gen is None:
-        for r in by_club[src]: add_player(r, cidx[src])
+        if src in tm_matched:
+            for p, r in tm_matched[src]: add_tm_player(p, r, cidx[src])
+        else:
+            for r in by_club.get(src, []):
+                if r['player_id'] not in FCI.used: add_player(r, cidx[src]); FCI.used.add(r['player_id'])
     return cidx[src]
 
 divs_out = []
 for di, (did, name, country, tier, code, fcl, sw, size) in enumerate(DIVS):
-    ids = [add_club(c, di, name, country) for c in sorted(div_clubs[did], key=lambda c: -level(c))]
+    ids = [add_club(c, di, name, country) for c in sorted(div_clubs[did], key=lambda c: -(sum(tm_value(p['value']) for p in tm_by_key[c]['players']) if c in tm_by_key else level(c)))]
     fx = None
     if feeds[did]:
         fx = [[d, rn, cidx[h], cidx[a]] for d, rn, h, a in sorted(feeds[did])]
@@ -319,14 +436,27 @@ for code, (ename, dates, ko, teams) in EURO.items():
         ids.append(ci)
     euro_out[code] = {'n': ename, 'dates': dates, 'ko': ko, 'clubs': ids}
 
-# mercado internacional: media >= 70 de otras ligas y agentes libres >= 60
+# jugadores de FC26 que no aparecen en ninguna plantilla de Transfermarkt
+tm_fc_clubs = {k for k in tm_matched if not k.startswith('TM:')}
+row_ci = None
+def rest_of_world():
+    global row_ci
+    if row_ci is None:
+        row_ci = len(clubs); cidx['ROW'] = row_ci
+        clubs.append({'n': 'Resto del mundo', 's': 'RDM', 'c1': '#4a5568', 'c2': '#a0aec0', 'st': '', 'd': -1, 'l': 'Internacional', 'cc': '',
+                      'src': 'ROW', 'crest': None, 'g': None, 'partial': True})
+    return row_ci
 for r in rows:
-    ovr = num(r['overall'])
-    if not r['club_name']:
+    if r['player_id'] in FCI.used: continue
+    ovr = num(r['overall']); cn = r['club_name']
+    if not cn:
         if ovr >= 60: add_player(r, -1)
         continue
-    if r['club_name'] in cidx or ovr < 70: continue
-    src = r['club_name']
+    if cn in tm_fc_clubs:   # se ha ido de un club cuya plantilla 2026/27 conocemos
+        if ovr >= 70 and num(r['age']) + 1 <= 36: add_player(r, rest_of_world())
+        continue
+    if cn in cidx or ovr < 70: continue
+    src = cn
     if src not in cidx:
         cidx[src] = len(clubs)
         c1, c2 = color_for(src)
@@ -341,7 +471,7 @@ for p in players:
     if p[8] >= 0: sq[p[8]].append(p)
 for i, c in enumerate(clubs):
     s = sq[i]
-    b = seed.get(norm(SEED_ALIAS.get(c['src'], c['src'])))
+    b = seed.get(norm(SEED_ALIAS.get(c['src'], c['src'].replace('TM:', ''))))
     if b is None:
         if c['g']:
             lv = c['g'][0]; b = max(1.5e6, (lv - 50) * 0.6e6)
@@ -378,12 +508,13 @@ for c in clubs:
     if not c.get('g'): c.pop('g', None)
 
 out = {'season': '2026/27', 'year': 2026, 'start': '2026-07-01',
-       'source': 'EA SPORTS FC 26 (thompgt/fc26-player-analysis) · calendarios openfootball 2026/27 · escudos luukhopman/football-logos',
+       'source': 'EA SPORTS FC 26 (medias) · plantillas 2026/27 Transfermarkt · calendarios openfootball 2026/27 · escudos luukhopman/football-logos',
        'divs': divs_out, 'euro': euro_out, 'clubs': clubs, 'nats': nats, 'players': players,
        'faceSheet': 256, 'crestCols': COLS, 'crestRows': rows_n}
 open(os.path.join(A.out, 'data.js'), 'w', encoding='utf-8').write('window.DB=' + json.dumps(out, ensure_ascii=False, separators=(',', ':')) + ';\n')
-open(os.path.join(A.out, 'tools', 'faces_needed.txt'), 'w').write('\n'.join(face_needed) + '\n')
-print(f'clubes {len(clubs)} · jugadores {len(players)} · escudos {len(crest_list)} · caras {sum(1 for p in players if p[-1] >= 0)}')
+open(os.path.join(A.out, 'tools', 'faces_needed.txt'), 'w').write('\n'.join(dict.fromkeys(face_needed)) + '\n')
+json.dump(portraits_needed, open(os.path.join(A.out, 'tools', 'portraits_needed.json'), 'w'))
+print(f'clubes {len(clubs)} · jugadores {len(players)} · escudos {len(crest_list)} · caras {sum(1 for p in players if p[16] >= 0)} · estimados {len(portraits_needed)}')
 print('divisiones:', [(d['id'], len(d['clubs']), 'real' if d['fx'] else 'generado') for d in divs_out])
 print('sin escudo:', missing)
 if os.environ.get('CREST_REVIEW'):

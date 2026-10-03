@@ -95,7 +95,8 @@ tr.me td{background:color-mix(in srgb,var(--accent) 12%,transparent)}
 main{flex:1;min-width:0;padding-inline:24px;padding-block:20px 40px;max-width:1200px}
 .topbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px}
 .topbar h1{font-size:32px;text-transform:uppercase}
-.topbar .meta{margin-left:auto;display:flex;gap:16px;flex-wrap:wrap}
+.topbar .meta{margin-left:auto;display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+.simbtn{min-width:132px}
 .stat .v{font:700 20px/1.1 var(--display)}
 @media (max-width:760px){
   .nav .src{display:none}
@@ -215,6 +216,7 @@ main{flex:1;min-width:0;padding-inline:24px;padding-block:20px 40px;max-width:12
 .fut-club{position:absolute;left:calc(var(--u)*27);top:calc(var(--u)*100)}
 .fut-face{position:absolute;right:calc(var(--u)*10);top:calc(var(--u)*18);width:calc(var(--u)*112);height:calc(var(--u)*112)}
 .fut-face .face{border-radius:0;background-color:transparent}
+.fut-face .face.photo{border-radius:50%;transform:scale(.88);transform-origin:50% 55%;box-shadow:0 0 0 2px rgba(255,255,255,.4)}
 .fut-face .face.sil svg{fill:rgba(0,0,0,.28)}
 .fut-name{position:absolute;left:calc(var(--u)*12);right:calc(var(--u)*12);top:calc(var(--u)*134);text-align:center;font:800 calc(var(--u)*17)/1.15 var(--display);text-transform:uppercase;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-bottom:calc(var(--u)*4);border-bottom:1px solid rgba(0,0,0,.18)}
 .fut-stats{position:absolute;left:calc(var(--u)*26);right:calc(var(--u)*26);top:calc(var(--u)*162);display:grid;grid-template-columns:1fr 1fr;column-gap:calc(var(--u)*14);font:600 calc(var(--u)*13)/1.3 var(--display);letter-spacing:.03em}
