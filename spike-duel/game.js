@@ -51,6 +51,7 @@
       s_wind: 'Gale', s_wind_d: 'Whoever stops it is blown back this point',
       s_balloon: 'Balloon', s_balloon_d: 'Whoever stops it puffs up and can barely jump this point',
       s_quake: 'Earthquake', s_quake_d: 'Launches whoever stops it into the air, out of control',
+      s_mini: 'Mini Ball', s_mini_d: 'Shrinks the ball to a tiny dot that is hard to return',
       e_bomb: 'Boom!', e_snail: 'So slow!', e_ink: 'Splat!', e_wind: 'Blown away!', e_balloon: 'Puffed up!', e_quake: 'Earthquake!',
     },
     es: {
@@ -88,6 +89,7 @@
       s_wind: 'Vendaval', s_wind_d: 'Quien la para sale empujado por el viento en este punto',
       s_balloon: 'Globo', s_balloon_d: 'Quien la para se hincha y apenas salta en este punto',
       s_quake: 'Terremoto', s_quake_d: 'Lanza por los aires a quien la para, sin control',
+      s_mini: 'Minibola', s_mini_d: 'Encoge el balón hasta hacerlo diminuto y difícil de devolver',
       e_bomb: '¡Bum!', e_snail: '¡Qué lento!', e_ink: '¡Splash!', e_wind: '¡Por los aires!', e_balloon: '¡Hinchado!', e_quake: '¡Terremoto!',
     },
   };
@@ -108,10 +110,10 @@
     { name: 'Frost', body: '#a2d2ff', band: '#0077b6', price: 400 },
     { name: 'Ace', body: '#7b2cbf', band: '#ffb627', price: 550 },
     // accessories are cosmetic only: the hitbox stays the same half circle
-    { name: 'Rider', body: '#d00000', band: '#d00000', acc: 'helmet', accColor: '#111111', price: 600 },
+    { name: 'Rider', body: '#d00000', band: '#d00000', acc: 'helmet', accColor: '#ffffff', price: 600 },
     { name: 'Spiky', body: '#2ec4b6', band: '#011627', acc: 'spikes', accColor: '#e0e1dd', price: 650 },
     { name: 'Cyborg', body: '#5c677d', band: '#5c677d', acc: 'shades', accColor: '#ff1f3d', price: 700 },
-    { name: 'Inked', body: '#f2cc8f', band: '#f2cc8f', acc: 'tattoo', accColor: '#9d4edd', price: 750 },
+    { name: 'Inked', body: '#161616', band: '#161616', acc: 'tattoo', accColor: '#9d4edd', price: 750 },
     { name: 'King', body: '#3a86ff', band: '#3a86ff', acc: 'crown', price: 850 },
     { name: 'Pirate', body: '#bc6c25', band: '#d62828', acc: 'pirate', price: 900 },
     { name: 'DJ', body: '#8338ec', band: '#8338ec', acc: 'headphones', accColor: '#00f5d4', price: 950 },
@@ -158,6 +160,7 @@
     { id: 'teleport', price: 940, color: '#00f5d4', glow: '#c8fff4', speed: 1040 },
     { id: 'bomb', price: 1000, color: '#343a40', glow: '#ff6b35', speed: 1040 },
     { id: 'quake', price: 1100, color: '#7f5539', glow: '#ddb892', speed: 1040 },
+    { id: 'mini', price: 650, color: '#06d6a0', glow: '#b9fbc0', speed: 1060 },
   ];
   const SUPER = id => SUPERS.find(s => s.id === id);
   // TEMPORARY for playtesting: everything in the shop costs 0. Prices above are kept;
@@ -363,7 +366,7 @@
 
   function resetRally() {
     ball = { x: server === 0 ? 200 : 760, y: 170, vx: 0, vy: 0, spin: 0, angle: 0, trail: [], lastTouch: -1,
-      super: null, superOwner: -1, superTime: 0, zig: 0, crossed: false, flight: 0, serveLock: server };
+      super: null, superOwner: -1, superTime: 0, zig: 0, crossed: false, flight: 0, serveLock: server, r: BR };
     fakes = [];
     for (const p of players) {
       p.x = p.side === 0 ? 200 : 760; p.y = GROUND; p.vx = p.vy = 0; p.onGround = true; p.hitCooldown = 0;
@@ -510,10 +513,11 @@
   function collidePlayer(p) {
     const dx = ball.x - p.x, dy = ball.y - p.y;
     const dist = Math.hypot(dx, dy);
-    if (dist >= p.r + BR || dist === 0 || p.hitCooldown > 0) return;
+    const BRb = ball.r || BR;
+    if (dist >= p.r + BRb || dist === 0 || p.hitCooldown > 0) return;
     const nx = dx / dist, ny = dy / dist;
-    ball.x = p.x + nx * (p.r + BR + 0.5);
-    ball.y = p.y + ny * (p.r + BR + 0.5);
+    ball.x = p.x + nx * (p.r + BRb + 0.5);
+    ball.y = p.y + ny * (p.r + BRb + 0.5);
     p.hitCooldown = 0.08;
 
     // a super from the other side hits this player first
@@ -588,10 +592,11 @@
     const cy = Math.max(NET_TOP, Math.min(GROUND, b.y));
     let dx = b.x - cx, dy = b.y - cy;
     const d = Math.hypot(dx, dy);
-    if (d >= BR) return false;
+    const rb = b.r || BR;
+    if (d >= rb) return false;
     if (d === 0) { dx = b.vx > 0 ? -1 : 1; dy = 0; } else { dx /= d; dy /= d; }
-    b.x = cx + dx * (BR + 0.5);
-    b.y = cy + dy * (BR + 0.5);
+    b.x = cx + dx * (rb + 0.5);
+    b.y = cy + dy * (rb + 0.5);
     const vn = b.vx * dx + b.vy * dy;
     if (vn < 0) { b.vx -= 1.6 * vn * dx; b.vy -= 1.6 * vn * dy; }
     b.vx *= 0.85;
@@ -602,8 +607,9 @@
     b.vy += B_GRAV * (gravMul || 1) * dt;
     b.x += b.vx * dt;
     b.y += b.vy * dt;
-    if (b.x < BR) { b.x = BR; b.vx = Math.abs(b.vx) * 0.85; }
-    if (b.x > W - BR) { b.x = W - BR; b.vx = -Math.abs(b.vx) * 0.85; }
+    const rb = b.r || BR;
+    if (b.x < rb) { b.x = rb; b.vx = Math.abs(b.vx) * 0.85; }
+    if (b.x > W - rb) { b.x = W - rb; b.vx = -Math.abs(b.vx) * 0.85; }
     if (withNet && b.y > NET_TOP - BR && Math.abs(b.x - NET_X) < NET_HALF + BR) {
       b.vx = -b.vx * 0.85; b.x = NET_X + Math.sign(b.x - NET_X || -b.vx) * (NET_HALF + BR + 0.5);
     }
@@ -749,6 +755,8 @@
     ball.trail.push({ x: ball.x, y: ball.y });
     if (ball.trail.length > 10) ball.trail.shift();
     const grav = updateBallSuper(dt);
+    const targetR = ball.super === 'mini' ? BR * 0.42 : BR;
+    ball.r += (targetR - ball.r) * Math.min(1, dt * 12);
     stepBall(ball, dt, false, grav);
     if (collideNet(ball)) Sound.hit();
     for (const p of players) collidePlayer(p);
@@ -776,8 +784,8 @@
     }
     fakes = fakes.filter(f => !f.dead);
 
-    if (ball.y + BR >= GROUND) {
-      ball.y = GROUND - BR;
+    if (ball.y + ball.r >= GROUND) {
+      ball.y = GROUND - ball.r;
       const loser = ball.x < NET_X ? 0 : 1;
       const winner = 1 - loser;
       score[winner]++;
@@ -1209,6 +1217,11 @@
       c.beginPath(); c.moveTo(26, -30); c.lineTo(36, -62); c.lineTo(12, -38); c.fill();
     }
     if (!p.boss && ch.acc === 'crown') drawCape(c, p.side === 0 ? 1 : -1, !!cv);
+    if (!p.boss && ch.acc === 'headphones') { // far ear cup, mostly hidden behind the head
+      const ff = p.side === 0 ? 1 : -1;
+      c.fillStyle = '#111'; c.beginPath(); c.ellipse((PR - 2) * ff, -24, 10, 14, 0, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#868e96'; c.beginPath(); c.ellipse((PR + 1) * ff, -24, 5, 10, 0, 0, Math.PI * 2); c.fill();
+    }
     const body = p.boss ? '#1b1b1b' : p.dark ? shade(ch.body, -0.45) : ch.body;
     c.fillStyle = body;
     c.beginPath(); c.arc(0, 0, PR, Math.PI, 0); c.lineTo(PR, 0); c.closePath(); c.fill();
@@ -1307,32 +1320,35 @@
         c.beginPath(); c.moveTo(bx + nx, by + ny); c.lineTo(tx, ty); c.lineTo(bx - nx, by - ny); c.closePath(); c.fill(); c.stroke();
       }
     } else if (acc === 'helmet') {
-      // full-face motorbike helmet: glossy shell, spoiler, vents and a wide visor
-      const shell = c.createLinearGradient(-PR, -PR, PR * 0.4, 0);
-      shell.addColorStop(0, '#ff5a5f'); shell.addColorStop(0.5, ch.body); shell.addColorStop(1, '#6a040f');
+      // Formula 1 helmet: glossy livery, narrow visor slot, sponsor decals and an air intake
+      const shell = c.createLinearGradient(0, -PR - 4, 0, 0);
+      shell.addColorStop(0, '#ff4d4d'); shell.addColorStop(0.55, ch.body); shell.addColorStop(1, '#7a0000');
       c.fillStyle = shell; c.strokeStyle = '#111'; c.lineWidth = 3;
-      c.beginPath(); c.arc(0, 0, PR + 3, Math.PI, 0); c.closePath(); c.fill(); c.stroke();
-      // rear spoiler
-      c.fillStyle = '#111';
-      c.beginPath(); c.moveTo(-26 * f, -36); c.lineTo(-44 * f, -40); c.lineTo(-40 * f, -30); c.closePath(); c.fill();
-      // graphic stripes sweeping back
-      c.strokeStyle = '#ffffff'; c.lineWidth = 4; c.lineCap = 'round';
-      c.beginPath(); c.moveTo(-36 * f, -12); c.quadraticCurveTo(-24 * f, -34, 4 * f, -42); c.stroke();
-      c.strokeStyle = '#111'; c.lineWidth = 2;
-      c.beginPath(); c.moveTo(-38 * f, -4); c.quadraticCurveTo(-24 * f, -28, 0, -36); c.stroke();
-      // chin bar with vents
-      c.fillStyle = '#111';
-      c.beginPath(); c.moveTo(-4 * f, 0); c.lineTo(-4 * f, -6); c.quadraticCurveTo(20 * f, -6, (PR + 3) * f, -2); c.lineTo((PR + 3) * f, 0); c.closePath(); c.fill();
-      c.fillStyle = '#495057'; for (let i = 0; i < 3; i++) c.fillRect((16 + i * 6) * f - 1.5, -5, 3, 3);
-      // visor: smoked, iridescent glass; the eye shows through it
-      const vg = c.createLinearGradient(0, -32, 0, -6);
-      vg.addColorStop(0, 'rgba(90,24,154,0.55)'); vg.addColorStop(0.5, 'rgba(255,0,110,0.35)'); vg.addColorStop(1, 'rgba(255,190,11,0.45)');
-      c.fillStyle = '#0b0b0f';
-      c.beginPath(); c.moveTo(-4 * f, -8); c.quadraticCurveTo(-6 * f, -30, 18 * f, -32); c.quadraticCurveTo(36 * f, -28, (PR + 2) * f, -10); c.lineTo((PR + 2) * f, -8); c.closePath(); c.fill();
-      c.fillStyle = vg; c.fill();
-      c.strokeStyle = '#111'; c.lineWidth = 2.5; c.stroke();
-      c.fillStyle = '#ffffff'; c.font = '900 11px "Trebuchet MS",sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
-      c.fillText('07', -24 * f, -22);
+      c.beginPath(); c.arc(0, 0, PR + 2, Math.PI, 0); c.closePath(); c.fill(); c.stroke();
+      // white and gold livery sweep
+      c.fillStyle = '#ffffff';
+      c.beginPath(); c.moveTo(-(PR + 1) * f, -6); c.quadraticCurveTo(-10 * f, -46, 30 * f, -30); c.lineTo(26 * f, -24);
+      c.quadraticCurveTo(-8 * f, -36, -(PR - 2) * f, 0); c.closePath(); c.fill();
+      c.fillStyle = '#ffd60a';
+      c.beginPath(); c.moveTo(-(PR - 2) * f, 0); c.quadraticCurveTo(-8 * f, -36, 26 * f, -24); c.lineTo(24 * f, -20);
+      c.quadraticCurveTo(-6 * f, -30, -(PR - 6) * f, 0); c.closePath(); c.fill();
+      // roof air intake
+      c.fillStyle = '#111'; c.beginPath(); c.ellipse(-4 * f, -PR - 1, 9, 4, 0, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#495057'; c.beginPath(); c.ellipse(-4 * f, -PR - 1, 6, 2, 0, 0, Math.PI * 2); c.fill();
+      // visor slot: a narrow band of dark glass at eye level (the eye shows through)
+      c.fillStyle = '#0b0b0f'; c.strokeStyle = '#111'; c.lineWidth = 2;
+      c.beginPath(); c.moveTo(-2 * f, -26); c.lineTo((PR + 2) * f, -24); c.lineTo((PR + 1) * f, -8); c.lineTo(-2 * f, -8); c.closePath(); c.fill();
+      const vg = c.createLinearGradient(0, -26, 0, -8);
+      vg.addColorStop(0, 'rgba(0,180,216,0.55)'); vg.addColorStop(1, 'rgba(114,9,183,0.45)');
+      c.fillStyle = vg; c.fill(); c.stroke();
+      // sponsor decal and number on the side
+      c.fillStyle = '#111'; c.fillRect(-34 * f - (f > 0 ? 0 : 22), -20, 22, 8);
+      c.fillStyle = '#ffd60a'; c.font = '900 7px "Trebuchet MS",sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText('SPIKE', -23 * f, -16);
+      c.fillStyle = '#ffffff'; c.font = '900 10px "Trebuchet MS",sans-serif'; c.fillText('1', -20 * f, -32);
+      // chin: black with a small chequered strip
+      c.fillStyle = '#111'; c.fillRect(-2 * f - (f > 0 ? 0 : 0), -7, (PR + 1) * f, 7);
+      for (let i = 0; i < 6; i++) { c.fillStyle = i % 2 ? '#ffffff' : '#111'; c.fillRect((6 + i * 5) * f - (f > 0 ? 0 : 5), -6, 5, 3); }
     } else if (acc === 'tattoo') {
       // punk: purple-to-green mohawk, a small snake tattoo and piercings (front layer)
       const spikes = 7;
@@ -1349,16 +1365,8 @@
         c.beginPath(); c.moveTo(bx + nx, by + ny); c.lineTo(tx, ty); c.lineTo(bx - nx, by - ny); c.closePath(); c.fill(); c.stroke();
       }
       // shaved sides
-      c.fillStyle = 'rgba(60,40,30,0.25)';
+      c.fillStyle = 'rgba(255,255,255,0.08)';
       c.beginPath(); c.arc(0, 0, PR - 2, Math.PI * 1.05, Math.PI * 1.95); c.arc(0, 0, PR - 10, Math.PI * 1.95, Math.PI * 1.05, true); c.fill();
-      // snake tattoo on the back of the head
-      const P = [[-14, -28], [-30, -22], [-18, -14], [-32, -6], [-22, -1]].map(([x, y]) => [x * f, y]);
-      c.lineCap = 'round'; c.lineJoin = 'round';
-      const path = () => { c.beginPath(); c.moveTo(P[0][0], P[0][1]); for (let i = 1; i < P.length; i++) c.lineTo(P[i][0], P[i][1]); };
-      c.strokeStyle = '#081c15'; c.lineWidth = 7; path(); c.stroke();
-      c.strokeStyle = '#2d6a4f'; c.lineWidth = 4; path(); c.stroke();
-      c.fillStyle = '#081c15'; c.beginPath(); c.ellipse(P[0][0] + 3 * f, P[0][1], 6, 4.5, 0.4 * f, 0, Math.PI * 2); c.fill();
-      c.fillStyle = '#e63946'; c.beginPath(); c.arc(P[0][0] + 5 * f, P[0][1] - 1, 1.3, 0, Math.PI * 2); c.fill();
     } else if (acc === 'shades') {
       // cyborg: riveted metal plating over the back of the head and an antenna
       c.fillStyle = '#adb5bd'; c.strokeStyle = '#343a40'; c.lineWidth = 2;
@@ -1404,8 +1412,10 @@
       c.strokeStyle = '#111111'; c.lineWidth = 2;
       c.beginPath(); c.moveTo(ex - 8, ey - 6); c.lineTo(-30 * f, -30); c.moveTo(ex + 6 * f, ey - 7); c.lineTo(14 * f, -38); c.stroke();
     } else if (acc === 'helmet') {
-      c.strokeStyle = 'rgba(255,255,255,0.75)'; c.lineWidth = 2.5; c.lineCap = 'round';   // glare on the visor
-      c.beginPath(); c.moveTo(ex - 4 * f, ey - 7); c.quadraticCurveTo(ex + 6 * f, ey - 11, ex + 16 * f, ey - 7); c.stroke();
+      c.fillStyle = 'rgba(0,180,216,0.22)';            // tinted glass over the eye
+      c.beginPath(); c.moveTo(-2 * f, -26); c.lineTo((PR + 2) * f, -24); c.lineTo((PR + 1) * f, -8); c.lineTo(-2 * f, -8); c.closePath(); c.fill();
+      c.strokeStyle = 'rgba(255,255,255,0.8)'; c.lineWidth = 2; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(2 * f, -23); c.lineTo(22 * f, -22.5); c.stroke();
     } else if (acc === 'crown') {
       drawCollar(c, f);
       c.fillStyle = '#ffd60a'; c.strokeStyle = '#b8860b'; c.lineWidth = 2;
@@ -1413,27 +1423,34 @@
       c.fill(); c.stroke();
       for (const [dx, colr] of [[-11, '#e63946'], [0, '#3a86ff'], [11, '#2ec27e']]) { c.fillStyle = colr; c.beginPath(); c.arc(dx, -41, 3, 0, Math.PI * 2); c.fill(); }
     } else if (acc === 'headphones') {
-      // only the near ear cup is visible in side view
+      // near ear cup on our side; the band arcs over to the far cup peeking out at the front
       const cx = -12 * f, cy = -20;
-      c.strokeStyle = '#1b1b1b'; c.lineWidth = 8; c.lineCap = 'round';
-      c.beginPath(); c.moveTo(cx, cy - 14); c.quadraticCurveTo(cx + 2 * f, -PR - 12, cx + 26 * f, -PR - 4); c.stroke();
-      c.strokeStyle = '#6c757d'; c.lineWidth = 3;
-      c.beginPath(); c.moveTo(cx, cy - 14); c.quadraticCurveTo(cx + 2 * f, -PR - 12, cx + 26 * f, -PR - 4); c.stroke();
-      // cup: cushion, metal ring, glowing accent and logo
+      const band = c.createLinearGradient(cx, -PR, (PR - 4) * f, -PR);
+      band.addColorStop(0, '#ff006e'); band.addColorStop(0.5, '#8338ec'); band.addColorStop(1, col);
+      c.strokeStyle = '#111'; c.lineWidth = 9; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(cx, cy - 14); c.bezierCurveTo(cx, -PR - 18, (PR - 8) * f, -PR - 14, (PR - 2) * f, -30); c.stroke();
+      c.strokeStyle = band; c.lineWidth = 4;
+      c.beginPath(); c.moveTo(cx, cy - 14); c.bezierCurveTo(cx, -PR - 18, (PR - 8) * f, -PR - 14, (PR - 2) * f, -30); c.stroke();
+      // cushion + brushed metal + glowing ring + logo
       c.fillStyle = '#111'; c.beginPath(); c.ellipse(cx, cy, 15, 18, 0, 0, Math.PI * 2); c.fill();
       const metal = c.createLinearGradient(cx - 12, cy - 14, cx + 12, cy + 14);
-      metal.addColorStop(0, '#dee2e6'); metal.addColorStop(0.5, '#868e96'); metal.addColorStop(1, '#343a40');
+      metal.addColorStop(0, '#f8f9fa'); metal.addColorStop(0.5, '#868e96'); metal.addColorStop(1, '#212529');
       c.fillStyle = metal; c.beginPath(); c.ellipse(cx, cy, 12, 15, 0, 0, Math.PI * 2); c.fill();
-      c.fillStyle = '#1b1b1b'; c.beginPath(); c.ellipse(cx, cy, 9, 12, 0, 0, Math.PI * 2); c.fill();
-      const led = 0.55 + 0.45 * Math.sin(time * 6);
-      c.strokeStyle = col; c.globalAlpha = led; c.lineWidth = 2.5;
-      c.beginPath(); c.ellipse(cx, cy, 7, 10, 0, 0, Math.PI * 2); c.stroke(); c.globalAlpha = 1;
-      c.fillStyle = col; c.font = '900 9px "Trebuchet MS",sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
-      c.fillText('DJ', cx, cy + 1);
-      // microphone boom towards the mouth
-      c.strokeStyle = '#1b1b1b'; c.lineWidth = 2.5;
+      c.fillStyle = '#0b0b0f'; c.beginPath(); c.ellipse(cx, cy, 9, 12, 0, 0, Math.PI * 2); c.fill();
+      const hue = (time * 120) % 360;
+      c.strokeStyle = 'hsl(' + hue + ',100%,60%)'; c.lineWidth = 2.5;
+      c.beginPath(); c.ellipse(cx, cy, 7, 10, 0, 0, Math.PI * 2); c.stroke();
+      // equalizer bars bouncing inside the cup
+      for (let i = 0; i < 3; i++) {
+        const h = 3 + Math.abs(Math.sin(time * 9 + i * 1.7)) * 9;
+        c.fillStyle = 'hsl(' + ((hue + i * 40) % 360) + ',100%,65%)';
+        c.fillRect(cx - 4.5 + i * 3.5, cy + 5 - h, 2.5, h);
+      }
+      // mic boom
+      c.strokeStyle = '#111'; c.lineWidth = 2.5;
       c.beginPath(); c.moveTo(cx + 6 * f, cy + 12); c.quadraticCurveTo(cx + 14 * f, cy + 22, cx + 28 * f, cy + 16); c.stroke();
-      c.fillStyle = '#1b1b1b'; c.beginPath(); c.arc(cx + 29 * f, cy + 15, 3, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#111'; c.beginPath(); c.arc(cx + 29 * f, cy + 15, 3, 0, Math.PI * 2); c.fill();
+      c.fillStyle = col; c.beginPath(); c.arc(cx + 29 * f, cy + 15, 1.3, 0, Math.PI * 2); c.fill();
     } else if (acc === 'tattoo') {
       // piercings: brow rings, a nose ring and a lip stud
       c.strokeStyle = '#ced4da'; c.lineWidth = 1.8;
@@ -1449,21 +1466,21 @@
   function drawCape(c, f, still) {
     const sway = still ? 0 : Math.sin(time * 3) * 4;
     const back = -f;
-    const g = c.createLinearGradient(0, -PR, back * (PR + 30), 0);
+    const g = c.createLinearGradient(0, -PR, back * (PR + 14), 0);
     g.addColorStop(0, '#d00000'); g.addColorStop(1, '#6a040f');
     c.fillStyle = g; c.strokeStyle = '#370617'; c.lineWidth = 2.5;
     c.beginPath();
     c.moveTo(back * 4, -PR + 4);
-    c.bezierCurveTo(back * (PR + 6), -PR + 2, back * (PR + 30 + sway), -PR * 0.4, back * (PR + 34 + sway * 1.5), 0);
-    c.lineTo(back * (PR - 6), 0);
+    c.bezierCurveTo(back * (PR + 2), -PR + 2, back * (PR + 12 + sway), -PR * 0.4, back * (PR + 14 + sway), 0);
+    c.lineTo(back * (PR - 8), 0);
     c.closePath(); c.fill(); c.stroke();
     // velvet folds and a gold hem
     c.strokeStyle = 'rgba(255,255,255,0.18)'; c.lineWidth = 2;
     for (const k of [0.45, 0.7]) {
-      c.beginPath(); c.moveTo(back * (8 + k * 20), -PR + 8); c.quadraticCurveTo(back * (PR + k * 20), -PR * 0.4, back * (PR + k * 30 + sway), -2); c.stroke();
+      c.beginPath(); c.moveTo(back * (8 + k * 20), -PR + 8); c.quadraticCurveTo(back * (PR + k * 8), -PR * 0.4, back * (PR + k * 12 + sway), -2); c.stroke();
     }
     c.strokeStyle = '#ffd60a'; c.lineWidth = 3;
-    c.beginPath(); c.moveTo(back * (PR - 4), -1.5); c.lineTo(back * (PR + 33 + sway * 1.5), -1.5); c.stroke();
+    c.beginPath(); c.moveTo(back * (PR - 6), -1.5); c.lineTo(back * (PR + 13 + sway), -1.5); c.stroke();
   }
   // ermine collar over the shoulders, drawn on top of the body
   function drawCollar(c, f) {
@@ -1804,6 +1821,16 @@
       c.arc(-1 * k, 3 * k, 8 * k, 0, Math.PI * 2); c.fillStyle = '#111'; c.fill();
       c.beginPath(); c.moveTo(4 * k, -4 * k); c.quadraticCurveTo(8 * k, -10 * k, 11 * k, -9 * k); c.stroke();
       c.fillStyle = '#ffd60a'; c.beginPath(); c.arc(11 * k, -10 * k, 2.5 * k, 0, Math.PI * 2); c.fill();
+    } else if (id === 'mini') {
+      c.arc(0, 0, 3.5 * k, 0, Math.PI * 2); c.fill();
+      c.beginPath();
+      for (const a of [0, Math.PI / 2, Math.PI, Math.PI * 1.5]) {
+        const ox = Math.cos(a), oy = Math.sin(a);
+        c.moveTo(ox * 13 * k, oy * 13 * k); c.lineTo(ox * 7 * k, oy * 7 * k);
+        c.moveTo(ox * 7 * k - oy * 3 * k + ox * 3 * k, oy * 7 * k + ox * 3 * k + oy * 3 * k); c.lineTo(ox * 7 * k, oy * 7 * k);
+        c.lineTo(ox * 7 * k + oy * 3 * k + ox * 3 * k, oy * 7 * k - ox * 3 * k + oy * 3 * k);
+      }
+      c.stroke();
     } else if (id === 'quake') {
       c.moveTo(-12 * k, 0); c.lineTo(-6 * k, -6 * k); c.lineTo(-2 * k, 5 * k); c.lineTo(3 * k, -8 * k); c.lineTo(7 * k, 4 * k); c.lineTo(12 * k, -2 * k);
       c.stroke();
@@ -1822,7 +1849,7 @@
     b.trail.forEach((tp, i) => {
       ctx.globalAlpha = alpha * (i / b.trail.length) * 0.8;
       ctx.fillStyle = i % 2 ? s.color : s.glow;
-      circle(tp.x, tp.y, BR * (0.4 + i / b.trail.length * 0.7));
+      circle(tp.x, tp.y, (b.r || BR) * (0.4 + i / b.trail.length * 0.7));
     });
     ctx.globalAlpha = alpha;
     if (b.super === 'lightning') {
@@ -1833,10 +1860,11 @@
       }
       ctx.stroke();
     }
-    ctx.fillStyle = s.glow; ctx.globalAlpha = alpha * 0.5; circle(b.x, b.y, BR + 7);
+    const rr = b.r || BR;
+    ctx.fillStyle = s.glow; ctx.globalAlpha = alpha * 0.5; circle(b.x, b.y, rr + 7);
     ctx.globalAlpha = alpha;
-    drawBall(b, BALLS[save.ball]);
-    drawSuperIcon(ctx, b.super, b.x, b.y, BR * 0.75);
+    drawBall(b, BALLS[save.ball], null, rr);
+    if (b.super !== 'mini') drawSuperIcon(ctx, b.super, b.x, b.y, rr * 0.75);
     ctx.restore();
   }
 
@@ -1929,7 +1957,7 @@
           ctx.globalAlpha = i / ball.trail.length * 0.18; ctx.fillStyle = '#fff'; circle(tp.x, tp.y, BR * 0.7);
         });
         ctx.globalAlpha = 1;
-        drawBall(ball, BALLS[save.ball]);
+        drawBall(ball, BALLS[save.ball], null, ball.r);
       }
       // marker when the ball is above the screen
       if (ball.y < -BR && ball.super !== 'ghost') { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(ball.x, 6); ctx.lineTo(ball.x - 8, 20); ctx.lineTo(ball.x + 8, 20); ctx.fill(); }
@@ -1993,7 +2021,7 @@
       card.className = 'card' + (i > run.round ? ' locked' : '') + (current ? ' current' : '');
       const fake = { char: CHARS[r.char], dark: r.char === save.char, side: 1, squash: 0, onGround: true, y: GROUND };
       card.appendChild(previewCanvas(g => {
-        drawPlayer(fake, 45, 62, 0.85, 10, 30, g);
+        drawPlayer(fake, 45, 62, 0.8, 10, 30, g);
         drawSuperIcon(g, SUPERS[r.super].id, 76, 18, 11);
       }));
       const name = document.createElement('div'); name.textContent = rivalName(r); card.appendChild(name);
@@ -2134,7 +2162,7 @@
       const isCur = save[cfg.cur] === i;
       card.className = 'card' + (isCur ? ' sel' : '');
       card.appendChild(previewCanvas(g => {
-        if (shopTab === 'chars') drawPlayer({ char: it, dark: false, side: 0, squash: 0, onGround: true, y: GROUND }, 45, 62, 0.85, 80, 30, g);
+        if (shopTab === 'chars') drawPlayer({ char: it, dark: false, side: 0, squash: 0, onGround: true, y: GROUND }, 45, 62, 0.8, 80, 30, g);
         else if (shopTab === 'balls') drawBall({ x: 45, y: 36, angle: 0.4 }, it, g, 26);
         else drawSuperIcon(g, it.id, 45, 36, 26);
       }));
