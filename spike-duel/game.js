@@ -167,7 +167,7 @@
   const SUPER = id => SUPERS.find(s => s.id === id);
   // TEMPORARY for playtesting: everything in the shop costs 0. Prices above are kept;
   // set this back to false to restore them.
-  const FREE_SHOP = true;
+  const FREE_SHOP = false;
   const VENUES = ['beach', 'gym', 'rooftop', 'snow', 'jungle', 'volcano'];
   const NICKS = ['Wave', 'Lime', 'Coral', 'Tank', 'Frost', 'Volt', 'Shadow', 'Ace', 'Blaze', 'Storm', 'Pixel', 'Rocket',
     'Nova', 'Bolt', 'Kiwi', 'Mango', 'Turbo', 'Ziggy', 'Sunny', 'Echo'];
@@ -1650,7 +1650,7 @@
   }
 
   // Characters whose whole body is a special material.
-  const RICE = Array.from({ length: 120 }, (_, i) => {
+  const RICE = Array.from({ length: 34 }, (_, i) => {
     const a = Math.PI + hash(i * 3.1) * Math.PI, d = Math.sqrt(hash(i * 5.7)) * (PR - 5);
     return [Math.cos(a) * d, Math.min(-3, Math.sin(a) * d), hash(i * 2.3) * Math.PI];
   });
@@ -1670,15 +1670,9 @@
       rg.addColorStop(0, '#fffdf7'); rg.addColorStop(0.7, '#f1ebdd'); rg.addColorStop(1, '#ddd3bf');
       c.fillStyle = rg; lumpy(); c.fill();
       c.save(); lumpy(); c.clip();
-      for (const [gx, gy, ga] of RICE) {
-        c.fillStyle = 'rgba(120,100,70,0.22)';                       // soft shadow under each grain
-        c.beginPath(); c.ellipse(gx + 0.8, gy + 1, 4.4, 2.2, ga, 0, Math.PI * 2); c.fill();
-        const gg = c.createLinearGradient(gx - 3, gy - 2, gx + 3, gy + 2);
-        gg.addColorStop(0, '#ffffff'); gg.addColorStop(1, '#ece5d6');
-        c.fillStyle = gg; c.strokeStyle = 'rgba(165,150,125,0.55)'; c.lineWidth = 0.6;
-        c.beginPath(); c.ellipse(gx, gy, 4.2, 2, ga, 0, Math.PI * 2); c.fill(); c.stroke();
-        c.fillStyle = 'rgba(255,255,255,0.9)';
-        c.beginPath(); c.ellipse(gx - Math.cos(ga) * 1.4, gy - Math.sin(ga) * 1.4 - 0.4, 1.4, 0.6, ga, 0, Math.PI * 2); c.fill();
+      for (const [gx, gy, ga] of RICE) {   // simple cartoon grains
+        c.fillStyle = '#ffffff'; c.strokeStyle = 'rgba(175,160,135,0.5)'; c.lineWidth = 0.8;
+        c.beginPath(); c.ellipse(gx, gy, 4.5, 2.3, ga, 0, Math.PI * 2); c.fill(); c.stroke();
       }
       c.restore();
       c.strokeStyle = 'rgba(150,135,110,0.8)'; c.lineWidth = 1.5; lumpy(); c.stroke();

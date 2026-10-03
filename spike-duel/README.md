@@ -14,7 +14,7 @@ Juego de vóley 1 contra 1 para navegador, pensado para publicarse en CrazyGames
 - **Rivales:** se llaman como su skin (dos Cyborg se llaman los dos Cyborg); los jefes conservan su título. Con la barra llena, incluso los rivales fáciles buscan el remate para usar su súper.
 - **Escenarios:** playa, selva, nieve, ciudad nocturna con focos y neones, almacén y volcán, con el fondo estático guardado en caché para que vaya fluido.
 - **Cuenta atrás:** 3, 2, 1 al empezar cada partido y al volver de la pausa.
-- **Tienda gratis (temporal):** `FREE_SHOP = true` en `game.js` hace que todo cueste 0 para probarlo. Los precios siguen guardados en cada objeto y en la tienda se ven entre paréntesis; con `FREE_SHOP = false` vuelven a cobrarse.
+- **Tienda:** cada objeto tiene su precio en monedas. Para hacer pruebas, `FREE_SHOP = true` en `game.js` hace que todo cueste 0 sin perder los precios.
 - **Idioma:** inglés, o español si el navegador está en español.
 
 ## Probarlo en local
