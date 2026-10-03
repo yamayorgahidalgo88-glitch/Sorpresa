@@ -19,3 +19,14 @@ Abre `index.html` en el navegador. Carga `data.js`, `game.js` y las imágenes de
 - `fetch_faces.py` y `build_faces.py`: caras de las cartas FC 26 empaquetadas en hojas WebP.
 
 Los escudos son marcas de sus clubes y las caras pertenecen a EA SPORTS. Este proyecto es de uso personal y no comercial.
+
+
+## Instalar en el móvil (PWA)
+
+La carpeta `modo-carrera/` es una app instalable (manifest, iconos y service worker con caché sin conexión).
+Publicada en GitHub Pages (Settings → Pages → Deploy from a branch → rama con este código, carpeta `/ (root)`),
+se abre en `https://<usuario>.github.io/<repo>/modo-carrera/` y se instala desde el navegador:
+Android (Chrome): menú ⋮ → «Instalar app». iPhone (Safari): Compartir → «Añadir a pantalla de inicio».
+
+Tras cambiar `data.js`, `game.js`, `index.html` o las imágenes, ejecuta `python3 tools/build_pwa.py`
+para regenerar `sw.js` (así los móviles descargan la versión nueva). Los iconos salen de `tools/build_icons.py`.
