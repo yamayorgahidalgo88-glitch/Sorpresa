@@ -24,7 +24,7 @@
       champion: 'Tour champion!', locked: 'Beat the previous rival', select: 'Select', selected: 'Selected',
       adUnavailable: 'Ad not available, try again later', serve: 'Serve!', point: 'Point!', superReady: 'SUPER',
       controls: '1P: A/D or arrows to move, W / up / space to jump  ·  2P: A/D/W vs arrows',
-      rival: 'Rival {n}', beach: 'beach', gym: 'warehouse', rooftop: 'rooftop', snow: 'snow', jungle: 'jungle', volcano: 'volcano',
+      rival: 'Rival {n}', beach: 'beach', gym: 'warehouse', rooftop: 'rooftop', snow: 'snow', jungle: 'jungle', volcano: 'volcano', moon: 'moon',
       career: 'Spike Career', world: 'World {n}', level: 'Level {n}', boss: 'BOSS', nextLevel: 'Next level',
       newTour: 'New tournament', round: 'Round {n} of 8', tourRule: 'Rivals change every tournament. Lose once and you start again from round 1.',
       backToStart: 'Back to round 1', tourPrize: '+{n} champion bonus', play: 'Play', beaten: 'Beaten', careerDone: 'All levels cleared!',
@@ -64,7 +64,7 @@
       champion: '¡Campeón del torneo!', locked: 'Gana al rival anterior', select: 'Elegir', selected: 'Elegido',
       adUnavailable: 'Anuncio no disponible, prueba más tarde', serve: '¡Saca!', point: '¡Punto!', superReady: 'SÚPER',
       controls: '1J: A/D o flechas para moverte, W / arriba / espacio para saltar  ·  2J: A/D/W contra flechas',
-      rival: 'Rival {n}', beach: 'playa', gym: 'almacén', rooftop: 'azotea', snow: 'nieve', jungle: 'selva', volcano: 'volcán',
+      rival: 'Rival {n}', beach: 'playa', gym: 'almacén', rooftop: 'azotea', snow: 'nieve', jungle: 'selva', volcano: 'volcán', moon: 'luna',
       career: 'Spike Career', world: 'Mundo {n}', level: 'Nivel {n}', boss: 'JEFE', nextLevel: 'Siguiente nivel',
       newTour: 'Nuevo torneo', round: 'Ronda {n} de 8', tourRule: 'Los rivales cambian en cada torneo. Si pierdes, vuelves a la ronda 1.',
       backToStart: 'Vuelves a la ronda 1', tourPrize: '+{n} de premio de campeón', play: 'Jugar', beaten: 'Ganado', careerDone: '¡Todos los niveles superados!',
@@ -124,6 +124,7 @@
     { name: 'Ninja', body: '#343a40', band: '#343a40', acc: 'ninja', accColor: '#d00000', price: 1000 },
     { name: 'Nigiri', body: '#f8f4ea', band: '#f8f4ea', acc: 'nigiri', skin: 'nigiri', price: 1100 },
     { name: 'Slimy', body: '#70e000', band: '#70e000', acc: 'slime', skin: 'slime', price: 900 },
+    { name: 'Boot', body: '#0a84ff', band: '#0a84ff', acc: 'boot', skin: 'boot', price: 1000 },
   ];
   const BALLS = [
     { name: 'Classic', a: '#ffffff', b: '#ffd23f', c: '#2a9df4', price: 0 },
@@ -172,7 +173,7 @@
   // TEMPORARY for playtesting: everything in the shop costs 0. Prices above are kept;
   // set this back to false to restore them.
   const FREE_SHOP = false;
-  const VENUES = ['beach', 'gym', 'rooftop', 'snow', 'jungle', 'volcano'];
+  const VENUES = ['beach', 'gym', 'rooftop', 'snow', 'jungle', 'volcano', 'moon'];
   const NICKS = ['Wave', 'Lime', 'Coral', 'Tank', 'Frost', 'Volt', 'Shadow', 'Ace', 'Blaze', 'Storm', 'Pixel', 'Rocket',
     'Nova', 'Bolt', 'Kiwi', 'Mango', 'Turbo', 'Ziggy', 'Sunny', 'Echo'];
   const BOSSES = ['Magma King', 'Obsidian', 'Inferno', 'Eclipse', 'Dark Ace'];
@@ -202,7 +203,7 @@
       const lo = Math.max(0, Math.floor(i * 2.4) - 2), hi = Math.min(SUPERS.length - 1, Math.floor(i * 2.4) + 2);
       rivals.push({
         nick: nicks[i], char: Math.floor(r() * CHARS.length),
-        venue: pick(r, VENUES.slice(0, 5)), super: lo + Math.floor(r() * (hi - lo + 1)), ai: i + 1,
+        venue: pick(r, VENUES.filter(v => v !== 'volcano')), super: lo + Math.floor(r() * (hi - lo + 1)), ai: i + 1,
       });
     }
     return { rivals, round: 0 };
@@ -761,7 +762,7 @@
   }
   function sand(x) {
     const c = venue === 'snow' ? ['#ffffff', '#dfefff'] : venue === 'beach' ? ['#f4d58d', '#e6be6a']
-      : venue === 'volcano' ? ['#ff8c1a', '#3a2a26'] : venue === 'jungle' ? ['#9c6644', '#52b788'] : ['#cccccc', '#999999'];
+      : venue === 'volcano' ? ['#ff8c1a', '#3a2a26'] : venue === 'jungle' ? ['#9c6644', '#52b788'] : venue === 'moon' ? ['#c8c8cc', '#8e8e96'] : ['#cccccc', '#999999'];
     for (let i = 0; i < 14; i++) {
       particles.push({ x: x + (Math.random() - 0.5) * 30, y: GROUND - 2, vx: (Math.random() - 0.5) * 260,
         vy: -120 - Math.random() * 260, life: 0.6, max: 0.6, color: c[i % 2], r: 2 + Math.random() * 3 });
@@ -1347,6 +1348,100 @@
       ctx.beginPath();
       for (let i = 0; i < 9; i++) { const cx = 40 + i * 110; ctx.moveTo(cx, GROUND + 4); ctx.lineTo(cx + 18, GROUND + 26); ctx.lineTo(cx + 6, GROUND + 48); ctx.moveTo(cx + 18, GROUND + 26); ctx.lineTo(cx + 46, GROUND + 34); }
       ctx.stroke();
+    } else if (venue === 'moon') {
+      layer('moon', () => {
+        // deep space
+        const sp = ctx.createLinearGradient(0, 0, 0, GROUND);
+        sp.addColorStop(0, '#02030a'); sp.addColorStop(0.6, '#0a0f2c'); sp.addColorStop(1, '#1b1f3f');
+        ctx.fillStyle = sp; ctx.fillRect(0, 0, W, GROUND);
+        // milky way haze
+        for (let i = 0; i < 26; i++) {
+          ctx.fillStyle = 'rgba(150,140,255,0.05)';
+          ctx.beginPath(); ctx.ellipse(i * 40 + hash(i) * 30, 260 - i * 8 + hash(i + 3) * 30, 70, 22, -0.2, 0, Math.PI * 2); ctx.fill();
+        }
+        for (let i = 0; i < 220; i++) { ctx.fillStyle = 'rgba(255,255,255,' + (0.25 + hash(i + 9) * 0.6) + ')'; ctx.fillRect(hash(i) * W, hash(i + 1) * 380, 1.4, 1.4); }
+        // the Earth: oceans, continents, cloud swirls, night side and atmosphere glow
+        const ex = 250, ey = 175, er = 72;
+        const glow = ctx.createRadialGradient(ex, ey, er, ex, ey, er + 30);
+        glow.addColorStop(0, 'rgba(110,180,255,0.45)'); glow.addColorStop(1, 'rgba(110,180,255,0)');
+        ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(ex, ey, er + 30, 0, Math.PI * 2); ctx.fill();
+        const oc = ctx.createRadialGradient(ex - 25, ey - 25, 10, ex, ey, er);
+        oc.addColorStop(0, '#4cc9f0'); oc.addColorStop(0.6, '#1d6fb8'); oc.addColorStop(1, '#0b3a75');
+        ctx.fillStyle = oc; ctx.beginPath(); ctx.arc(ex, ey, er, 0, Math.PI * 2); ctx.fill();
+        ctx.save(); ctx.beginPath(); ctx.arc(ex, ey, er, 0, Math.PI * 2); ctx.clip();
+        ctx.fillStyle = '#4f9d4a';
+        for (const [cx, cy, rx, ry, a] of [[-30, -20, 26, 18, 0.4], [-10, 8, 16, 26, -0.3], [28, -30, 22, 12, 0.2], [34, 18, 18, 24, 0.6], [-40, 34, 14, 10, 0]]) {
+          ctx.beginPath(); ctx.ellipse(ex + cx, ey + cy, rx, ry, a, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.fillStyle = '#c9a66b';
+        ctx.beginPath(); ctx.ellipse(ex + 30, ey - 26, 9, 5, 0.2, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+        for (const [cx, cy, r, a0] of [[-20, -40, 30, 0.2], [20, 10, 34, 3.6], [-34, 20, 22, 5], [10, 46, 26, 0.8]]) {
+          ctx.beginPath(); ctx.arc(ex + cx, ey + cy, r, a0, a0 + 1.4); ctx.stroke();
+        }
+        ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.beginPath(); ctx.ellipse(ex, ey - er + 6, 24, 7, 0, 0, Math.PI * 2); ctx.fill();
+        const night = ctx.createLinearGradient(ex - er, 0, ex + er, 0);
+        night.addColorStop(0, 'rgba(2,3,10,0)'); night.addColorStop(0.55, 'rgba(2,3,10,0.15)'); night.addColorStop(1, 'rgba(2,3,10,0.85)');
+        ctx.fillStyle = night; ctx.fillRect(ex - er, ey - er, er * 2, er * 2);
+        ctx.restore();
+        // a small ringed planet far away
+        ctx.save(); ctx.translate(720, 200); ctx.rotate(-0.35);
+        ctx.strokeStyle = 'rgba(230,200,150,0.7)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(0, 0, 40, 10, 0, Math.PI, Math.PI * 2); ctx.stroke();
+        const pg = ctx.createRadialGradient(-6, -6, 2, 0, 0, 22);
+        pg.addColorStop(0, '#f6d7a7'); pg.addColorStop(1, '#b07d48');
+        ctx.fillStyle = pg; ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(0, 0, 40, 10, 0, 0, Math.PI); ctx.stroke();
+        ctx.restore();
+        // lunar horizon: grey hills with craters
+        ridge(ctx, 400, 26, 7.3, 6); ctx.fillStyle = '#6c6f7d'; ctx.fill();
+        ridge(ctx, 430, 18, 2.1, 4); ctx.fillStyle = '#8b8e9b'; ctx.fill();
+        const gnd = ctx.createLinearGradient(0, GROUND, 0, H);
+        gnd.addColorStop(0, '#b9bbc4'); gnd.addColorStop(1, '#7d808c');
+        ctx.fillStyle = gnd; ctx.fillRect(0, GROUND, W, H - GROUND);
+        const crater = (x, y, r) => {
+          ctx.fillStyle = 'rgba(60,62,75,0.45)'; ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.32, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.beginPath(); ctx.ellipse(x + r * 0.15, y + r * 0.08, r * 0.8, r * 0.22, 0, 0, Math.PI); ctx.fill();
+        };
+        for (const [x, y, r] of [[60, 448, 22], [300, 452, 14], [640, 446, 26], [880, 450, 18], [120, 500, 30], [420, 515, 20], [720, 498, 34], [930, 520, 16], [250, 530, 12]]) crater(x, y, r);
+        for (let i = 0; i < 90; i++) { ctx.fillStyle = 'rgba(40,40,50,0.25)'; ctx.fillRect(hash(i + 70) * W, GROUND + 4 + hash(i + 71) * 64, 2, 2); }
+        // a little flag left by an earlier mission
+        ctx.strokeStyle = '#d0d0d0'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(560, 440); ctx.lineTo(560, 392); ctx.stroke();
+        ctx.fillStyle = '#e63946'; ctx.fillRect(561, 392, 22, 14); ctx.fillStyle = '#ffffff'; ctx.fillRect(561, 397, 22, 3);
+      });
+      // twinkling stars
+      for (let i = 0; i < 26; i++) {
+        const tw = 0.5 + 0.5 * Math.sin(time * (1.5 + hash(i + 300) * 2) + i);
+        ctx.fillStyle = 'rgba(255,255,255,' + tw + ')';
+        const sx = hash(i + 200) * W, sy2 = hash(i + 201) * 330;
+        ctx.fillRect(sx - 0.5, sy2 - 2.5, 1, 5); ctx.fillRect(sx - 2.5, sy2 - 0.5, 5, 1);
+      }
+      // a shooting star every few seconds
+      const sp = 3.5, sk = Math.floor(time / sp), sph = (time % sp) / 0.9;
+      if (sph < 1) {
+        const x0 = 150 + hash(sk) * 700, y0 = 20 + hash(sk + 1) * 120, dx = 260 * sph, dy = 110 * sph;
+        const g2 = ctx.createLinearGradient(x0 + dx - 90, y0 + dy - 38, x0 + dx, y0 + dy);
+        g2.addColorStop(0, 'rgba(255,255,255,0)'); g2.addColorStop(1, 'rgba(255,255,255,' + (1 - sph) + ')');
+        ctx.strokeStyle = g2; ctx.lineWidth = 2; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(x0 + dx - 90, y0 + dy - 38); ctx.lineTo(x0 + dx, y0 + dy); ctx.stroke();
+      }
+      // now and then a burning meteor crosses the sky
+      const mp = 13, mk = Math.floor(time / mp), mph = (time % mp) / 3.2;
+      if (mph < 1) {
+        const dir = hash(mk + 7) < 0.5 ? 1 : -1;
+        const mx = dir > 0 ? -60 + mph * (W + 120) : W + 60 - mph * (W + 120), my = 60 + hash(mk + 3) * 80 + mph * 160;
+        for (let k = 0; k < 14; k++) {
+          const tx = mx - dir * k * 9, ty = my - k * 1.4 * 1.6;
+          ctx.fillStyle = 'rgba(255,' + (200 - k * 10) + ',80,' + (0.55 * (1 - k / 14)) + ')';
+          circle(tx, ty, 9 - k * 0.5);
+        }
+        ctx.fillStyle = '#5a4a40'; circle(mx, my, 7);
+        ctx.fillStyle = '#ffd166'; circle(mx + dir * 2, my - 1, 3);
+      }
+      // floating moon dust
+      for (let i = 0; i < 20; i++) {
+        const dx = (hash(i + 400) * W + time * 6) % W, dy = GROUND - 10 - ((time * 4 + hash(i + 401) * 120) % 120);
+        ctx.fillStyle = 'rgba(220,220,230,0.35)'; ctx.fillRect(dx, dy, 2, 2);
+      }
     } else { // snowy mountains
       layer('snow', () => {
         const gg = ctx.createLinearGradient(0, 0, 0, GROUND);
@@ -1832,6 +1927,39 @@
       }
       c.fillStyle = 'rgba(255,255,255,0.65)'; c.beginPath(); c.ellipse(-16, -28, 10, 5, -0.5, 0, Math.PI * 2); c.fill();
       c.fillStyle = 'rgba(255,255,255,0.9)'; c.beginPath(); c.arc(-24, -22, 2.2, 0, Math.PI * 2); c.fill();
+    } else if (ch.skin === 'boot') {
+      // football boot: shiny upper, toe cap, laces, flash stripe, sole and studs
+      const toe = f;
+      const up = c.createLinearGradient(0, -PR, 0, 0);
+      up.addColorStop(0, dark ? '#0b3d91' : '#4dabff'); up.addColorStop(0.55, dark ? '#062a66' : '#0a84ff'); up.addColorStop(1, '#0548a8');
+      c.fillStyle = up; half(); c.fill();
+      c.save(); half(); c.clip();
+      c.fillStyle = '#0a2e6e';                                            // toe cap
+      c.beginPath(); c.ellipse(PR * 0.78 * toe, -6, 22, 20, 0, 0, Math.PI * 2); c.fill();
+      c.fillStyle = 'rgba(255,255,255,0.12)';                             // stitched panels
+      for (let k = 0; k < 4; k++) { c.beginPath(); c.arc(-PR * 0.2 * toe, 0, 14 + k * 9, Math.PI, Math.PI * 2); c.lineWidth = 1; c.strokeStyle = 'rgba(255,255,255,0.18)'; c.stroke(); }
+      c.fillStyle = '#d4ff00';                                            // flash stripe
+      c.beginPath();
+      c.moveTo(-PR * toe, -12); c.lineTo(-6 * toe, -22); c.lineTo(-10 * toe, -15); c.lineTo(PR * 0.55 * toe, -24);
+      c.lineTo(4 * toe, -10); c.lineTo(8 * toe, -16); c.lineTo(-PR * toe, -5); c.closePath(); c.fill();
+      c.restore();
+      c.lineWidth = 3; c.strokeStyle = '#03224f'; half(); c.stroke();
+      // ankle collar at the back, with a white sock peeking out
+      c.fillStyle = '#ffffff'; c.beginPath(); c.ellipse(-16 * toe, -PR + 5, 15, 6, -0.25 * toe, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#111827'; c.beginPath(); c.ellipse(-16 * toe, -PR + 7, 13, 4.5, -0.25 * toe, 0, Math.PI * 2); c.fill();
+      // laces down the tongue
+      c.fillStyle = '#e9ecef'; c.beginPath(); c.ellipse(-12 * toe, -PR + 12, 7, 5, 0.6 * toe, 0, Math.PI * 2); c.fill();
+      c.strokeStyle = '#ffffff'; c.lineWidth = 2.2; c.lineCap = 'round';
+      for (let k = 0; k < 4; k++) {
+        const lx = (-16 + k * 5) * toe, ly = -PR + 11 + k * 4;
+        c.beginPath(); c.moveTo(lx - 5 * toe, ly - 3); c.lineTo(lx + 5 * toe, ly + 3); c.moveTo(lx - 5 * toe, ly + 3); c.lineTo(lx + 5 * toe, ly - 3); c.stroke();
+      }
+      // sole and studs
+      c.fillStyle = '#d4ff00'; c.fillRect(-PR, -5, PR * 2, 5);
+      c.fillStyle = '#111827'; c.fillRect(-PR, -1, PR * 2, 2);
+      c.fillStyle = '#e9ecef';
+      for (const sx of [-30, -16, 10, 22, 34]) { c.beginPath(); c.moveTo(sx - 3, 0); c.lineTo(sx + 3, 0); c.lineTo(sx + 2, 5); c.lineTo(sx - 2, 5); c.fill(); }
+      c.fillStyle = 'rgba(255,255,255,0.35)'; c.beginPath(); c.ellipse(-12 * toe, -30, 10, 4, -0.5 * toe, 0, Math.PI * 2); c.fill();
     } else if (ch.skin === 'astro') {
       // white space suit with panels, a mission patch and a chest control box
       const sg = c.createLinearGradient(0, -PR, 0, 0);
@@ -2293,7 +2421,7 @@
     const f = countdown - Math.floor(countdown);          // 1 -> 0 within each second
     const sc = 1 + f * 0.6;
     ctx.save();
-    ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(-offX, 0, viewW, H);
     ctx.translate(W / 2, 250); ctx.scale(sc, sc);
     ctx.globalAlpha = Math.min(1, 0.3 + (1 - f) * 1.5);
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -2376,11 +2504,32 @@
     }
   }
 
+  // Phones: the court is lifted so the touch buttons sit on a band below the floor and
+  // a finger on them never hides the player. Depends on the player's button size.
+  function ctrlShift() {
+    if (!isTouch || !players.length) return 0;
+    const c = save.controls, top = H - 14 - Math.max(c.dirSize, c.jumpSize);
+    return Math.max(0, Math.min(130, GROUND + 14 - top));
+  }
+  // the band starts just under the floor, so the court reads as ending there
+  function drawControlDeck(sy) {
+    const top = GROUND - sy + 12;
+    const g = ctx.createLinearGradient(0, top, 0, H);
+    g.addColorStop(0, '#1a2233'); g.addColorStop(1, '#0b1018');
+    ctx.fillStyle = g; ctx.fillRect(0, top, W, H - top);
+    ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.fillRect(0, top, W, 2);
+    ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(0, top + 2, W, 4);
+  }
+
   function render() {
+    const sy = ctrlShift();
     ctx.save();
     if (shake > 0) ctx.translate((Math.random() - 0.5) * shake * 30, (Math.random() - 0.5) * shake * 30);
-    ctx.save(); ctx.scale(viewW / W, 1); drawBackground(); ctx.restore();
-    ctx.translate(offX, 0);
+    ctx.save(); ctx.scale(viewW / W, 1);
+    ctx.save(); ctx.translate(0, -sy); drawBackground(); ctx.restore();
+    if (sy) drawControlDeck(sy);
+    ctx.restore();
+    ctx.translate(offX, -sy);
     if (players.length) {
       drawNet();
       drawWalls();
@@ -2396,10 +2545,11 @@
         drawBall(ball, BALLS[save.ball], null, ball.r);
       }
       // marker when the ball is above the screen
-      if (ball.y < -BR && ball.super !== 'ghost') { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(ball.x, 6); ctx.lineTo(ball.x - 8, 20); ctx.lineTo(ball.x + 8, 20); ctx.fill(); }
+      if (ball.y < sy - BR && ball.super !== 'ghost') { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(ball.x, sy + 6); ctx.lineTo(ball.x - 8, sy + 20); ctx.lineTo(ball.x + 8, sy + 20); ctx.fill(); }
       for (const pt of particles) { ctx.globalAlpha = Math.max(0, pt.life / pt.max); ctx.fillStyle = pt.color; circle(pt.x, pt.y, pt.r); }
       ctx.globalAlpha = 1;
       for (const p of players) if (p.fx.ink > 0) drawInk(p);
+      ctx.translate(0, sy);
       if (state === 'playing' || state === 'point' || state === 'paused' || state === 'countdown' || state === 'editing') drawHUD();
       if (state === 'countdown') drawCountdown();
     }
@@ -2717,7 +2867,7 @@
   window.__spike = {
     get state() { return state; }, get score() { return score; }, get ball() { return ball; },
     get players() { return players; }, get fakes() { return fakes; }, startMatch, save, openCareer, openTour,
-    newTourRun, careerRival,
+    newTourRun, careerRival, setVenue(v) { venue = v; },
     tick(n) { for (let i = 0; i < n; i++) update(STEP); },
     effect(side, id) { applySuperEffect(players[side], id); },
   };
