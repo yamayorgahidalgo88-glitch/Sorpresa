@@ -289,6 +289,9 @@ function slotOf(s,id){return s.slots[s.xi.indexOf(id)];}
 function shooter(s){return wpick(onPitch(s),id=>{const w={DC:6,ED:3.2,EI:3.2,MCO:3,MC:1.3,MCD:.6,LD:.5,LI:.5,DFC:.45,POR:.01}[slotOf(s,id)]||1;return w*Math.pow(1.06,P(id).ovr-70);});}
 function assister(s,ex){const c=onPitch(s).filter(id=>id!==ex);if(!c.length)return null;return wpick(c,id=>({MCO:4,MC:3,ED:3.5,EI:3.5,DC:2,LD:1.6,LI:1.6,MCD:1.2,DFC:.4,POR:.05}[slotOf(s,id)]||1)*Math.pow(1.05,P(id).ovr-70));}
 function keeper(s){return onPitch(s).find(id=>slotOf(s,id)==='POR')||onPitch(s)[0];}
+// riesgo relativo de lesión según el cansancio (1 = descansado, hasta 2 con la forma muy baja)
+const injRisk=f=>Math.min(1,(1+Math.max(0,80-f)/40)/2);   // descansado 0,5 · muy cansado 1 (sobre una tasa base doble)
+function injDays(){const r=R();return r<0.75?ri(3,12):r<0.95?ri(13,30):ri(31,80);}
 function nm(id){const p=P(id);return p?p.name:'—';}
 function push(m,min,type,text,side){m.ev.push({min,type,text,side});}
 function stepMinute(m){
@@ -304,11 +307,12 @@ function stepMinute(m){
           push(m,dm,'goal',fill(pick(COM.goal),{p:nm(sh)})+(as?fill(pick(COM.assist),{a:nm(as)}):''),side);}
         else{o.saves++;if(m.live&&R()<0.6)push(m,dm,'save',fill(pick(COM.save),{p:nm(sh),k:nm(keeper(o))}),side);}}
       else if(m.live&&R()<0.45)push(m,dm,'miss',fill(pick(COM.miss),{p:nm(sh)}),side);}
-    if(R()<0.021){const pl=pick(onPitch(s));if(pl){s.yellows[pl]=(s.yellows[pl]||0)+1;
+    // tasas reales (liga): ~4 amarillas y ~0,11 rojas por partido; quien ya tiene amarilla se cuida y rara vez ve la segunda
+    if(R()<0.021){const pl=pick(onPitch(s));if(pl&&((s.yellows[pl]||0)<1||R()<0.18)){s.yellows[pl]=(s.yellows[pl]||0)+1;
       if(s.yellows[pl]>=2){s.red.add(pl);m.fx.ev.push({t:'r',pid:pl,min:dm});push(m,dm,'card-r',fill(COM.red[1],{p:nm(pl)}),side);}
       else push(m,dm,'card-y',fill(pick(COM.yellow),{p:nm(pl)}),side);}}
-    if(R()<0.0006){const pl=pick(onPitch(s).filter(id=>slotOf(s,id)!=='POR'));if(pl){s.red.add(pl);s.straight=(s.straight||[]).concat(pl);m.fx.ev.push({t:'r',pid:pl,min:dm});push(m,dm,'card-r',fill(COM.red[0],{p:nm(pl)}),side);}}
-    if(R()<0.0016){const pl=pick(onPitch(s));if(pl){s.injured=(s.injured||[]).concat(pl);push(m,dm,'inj',fill(COM.inj[0],{p:nm(pl)}),side);autoSub(m,s,pl,true);}}
+    if(R()<0.0003){const pl=pick(onPitch(s).filter(id=>slotOf(s,id)!=='POR'));if(pl){s.red.add(pl);s.straight=(s.straight||[]).concat(pl);m.fx.ev.push({t:'r',pid:pl,min:dm});push(m,dm,'card-r',fill(COM.red[0],{p:nm(pl)}),side);}}
+    if(R()<0.0011){const pl=pick(onPitch(s));if(pl&&R()<injRisk(s.fit[pl]??100)){s.injured=(s.injured||[]).concat(pl);push(m,dm,'inj',fill(COM.inj[0],{p:nm(pl)}),side);autoSub(m,s,pl,true);}}
   });
   const mh=midStr(m.home),ma=midStr(m.away);m.home.pt=(m.home.pt||0)+mh/(mh+ma);m.away.pt=(m.away.pt||0)+ma/(mh+ma);
   [m.home,m.away].forEach(s=>{if(s.isUser&&m.live)return;if([58,68,78].includes(min)&&m.half===2&&s.subs<5){const tired=onPitch(s).filter(id=>slotOf(s,id)!=='POR').sort((a,b)=>s.fit[a]-s.fit[b]);if(tired.length&&s.fit[tired[0]]<80)autoSub(m,s,tired[0],false);}});
@@ -354,7 +358,7 @@ function finalizeMatch(m){
       p.morale=clamp(p.morale+(r>=7.5?4:r<6?-3:1),15,100);});
     Object.entries(s.yellows).forEach(([id,n])=>{const p=P(+id);if(!p)return;p.stats.yel++;p.yellows++;if(n<2&&p.yellows%5===0)p.susp=Math.max(p.susp,1);});
     s.red.forEach(id=>{const p=P(id);if(!p||(s.injured||[]).includes(id))return;p.stats.red++;p.susp=Math.max(p.susp,(s.straight||[]).includes(id)?2:1);});
-    (s.injured||[]).forEach(id=>{const p=P(id);if(p)p.injury=ri(5,42);});
+    (s.injured||[]).forEach(id=>{const p=P(id);if(p)p.injury=injDays();});
     squad(s.cid).forEach(p=>{p.morale=clamp(p.morale+res*2,15,100);});
   });
   if(userGame){fx.ratings=ratings;fx.prog=progs;
@@ -370,7 +374,7 @@ function fastSim(fx){
     s.shots=g*3+ri(3,9);s.sot=g+ri(1,4);s.saves=ri(1,5);
     onPitch(s).forEach(id=>{s.fit[id]=Math.max(30,s.fit[id]-18-R()*8);});
     const ny=poisson(1.8);for(let i=0;i<ny;i++){const pl=pick(onPitch(s));if(pl)s.yellows[pl]=1;}
-    if(R()<0.11){const pl=pick(onPitch(s));if(pl)s.injured=[pl];}
+    if(R()<0.12){const pl=pick(onPitch(s));if(pl&&R()<injRisk(s.fit[pl]))s.injured=[pl];}
     m.half=2;for(let i=0;i<3&&s.bench.length;i++){m.min=ri(58,80);const out=pick(onPitch(s).filter(id=>slotOf(s,id)!=='POR'&&!(s.injured||[]).includes(id)));if(out)doSub(m,s,out,s.bench[0]);}
   });
   fx.ev.sort((a,b)=>a.min-b.min);finalizeMatch(m);
