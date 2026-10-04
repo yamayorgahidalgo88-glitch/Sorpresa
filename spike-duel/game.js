@@ -282,12 +282,16 @@
   const canvas = document.getElementById('game');
   let ctx = canvas.getContext('2d');
   // Wider screens (e.g. 20:9 phones) get extra scenery at the sides instead of black bars.
-  let viewW = W, offX = 0;
+  // courtExt: how far the court walls reach past the 960 court on each side (phones only,
+  // a bit inside the screen edge so the court is not too wide to cover).
+  let viewW = W, offX = 0, courtExt = 0;
+  const WALL_INSET = 70;
   function fit() {
     const vw = window.innerWidth, vh = window.innerHeight;
     const scale = Math.min(vw / W, vh / H);
     viewW = Math.min(W * 1.45, Math.max(W, vw / scale));
     offX = (viewW - W) / 2;
+    courtExt = ('ontouchstart' in window || navigator.maxTouchPoints > 0) ? Math.max(0, offX - WALL_INSET) : offX;
     const cw = Math.round(viewW * scale), ch = Math.round(H * scale);
     stage.style.width = cw + 'px';
     stage.style.height = ch + 'px';
@@ -467,7 +471,7 @@
     if (fx.confused) dir = -dir;
     if (locked) dir = 0;
     // a slightly faster run on wide screens, where the court reaches the screen edges
-    let speed = (p.isAI ? P_SPEED * aiSpeed(p) : P_SPEED) * (1 + 0.6 * offX / W);
+    let speed = (p.isAI ? P_SPEED * aiSpeed(p) : P_SPEED) * (1 + 0.6 * courtExt / W);
     if (fx.slow) speed *= 0.5;
     if (fx.balloon) speed *= 0.75;
     p.vx = dir * speed;
@@ -490,8 +494,8 @@
     }
     const target = fx.shrink ? p.baseR * 0.6 : fx.balloon ? p.baseR * 1.3 : p.baseR;
     p.r += (target - p.r) * Math.min(1, dt * 10);
-    const minX = p.side === 0 ? -offX + p.r : NET_X + NET_HALF + p.r;
-    const maxX = p.side === 0 ? NET_X - NET_HALF - p.r : W + offX - p.r;
+    const minX = p.side === 0 ? -courtExt + p.r : NET_X + NET_HALF + p.r;
+    const maxX = p.side === 0 ? NET_X - NET_HALF - p.r : W + courtExt - p.r;
     p.x = Math.max(minX, Math.min(maxX, p.x));
     p.hitCooldown = Math.max(0, p.hitCooldown - dt);
     p.squash = Math.max(0, p.squash - dt);
@@ -648,8 +652,8 @@
     b.x += b.vx * dt;
     b.y += b.vy * dt;
     const rb = b.r || BR;
-    if (b.x < -offX + rb) { b.x = -offX + rb; b.vx = Math.abs(b.vx) * 0.85; wallFlash[0] = 1; }
-    if (b.x > W + offX - rb) { b.x = W + offX - rb; b.vx = -Math.abs(b.vx) * 0.85; wallFlash[1] = 1; }
+    if (b.x < -courtExt + rb) { b.x = -courtExt + rb; b.vx = Math.abs(b.vx) * 0.85; wallFlash[0] = 1; }
+    if (b.x > W + courtExt - rb) { b.x = W + courtExt - rb; b.vx = -Math.abs(b.vx) * 0.85; wallFlash[1] = 1; }
     if (withNet && b.y > NET_TOP - BR && Math.abs(b.x - NET_X) < NET_HALF + BR) {
       b.vx = -b.vx * 0.85; b.x = NET_X + Math.sign(b.x - NET_X || -b.vx) * (NET_HALF + BR + 0.5);
     }
@@ -2352,7 +2356,7 @@
   function drawWalls() {
     const T = 16;
     for (let i = 0; i < 2; i++) {
-      const edge = i ? W + offX : -offX, dir = i ? -1 : 1, x0 = i ? edge - T : edge;
+      const edge = i ? W + courtExt : -courtExt, dir = i ? -1 : 1, x0 = i ? edge - T : edge;
       wallFlash[i] = Math.max(0, wallFlash[i] - 0.03);
       const g = ctx.createLinearGradient(edge, 0, edge + dir * T, 0);
       g.addColorStop(0, 'rgba(170,220,255,' + (0.42 + 0.4 * wallFlash[i]) + ')');
@@ -2360,6 +2364,7 @@
       ctx.fillStyle = g; ctx.fillRect(x0, 0, T, GROUND);
       ctx.fillStyle = 'rgba(255,255,255,' + (0.75 + 0.25 * wallFlash[i]) + ')';
       ctx.fillRect(edge + dir * T - (i ? 0 : 3), 0, 3, GROUND);
+      ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(edge - (i ? 2 : 0), 0, 2, GROUND);
       // reflections sliding down the glass
       ctx.fillStyle = 'rgba(255,255,255,0.18)';
       for (let k = 0; k < 4; k++) {
