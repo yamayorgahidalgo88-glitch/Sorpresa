@@ -424,7 +424,7 @@ function dailyUpdate(){
   const myXI=dow===1?(me().lineup||[]):null;const myLvl=dow===1?clubLevel(uid):0;
   for(const k in S.players){const p=S.players[k];const isMine=p.clubId===uid;
     if(p.injury>0)p.injury--;
-    if(p.fitness<100)p.fitness=clamp(p.fitness+5,15,100);
+    if(p.fitness<100)p.fitness=clamp(p.fitness+Math.round(7+(100-p.fitness)*0.12),15,100);   // recupera más rápido cuanto más cansado
     if(p.youth&&isMine)develop(p);
     if(myXI&&isMine&&!p.youth&&!myXI.includes(p.id)&&p.ovr>=myLvl-1)p.morale=clamp(p.morale-2,15,100);
   }
@@ -661,6 +661,7 @@ function crest(c,size){size=size||28;
     return `<span class="crest-img" role="img" aria-label="${esc(c.name||c.short)}" style="width:${size}px;height:${size}px;background-size:${DB.crestCols*size}px auto;background-position:${-col*size}px ${-row*size}px"></span>`;}
   const l=isLight(c.c1);
   return `<span class="crest" style="width:${Math.round(size*0.86)}px;height:${size}px;font-size:${Math.max(7,Math.round(size*(c.short.length>3?0.26:0.32)))}px;background:linear-gradient(135deg,${c.c1} 0 50%,${c.c2} 50% 100%);color:${l?'#111':'#fff'};text-shadow:0 1px 2px ${l?'#fff':'#000'}">${esc(c.short)}</span>`;}
+const fitCol=f=>f>75?'var(--good)':f>55?'var(--warn)':'var(--bad)';
 function face(p,size,flat){size=size||32;
   if(p.face>=0){const sheet=Math.floor(p.face/DB.faceSheet),cell=p.face%DB.faceSheet,col=cell%16,row=Math.floor(cell/16);
     const z=1;
@@ -826,8 +827,9 @@ function playerModal(id){
    <div class="pinfo"><h2>${esc(p.name)}</h2><div class="row" style="gap:8px">${p.alt.map(posTag).join(' ')} <span>${flag(p.nat)} ${esc(natName(p.nat))}</span><span class="muted">${p.age} años</span><span class="muted">Potencial ${p.pot}</span></div>
     <div class="row" style="gap:8px;margin-top:8px">${club?crest(club,26)+`<span>${esc(club.name)}</span>`:'<span class="pill good">Agente libre</span>'}${p.youth?'<span class="pill">Cantera</span>':''}</div>
     <div class="kv"><div><span class="label">Valor</span><b>${money(valueOf(p))}</b></div><div><span class="label">Salario</span><b>${money(p.wage)}/sem</b></div><div><span class="label">Contrato</span><b>${p.clubId!=null?'Hasta '+contractEnd(p):'—'}</b></div>
-    <div><span class="label">Forma física</span><b>${p.fitness}%</b></div><div><span class="label">Moral</span><b>${moraleTxt(p.morale)}</b></div><div><span class="label">Pie</span><b>${p.foot?'Izquierdo':'Derecho'}</b></div></div>
+    <div><span class="label">Forma física</span><b style="color:${fitCol(p.fitness)}">${p.fitness}%</b></div><div><span class="label">Moral</span><b>${moraleTxt(p.morale)}</b></div><div><span class="label">Pie</span><b>${p.foot?'Izquierdo':'Derecho'}</b></div></div>
     <div style="margin-top:6px">${status(p)}</div>
+    <div class="label" style="margin-top:12px">Estado físico</div><div class="bar"><i style="width:${p.fitness}%;background:${fitCol(p.fitness)}"></i></div>
     <div class="label" style="margin-top:12px">Progresión de media</div><div class="trainbar"><span>${p.pdir==='down'?'−1':'+1'}</span><div class="bar"><i style="width:${clamp(p.training||0,0,100)}%"></i></div><b>${Math.round(p.training||0)}%</b></div>
     <div class="label" style="margin-top:12px">Temporada</div><div class="num">${p.stats.apps} PJ · ${p.stats.goals} G · ${p.stats.assists} A · nota ${p.stats.apps?(p.stats.rsum/p.stats.apps).toFixed(2):'–'}</div>
     ${hist?`<div class="tbl-wrap" style="margin-top:8px"><table><thead><tr><th>Temp.</th><th>Club</th><th>PJ</th><th>G</th><th>A</th><th>Nota</th></tr></thead><tbody>${hist}</tbody></table></div>`:''}
@@ -840,13 +842,13 @@ function vTactics(){
   const c=me();const xi=userLineup();const slots=FORMATIONS[c.formation];const inXI=new Set(xi);
   const benchList=sortPlayers(squad(c.id).filter(p=>!inXI.has(p.id)),'pos');const sel=UI.selSlot;
   const pitch=slots.map((s,i)=>{const p=xi[i]?P(xi[i]):null;const pen=p?posPen(p,s[0]):0;const bad=p&&!available(p);
-    return `<div class="slot ${sel===i?'sel':''}" style="left:${s[1]}%;top:${s[2]}%" data-slot="${i}"><div class="chip ${bad?'bad':pen>1?'oop':''}">${p?face(p,48):''}<span class="chip-ovr">${p?p.ovr-pen:'–'}</span></div><div class="nm">${p?esc(p.name.split(' ').slice(-1)[0]):'Vacío'}</div><div class="sp">${s[0]}</div></div>`;}).join('');
+    return `<div class="slot ${sel===i?'sel':''}" style="left:${s[1]}%;top:${s[2]}%" data-slot="${i}"><div class="chip ${bad?'bad':pen>1?'oop':''}">${p?face(p,48):''}<span class="chip-ovr">${p?p.ovr-pen:'–'}</span></div><div class="nm">${p?esc(p.name.split(' ').slice(-1)[0]):'Vacío'}</div>${p?`<div class="fbar" title="Forma física ${p.fitness}%"><i style="width:${p.fitness}%;background:${fitCol(p.fitness)}"></i></div>`:''}<div class="sp">${s[0]}</div></div>`;}).join('');
   return `<div class="grid g2">
    <div class="card"><div class="row between" style="margin-bottom:10px"><h3 style="margin:0">Once inicial</h3><span class="small muted">Media <b class="num">${clubLevel(c.id).toFixed(1)}</b></span></div>
     <div class="row" style="margin-bottom:12px"><label class="label" for="formation">Formación</label><select id="formation" data-change="formation">${Object.keys(FORMATIONS).map(f=>`<option ${f===c.formation?'selected':''}>${f}</option>`).join('')}</select>
      <label class="label" for="ment">Mentalidad</label><select id="ment" data-change="ment">${MENT.map((m,i)=>`<option value="${i}" ${i===c.ment?'selected':''}>${m}</option>`).join('')}</select></div>
     <div class="pitch"><div class="circle"></div>${pitch}</div>
-    <div class="row" style="margin-top:12px"><button class="btn primary" data-act="autoXI">Mejor once automático</button><span class="small muted">${sel!=null?'Elige un suplente o toca otra posición del campo para intercambiar.':'Toca una posición del campo para cambiar al jugador.'}</span></div>
+    <div class="row" style="margin-top:12px"><button class="btn primary" data-act="autoXI">Mejor once automático</button><span class="small muted">${sel!=null?'Elige un suplente o toca otra posición del campo para intercambiar.':'Toca una posición para cambiar al jugador; doble toque para ver su carta y su físico.'}</span></div>
     <p class="small muted" style="margin-top:8px">Borde naranja: fuera de posición (penaliza la media). Borde rojo: lesionado o sancionado. Con partidos entre semana, rota a los cansados.</p>
    </div>
    <div class="card"><h3>Suplentes y reservas</h3>
@@ -1116,7 +1118,7 @@ function previewMatch(live){
   const fx=userFixtureToday();if(!fx)return;const uid=S.user.clubId;const oid=fx.h===uid?fx.a:fx.h;const o=S.clubs[oid];
   const xi=bestXI(oid,o.formation);const slots=FORMATIONS[o.formation];
   const pitch=slots.map((s,i)=>{const p=xi[i]?P(xi[i]):null;const pen=p?posPen(p,s[0]):0;
-    return `<div class="slot"${''} style="left:${s[1]}%;top:${s[2]}%"><div class="chip ${pen>1?'oop':''}">${p?face(p,50):''}<span class="chip-ovr">${p?p.ovr-pen:'–'}</span></div><div class="nm">${p?esc(p.name.split(' ').slice(-1)[0]):'Vacío'}</div><div class="sp">${s[0]}</div></div>`;}).join('');
+    return `<div class="slot"${''} style="left:${s[1]}%;top:${s[2]}%"><div class="chip ${pen>1?'oop':''}">${p?face(p,50):''}<span class="chip-ovr">${p?p.ovr-pen:'–'}</span></div><div class="nm">${p?esc(p.name.split(' ').slice(-1)[0]):'Vacío'}</div>${p?`<div class="fbar" title="Forma física ${p.fitness}%"><i style="width:${p.fitness}%;background:${fitCol(p.fitness)}"></i></div>`:''}<div class="sp">${s[0]}</div></div>`;}).join('');
   const sq=squad(oid);const absent=sq.filter(p=>!available(p)).sort((a,b)=>b.ovr-a.ovr).slice(0,5);
   const news=sq.filter(p=>p.signed).sort((a,b)=>b.ovr-a.ovr).slice(0,6);
   const lvl=clubLevel(oid),mine=clubLevel(uid);const tb=!fx.st?table(fx.c).find(r=>r.id===oid):null;
@@ -1154,6 +1156,8 @@ document.addEventListener('click',e=>{
   if(d.setask){const f=document.getElementById('ask');if(f)f.value=d.setask;return;}
   if(d.setfee){const f=document.getElementById('fee');if(f)f.value=d.setfee;return;}
   if(d.slot!==undefined){const i=+d.slot;const xi=userLineup();
+    const now=Date.now();if(UI.lastSlot===i&&now-(UI.lastSlotT||0)<400&&xi[i]){UI.lastSlot=null;UI.selSlot=null;render();playerModal(xi[i]);return;}
+    UI.lastSlot=i;UI.lastSlotT=now;
     if(UI.selSlot==null)UI.selSlot=i;else if(UI.selSlot===i)UI.selSlot=null;else{[xi[UI.selSlot],xi[i]]=[xi[i],xi[UI.selSlot]];UI.selSlot=null;save();}
     render();return;}
   if(d.benchp){const id=+d.benchp;if(UI.selSlot==null){playerModal(id);return;}const xi=userLineup();xi[UI.selSlot]=id;UI.selSlot=null;save();render();return;}
