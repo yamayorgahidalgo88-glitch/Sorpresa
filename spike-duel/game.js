@@ -11,6 +11,26 @@
   const B_GRAV = 1000, B_MAX = 980, B_MIN_HIT = 560;
   const WIN_POINTS = 7;
   const STEP = 1 / 120;
+  // Deterministic math: online play runs the same simulation on two devices (often Safari vs Chrome),
+  // so gameplay code avoids engine-specific functions (hypot/sin/cos/pow) and Math.random.
+  const hyp = (x, y) => Math.sqrt(x * x + y * y);
+  function dsin(x) {
+    const TAU = 6.283185307179586;
+    x -= TAU * Math.floor(x / TAU + 0.5);                   // to [-pi, pi]
+    const PI = 3.141592653589793;
+    if (x > PI / 2) x = PI - x; else if (x < -PI / 2) x = -PI - x;   // to [-pi/2, pi/2]
+    const x2 = x * x;
+    return x * (1 - x2 / 6 * (1 - x2 / 20 * (1 - x2 / 42 * (1 - x2 / 72 * (1 - x2 / 110)))));
+  }
+  const dcos = x => dsin(x + 1.5707963267948966);
+  const KNOCK_DECAY_STEP = 0.9679254668634245;                    // 0.02 ** STEP
+  let simSeed = 1;
+  function simRand() {                                     // mulberry32 on the shared match seed
+    simSeed = (simSeed + 0x6D2B79F5) >>> 0;
+    let x = Math.imul(simSeed ^ (simSeed >>> 15), 1 | simSeed);
+    x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x;
+    return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+  }
   const SAVE_KEY = 'spikeduel.save.v1';
 
   // ---------- Text ----------
@@ -384,6 +404,7 @@
     b.addEventListener('touchcancel', end, { passive: true });
   });
   function readInput() {
+    if (kind === 'online') return;                 // set per frame by onlineStep
     for (const i of input) i.left = i.right = i.jump = false;
     if (mode === 'duo') {
       input[0].left = keys.has('KeyA'); input[0].right = keys.has('KeyD'); input[0].jump = keys.has('KeyW');
@@ -395,7 +416,6 @@
     }
     for (const [p, k] of touchHeld.values()) input[p][k] = true;
     for (const [p, k] of touchHeldT.values()) input[p][k] = true;
-    if (kind === 'online' && net && net.role === 'host') Object.assign(input[1], net.rin);
     if (window.__spikeBot) window.__spikeBot(input[0], players[0], ball);   // automated tests only
   }
 
@@ -431,7 +451,6 @@
   }
 
   function resetRally() {
-    if (net && net.role === 'host' && kind === 'online') { net.rally++; net.grace = 0; net.gt = null; }
     ball = { x: server === 0 ? 200 : 760, y: 170, vx: 0, vy: 0, spin: 0, angle: 0, trail: [], lastTouch: -1,
       super: null, superOwner: -1, superTime: 0, zig: 0, crossed: false, flight: 0, serveLock: server, r: BR };
     fakes = [];
@@ -451,16 +470,8 @@
     score = [0, 0];
     server = 0;
     particles = [];
-    if (kind === 'online') {
-      // host: left = me, right = the friend who joined (their own character and super)
-      const g = net.guest;
-      venue = VENUES[Math.floor(Math.random() * VENUES.length)];
-      players = [makePlayer(0, save.char, false, 1, save.superSel), makePlayer(1, g.ch, false, 1, g.su)];
-      players[1].dark = g.ch === save.char;
-      net.mid++; net.rally = 0;
-      net.send({ t: 'start', mid: net.mid, venue, ch: [save.char, g.ch], su: [save.superSel, g.su] });
-      fit();
-    } else if (mode === 'solo') {
+    simSeed = (Math.random() * 4294967295) >>> 0;
+    if (mode === 'solo') {
       if (kind === 'career') { careerLevel = level; rival = careerRival(level); }
       else if (kind === 'practice') {
         rival = { nick: '', char: Math.floor(Math.random() * CHARS.length), venue: VENUES[Math.floor(Math.random() * VENUES.length)], super: 0, ai: 1 };   // easiest rival, so you can try the buttons in real rallies
@@ -495,6 +506,7 @@
   }
 
   function showBanner(text, dur, color) {
+    if (resim) return;
     banner = text; bannerTimer = dur; bannerColor = color || '#ffb627';
     netEvent(['b', text, dur, bannerColor]);
   }
@@ -515,7 +527,7 @@
     if (fx.balloon) speed *= 0.75;
     p.vx = dir * speed;
     if (fx.wind) p.vx += (p.side === 0 ? -1 : 1) * 170;   // blown towards the back wall
-    if (fx.knock) { p.vx += fx.knock; fx.knock *= Math.pow(0.02, dt); if (Math.abs(fx.knock) < 20) fx.knock = 0; }
+    if (fx.knock) { p.vx += fx.knock; fx.knock *= dt === STEP ? KNOCK_DECAY_STEP : Math.pow(0.02, dt); if (Math.abs(fx.knock) < 20) fx.knock = 0; }
     const canJump = !locked && !fx.sticky;
     if (inp.jump && p.onGround && canJump) {
       p.vy = fx.float ? -P_JUMP * 0.75 : fx.balloon ? -P_JUMP * 0.6 : -P_JUMP;
@@ -529,7 +541,7 @@
     p.x += p.vx * dt;
     p.y += p.vy * dt;
     if (p.y < 150) { p.y = 150; p.vy = Math.max(p.vy, 0); }
-    const floor = fx.float ? GROUND - 70 - Math.sin(time * 3 + p.side * 2) * 10 : GROUND;
+    const floor = fx.float ? GROUND - 70 - dsin(time * 3 + p.side * 2) * 10 : GROUND;
     if (p.y >= floor) {
       if (fx.float) { p.y = Math.max(floor, p.y - 150 * dt); }      // rise slowly and hover, bobbing
       else { if (!p.onGround && p.vy > 300) p.squash = 0.18; p.y = GROUND; }
@@ -545,7 +557,7 @@
   }
 
   function clampBall(b) {
-    const sp = Math.hypot(b.vx, b.vy);
+    const sp = hyp(b.vx, b.vy);
     const max = b.super ? B_MAX * 1.25 : B_MAX;
     if (sp > max) { b.vx *= max / sp; b.vy *= max / sp; }
   }
@@ -568,7 +580,7 @@
     if (d.y > -0.15) d.y = -0.15;
     return norm(d.x, d.y);
   }
-  function norm(x, y) { const l = Math.hypot(x, y) || 1; return { x: x / l, y: y / l }; }
+  function norm(x, y) { const l = hyp(x, y) || 1; return { x: x / l, y: y / l }; }
 
   // Applies the effect of a super ball to the player who touched it.
   function applySuperEffect(p, id) {
@@ -601,7 +613,7 @@
   let hitInfo = null;
   function collidePlayer(p) {
     const dx = ball.x - p.x, dy = ball.y - p.y;
-    const dist = Math.hypot(dx, dy);
+    const dist = hyp(dx, dy);
     const BRb = ball.r || BR;
     if (dist >= p.r + BRb || dist === 0 || p.hitCooldown > 0) return;
     const nx = dx / dist, ny = dy / dist;
@@ -666,7 +678,7 @@
     fakes = [];
     if (s.id === 'clones') {
       for (const a of [-0.16, 0.13]) {
-        const c = Math.cos(a), sn = Math.sin(a);
+        const c = dcos(a), sn = dsin(a);
         fakes.push({ x: ball.x, y: ball.y, vx: ball.vx * c - ball.vy * sn, vy: ball.vx * sn + ball.vy * c,
           angle: 0, spin: ball.spin, fake: true });
       }
@@ -683,7 +695,7 @@
     const cx = Math.max(left, Math.min(right, b.x));
     const cy = Math.max(NET_TOP, Math.min(GROUND, b.y));
     let dx = b.x - cx, dy = b.y - cy;
-    const d = Math.hypot(dx, dy);
+    const d = hyp(dx, dy);
     const rb = b.r || BR;
     if (d >= rb) return false;
     if (d === 0) { dx = b.vx > 0 ? -1 : 1; dy = 0; } else { dx /= d; dy /= d; }
@@ -716,17 +728,17 @@
     if (ball.super === 'lightning' && !ball.returned) {
       ball.spin = 30 * towards;
       if (!ball.hold && !ball.struck && (ball.x - NET_X) * towards >= -12) {
-        ball.hold = 1 + Math.random() * 2;
+        ball.hold = 1 + simRand() * 2;
         ball.holdY = Math.max(90, Math.min(ball.y, NET_TOP - 70));
         burst(NET_X, ball.holdY, 14, ['#ffd60a', '#ffffff']);
       }
       if (ball.hold) {
         ball.hold -= dt;
-        ball.x = NET_X; ball.y = ball.holdY + Math.sin(ball.st * 9) * 4; ball.vx = 0; ball.vy = 0;
+        ball.x = NET_X; ball.y = ball.holdY + dsin(ball.st * 9) * 4; ball.vx = 0; ball.vy = 0;
         if (Math.random() < dt * 20) burst(ball.x + (Math.random() - 0.5) * 30, ball.y + (Math.random() - 0.5) * 30, 2, ['#ffd60a', '#ffffff']);
         if (ball.hold <= 0) {
           ball.hold = 0; ball.struck = true;
-          const tx = NET_X + towards * (70 + Math.random() * (390 + courtExt - 70)), ty = GROUND;
+          const tx = NET_X + towards * (70 + simRand() * (390 + courtExt - 70)), ty = GROUND;
           const d = norm(tx - ball.x, ty - ball.y);
           ball.vx = d.x * 560; ball.vy = d.y * 560;
           shake = Math.max(shake, 0.2); Sound.superSpike();
@@ -746,10 +758,10 @@
       const w = Math.min(24, 5 + ball.st * 11);
       ball.tph = (ball.tph || 0) + w * dt;
       const amp = Math.min(2300, 1300 + ball.st * 700);
-      ball.vx += Math.sin(ball.tph) * amp * dt;
-      ball.vy += Math.cos(ball.tph) * amp * 0.7 * dt;
+      ball.vx += dsin(ball.tph) * amp * dt;
+      ball.vy += dcos(ball.tph) * amp * 0.7 * dt;
       ball.spin = w * 1.6 * towards;
-      if (Math.random() < dt * 30) particles.push({ x: ball.x, y: ball.y, vx: Math.sin(ball.tph) * 200, vy: -100,
+      if (!resim && Math.random() < dt * 30) particles.push({ x: ball.x, y: ball.y, vx: Math.sin(ball.tph) * 200, vy: -100,
         life: 0.4, max: 0.4, color: '#cfd8dc', r: 3 });
     } else if (ball.super === 'magnet' && past && rec) {
       ball.vx += Math.sign(ball.x - rec.x || towards) * 1500 * dt;
@@ -820,6 +832,7 @@
 
   // ---------- Effects ----------
   function burst(x, y, n, colors) {
+    if (resim) return;
     netEvent(['p', Math.round(x), Math.round(y), n, colors]);
     for (let i = 0; i < n; i++) {
       const a = Math.random() * Math.PI * 2, s = 80 + Math.random() * 260;
@@ -828,6 +841,7 @@
     }
   }
   function sand(x) {
+    if (resim) return;
     netEvent(['s', Math.round(x)]);
     const c = venue === 'snow' ? ['#ffffff', '#dfefff'] : venue === 'beach' ? ['#f4d58d', '#e6be6a']
       : venue === 'volcano' ? ['#ff8c1a', '#3a2a26'] : venue === 'jungle' ? ['#9c6644', '#52b788'] : venue === 'moon' ? ['#c8c8cc', '#8e8e96'] : ['#cccccc', '#999999'];
@@ -839,12 +853,13 @@
 
   // ---------- Update ----------
   function update(dt) {
-    if (kind === 'online' && net && net.role === 'guest') { guestUpdate(dt); return; }
     time += dt;
-    if (bannerTimer > 0) bannerTimer -= dt;
-    shake = Math.max(0, shake - dt);
-    for (const pt of particles) { pt.vy += 900 * dt; pt.x += pt.vx * dt; pt.y += pt.vy * dt; pt.life -= dt; }
-    particles = particles.filter(pt => pt.life > 0);
+    if (!resim) {
+      if (bannerTimer > 0) bannerTimer -= dt;
+      shake = Math.max(0, shake - dt);
+      for (const pt of particles) { pt.vy += 900 * dt; pt.x += pt.vx * dt; pt.y += pt.vy * dt; pt.life -= dt; }
+      particles = particles.filter(pt => pt.life > 0);
+    }
 
     if (state === 'countdown') {
       const before = Math.ceil(countdown);
@@ -857,7 +872,8 @@
       pointTimer -= dt;
       if (ball) ball.vx *= 0.96;
       if (pointTimer <= 0) {
-        if ((score[0] >= WIN_POINTS || score[1] >= WIN_POINTS) && kind !== 'practice') endMatch();
+        if ((score[0] >= WIN_POINTS || score[1] >= WIN_POINTS) && kind === 'online') { state = 'done'; if (net) net.doneFrame = net.frame; }
+        else if ((score[0] >= WIN_POINTS || score[1] >= WIN_POINTS) && kind !== 'practice') endMatch();
         else { resetRally(); state = 'playing'; }
       }
       return;
@@ -866,10 +882,7 @@
 
     readInput();
     for (const p of players) if (p.isAI) updateAI(p, input[p.side], dt);
-    const onlineGuest = kind === 'online' && net && net.role === 'host' && net.gt ? players[1] : null;
-    const keep = onlineGuest && { x: onlineGuest.x, y: onlineGuest.y };
     for (const p of players) updatePlayer(p, input[p.side], dt);
-    if (onlineGuest) { onlineGuest.x = keep.x; onlineGuest.y = keep.y; hostEaseGuest(); }   // its own device moves it
 
     ball.trail.push({ x: ball.x, y: ball.y });
     if (ball.trail.length > 10) ball.trail.shift();
@@ -878,12 +891,12 @@
     ball.r += (targetR - ball.r) * Math.min(1, dt * 12);
     stepBall(ball, dt, false, grav);
     if (collideNet(ball)) Sound.hit();
-    for (const p of players) if (!(kind === 'online' && p.side === 1)) collidePlayer(p);
+    for (const p of players) collidePlayer(p);
     ball.angle += ball.spin * dt;
     clampBall(ball);
     const skin = BALLS[save.ball];
-    const sp = Math.hypot(ball.vx, ball.vy);
-    if ((skin.type === 'lava' || skin.type === 'water' || skin.type === 'sun') && sp > 150 && Math.random() < dt * (sp / 40)) {
+    const sp = hyp(ball.vx, ball.vy);
+    if (!resim && (skin.type === 'lava' || skin.type === 'water' || skin.type === 'sun') && sp > 150 && Math.random() < dt * (sp / 40)) {
       particles.push(skin.type !== 'water'
         ? { x: ball.x, y: ball.y, vx: (Math.random() - 0.5) * 60, vy: -60 - Math.random() * 60, life: 0.5, max: 0.5,
             color: Math.random() < 0.5 ? '#ff8c1a' : '#ffe066', r: 1.5 + Math.random() * 2 }
@@ -897,15 +910,13 @@
       stepBall(f, dt, false);
       f.angle += f.spin * dt;
       collideNet(f);
-      for (const p of players) if (Math.hypot(f.x - p.x, f.y - p.y) < p.r + BR) f.dead = true;
+      for (const p of players) if (hyp(f.x - p.x, f.y - p.y) < p.r + BR) f.dead = true;
       if (f.y + BR >= GROUND) f.dead = true;
       if (f.dead) burst(f.x, f.y, 10, ['#a2d2ff', '#ffffff']);
     }
     fakes = fakes.filter(f => !f.dead);
 
-    if (kind === 'online' && net && ball.y + ball.r >= GROUND && ball.x > NET_X && net.grace < Math.min(0.2, 0.04 + net.rtt / 1000)) {
-      net.grace += dt; ball.y = GROUND - ball.r; ball.vy = Math.min(ball.vy, 0);
-    } else if (ball.y + ball.r >= GROUND) {
+    if (ball.y + ball.r >= GROUND) {
       ball.y = GROUND - ball.r;
       const loser = ball.x < NET_X ? 0 : 1;
       const winner = 1 - loser;
@@ -921,7 +932,7 @@
       shake = Math.max(shake, 0.15);
       state = 'point';
       pointTimer = 1.1;
-      const humanWon = mode === 'duo' || winner === 0;
+      const humanWon = mode === 'duo' || winner === (kind === 'online' ? mySide() : 0);
       if (humanWon) Sound.point(); else Sound.lose();
       showBanner(t('point'), 1);
     }
@@ -929,7 +940,6 @@
 
   // ---------- Match end, ads, rewards ----------
   async function endMatch() {
-    if (kind === 'online') { net.send({ t: 'end', sc: score, mid: net.mid }); onlineEnd(); return; }
     state = 'result';
     Platform.gameplayStop();
     document.getElementById('hud').classList.add('hidden');
@@ -1810,7 +1820,7 @@
       c.moveTo(ex - 4, ey - 4); c.lineTo(ex + 4, ey + 4); c.moveTo(ex + 4, ey - 4); c.lineTo(ex - 4, ey + 4); c.stroke();
     } else {
       let lx = lookX - (x + ex * sc), ly = lookY - (y + ey * sc);
-      const ll = Math.hypot(lx, ly) || 1; lx /= ll; ly /= ll;
+      const ll = hyp(lx, ly) || 1; lx /= ll; ly /= ll;
       c.fillStyle = p.boss ? '#ff3b30' : '#1b1b1b'; c.beginPath(); c.arc(ex + lx * 4, ey + ly * 4, 4, 0, Math.PI * 2); c.fill();
     }
     if (acc) drawAccessoryFront(c, ch, acc, facing, ex, ey);
@@ -2747,8 +2757,6 @@
       drawWalls();
       for (const p of players) drawPlayer(p, p.x, p.y, 1, ball.x, ball.y);
       for (const f of fakes) drawSuperBall(Object.assign({}, f, { super: 'clones', trail: [] }));
-      const vis = kind === 'online' && net && net.vis;
-      if (vis) { ball.x += vis.x; ball.y += vis.y; }
       if (ball.super) {
         drawSuperBall(ball);
       } else {
@@ -2758,7 +2766,6 @@
         ctx.globalAlpha = 1;
         drawBall(ball, BALLS[save.ball], null, ball.r);
       }
-      if (vis) { ball.x -= vis.x; ball.y -= vis.y; vis.x *= 0.8; vis.y *= 0.8; if (Math.hypot(vis.x, vis.y) < 0.5) net.vis = null; }
       // marker when the ball is above the screen
       if (ball.y < sy - BR && ball.super !== 'ghost') { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(ball.x, sy + 6); ctx.lineTo(ball.x - 8, sy + 20); ctx.lineTo(ball.x + 8, sy + 20); ctx.fill(); }
       for (const pt of particles) { ctx.globalAlpha = Math.max(0, pt.life / pt.max); ctx.fillStyle = pt.color; circle(pt.x, pt.y, pt.r); }
@@ -3040,7 +3047,7 @@
     const x = (e.clientX - r.left) / r.width * MAP_W, y = (e.clientY - r.top) / r.height * MAP_H;
     for (let i = 0; i < 10; i++) {
       const q = tilePos(i), level = careerWorld * 10 + i + 1;
-      if (Math.hypot(x - q.x, y - q.y) < 38) {
+      if (hyp(x - q.x, y - q.y) < 38) {
         if (level > save.career) { toast(t('locked')); return; }
         if (level % 10 === 0 && !bossUnlocked(careerWorld)) { toast(t('bossNeed', { n: BOSS_NEED[careerWorld] })); return; }
         Sound.click(); careerOpen = false; startMatch('career', level);
@@ -3172,12 +3179,16 @@
   }
 
   // ---------- Online (2 devices, peer to peer) ----------
-  // The room creator is the host: it runs the whole match and streams snapshots;
-  // the guest only sends its buttons and draws what it receives.
+  // Rollback netcode: both devices run the very same deterministic match and only exchange
+  // their buttons. The rival's buttons are predicted (same as last known) and, when the real
+  // ones arrive, the match is rewound and replayed. Every half second the room creator (host)
+  // also sends the full state, so both devices always end up identical.
+  // Simulation side 0 = host, side 1 = guest; the guest draws everything mirrored.
   let net = null;
+  let resim = false;          // replaying frames after a rollback: no sounds or particles
   const ROOM_ABC = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
   const roomId = code => 'spikeduel-v1-' + code;
-  function netEvent(e) { if (net && net.role === 'host' && kind === 'online' && state !== 'result') net.ev.push(e); }
+  function netEvent() { /* kept for older call sites; the rollback model needs no events */ }
   // PeerJS cloud broker by default (it also provides STUN/TURN); tests can point to a local server
   const peerOpts = () => Object.assign({}, window.SPIKE_PEER_OPTS || {});
   let peerLib = null;
@@ -3198,10 +3209,10 @@
     });
     return peerLib;
   }
-  // mirror sounds to the guest (a point for the host is a lost point for the guest)
-  ['hit', 'spike', 'superSpike', 'effect', 'jump', 'point', 'lose', 'count'].forEach(name => {
+  // no sounds while replaying frames after a rollback
+  ['hit', 'spike', 'superSpike', 'effect', 'jump', 'point', 'lose', 'count', 'win'].forEach(name => {
     const fn = Sound[name];
-    Sound[name] = (...a) => { netEvent(['a', name, a[0]]); fn(...a); };
+    Sound[name] = (...a) => { if (!resim) fn(...a); };
   });
   function onlineScreen(title, showCode, showInput) {
     document.getElementById('onTitle').textContent = title;
@@ -3212,9 +3223,9 @@
   const onNote = txt => { document.getElementById('onNote').textContent = txt; };
   function newNet(role) {
     leaveOnline();
-    net = { role, peer: null, conn: null, code: '', rin: { left: false, right: false, jump: false }, ev: [],
-      meReady: false, remReady: false, sendAcc: 0, guest: null, mid: 0, rally: 0, buf: [], off: null,
-      rtt: 60, grace: 0, hitSeq: 0, hitAck: 0, ackd: true, pingT: 0, offs: [], corr: { x: 0, y: 0 }, oppDraw: null,
+    net = { role, peer: null, conn: null, code: '', meReady: false, remReady: false, guest: null, mid: 0,
+      frame: 0, localIn: new Map(), remoteIn: new Map(), pred: new Map(), hist: new Map(), lastRemote: 0,
+      remoteContig: -1, remoteFrame: 0, rb: Infinity, rtt: 60, pingT: 0, adv: 0, syncT: 0, doneFrame: -1,
       send(m) { try { if (this.conn && this.conn.open) this.conn.send(m); } catch (e) { /* closed */ } } };
     return net;
   }
@@ -3297,260 +3308,213 @@
   }
   function onNetData(m) {
     if (!m || typeof m !== 'object') return;
+    if (m.t === 'pi') { net.send({ t: 'po', c: m.c }); return; }
+    if (m.t === 'po') { const r = performance.now() - m.c; net.rtt = net.rtt * 0.7 + r * 0.3; return; }
     if (net.role === 'host') {
-      if (m.t === 'hi') { net.guest = { ch: m.ch | 0, su: m.su | 0 }; net.guest.ch %= CHARS.length; net.guest.su %= SUPERS.length; if (!players.length || kind !== 'online') startMatch('online'); }
-      else if (m.t === 'gs') hostGuestState(m);
-      else if (m.t === 'hit') applyGuestHit(m);
-      else if (m.t === 'pi') net.send({ t: 'po', c: m.c });
+      if (m.t === 'hi') {
+        net.guest = { ch: (m.ch | 0) % CHARS.length, su: (m.su | 0) % SUPERS.length };
+        if (kind !== 'online') hostStart();
+      } else if (m.t === 'i') netInputs(m);
       else if (m.t === 're') { net.remReady = true; checkRematch(); }
     } else {
-      if (m.t === 'start') { if (m.mid !== net.mid) guestStart(m); }
-      else if (m.t === 's') guestSnapshot(m);
-      else if (m.t === 'po') { const r = performance.now() - m.c; net.rtt = net.rtt * 0.7 + r * 0.3; }
-      else if (m.t === 'end') { if (m.mid === net.mid && state !== 'result') { score = [m.sc[1], m.sc[0]]; onlineEnd(); } }
+      if (m.t === 'start') { if (m.mid !== net.mid) onlineInit(m); }
+      else if (m.t === 'i') netInputs(m);
+      else if (m.t === 'sync') netSync(m);
+      else if (m.t === 'end') { if (m.mid === net.mid && state !== 'result') { score = m.sc; onlineEnd(); } }
       else if (m.t === 're') { net.remReady = true; document.getElementById('resNote').textContent = (LANG === 'es' ? '¿' : '') + t('rematch') + '?'; }
     }
   }
-  // host -> guest every frame: the whole match state (the guest mirrors it so it sees itself on the left)
-  function hostSend() {
-    if (!net || net.role !== 'host' || kind !== 'online' || !players.length || state === 'result') return;
-    const r1 = v => Math.round(v * 10) / 10;
-    net.send({
-      t: 's', mid: net.mid, ra: net.rally, hc: net.hitAck, ht: Math.round(performance.now()), st: state, cd: r1(countdown), sc: score,
-      sh: r1(shake), wf: [r1(wallFlash[0]), r1(wallFlash[1])],
-      pl: players.map(p => [r1(p.x), r1(p.y), r1(p.vx), r1(p.vy), r1(p.r), r1(p.squash), p.onGround ? 1 : 0, Math.round(p.power * 100) / 100, p.fx]),
-      b: ball ? [r1(ball.x), r1(ball.y), r1(ball.vx), r1(ball.vy), r1(ball.angle), r1(ball.spin), ball.super, ball.superOwner, r1(ball.r)] : null,
-      fk: fakes.map(f => [r1(f.x), r1(f.y), r1(f.vx), r1(f.vy)]),
-      ev: net.ev.splice(0),
-    });
+  const mySide = () => (net && net.role === 'guest' ? 1 : 0);
+  // ---- match start (same seed and settings on both devices)
+  function hostStart() {
+    const g = net.guest;
+    net.mid++;
+    const cfg = { t: 'start', mid: net.mid, seed: (Math.random() * 4294967295) >>> 0,
+      venue: VENUES[Math.floor(Math.random() * VENUES.length)], ch: [save.char, g.ch], su: [save.superSel, g.su] };
+    net.send(cfg);
+    onlineInit(cfg);
   }
-  // the guest moves its own player locally and tells the host where it is
-  function hostGuestState(m) {
-    net.rin.left = !!m.r; net.rin.right = !!m.l; net.rin.jump = !!m.j;   // mirrored view: its left is our right
-    if (m.rt) net.rtt = m.rt;
-    if (m.mid !== net.mid || m.ra !== net.rally || state !== 'playing' || !players[1]) return;
-    net.gt = { x: W - m.x, y: m.y, vx: -m.vx, vy: m.vy, g: !!m.g, at: performance.now() };
-  }
-  // host view of the guest: its reported position, projected to now and eased in
-  function hostEaseGuest() {
-    const g = net.gt, p = players[1];
-    if (!g || !p) return;
-    const age = Math.min(0.12, (performance.now() - g.at) / 1000 + net.rtt / 2000);
-    let tx = g.x + g.vx * age, ty = g.y;
-    if (!g.g) ty = Math.min(GROUND, g.y + g.vy * age + 0.5 * P_GRAV * age * age);
-    tx = Math.max(NET_X + NET_HALF + p.r, Math.min(W - p.r, tx));
-    p.x += (tx - p.x) * 0.3; p.y += (ty - p.y) * 0.3; p.vx = g.vx; p.vy = g.vy; p.onGround = g.g && ty >= GROUND - 0.5;
-  }
-  // the guest touched the ball on its screen: take its result as the truth
-  function applyGuestHit(m) {
-    if (m.mid !== net.mid || m.ra !== net.rally || m.hs <= net.hitAck || !players[1]) return;
-    net.hitAck = m.hs;
-    if (state !== 'playing') return;
-    const p = players[1];
-    if (m.eff && ball.super && ball.superOwner === 0) { applySuperEffect(p, m.eff); endSuper(); }
-    if (m.kind === 'super') startSuper(p, SUPER(p.superId));
-    else if (ball.serveLock !== 1) p.power = Math.min(1, p.power + (m.kind === 'spike' ? 0.06 : 0.1) * p.powerMul);
-    const ox = ball.x, oy = ball.y;
-    ball.x = W - m.x; ball.y = m.y; ball.vx = -m.vx; ball.vy = m.vy;
-    if (m.kind === 'spike') { shake = 0.12; Sound.spike(); burst(ball.x, ball.y, 12, ['#ffffff', '#ffd23f']); }
-    else if (m.kind === 'bump') { Sound.hit(); burst(ball.x, ball.y, 5, ['#ffffff']); }
-    ball.serveLock = -1; ball.spin = ball.vx / 40; ball.lastTouch = 1; p.hitCooldown = 0.08; net.grace = 0;
-    // catch up the time the message spent travelling
-    const lag = Math.min(0.12, net.rtt / 2000);
-    for (let t = 0; t < lag; t += STEP) { stepBall(ball, STEP, false, ball.super === 'heavy' ? 2.2 : 1); collideNet(ball); }
-    // on screen the ball glides to its corrected place instead of jumping
-    const vx = ox - ball.x, vy = oy - ball.y;
-    if (Math.hypot(vx, vy) < 160) net.vis = { x: vx, y: vy };
-  }
-  function guestSendInput() {
-    if (!net || net.role !== 'guest' || kind !== 'online' || !players.length || state === 'result') return;
-    const p = players[0], i = input[0], now = performance.now();
-    if (now - net.pingT > 1000) { net.pingT = now; net.send({ t: 'pi', c: now }); }
-    net.send({ t: 'gs', mid: net.mid, ra: net.rally, x: Math.round(p.x * 10) / 10, y: Math.round(p.y * 10) / 10,
-      vx: Math.round(p.vx), vy: Math.round(p.vy), g: p.onGround ? 1 : 0, l: i.left, r: i.right, j: i.jump, rt: Math.round(net.rtt) });
-  }
-  function guestStart(m) {
-    kind = 'online'; mode = 'solo'; score = [0, 0]; particles = []; fakes = []; server = 0;
-    net.mid = m.mid; net.rally = -1; net.buf = []; net.off = null; net.offs = []; net.hitSeq = 0; net.oppDraw = null;
-    venue = m.venue;
-    // me on the left with my character, the host on the right
-    players = [makePlayer(0, m.ch[1], false, 1, m.su[1]), makePlayer(1, m.ch[0], false, 1, m.su[0])];
-    players[1].dark = m.ch[0] === m.ch[1];
+  function onlineInit(cfg) {
+    careerOpen = false; kind = 'online'; mode = 'solo';
+    net.mid = cfg.mid; net.frame = 0; net.localIn.clear(); net.remoteIn.clear(); net.pred.clear(); net.hist.clear();
+    net.lastRemote = 0; net.remoteContig = -1; net.remoteFrame = 0; net.rb = Infinity; net.adv = 0; net.doneFrame = -1;
+    net.visO = net.visB = null;
     net.meReady = net.remReady = false;
+    score = [0, 0]; server = 0; particles = []; fakes = []; time = 0; simSeed = cfg.seed >>> 0;
+    venue = cfg.venue;
+    players = [makePlayer(0, cfg.ch[0], false, 1, cfg.su[0]), makePlayer(1, cfg.ch[1], false, 1, cfg.su[1])];
+    players[1].dark = cfg.ch[0] === cfg.ch[1];
     fit();
-    ball = { x: 760, y: 170, vx: 0, vy: 0, spin: 0, angle: 0, trail: [], super: null, superOwner: -1, r: BR, serveLock: 1 };
+    resetRally();
     showScreen(null);
     const touch = document.getElementById('touch');
     touch.classList.toggle('hidden', !isTouch); touch.classList.add('solo'); touch.classList.remove('duo');
     document.getElementById('hud').classList.remove('hidden');
-    state = 'countdown'; countdown = 3;
+    startCountdown('playing');
     Platform.gameplayStart();
   }
-  const mx = x => W - x;
-  // ball physics without players, used to bring a host snapshot up to the present
-  function advanceBall(b, secs) {
-    const grav = b.super === 'heavy' ? 2.2 : 1;
-    for (let t = 0; t < secs; t += STEP) {
-      stepBall(b, STEP, false, grav); collideNet(b);
-      if (b.y + (b.r || BR) >= GROUND) { b.y = GROUND - (b.r || BR); b.vy = 0; b.vx *= 0.5; }
-    }
-    return b;
+  // ---- state snapshots for rollback
+  const cloneP = p => Object.assign({}, p, { fx: Object.assign({}, p.fx), ai: Object.assign({}, p.ai, { follow: null }) });
+  function saveSim() {
+    return { players: players.map(cloneP), ball: ball && Object.assign({}, ball, { trail: ball.trail.slice() }),
+      fakes: fakes.map(f => Object.assign({}, f)), score: score.slice(), state, pointTimer, countdown, countdownTo,
+      server, time, seed: simSeed };
   }
-  function guestSnapshot(m) {
-    if (m.mid !== net.mid || state === 'result' || !players.length) return;
-    const d = performance.now() - m.ht;
-    net.offs.push(d); if (net.offs.length > 90) net.offs.shift();
-    const target = Math.min(...net.offs);                       // lowest delay seen recently = clock offset
-    net.off = net.off === null ? target : net.off + (target - net.off) * 0.05;
-    if (net.buf.length && m.ht <= net.buf[net.buf.length - 1].ht) return;   // late, out of order
-    const hp = m.pl[0], gp = m.pl[1];
-    net.buf.push({ ht: m.ht, fk: m.fk.map(f => ({ x: mx(f[0]), y: f[1], vx: -f[2], vy: f[3] })),
-      b: m.b ? { x: mx(m.b[0]), y: m.b[1], vx: -m.b[2], vy: m.b[3] } : null });
-    if (net.buf.length > 40) net.buf.shift();
-    const prevState = state;
-    state = m.st; countdown = m.cd; score = [m.sc[1], m.sc[0]]; shake = Math.max(shake, m.sh);
-    wallFlash[0] = Math.max(wallFlash[0], m.wf[1]); wallFlash[1] = Math.max(wallFlash[1], m.wf[0]);
-    const me = players[0], opp = players[1];
-    // opponent: latest known state, projected to now (drawn smoothly in guestUpdate)
-    net.opp = { x: mx(hp[0]), y: hp[1], vx: -hp[2], vy: hp[3], g: !!hp[6], at: performance.now() };
-    opp.r = hp[4]; opp.squash = hp[5]; opp.onGround = !!hp[6]; opp.power = hp[7]; opp.fx = hp[8];
-    me.power = gp[7];
-    const fx = Object.assign({}, gp[8]); fx.knock = -fx.knock; me.fx = fx;
-    const newRally = m.ra !== net.rally;
-    if (state !== 'playing' || newRally) {                    // outside live play the host decides where I stand
-      net.rally = m.ra;
-      me.x = mx(gp[0]); me.y = gp[1]; me.vx = -gp[2]; me.vy = gp[3]; me.onGround = !!gp[6]; me.r = gp[4];
-      if (newRally) { net.hitSeq = m.hc; net.oppDraw = null; }
-    }
-    if (m.b) {
-      const b = m.b;
-      net.ackd = m.hc >= net.hitSeq;
-      const host = { x: mx(b[0]), y: b[1], vx: -b[2], vy: b[3], r: b[8], super: b[6] };
-      if (net.ackd) { ball.super = b[6]; ball.superOwner = b[7] < 0 ? -1 : 1 - b[7]; ball.r = b[8]; }
-      if (state !== 'playing' || newRally || prevState !== 'playing') {
-        Object.assign(ball, { x: host.x, y: host.y, vx: host.vx, vy: host.vy }); ball.trail = []; net.corr = { x: 0, y: 0 };
-      } else if (m.hc >= net.hitSeq) {                         // ignore stale states from before my own touch
-        // age of this snapshot: base one-way delay plus how much later than usual it arrived (jitter)
-        const lead = ball.super ? 0 : Math.min(0.15, Math.max(0, net.rtt / 2 + (d - net.off)) / 1000 + 0.008);
-        const P = advanceBall(host, lead);
-        const ex = P.x - ball.x, ey = P.y - ball.y;
-        if (Math.hypot(ex, ey) > 140) { ball.x = P.x; ball.y = P.y; net.corr = { x: 0, y: 0 }; }
-        else net.corr = { x: ex, y: ey };                       // blended in over the next frames
-        ball.vx = P.vx; ball.vy = P.vy;
-      }
-      if (!ball.super) ball.spin = -b[5];
-    }
-    for (const e of m.ev) {
-      if (e[0] === 'b') { banner = e[1]; bannerTimer = e[2]; bannerColor = e[3]; }
-      else if (e[0] === 'p') burst(mx(e[1]), e[2], e[3], e[4]);
-      else if (e[0] === 's') sand(mx(e[1]));
-      else if (e[0] === 'k') { if (e[1] === 1) { me.vy = e[2]; me.onGround = false; } }
-      else if (e[0] === 'a') {
-        if (e[1] === 'jump' && e[2] === 1) continue;           // my own jumps already made their sound here
-        const name = e[1] === 'point' ? 'lose' : e[1] === 'lose' ? 'point' : e[1];
-        if (Sound[name]) Sound[name](e[2]);
-      }
-    }
+  function loadSim(st) {
+    players = st.players.map(p => Object.assign(cloneP(p), { char: CHARS.find(c => c.name === p.char.name) || p.char }));
+    ball = st.ball && Object.assign({}, st.ball, { trail: (st.ball.trail || []).slice() });
+    fakes = st.fakes.map(f => Object.assign({}, f)); score = st.score.slice();
+    state = st.state; pointTimer = st.pointTimer; countdown = st.countdown; countdownTo = st.countdownTo;
+    server = st.server; time = st.time; simSeed = st.seed >>> 0;
   }
-  const SPECIAL_FLIGHT = ['lightning', 'tornado', 'magnet', 'teleport', 'boomerang'];
-  // super balls with special flights (and clones) are drawn interpolated a little behind the host
-  function guestBufferBall() {
-    const buf = net.buf;
-    if (!buf.length || net.off === null) return;
-    const rt = performance.now() - net.off - 60;
-    let a = buf[0], b = null;
-    for (let k = buf.length - 1; k >= 0; k--) if (buf[k].ht <= rt) { a = buf[k]; b = buf[k + 1] || null; break; }
-    if (!a.b) return;
-    if (b && b.b && Math.hypot(b.b.x - a.b.x, b.b.y - a.b.y) < 160) {
-      const f = Math.max(0, Math.min(1, (rt - a.ht) / (b.ht - a.ht || 1)));
-      ball.x = a.b.x + (b.b.x - a.b.x) * f; ball.y = a.b.y + (b.b.y - a.b.y) * f; ball.vx = b.b.vx; ball.vy = b.b.vy;
-    } else {
-      const S = (b && b.b) || a.b, age = Math.min(0.1, Math.max(0, (rt - (b ? b.ht : a.ht)) / 1000));
-      ball.x = S.x + S.vx * age; ball.y = S.y + S.vy * age; ball.vx = S.vx; ball.vy = S.vy;
-    }
-    net.corr = { x: 0, y: 0 };
+  // ---- buttons as bits: 1 left, 2 right, 4 jump (in simulation coordinates)
+  function localBits() {
+    let l = keys.has('KeyA') || keys.has('ArrowLeft'), r = keys.has('KeyD') || keys.has('ArrowRight');
+    let j = keys.has('KeyW') || keys.has('ArrowUp') || keys.has('Space');
+    for (const [p, k] of touchHeld.values()) if (p === 0) { if (k === 'left') l = true; else if (k === 'right') r = true; else j = true; }
+    for (const [p, k] of touchHeldT.values()) if (p === 0) { if (k === 'left') l = true; else if (k === 'right') r = true; else j = true; }
+    const tmp = { left: l, right: r, jump: j };
+    if (window.__spikeBot) window.__spikeBot(tmp, viewPlayer(mySide()), viewBall());   // automated tests only
+    l = tmp.left; r = tmp.right; j = tmp.jump;
+    if (mySide() === 1) { const x = l; l = r; r = x; }         // the guest sees the court mirrored
+    return (l ? 1 : 0) | (r ? 2 : 0) | (j ? 4 : 0);
   }
-  // clones: interpolated a little behind the host (they are only decoys)
-  function guestFakes() {
-    const buf = net.buf;
-    if (!buf.length || net.off === null) return;
-    const rt = performance.now() - net.off - 50;
-    let a = buf[0], b = null;
-    for (let k = buf.length - 1; k >= 0; k--) if (buf[k].ht <= rt) { a = buf[k]; b = buf[k + 1] || null; break; }
-    const f = b ? Math.max(0, Math.min(1, (rt - a.ht) / (b.ht - a.ht || 1))) : 0;
-    fakes = (b || a).fk.map((F, k) => {
-      const A = a.fk[k] || F;
-      return { x: A.x + (F.x - A.x) * f, y: A.y + (F.y - A.y) * f, vx: F.vx, vy: F.vy, angle: 0, spin: 0 };
+  const setIn = (i, b) => { i.left = !!(b & 1); i.right = !!(b & 2); i.jump = !!(b & 4); };
+  // one simulation frame with both players' buttons
+  function onlineStep() {
+    const f = net.frame, me = mySide();
+    if (!resim) net.localIn.set(f, localBits());
+    const local = net.localIn.get(f) || 0;
+    const known = net.remoteIn.has(f);
+    const remote = known ? net.remoteIn.get(f) : net.lastRemote;
+    if (!known) net.pred.set(f, remote); else net.pred.delete(f);
+    net.hist.set(f, saveSim());
+    setIn(input[me], local); setIn(input[1 - me], remote);
+    if (window.__spikeSimHook) window.__spikeSimHook(f, players, ball);   // automated tests only (runs on both devices)
+    update(STEP);
+    net.frame++;
+    net.hist.delete(f - 300); net.localIn.delete(f - 600); net.remoteIn.delete(f - 600); net.pred.delete(f - 600);
+  }
+  function netInputs(m) {
+    if (m.mid !== net.mid) return;
+    const first = m.f - m.b.length + 1;
+    m.b.forEach((bits, k) => {
+      const g = first + k;
+      if (net.remoteIn.has(g)) return;
+      net.remoteIn.set(g, bits);
+      if (g < net.frame && net.pred.has(g) && net.pred.get(g) !== bits) net.rb = Math.min(net.rb, g);
     });
+    while (net.remoteIn.has(net.remoteContig + 1)) net.remoteContig++;
+    if (m.f >= net.remoteFrame) { net.remoteFrame = m.f; net.lastRemote = m.b[m.b.length - 1]; }
+    // prediction for frames not simulated yet uses the newest known buttons
   }
-  function guestUpdate(dt) {
-    time += dt;
-    if (bannerTimer > 0) bannerTimer -= dt;
-    shake = Math.max(0, shake - dt);
-    for (const w of [0, 1]) wallFlash[w] = Math.max(0, wallFlash[w] - dt);
-    for (const pt of particles) { pt.vy += 900 * dt; pt.x += pt.vx * dt; pt.y += pt.vy * dt; pt.life -= dt; }
-    particles = particles.filter(pt => pt.life > 0);
-    if (state === 'countdown') countdown = Math.max(0, countdown - dt);
-    if (!ball || !players.length || state === 'result') return;
-    const me = players[0], opp = players[1];
-    // opponent: projected to the present from its last known state, then eased on screen
-    if (net.opp) {
-      const o = net.opp, age = Math.min(0.15, (performance.now() - o.at) / 1000 + net.rtt / 2000);
-      let tx = o.x + o.vx * age, ty = o.y;
-      if (!o.g) ty = Math.min(GROUND, o.y + o.vy * age + 0.5 * P_GRAV * age * age);
-      tx = Math.max(NET_X + NET_HALF + opp.r, Math.min(W - opp.r, tx));
-      if (!net.oppDraw || state !== 'playing') net.oppDraw = { x: tx, y: ty };
-      net.oppDraw.x += (tx - net.oppDraw.x) * 0.35; net.oppDraw.y += (ty - net.oppDraw.y) * 0.35;
-      opp.x = net.oppDraw.x; opp.y = net.oppDraw.y; opp.vx = o.vx; opp.vy = o.vy;
+  // host -> guest: authoritative state of a frame both have confirmed inputs for
+  function netSync(m) {
+    if (m.mid !== net.mid) return;
+    const mine = net.hist.get(m.f);
+    if (!mine || m.f >= net.frame) return;
+    const a = mine, b = m.s;
+    const off = (x, y) => Math.abs(x - y) > 0.01;
+    const differs = a.state !== b.state || a.score[0] !== b.score[0] || a.score[1] !== b.score[1] || !a.ball !== !b.ball ||
+      (a.ball && (off(a.ball.x, b.ball.x) || off(a.ball.y, b.ball.y) || a.ball.super !== b.ball.super)) ||
+      a.players.some((p, i) => off(p.x, b.players[i].x) || off(p.y, b.players[i].y) || off(p.power, b.players[i].power));
+    if (differs) { net.hist.set(m.f, b); net.rb = Math.min(net.rb, m.f); net.resyncs = (net.resyncs || 0) + 1; }
+  }
+  function rollback() {
+    if (net.rb === Infinity || net.rb >= net.frame) { net.rb = Infinity; return; }
+    const from = net.rb, to = net.frame;
+    net.rb = Infinity;
+    const st = net.hist.get(from);
+    if (!st) return;                                       // too old: the next host sync fixes it
+    const keepParticles = particles, keepShake = shake;
+    const other = 1 - mySide();
+    const before = { o: players[other] && { x: players[other].x, y: players[other].y }, b: ball && { x: ball.x, y: ball.y } };
+    loadSim(st);
+    net.frame = from;
+    resim = true;
+    while (net.frame < to) onlineStep();
+    resim = false;
+    particles = keepParticles; shake = keepShake;
+    net.rollbacks = (net.rollbacks || 0) + 1;
+    // corrections glide on screen over ~0.1 s instead of snapping
+    const glide = (prev, now, key) => {
+      if (!prev || !now) return;
+      const old = net[key] || { x: 0, y: 0 };
+      const dx = prev.x + old.x - now.x, dy = prev.y + old.y - now.y;
+      net[key] = hyp(dx, dy) < 150 ? { x: dx, y: dy } : null;
+    };
+    glide(before.o, players[other], 'visO');
+    glide(before.b, ball, 'visB');
+  }
+  // called once per rendered frame while an online match runs
+  function onlineFrame(dt) {
+    if (!net || kind !== 'online' || !players.length) return 0;
+    rollback();
+    const now = performance.now();
+    if (now - net.pingT > 1000) { net.pingT = now; net.send({ t: 'pi', c: now }); }
+    // my latest buttons, with some history so a lost packet does not matter
+    const b = [];
+    for (let g = Math.max(0, net.frame - 24); g < net.frame; g++) b.push(net.localIn.get(g) || 0);
+    if (b.length) net.send({ t: 'i', mid: net.mid, f: net.frame - 1, b });
+    // the host sends a confirmed state every half second
+    if (net.role === 'host' && now - net.syncT > 500) {
+      const F = Math.min(net.remoteContig + 1, net.frame - 1);
+      const st = net.hist.get(F);
+      if (st && F > 0) { net.syncT = now; net.send({ t: 'sync', mid: net.mid, f: F, s: st }); }
     }
-    guestFakes();
-    if (state !== 'playing') { ball.angle += ball.spin * dt; return; }
-    readInput(); updatePlayer(me, input[0], dt);                 // my player reacts instantly
-    // the ball runs with the same physics here; host corrections are blended in
-    if (SPECIAL_FLIGHT.includes(ball.super) && net.ackd) guestBufferBall();
-    else {
-      stepBall(ball, dt, false, ball.super === 'heavy' ? 2.2 : 1);
-      collideNet(ball);
+    // the host ends the match once the final point is confirmed by both sides
+    if (net.role === 'host' && state === 'done' && net.remoteContig >= net.doneFrame && net.doneFrame >= 0) {
+      net.send({ t: 'end', mid: net.mid, sc: score }); onlineEnd();
     }
-    const k = 0.06;
-    ball.x += net.corr.x * k; ball.y += net.corr.y * k; net.corr.x *= 1 - k; net.corr.y *= 1 - k;
-    if (ball.y + ball.r >= GROUND) { ball.y = GROUND - ball.r; ball.vy = 0; ball.vx *= 0.9; }
-    // the rival's touch is predicted as a plain bump (the host's real result corrects it smoothly)
-    net.oppCd = Math.max(0, (net.oppCd || 0) - dt);
-    if (!net.oppCd && net.ackd) {
-      const dx = ball.x - opp.x, dy = ball.y - opp.y, dist = Math.hypot(dx, dy);
-      if (dist > 0 && dist < opp.r + ball.r) {
-        const nx = dx / dist, ny = dy / dist;
-        ball.x = opp.x + nx * (opp.r + ball.r + 0.5); ball.y = opp.y + ny * (opp.r + ball.r + 0.5);
-        let rvx = ball.vx - opp.vx, rvy = ball.vy - opp.vy;
-        const vn = rvx * nx + rvy * ny;
-        if (vn < 0) { rvx -= 1.85 * vn * nx; rvy -= 1.85 * vn * ny; }
-        ball.vx = rvx + opp.vx * 0.6; ball.vy = rvy + Math.min(0, opp.vy) * 0.4;
-        const out = ball.vx * nx + ball.vy * ny;
-        if (out < B_MIN_HIT) { ball.vx += nx * (B_MIN_HIT - out); ball.vy += ny * (B_MIN_HIT - out); }
-        clampBall(ball); net.oppCd = 0.15; net.corr = { x: 0, y: 0 };
-      }
-    }
-    // my own touches count straight away; the host is told the result
-    const before = me.hitCooldown;
-    collidePlayer(me);
-    if (me.hitCooldown === 0.08 && before !== 0.08 && hitInfo) {
-      net.hitSeq++;
-      const r1 = v => Math.round(v * 10) / 10;
-      net.send({ t: 'hit', mid: net.mid, ra: net.rally, hs: net.hitSeq, x: r1(ball.x), y: r1(ball.y), vx: r1(ball.vx), vy: r1(ball.vy),
-        kind: hitInfo.kind, eff: hitInfo.eff });
-      net.corr = { x: 0, y: 0 };
-    }
-    ball.angle += ball.spin * dt;
-    ball.trail.push({ x: ball.x, y: ball.y });
-    if (ball.trail.length > 10) ball.trail.shift();
+    // keep both devices on the same frame: the one ahead slows down a little, the one behind catches up
+    const ahead = net.frame - (net.remoteFrame + (net.rtt / 2000) / STEP);
+    net.adv = net.adv * 0.9 + ahead * 0.1;
+    if (net.adv > 3) return -1;
+    if (net.adv < -3) return 1;
+    return 0;
+  }
+  // how far a device may run on predictions before waiting for the rival's buttons
+  const MAX_PREDICT = 36;
+  // views for drawing: the guest sees everything mirrored, itself on the left
+  function viewPlayer(side) { return mirrorP(players[side]); }
+  function viewBall() { return ball && mirrorB(ball); }
+  function mirrorP(p) {
+    if (!p) return p;
+    if (mySide() === 0) return p;
+    return Object.assign({}, p, { side: 1 - p.side, x: W - p.x, vx: -p.vx });
+  }
+  function mirrorB(b) {
+    if (mySide() === 0) return b;
+    return Object.assign({}, b, { x: W - b.x, vx: -b.vx, angle: -(b.angle || 0), spin: -(b.spin || 0),
+      superOwner: b.superOwner < 0 ? -1 : 1 - b.superOwner, trail: (b.trail || []).map(q => ({ x: W - q.x, y: q.y })) });
+  }
+  function withGlide(draw) {
+    const o = players[1 - mySide()], vo = net && net.visO, vb = net && net.visB;
+    if (vo && o) { o.x += vo.x; o.y += vo.y; }
+    if (vb && ball) { ball.x += vb.x; ball.y += vb.y; }
+    if (window.__spikeBot && o && ball) window.__spikeDrawn = { bx: ball.x, by: ball.y, ox: o.x, oy: o.y };   // tests only
+    draw();
+    if (vo && o) { o.x -= vo.x; o.y -= vo.y; vo.x *= 0.7; vo.y *= 0.7; if (hyp(vo.x, vo.y) < 0.3) net.visO = null; }
+    if (vb && ball) { ball.x -= vb.x; ball.y -= vb.y; vb.x *= 0.7; vb.y *= 0.7; if (hyp(vb.x, vb.y) < 0.3) net.visB = null; }
+  }
+  function renderOnlineMirrored() {
+    const keep = { players, ball, fakes, score, particles, wf: wallFlash.slice() };
+    players = [mirrorP(keep.players[1]), mirrorP(keep.players[0])];
+    ball = keep.ball && mirrorB(keep.ball);
+    fakes = keep.fakes.map(f => Object.assign({}, f, { x: W - f.x, vx: -f.vx }));
+    score = [keep.score[1], keep.score[0]];
+    particles = keep.particles.map(q => Object.assign({}, q, { x: W - q.x }));
+    wallFlash[0] = keep.wf[1]; wallFlash[1] = keep.wf[0];
+    render();
+    players = keep.players; ball = keep.ball; fakes = keep.fakes; score = keep.score;
+    particles = keep.particles; wallFlash[0] = keep.wf[0]; wallFlash[1] = keep.wf[1];
   }
   function onlineEnd() {
     state = 'result';
     Platform.gameplayStop();
     document.getElementById('hud').classList.add('hidden');
     document.getElementById('touch').classList.add('hidden');
-    const me = 0;   // both devices keep the score as [mine, theirs]
+    const me = mySide();
     const won = score[me] > score[1 - me];
     const coins = won ? 15 : 5;
     save.coins += coins; persist();
@@ -3568,7 +3532,7 @@
     checkRematch();
   }
   function checkRematch() {
-    if (net && net.role === 'host' && net.meReady && net.remReady) { net.meReady = net.remReady = false; startMatch('online'); }
+    if (net && net.role === 'host' && net.meReady && net.remReady && net.guest) hostStart();
   }
 
   // ---------- Loop ----------
@@ -3578,9 +3542,22 @@
     last = ts;
     if (state === 'menu') time += dt;
     acc += dt;
-    while (acc >= STEP) { update(STEP); acc -= STEP; }
-    hostSend(); guestSendInput();
-    render();
+    if (kind === 'online' && net && players.length && state !== 'result') {
+      const adj = onlineFrame(dt);
+      let steps = 0;
+      while (acc >= STEP) {
+        acc -= STEP;
+        if (adj < 0 && steps === 0 && Math.random() < 0.5) { steps++; continue; }      // ahead: hold back a frame
+        if (net.frame - (net.remoteContig + 1) >= MAX_PREDICT && state !== 'result') break;   // wait for the rival
+        onlineStep(); steps++;
+      }
+      if (adj > 0 && net.frame - (net.remoteContig + 1) < MAX_PREDICT) onlineStep();         // behind: catch up
+      if (acc > STEP * 4) acc = STEP * 4;
+      withGlide(() => (mySide() === 1 ? renderOnlineMirrored() : render()));
+    } else {
+      while (acc >= STEP) { update(STEP); acc -= STEP; }
+      render();
+    }
     if (careerOpen) drawCareerMap();
     requestAnimationFrame(frame);
   }
@@ -3602,7 +3579,7 @@
   window.__spike = {
     get state() { return state; }, get score() { return score; }, get ball() { return ball; },
     get players() { return players; }, get fakes() { return fakes; }, startMatch, save, openCareer, openTour,
-    newTourRun, careerRival, setVenue(v) { venue = v; }, get net() { return net; }, get kind() { return kind; }, showTrophy, get lastResult() { return lastResult; }, set lastResult(v) { lastResult = v; },
+    newTourRun, careerRival, setVenue(v) { venue = v; }, get net() { return net; }, get kind() { return kind; }, saveSim, showTrophy, get lastResult() { return lastResult; }, set lastResult(v) { lastResult = v; },
     tick(n) { for (let i = 0; i < n; i++) update(STEP); },
     effect(side, id) { applySuperEffect(players[side], id); },
   };
