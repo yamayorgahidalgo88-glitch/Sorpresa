@@ -33,7 +33,7 @@ No necesita compilar nada: son archivos estáticos (`index.html`, `style.css`, `
 
 ## CrazyGames
 
-`sdk.js` envuelve el SDK HTML5 v3 de CrazyGames y sigue funcionando si el SDK no carga.
+`sdk.js` carga el SDK HTML5 v3 de CrazyGames solo dentro de CrazyGames (y en `localhost` para pruebas) y sigue funcionando si el SDK no carga o no responde en 3 s.
 
 | Evento | Cuándo |
 | --- | --- |

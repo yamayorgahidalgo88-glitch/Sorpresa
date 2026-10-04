@@ -9,9 +9,24 @@
     try { fn(sdk); } catch (e) { console.warn('[SDK]', e); }
   }
 
+  // The SDK is only loaded on CrazyGames (and local tests); the installable
+  // phone version runs without it.
+  function loadSdk() {
+    const host = location.hostname;
+    if (!/crazygames|^localhost$|^127\.0\.0\.1$/.test(host)) return Promise.resolve();
+    return new Promise(resolve => {
+      const tag = document.createElement('script');
+      tag.src = 'https://sdk.crazygames.com/crazygames-sdk-v3.js';
+      tag.onload = tag.onerror = () => resolve();
+      document.head.appendChild(tag);
+      setTimeout(resolve, 3000);
+    });
+  }
+
   const Platform = {
     async init() {
       try {
+        await loadSdk();
         if (window.CrazyGames && window.CrazyGames.SDK) {
           sdk = window.CrazyGames.SDK;
           // never let the SDK block the game (outside CrazyGames it may not answer)
