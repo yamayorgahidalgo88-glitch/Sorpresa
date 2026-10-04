@@ -1927,77 +1927,51 @@
       c.fillStyle = 'rgba(255,255,255,0.65)'; c.beginPath(); c.ellipse(-16, -28, 10, 5, -0.5, 0, Math.PI * 2); c.fill();
       c.fillStyle = 'rgba(255,255,255,0.9)'; c.beginPath(); c.arc(-24, -22, 2.2, 0, Math.PI * 2); c.fill();
     } else if (ch.skin === 'boot') {
-      // football boot seen from the side: long toe towards the net, heel at the back,
-      // knitted sock collar, laced instep, side stripe, neon soleplate and studs
-      c.save(); c.scale(f, 1);                                  // draw facing right, mirror for the other side
-      const upper = () => {
-        c.beginPath();
-        c.moveTo(-40, 0);                                        // heel bottom
-        c.bezierCurveTo(-46, -12, -44, -30, -36, -40);           // heel curve
-        c.lineTo(-30, -44);                                      // into the collar
-        c.quadraticCurveTo(-16, -38, -4, -40);                   // collar opening
-        c.bezierCurveTo(14, -34, 30, -26, 42, -16);              // instep sloping to the toe
-        c.bezierCurveTo(52, -10, 54, -2, 48, 0);                 // rounded toe
-        c.closePath();
-      };
-      const sock = () => {
-        c.beginPath();
-        c.moveTo(-34, -40); c.bezierCurveTo(-36, -54, -30, -62, -18, -63);
-        c.bezierCurveTo(-8, -62, -2, -54, -4, -40); c.quadraticCurveTo(-16, -36, -34, -40); c.closePath();
-      };
-      // knitted sock collar
-      const kg = c.createLinearGradient(-34, -64, -4, -40);
-      kg.addColorStop(0, dark ? '#0c1222' : '#1e2a44'); kg.addColorStop(1, '#0b1020');
-      c.fillStyle = kg; sock(); c.fill();
-      c.save(); sock(); c.clip();
-      c.strokeStyle = 'rgba(255,255,255,0.14)'; c.lineWidth = 1.2;
-      for (let k = -40; k < 0; k += 4) { c.beginPath(); c.moveTo(k, -66); c.lineTo(k + 6, -36); c.stroke(); }
-      c.fillStyle = '#d4ff00'; c.fillRect(-40, -62, 40, 3);        // neon rim
-      c.restore();
-      c.strokeStyle = '#03122e'; c.lineWidth = 2; sock(); c.stroke();
-      // glossy upper
-      const ug = c.createLinearGradient(0, -44, 0, 0);
+      // football boot wrapped onto the same half-dome every character uses:
+      // toe cap at the front, heel counter at the back, ankle opening, laces, stripe, sole and studs
+      c.save(); c.scale(f, 1);                                  // front (toe) towards the net
+      const ug = c.createLinearGradient(0, -PR, 0, 0);
       ug.addColorStop(0, dark ? '#1b5fc4' : '#5ab4ff'); ug.addColorStop(0.5, dark ? '#0a3f8f' : '#0a84ff'); ug.addColorStop(1, '#063d99');
-      c.fillStyle = ug; upper(); c.fill();
-      c.save(); upper(); c.clip();
-      // heel counter and toe cap panels
+      c.fillStyle = ug; half(); c.fill();
+      c.save(); half(); c.clip();
       c.fillStyle = '#0a2e6e';
-      c.beginPath(); c.moveTo(-46, 0); c.lineTo(-46, -44); c.quadraticCurveTo(-24, -26, -26, 0); c.closePath(); c.fill();
-      c.beginPath(); c.ellipse(46, -4, 22, 16, -0.2, 0, Math.PI * 2); c.fill();
-      // strike-zone grip texture on the toe
-      c.fillStyle = 'rgba(255,255,255,0.22)';
-      for (let gx = 28; gx < 50; gx += 5) for (let gy = -16; gy < -3; gy += 5) c.fillRect(gx + (gy % 2), gy, 2, 2);
-      // stitching lines
-      c.setLineDash([3, 3]); c.strokeStyle = 'rgba(255,255,255,0.45)'; c.lineWidth = 1;
-      c.beginPath(); c.moveTo(-26, -2); c.quadraticCurveTo(-24, -24, -38, -40); c.stroke();
-      c.beginPath(); c.moveTo(28, -2); c.quadraticCurveTo(26, -14, 36, -20); c.stroke();
+      c.beginPath(); c.ellipse(PR + 2, -2, 22, 24, 0, 0, Math.PI * 2); c.fill();          // toe cap
+      c.beginPath(); c.ellipse(-PR - 2, -4, 16, 30, 0, 0, Math.PI * 2); c.fill();         // heel counter
+      c.fillStyle = 'rgba(255,255,255,0.22)';                                             // grip texture on the toe
+      for (let gx = 26; gx < 44; gx += 5) for (let gy = -18; gy < -4; gy += 5) c.fillRect(gx, gy, 2, 2);
+      c.setLineDash([3, 3]); c.strokeStyle = 'rgba(255,255,255,0.5)'; c.lineWidth = 1;    // stitching
+      c.beginPath(); c.ellipse(PR + 2, -2, 25, 27, 0, Math.PI * 0.5, Math.PI * 1.5); c.stroke();
+      c.beginPath(); c.ellipse(-PR - 2, -4, 19, 33, 0, -Math.PI * 0.5, Math.PI * 0.5); c.stroke();
       c.setLineDash([]);
-      // sweeping side stripe
-      const st = c.createLinearGradient(-38, 0, 30, 0);
+      const st = c.createLinearGradient(-PR, 0, PR, 0);                                   // side stripe
       st.addColorStop(0, '#d4ff00'); st.addColorStop(1, '#8cff00');
       c.fillStyle = st;
-      c.beginPath(); c.moveTo(-38, -8); c.bezierCurveTo(-16, -6, 6, -10, 30, -24);
-      c.bezierCurveTo(8, -16, -14, -14, -36, -16); c.closePath(); c.fill();
-      // shine
-      c.fillStyle = 'rgba(255,255,255,0.35)'; c.beginPath(); c.ellipse(-8, -30, 16, 4, -0.2, 0, Math.PI * 2); c.fill();
-      c.fillStyle = 'rgba(255,255,255,0.5)'; c.beginPath(); c.ellipse(38, -14, 6, 2.5, -0.6, 0, Math.PI * 2); c.fill();
+      c.beginPath(); c.moveTo(-PR, -9); c.bezierCurveTo(-18, -7, 6, -9, 26, -22);
+      c.bezierCurveTo(4, -15, -18, -15, -PR, -17); c.closePath(); c.fill();
+      c.fillStyle = 'rgba(255,255,255,0.35)';
+      c.beginPath(); c.ellipse(-6, -34, 14, 4, -0.15, 0, Math.PI * 2); c.fill();
       c.restore();
-      c.strokeStyle = '#03224f'; c.lineWidth = 3; upper(); c.stroke();
-      // laces criss-crossing over the instep, with eyelets
+      c.lineWidth = 3; c.strokeStyle = '#03224f'; half(); c.stroke();
+      // ankle opening at the top back, with the sock inside and a padded rim
+      c.fillStyle = '#0b1020'; c.beginPath(); c.ellipse(-16, -PR + 6, 14, 5.5, 0.12, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#e9ecef'; c.beginPath(); c.ellipse(-16, -PR + 5, 10, 3, 0.12, Math.PI, Math.PI * 2); c.fill();
+      c.strokeStyle = '#d4ff00'; c.lineWidth = 2; c.beginPath(); c.ellipse(-16, -PR + 6, 14, 5.5, 0.12, 0, Math.PI * 2); c.stroke();
+      // tongue and laces running down the instep, above the eye
+      c.fillStyle = '#e9f2ff'; c.strokeStyle = '#03224f'; c.lineWidth = 1.2;
+      c.beginPath(); c.moveTo(-4, -PR + 2); c.quadraticCurveTo(8, -PR + 4, 22, -30); c.lineTo(17, -26); c.quadraticCurveTo(6, -PR + 10, -5, -PR + 9); c.closePath(); c.fill(); c.stroke();
       c.lineCap = 'round';
       for (let k = 0; k < 4; k++) {
-        const t2 = k / 3, lx = -4 + t2 * 20, ly = -38 + t2 * 9;
-        c.fillStyle = '#03122e'; c.beginPath(); c.arc(lx - 3, ly + 4, 1.4, 0, Math.PI * 2); c.arc(lx + 3, ly - 3, 1.4, 0, Math.PI * 2); c.fill();
+        const t2 = k / 3, lx = -1 + t2 * 19, ly = -PR + 6 + t2 * 9;
+        c.fillStyle = '#03122e'; c.beginPath(); c.arc(lx - 3, ly - 3, 1.3, 0, Math.PI * 2); c.arc(lx + 3, ly + 3, 1.3, 0, Math.PI * 2); c.fill();
         c.strokeStyle = '#ffffff'; c.lineWidth = 2.4;
-        c.beginPath(); c.moveTo(lx - 4, ly - 3); c.lineTo(lx + 4, ly + 4); c.moveTo(lx - 4, ly + 4); c.lineTo(lx + 4, ly - 3); c.stroke();
+        c.beginPath(); c.moveTo(lx - 4, ly + 3); c.lineTo(lx + 4, ly - 3); c.moveTo(lx - 3, ly - 4); c.lineTo(lx + 3, ly + 4); c.stroke();
       }
-      // soleplate and studs
-      c.fillStyle = '#d4ff00';
-      c.beginPath(); c.moveTo(-41, -4); c.lineTo(46, -4); c.quadraticCurveTo(52, -3, 49, 1); c.lineTo(-41, 1); c.closePath(); c.fill();
-      c.strokeStyle = '#4a5a00'; c.lineWidth = 1; c.stroke();
+      // neon soleplate and studs
+      c.fillStyle = '#d4ff00'; c.fillRect(-PR, -5, PR * 2, 5);
+      c.fillStyle = '#4a5a00'; c.fillRect(-PR, -1, PR * 2, 1.5);
       c.fillStyle = '#f1f3f5'; c.strokeStyle = '#495057'; c.lineWidth = 1;
-      for (const [sx, w] of [[-34, 5], [-22, 5], [6, 4], [18, 4], [30, 4], [40, 3.5]]) {
-        c.beginPath(); c.moveTo(sx - w, 1); c.lineTo(sx + w, 1); c.lineTo(sx + w * 0.55, 7); c.lineTo(sx - w * 0.55, 7); c.closePath(); c.fill(); c.stroke();
+      for (const sx of [-32, -20, 4, 16, 28, 37]) {
+        c.beginPath(); c.moveTo(sx - 4, 0); c.lineTo(sx + 4, 0); c.lineTo(sx + 2.2, 6); c.lineTo(sx - 2.2, 6); c.closePath(); c.fill(); c.stroke();
       }
       c.restore();
     } else if (ch.skin === 'astro') {
