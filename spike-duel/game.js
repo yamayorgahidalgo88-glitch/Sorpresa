@@ -351,9 +351,6 @@
   // iOS Safari: a long press on a button must never select text or open the callout menu
   document.addEventListener('contextmenu', e => e.preventDefault());
   document.addEventListener('selectstart', e => { if (!(e.target && e.target.tagName === 'INPUT')) e.preventDefault(); });
-  document.querySelectorAll('#touch button').forEach(b => {
-    for (const ev of ['touchstart', 'touchmove', 'touchend']) b.addEventListener(ev, e => { if (e.cancelable) e.preventDefault(); }, { passive: false });
-  });
   const touchHeld = new Map(); // pointerId -> [player, key, button]
   document.querySelectorAll('#touch button').forEach(b => {
     const p = +b.dataset.p, k = b.dataset.k;
@@ -377,6 +374,15 @@
     b.addEventListener('lostpointercapture', up);
   });
 
+  // backup path for touch screens whose browser drops pointer events (some iOS versions)
+  const touchHeldT = new Map(); // touch identifier -> [player, key]
+  document.querySelectorAll('#touch button').forEach(b => {
+    const p = +b.dataset.p, k = b.dataset.k;
+    b.addEventListener('touchstart', e => { for (const t of e.changedTouches) touchHeldT.set(t.identifier, [p, k]); }, { passive: true });
+    const end = e => { for (const t of e.changedTouches) touchHeldT.delete(t.identifier); };
+    b.addEventListener('touchend', end, { passive: true });
+    b.addEventListener('touchcancel', end, { passive: true });
+  });
   function readInput() {
     for (const i of input) i.left = i.right = i.jump = false;
     if (mode === 'duo') {
@@ -388,6 +394,7 @@
       input[0].jump = keys.has('KeyW') || keys.has('ArrowUp') || keys.has('Space');
     }
     for (const [p, k] of touchHeld.values()) input[p][k] = true;
+    for (const [p, k] of touchHeldT.values()) input[p][k] = true;
     if (kind === 'online' && net && net.role === 'host') Object.assign(input[1], net.rin);
     if (window.__spikeBot) window.__spikeBot(input[0], players[0], ball);   // automated tests only
   }
@@ -1137,7 +1144,7 @@
   function openEditor(which) {
     if (state !== 'playing' && state !== 'point') return;
     editorFrom = state; state = 'editing';
-    touchHeld.clear(); document.querySelectorAll('#touch button').forEach(b => b.classList.remove('on'));
+    touchHeld.clear(); touchHeldT.clear(); document.querySelectorAll('#touch button').forEach(b => b.classList.remove('on'));
     const list = which === 'jump' ? [['jumpSize', 'ctlSize'], ['jumpX', 'ctlPos']] : [['dirSize', 'ctlSize'], ['dirX', 'ctlPos'], ['dirGap', 'ctlGap']];
     const box = document.getElementById('editorSliders');
     box.innerHTML = '';
@@ -2740,6 +2747,8 @@
       drawWalls();
       for (const p of players) drawPlayer(p, p.x, p.y, 1, ball.x, ball.y);
       for (const f of fakes) drawSuperBall(Object.assign({}, f, { super: 'clones', trail: [] }));
+      const vis = kind === 'online' && net && net.vis;
+      if (vis) { ball.x += vis.x; ball.y += vis.y; }
       if (ball.super) {
         drawSuperBall(ball);
       } else {
@@ -2749,6 +2758,7 @@
         ctx.globalAlpha = 1;
         drawBall(ball, BALLS[save.ball], null, ball.r);
       }
+      if (vis) { ball.x -= vis.x; ball.y -= vis.y; vis.x *= 0.8; vis.y *= 0.8; if (Math.hypot(vis.x, vis.y) < 0.5) net.vis = null; }
       // marker when the ball is above the screen
       if (ball.y < sy - BR && ball.super !== 'ghost') { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(ball.x, sy + 6); ctx.lineTo(ball.x - 8, sy + 20); ctx.lineTo(ball.x + 8, sy + 20); ctx.fill(); }
       for (const pt of particles) { ctx.globalAlpha = Math.max(0, pt.life / pt.max); ctx.fillStyle = pt.color; circle(pt.x, pt.y, pt.r); }
@@ -3340,6 +3350,7 @@
     if (m.eff && ball.super && ball.superOwner === 0) { applySuperEffect(p, m.eff); endSuper(); }
     if (m.kind === 'super') startSuper(p, SUPER(p.superId));
     else if (ball.serveLock !== 1) p.power = Math.min(1, p.power + (m.kind === 'spike' ? 0.06 : 0.1) * p.powerMul);
+    const ox = ball.x, oy = ball.y;
     ball.x = W - m.x; ball.y = m.y; ball.vx = -m.vx; ball.vy = m.vy;
     if (m.kind === 'spike') { shake = 0.12; Sound.spike(); burst(ball.x, ball.y, 12, ['#ffffff', '#ffd23f']); }
     else if (m.kind === 'bump') { Sound.hit(); burst(ball.x, ball.y, 5, ['#ffffff']); }
@@ -3347,6 +3358,9 @@
     // catch up the time the message spent travelling
     const lag = Math.min(0.12, net.rtt / 2000);
     for (let t = 0; t < lag; t += STEP) { stepBall(ball, STEP, false, ball.super === 'heavy' ? 2.2 : 1); collideNet(ball); }
+    // on screen the ball glides to its corrected place instead of jumping
+    const vx = ox - ball.x, vy = oy - ball.y;
+    if (Math.hypot(vx, vy) < 160) net.vis = { x: vx, y: vy };
   }
   function guestSendInput() {
     if (!net || net.role !== 'guest' || kind !== 'online' || !players.length || state === 'result') return;

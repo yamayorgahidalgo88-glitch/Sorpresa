@@ -141,3 +141,9 @@ button.career{background:linear-gradient(180deg,#ffb627,#ff6b35);box-shadow:0 ca
 #online .note{max-width:calc(560*var(--u))}
 
 #touch,#touch *{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important;-webkit-user-drag:none}
+/* arrows drawn with CSS (no text in the buttons, so nothing can be selected on a long press) */
+#touch button{position:relative}
+#touch button::before{content:"";position:absolute;left:50%;top:50%;width:36%;height:36%;transform:translate(-50%,-50%);background:#fff;pointer-events:none}
+#touch button[data-k="left"]::before{clip-path:polygon(85% 0,0 50%,85% 100%);transform:translate(-58%,-50%)}
+#touch button[data-k="right"]::before{clip-path:polygon(15% 0,100% 50%,15% 100%);transform:translate(-42%,-50%)}
+#touch button[data-k="jump"]::before{clip-path:polygon(50% 0,100% 85%,0 85%);transform:translate(-50%,-55%)}
