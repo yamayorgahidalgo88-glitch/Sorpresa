@@ -14,8 +14,9 @@
       try {
         if (window.CrazyGames && window.CrazyGames.SDK) {
           sdk = window.CrazyGames.SDK;
-          await sdk.init();
-          ready = sdk.environment !== 'disabled';
+          // never let the SDK block the game (outside CrazyGames it may not answer)
+          const ok = await Promise.race([sdk.init().then(() => true), new Promise(r => setTimeout(() => r(false), 3000))]);
+          ready = ok && sdk.environment !== 'disabled';
         }
       } catch (e) {
         console.warn('[SDK] init failed', e);
