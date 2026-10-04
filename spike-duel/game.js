@@ -1948,23 +1948,30 @@
       c.fillStyle = st;
       c.beginPath(); c.moveTo(-PR, -9); c.bezierCurveTo(-18, -7, 6, -9, 26, -22);
       c.bezierCurveTo(4, -15, -18, -15, -PR, -17); c.closePath(); c.fill();
-      c.fillStyle = 'rgba(255,255,255,0.35)';
-      c.beginPath(); c.ellipse(-6, -34, 14, 4, -0.15, 0, Math.PI * 2); c.fill();
+      c.strokeStyle = 'rgba(255,255,255,0.35)'; c.lineWidth = 3;                         // gloss along the curve
+      c.beginPath(); c.arc(0, 0, PR - 9, Math.PI * 1.12, Math.PI * 1.32); c.stroke();
       c.restore();
       c.lineWidth = 3; c.strokeStyle = '#03224f'; half(); c.stroke();
-      // ankle opening at the top back, with the sock inside and a padded rim
-      c.fillStyle = '#0b1020'; c.beginPath(); c.ellipse(-16, -PR + 6, 14, 5.5, 0.12, 0, Math.PI * 2); c.fill();
-      c.fillStyle = '#e9ecef'; c.beginPath(); c.ellipse(-16, -PR + 5, 10, 3, 0.12, Math.PI, Math.PI * 2); c.fill();
-      c.strokeStyle = '#d4ff00'; c.lineWidth = 2; c.beginPath(); c.ellipse(-16, -PR + 6, 14, 5.5, 0.12, 0, Math.PI * 2); c.stroke();
-      // tongue and laces running down the instep, above the eye
-      c.fillStyle = '#e9f2ff'; c.strokeStyle = '#03224f'; c.lineWidth = 1.2;
-      c.beginPath(); c.moveTo(-4, -PR + 2); c.quadraticCurveTo(8, -PR + 4, 22, -30); c.lineTo(17, -26); c.quadraticCurveTo(6, -PR + 10, -5, -PR + 9); c.closePath(); c.fill(); c.stroke();
-      c.lineCap = 'round';
-      for (let k = 0; k < 4; k++) {
-        const t2 = k / 3, lx = -1 + t2 * 19, ly = -PR + 6 + t2 * 9;
-        c.fillStyle = '#03122e'; c.beginPath(); c.arc(lx - 3, ly - 3, 1.3, 0, Math.PI * 2); c.arc(lx + 3, ly + 3, 1.3, 0, Math.PI * 2); c.fill();
-        c.strokeStyle = '#ffffff'; c.lineWidth = 2.4;
-        c.beginPath(); c.moveTo(lx - 4, ly + 3); c.lineTo(lx + 4, ly - 3); c.moveTo(lx - 3, ly - 4); c.lineTo(lx + 3, ly + 4); c.stroke();
+      // pure side view: the ankle collar sits right on top of the dome, with the sock rising out of it
+      c.fillStyle = '#f1f3f5'; c.strokeStyle = '#03224f'; c.lineWidth = 1.5;
+      c.beginPath(); c.moveTo(-11, -PR + 3); c.lineTo(-10, -PR - 7); c.quadraticCurveTo(0, -PR - 10, 10, -PR - 7); c.lineTo(11, -PR + 3); c.closePath(); c.fill(); c.stroke();
+      c.fillStyle = '#d4ff00'; c.fillRect(-10, -PR - 5, 20, 2.5);                         // sock stripe
+      c.strokeStyle = '#0b1020'; c.lineWidth = 6; c.lineCap = 'round';                     // padded collar on the curve
+      c.beginPath(); c.arc(0, 0, PR - 2, Math.PI * 1.40, Math.PI * 1.60); c.stroke();
+      c.strokeStyle = '#d4ff00'; c.lineWidth = 1.5;
+      c.beginPath(); c.arc(0, 0, PR - 5.5, Math.PI * 1.40, Math.PI * 1.60); c.stroke();
+      // laces following the curve of the instep, from the collar down towards the toe
+      for (let k = 0; k < 5; k++) {
+        const a = Math.PI * (1.635 + k * 0.05), r = PR - 4;
+        const x = Math.cos(a) * r, y = Math.sin(a) * r;
+        const tx = -Math.sin(a), ty = Math.cos(a), nx = Math.cos(a), ny = Math.sin(a);   // tangent and normal
+        c.fillStyle = '#03122e';
+        c.beginPath(); c.arc(x - nx * 3, y - ny * 3, 1.3, 0, Math.PI * 2); c.fill();
+        c.strokeStyle = '#ffffff'; c.lineWidth = 2.6;
+        c.beginPath();
+        c.moveTo(x - tx * 3.5 - nx * 2.5, y - ty * 3.5 - ny * 2.5); c.lineTo(x + tx * 3.5 + nx * 2.5, y + ty * 3.5 + ny * 2.5);
+        c.moveTo(x + tx * 3.5 - nx * 2.5, y + ty * 3.5 - ny * 2.5); c.lineTo(x - tx * 3.5 + nx * 2.5, y - ty * 3.5 + ny * 2.5);
+        c.stroke();
       }
       // neon soleplate and studs
       c.fillStyle = '#d4ff00'; c.fillRect(-PR, -5, PR * 2, 5);
