@@ -3490,12 +3490,16 @@
   }
   function withGlide(draw) {
     const o = players[1 - mySide()], vo = net && net.visO, vb = net && net.visB;
+    // draw with the offsets applied, then restore the exact values (the simulation must stay untouched)
+    const ox = o && o.x, oy = o && o.y, bx = ball && ball.x, by = ball && ball.y;
     if (vo && o) { o.x += vo.x; o.y += vo.y; }
     if (vb && ball) { ball.x += vb.x; ball.y += vb.y; }
     if (window.__spikeBot && o && ball) window.__spikeDrawn = { bx: ball.x, by: ball.y, ox: o.x, oy: o.y };   // tests only
     draw();
-    if (vo && o) { o.x -= vo.x; o.y -= vo.y; vo.x *= 0.7; vo.y *= 0.7; if (hyp(vo.x, vo.y) < 0.3) net.visO = null; }
-    if (vb && ball) { ball.x -= vb.x; ball.y -= vb.y; vb.x *= 0.7; vb.y *= 0.7; if (hyp(vb.x, vb.y) < 0.3) net.visB = null; }
+    if (o) { o.x = ox; o.y = oy; }
+    if (ball) { ball.x = bx; ball.y = by; }
+    if (vo) { vo.x *= 0.7; vo.y *= 0.7; if (hyp(vo.x, vo.y) < 0.3) net.visO = null; }
+    if (vb) { vb.x *= 0.7; vb.y *= 0.7; if (hyp(vb.x, vb.y) < 0.3) net.visB = null; }
   }
   function renderOnlineMirrored() {
     const keep = { players, ball, fakes, score, particles, wf: wallFlash.slice() };
