@@ -3338,7 +3338,7 @@
     careerOpen = false; kind = 'online'; mode = 'solo';
     net.mid = cfg.mid; net.frame = 0; net.localIn.clear(); net.remoteIn.clear(); net.pred.clear(); net.hist.clear();
     net.lastRemote = 0; net.remoteContig = -1; net.remoteFrame = 0; net.rb = Infinity; net.adv = 0; net.doneFrame = -1;
-    net.visO = net.visB = null;
+    net.visO = net.visB = null; net.acked = -1;
     net.meReady = net.remReady = false;
     score = [0, 0]; server = 0; particles = []; fakes = []; time = 0; simSeed = cfg.seed >>> 0;
     venue = cfg.venue;
@@ -3397,6 +3397,7 @@
   }
   function netInputs(m) {
     if (m.mid !== net.mid) return;
+    if (typeof m.ack === 'number' && (net.acked == null || m.ack > net.acked)) net.acked = m.ack;
     const first = m.f - m.b.length + 1;
     m.b.forEach((bits, k) => {
       const g = first + k;
@@ -3453,9 +3454,11 @@
     const now = performance.now();
     if (now - net.pingT > 1000) { net.pingT = now; net.send({ t: 'pi', c: now }); }
     // my latest buttons, with some history so a lost packet does not matter
+    // resend everything the rival has not confirmed yet (at least the last 24 frames)
+    const from = Math.max(0, Math.min(net.frame - 24, (net.acked == null ? -1 : net.acked) + 1), net.frame - 240);
     const b = [];
-    for (let g = Math.max(0, net.frame - 24); g < net.frame; g++) b.push(net.localIn.get(g) || 0);
-    if (b.length) net.send({ t: 'i', mid: net.mid, f: net.frame - 1, b });
+    for (let g = from; g < net.frame; g++) b.push(net.localIn.get(g) || 0);
+    if (b.length) net.send({ t: 'i', mid: net.mid, f: net.frame - 1, b, ack: net.remoteContig });
     // the host sends a confirmed state every half second
     if (net.role === 'host' && now - net.syncT > 500) {
       const F = Math.min(net.remoteContig + 1, net.frame - 1);
@@ -3468,13 +3471,11 @@
     }
     // keep both devices on the same frame: the one ahead slows down a little, the one behind catches up
     const ahead = net.frame - (net.remoteFrame + (net.rtt / 2000) / STEP);
-    net.adv = net.adv * 0.9 + ahead * 0.1;
-    if (net.adv > 3) return -1;
-    if (net.adv < -3) return 1;
-    return 0;
+    net.adv = net.adv * 0.95 + ahead * 0.05;
+    return net.adv;
   }
   // how far a device may run on predictions before waiting for the rival's buttons
-  const MAX_PREDICT = 36;
+  const MAX_PREDICT = 60;   // 0.5 s
   // views for drawing: the guest sees everything mirrored, itself on the left
   function viewPlayer(side) { return mirrorP(players[side]); }
   function viewBall() { return ball && mirrorB(ball); }
@@ -3542,23 +3543,25 @@
   // ---------- Loop ----------
   let last = 0, acc = 0;
   function frame(ts) {
-    const dt = Math.min(0.05, (ts - last) / 1000 || 0);
+    const raw = Math.max(0, (ts - last) / 1000 || 0);
+    const dt = Math.min(0.05, raw);
     last = ts;
     if (state === 'menu') time += dt;
-    acc += dt;
     if (kind === 'online' && net && players.length && state !== 'result') {
-      const adj = onlineFrame(dt);
-      let steps = 0;
-      while (acc >= STEP) {
-        acc -= STEP;
-        if (adj < 0 && steps === 0 && Math.random() < 0.5) { steps++; continue; }      // ahead: hold back a frame
-        if (net.frame - (net.remoteContig + 1) >= MAX_PREDICT && state !== 'result') break;   // wait for the rival
-        onlineStep(); steps++;
+      // Online: never throw time away (a hiccup on one phone would slow both down).
+      // The device that is ahead runs at most 4% slower, the one behind 4% faster, until they match.
+      const adv = onlineFrame(raw);
+      const speed = adv > 1.5 ? 1 - Math.min(0.04, (adv - 1.5) * 0.01) : adv < -1.5 ? 1 + Math.min(0.04, (-adv - 1.5) * 0.01) : 1;
+      acc += Math.min(0.25, raw) * speed;
+      let n = 0;
+      while (acc >= STEP && n < 40) {
+        if (net.frame - (net.remoteContig + 1) >= MAX_PREDICT) break;   // too far ahead of the rival's buttons: wait, keep the time
+        onlineStep(); acc -= STEP; n++;
       }
-      if (adj > 0 && net.frame - (net.remoteContig + 1) < MAX_PREDICT) onlineStep();         // behind: catch up
-      if (acc > STEP * 4) acc = STEP * 4;
+      if (acc > 0.3) acc = 0.3;
       withGlide(() => (mySide() === 1 ? renderOnlineMirrored() : render()));
     } else {
+      acc += dt;
       while (acc >= STEP) { update(STEP); acc -= STEP; }
       render();
     }
