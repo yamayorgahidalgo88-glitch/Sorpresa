@@ -21,7 +21,7 @@
       characters: 'Characters', balls: 'Balls', supers: 'Supers', paused: 'Paused', resume: 'Resume', menu: 'Menu',
       noThanks: 'No, thanks', youWin: 'You win!', youLose: 'You lose', p1Wins: 'Player 1 wins!', p2Wins: 'Player 2 wins!',
       next: 'Next rival', retry: 'Retry', rematch: 'Rematch', double: 'Double coins', coinsEarned: '+{n} coins',
-      champion: 'Tour champion!', locked: 'Beat the previous rival', select: 'Select', selected: 'Selected',
+      champion: 'Tour champion!', claim: 'Claim prize', pickBox: 'Pick a box!', cont: 'Continue', prizeCoins: '+{n} coins', prizeItem: 'New {type}: {name}!', tCharacter: 'character', tBall: 'ball', tSuper: 'super', bossNeed: 'You need {n} ★ in this world to face the boss', locked: 'Beat the previous rival', select: 'Select', selected: 'Selected',
       adUnavailable: 'Ad not available, try again later', serve: 'Serve!', point: 'Point!', superReady: 'SUPER',
       controls: '1P: A/D or arrows to move, W / up / space to jump  ·  2P: A/D/W vs arrows',
       rival: 'Rival {n}', beach: 'beach', gym: 'warehouse', rooftop: 'rooftop', snow: 'snow', jungle: 'jungle', volcano: 'volcano', moon: 'moon',
@@ -36,14 +36,14 @@
       s_shrink: 'Shrink', s_shrink_d: 'Whoever stops it shrinks this point',
       s_heavy: 'Meteor', s_heavy_d: 'Falls hard and barely bounces back',
       s_ice: 'Ice', s_ice_d: 'Whoever stops it freezes for 2 seconds',
-      s_zerog: 'Zero Gravity', s_zerog_d: 'Whoever stops it floats this point',
-      s_lightning: 'Lightning', s_lightning_d: 'Zigzags and stuns for 1 second',
+      s_zerog: 'Zero Gravity', s_zerog_d: 'Whoever stops it floats for 2 seconds',
+      s_lightning: 'Lightning', s_lightning_d: 'Hovers over the net, then strikes a random spot',
       s_ghost: 'Ghost', s_ghost_d: 'Turns invisible past the net',
       s_clones: 'Clones', s_clones_d: 'Splits into 3 balls; only one is real',
       s_confusion: 'Confusion', s_confusion_d: 'Whoever stops it gets reversed controls this point',
       e_sticky: 'Stuck!', e_shrink: 'Tiny!', e_heavy: 'Too heavy!', e_ice: 'Frozen!', e_zerog: 'Floating!',
       e_lightning: 'Zapped!', e_confusion: 'Confused!',
-      s_tornado: 'Tornado', s_tornado_d: 'Spins in wild loops through the air',
+      s_tornado: 'Tornado', s_tornado_d: 'Spins faster and faster as it flies',
       s_magnet: 'Magnet', s_magnet_d: 'Bends away from whoever tries to stop it',
       s_teleport: 'Teleport', s_teleport_d: 'Vanishes past the net and pops up somewhere else',
       s_bomb: 'Bomb', s_bomb_d: 'Explodes on touch and blasts the rival back',
@@ -61,7 +61,7 @@
       characters: 'Personajes', balls: 'Balones', supers: 'Súpers', paused: 'Pausa', resume: 'Seguir', menu: 'Menú',
       noThanks: 'No, gracias', youWin: '¡Has ganado!', youLose: 'Has perdido', p1Wins: '¡Gana el jugador 1!', p2Wins: '¡Gana el jugador 2!',
       next: 'Siguiente rival', retry: 'Reintentar', rematch: 'Revancha', double: 'Duplicar monedas', coinsEarned: '+{n} monedas',
-      champion: '¡Campeón del torneo!', locked: 'Gana al rival anterior', select: 'Elegir', selected: 'Elegido',
+      champion: '¡Campeón del torneo!', claim: 'Reclamar premio', pickBox: '¡Elige una caja!', cont: 'Continuar', prizeCoins: '+{n} monedas', prizeItem: '¡Nuevo {type}: {name}!', tCharacter: 'personaje', tBall: 'balón', tSuper: 'súper', bossNeed: 'Necesitas {n} ★ en este mundo para el jefe', locked: 'Gana al rival anterior', select: 'Elegir', selected: 'Elegido',
       adUnavailable: 'Anuncio no disponible, prueba más tarde', serve: '¡Saca!', point: '¡Punto!', superReady: 'SÚPER',
       controls: '1J: A/D o flechas para moverte, W / arriba / espacio para saltar  ·  2J: A/D/W contra flechas',
       rival: 'Rival {n}', beach: 'playa', gym: 'almacén', rooftop: 'azotea', snow: 'nieve', jungle: 'selva', volcano: 'volcán', moon: 'luna',
@@ -76,14 +76,14 @@
       s_shrink: 'Encoger', s_shrink_d: 'Quien la para se encoge en este punto',
       s_heavy: 'Meteorito', s_heavy_d: 'Cae a plomo y apenas rebota',
       s_ice: 'Hielo', s_ice_d: 'Quien la para se congela 2 segundos',
-      s_zerog: 'Gravedad cero', s_zerog_d: 'Quien la para flota en este punto',
-      s_lightning: 'Rayo', s_lightning_d: 'Va en zigzag y paraliza 1 segundo',
+      s_zerog: 'Gravedad cero', s_zerog_d: 'Quien la para flota 2 segundos',
+      s_lightning: 'Rayo', s_lightning_d: 'Se queda sobre la red y sale disparado a un punto al azar',
       s_ghost: 'Fantasma', s_ghost_d: 'Se vuelve invisible al pasar la red',
       s_clones: 'Clones', s_clones_d: 'Se divide en 3 balones; solo uno es real',
       s_confusion: 'Confusión', s_confusion_d: 'Quien la para tiene los controles al revés en este punto',
       e_sticky: '¡Pegado!', e_shrink: '¡Mini!', e_heavy: '¡Pesa mucho!', e_ice: '¡Congelado!', e_zerog: '¡Flotando!',
       e_lightning: '¡Electrocutado!', e_confusion: '¡Confundido!',
-      s_tornado: 'Tornado', s_tornado_d: 'Da vueltas locas por el aire',
+      s_tornado: 'Tornado', s_tornado_d: 'Gira cada vez más rápido mientras vuela',
       s_magnet: 'Imán', s_magnet_d: 'Se aparta de quien intenta pararla',
       s_teleport: 'Teletransporte', s_teleport_d: 'Desaparece al pasar la red y aparece en otro sitio',
       s_bomb: 'Bomba', s_bomb_d: 'Explota al tocarla y lanza al rival hacia atrás',
@@ -172,7 +172,7 @@
   const SUPER = id => SUPERS.find(s => s.id === id);
   // TEMPORARY for playtesting: everything in the shop costs 0. Prices above are kept;
   // set this back to false to restore them.
-  const FREE_SHOP = false;
+  const FREE_SHOP = true;
   const VENUES = ['beach', 'gym', 'rooftop', 'snow', 'jungle', 'volcano', 'moon'];
   const NICKS = ['Wave', 'Lime', 'Coral', 'Tank', 'Frost', 'Volt', 'Shadow', 'Ace', 'Blaze', 'Storm', 'Pixel', 'Rocket',
     'Nova', 'Bolt', 'Kiwi', 'Mango', 'Turbo', 'Ziggy', 'Sunny', 'Echo'];
@@ -180,6 +180,8 @@
   const BOSS_SUPERS = [4, 13, 18, 9, 19];          // ice, ink, bomb, confusion, earthquake
   const WORLD_VENUES = ['beach', 'jungle', 'snow', 'rooftop', 'gym'];
   const TOUR_SIZE = 8, CAREER_LEVELS = 50;
+  // stars needed (from the 9 regular levels of a world) to unchain its boss
+  const BOSS_NEED = [12, 15, 18, 21, 24];
 
   function rng(seed) { // mulberry32
     let a = seed >>> 0;
@@ -199,10 +201,11 @@
     const r = rng((Math.random() * 1e9) | 0);
     const nicks = NICKS.slice().sort(() => r() - 0.5);
     const rivals = [];
+    const chars = CHARS.map((_, i) => i).sort(() => r() - 0.5);   // every rival a different character
     for (let i = 0; i < TOUR_SIZE; i++) {
       const lo = Math.max(0, Math.floor(i * 2.4) - 2), hi = Math.min(SUPERS.length - 1, Math.floor(i * 2.4) + 2);
       rivals.push({
-        nick: nicks[i], char: Math.floor(r() * CHARS.length),
+        nick: nicks[i], char: chars[i],
         venue: pick(r, VENUES.filter(v => v !== 'volcano')), super: lo + Math.floor(r() * (hi - lo + 1)), ai: i + 1,
       });
     }
@@ -223,6 +226,13 @@
       super: Math.max(0, cap - 4) + Math.floor(r() * (Math.min(cap, 4) + 1)), ai: 1 + (level - 1) * 7 / 49,
     };
   }
+
+  function worldStars(w) {
+    let n = 0;
+    for (let l = w * 10 + 1; l <= w * 10 + 9; l++) n += save.cstars[l] || 0;
+    return n;
+  }
+  const bossUnlocked = w => worldStars(w) >= BOSS_NEED[w];
 
   // ---------- Save ----------
   const save = { coins: 0, chars: [0], balls: [0], supers: [0], char: 0, ball: 0, superSel: 0, muted: false,
@@ -482,13 +492,17 @@
       p.vy = fx.float ? -P_JUMP * 0.75 : fx.balloon ? -P_JUMP * 0.6 : -P_JUMP;
       p.onGround = false; Sound.jump();
     }
+    if (fx.float) {                       // floats for 2 seconds, then drops back down
+      fx.float = Math.max(0, fx.float - dt);
+      if (!fx.float) p.onGround = false;
+    }
     p.vy += P_GRAV * (fx.float ? 0.28 : 1) * dt;
     p.x += p.vx * dt;
     p.y += p.vy * dt;
     if (p.y < 150) { p.y = 150; p.vy = Math.max(p.vy, 0); }
-    const floor = fx.float ? GROUND - 26 - Math.sin(time * 3 + p.side * 2) * 8 : GROUND;
+    const floor = fx.float ? GROUND - 70 - Math.sin(time * 3 + p.side * 2) * 10 : GROUND;
     if (p.y >= floor) {
-      if (fx.float) { p.y = Math.max(floor, p.y - 90 * dt); }      // rise slowly and hover, bobbing
+      if (fx.float) { p.y = Math.max(floor, p.y - 150 * dt); }      // rise slowly and hover, bobbing
       else { if (!p.onGround && p.vy > 300) p.squash = 0.18; p.y = GROUND; }
       p.vy = 0; p.onGround = true;
     }
@@ -535,7 +549,7 @@
     if (id === 'confusion') { fx.confused = true; key = 'e_confusion'; }
     else if (id === 'ice') { fx.frozen = 2; key = 'e_ice'; burst(p.x, p.y - 20, 18, ['#caf0f8', '#48cae4', '#ffffff']); }
     else if (id === 'lightning') { fx.stunned = 1; key = 'e_lightning'; burst(p.x, p.y - 20, 16, ['#ffd60a', '#ffffff']); }
-    else if (id === 'zerog') { fx.float = true; key = 'e_zerog'; }
+    else if (id === 'zerog') { fx.float = 2; key = 'e_zerog'; }
     else if (id === 'shrink') { fx.shrink = true; key = 'e_shrink'; }
     else if (id === 'sticky') { fx.sticky = true; key = 'e_sticky'; }
     else if (id === 'heavy') { key = 'e_heavy'; }
@@ -614,6 +628,7 @@
     p.power = 0; shake = 0.35; Sound.superSpike();
     ball.super = s.id; ball.superOwner = p.side; ball.superTime = 3; ball.zig = 0;
     ball.crossed = false; ball.flight = 0; ball.teleported = false; ball.turned = false; ball.returned = false;
+    ball.st = 0; ball.tph = 0; ball.hold = 0; ball.struck = false;
     burst(ball.x, ball.y, 26, [s.color, s.glow, '#ffffff']);
     fakes = [];
     if (s.id === 'clones') {
@@ -662,17 +677,31 @@
   // Flight behaviour of super balls.
   function updateBallSuper(dt) {
     if (!ball.super) return 1;
+    const towards = ball.superOwner === 0 ? 1 : -1;
+    ball.st = (ball.st || 0) + dt;
+    // Lightning: flies spinning to the net, hovers above it for 1-3 s, then strikes a random spot
     if (ball.super === 'lightning' && !ball.returned) {
-      ball.zig -= dt;
-      if (ball.zig <= 0) {
-        ball.zig = 0.11;
-        const side = Math.random() < 0.5 ? -1 : 1;
-        ball.vx += side * 300;
-        ball.vy += 120;
-        if (Math.random() < 0.6) burst(ball.x, ball.y, 3, ['#ffd60a', '#ffffff']);
+      ball.spin = 30 * towards;
+      if (!ball.hold && !ball.struck && (ball.x - NET_X) * towards >= -12) {
+        ball.hold = 1 + Math.random() * 2;
+        ball.holdY = Math.max(90, Math.min(ball.y, NET_TOP - 70));
+        burst(NET_X, ball.holdY, 14, ['#ffd60a', '#ffffff']);
+      }
+      if (ball.hold) {
+        ball.hold -= dt;
+        ball.x = NET_X; ball.y = ball.holdY + Math.sin(ball.st * 9) * 4; ball.vx = 0; ball.vy = 0;
+        if (Math.random() < dt * 20) burst(ball.x + (Math.random() - 0.5) * 30, ball.y + (Math.random() - 0.5) * 30, 2, ['#ffd60a', '#ffffff']);
+        if (ball.hold <= 0) {
+          ball.hold = 0; ball.struck = true;
+          const tx = NET_X + towards * (70 + Math.random() * (390 + courtExt - 70)), ty = GROUND;
+          const d = norm(tx - ball.x, ty - ball.y);
+          ball.vx = d.x * 560; ball.vy = d.y * 560;
+          shake = Math.max(shake, 0.2); Sound.superSpike();
+          burst(ball.x, ball.y, 20, ['#ffd60a', '#fff3b0', '#ffffff']);
+        }
+        return 0;
       }
     }
-    const towards = ball.superOwner === 0 ? 1 : -1;
     const past = (ball.x - NET_X) * towards > 0;     // on the receiving side
     if (past && !ball.crossed) { ball.crossed = true; ball.flight = 0; }
     if (ball.crossed && !past) ball.returned = true;   // came back over the net: stop flight tricks
@@ -680,9 +709,14 @@
     if (ball.returned) return 1;
     const rec = players[1 - ball.superOwner];
     if (ball.super === 'tornado') {
-      ball.vx += Math.sin(time * 16) * 2600 * dt;
-      ball.vy += Math.cos(time * 16) * 1800 * dt;
-      if (Math.random() < dt * 30) particles.push({ x: ball.x, y: ball.y, vx: Math.sin(time * 16) * 200, vy: -100,
+      // starts with slow loops that keep speeding up (capped so it stays playable)
+      const w = Math.min(24, 5 + ball.st * 11);
+      ball.tph = (ball.tph || 0) + w * dt;
+      const amp = Math.min(2300, 1300 + ball.st * 700);
+      ball.vx += Math.sin(ball.tph) * amp * dt;
+      ball.vy += Math.cos(ball.tph) * amp * 0.7 * dt;
+      ball.spin = w * 1.6 * towards;
+      if (Math.random() < dt * 30) particles.push({ x: ball.x, y: ball.y, vx: Math.sin(ball.tph) * 200, vy: -100,
         life: 0.4, max: 0.4, color: '#cfd8dc', r: 3 });
     } else if (ball.super === 'magnet' && past && rec) {
       ball.vx += Math.sign(ball.x - rec.x || towards) * 1500 * dt;
@@ -859,7 +893,7 @@
     document.getElementById('hud').classList.add('hidden');
     document.getElementById('touch').classList.add('hidden');
     const won = score[0] > score[1];
-    let coins = 0, title;
+    let coins = 0, title, champion = false;
     let note = '';
     if (kind === 'tour') {
       const run = save.tourRun;
@@ -868,7 +902,7 @@
         run.round++;
         if (run.round >= TOUR_SIZE) {
           coins += 150; note = t('tourPrize', { n: 150 });
-          title = t('champion'); save.tourRun = null;
+          title = t('champion'); save.tourRun = null; champion = true;
         } else title = t('youWin');
         Sound.win();
         Platform.happytime();
@@ -898,7 +932,7 @@
     }
     save.coins += coins;
     persist();
-    lastResult = { won, coins, title, note };
+    lastResult = { won, coins, title, note, champion };
 
     // A win in the tour offers an optional rewarded ad instead of a midgame ad,
     // so the two are never combined on the same transition.
@@ -907,7 +941,7 @@
     const offerReward = kind !== 'duo';
     lastResult.bonus = won ? coins : Math.max(15, coins * 2);
     if (!offerReward) await runAd('midgame');
-    showResult(offerReward);
+    if (champion) showTrophy(); else showResult(offerReward);
   }
 
   async function runAd(type) {
@@ -933,6 +967,113 @@
     else if (r.won && save.tourRun) next.textContent = t('next');
     else next.textContent = t('newTour');
     showScreen('result');
+  }
+
+  // ---------- Tournament trophy: confetti, then pick one of three prize boxes ----------
+  let trophyOpen = false, confetti = [], boxPrizes = [];
+  function drawCup() {
+    const cv = document.getElementById('cup'), c = cv.getContext('2d');
+    c.clearRect(0, 0, 320, 320);
+    const gold = c.createLinearGradient(70, 0, 250, 0);
+    gold.addColorStop(0, '#b8860b'); gold.addColorStop(0.35, '#ffe066'); gold.addColorStop(0.55, '#ffd60a'); gold.addColorStop(1, '#a8740a');
+    c.lineWidth = 16; c.strokeStyle = '#d4a017';                                  // handles
+    c.beginPath(); c.arc(72, 110, 40, Math.PI * 0.5, Math.PI * 1.5); c.stroke();
+    c.beginPath(); c.arc(248, 110, 40, -Math.PI * 0.5, Math.PI * 0.5); c.stroke();
+    c.fillStyle = gold;                                                         // bowl
+    c.beginPath(); c.moveTo(66, 50); c.lineTo(254, 50); c.bezierCurveTo(254, 150, 210, 196, 160, 200); c.bezierCurveTo(110, 196, 66, 150, 66, 50); c.fill();
+    c.fillStyle = '#fff3b0'; c.beginPath(); c.ellipse(160, 50, 94, 12, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#b8860b'; c.beginPath(); c.ellipse(160, 52, 84, 8, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = gold; c.fillRect(146, 196, 28, 44);                          // stem
+    c.beginPath(); c.ellipse(160, 240, 40, 10, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#3d2b1f'; c.fillRect(100, 248, 120, 46);                    // base and plaque
+    c.fillStyle = gold; c.fillRect(92, 244, 136, 10); c.fillRect(92, 290, 136, 10);
+    c.fillStyle = '#ffd60a'; c.fillRect(122, 260, 76, 24);
+    c.fillStyle = '#3d2b1f'; c.font = '900 13px "Trebuchet MS",sans-serif'; c.textAlign = 'center'; c.fillText('SPIKE DUEL', 160, 277);
+    c.fillStyle = '#fff8dc'; c.save(); c.translate(160, 112); c.beginPath();        // star on the bowl
+    for (let k = 0; k < 10; k++) { const r = k % 2 ? 11 : 26, a = -Math.PI / 2 + k * Math.PI / 5; c.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
+    c.closePath(); c.fill(); c.restore();
+    c.fillStyle = 'rgba(255,255,255,0.45)'; c.beginPath(); c.ellipse(105, 100, 10, 34, -0.2, 0, Math.PI * 2); c.fill();
+  }
+  function confettiLoop() {
+    if (!trophyOpen) return;
+    const cv = document.getElementById('confetti'), r = cv.getBoundingClientRect();
+    if (cv.width !== Math.round(r.width) || cv.height !== Math.round(r.height)) { cv.width = Math.round(r.width); cv.height = Math.round(r.height); }
+    const c = cv.getContext('2d'), w = cv.width, h = cv.height;
+    if (!confetti.length) for (let i = 0; i < 150; i++) confetti.push({ x: Math.random() * w, y: -Math.random() * h, vy: 60 + Math.random() * 90,
+      sw: Math.random() * 6, a: Math.random() * 6, va: (Math.random() - 0.5) * 8, s: 5 + Math.random() * 6,
+      col: ['#ff6b35', '#ffd60a', '#2ec27e', '#2a9df4', '#ff5d8f', '#c77dff', '#ffffff'][i % 7] });
+    c.clearRect(0, 0, w, h);
+    const dt = 1 / 60, k = Math.max(1, h / 400);
+    for (const p of confetti) {
+      p.y += p.vy * dt * k; p.a += p.va * dt; p.sw += dt * 3;
+      const x = p.x + Math.sin(p.sw) * 14 * k;
+      if (p.y > h + 20) { p.y = -20; p.x = Math.random() * w; }
+      c.save(); c.translate(x, p.y); c.rotate(p.a); c.scale(1, Math.abs(Math.cos(p.a * 1.3)) + 0.2);
+      c.fillStyle = p.col; c.fillRect(-p.s * k / 2, -p.s * k / 4, p.s * k, p.s * k / 2); c.restore();
+    }
+    requestAnimationFrame(confettiLoop);
+  }
+  function makePrize(taken) {
+    const pool = [];
+    const add = (list, owned, kind, label) => list.forEach((it, i) => {
+      if (!owned.includes(i) && !taken.some(q => q.kind === kind && q.i === i)) pool.push({ kind, i, label });
+    });
+    add(CHARS, save.chars, 'chars', 'tCharacter'); add(BALLS, save.balls, 'balls', 'tBall'); add(SUPERS, save.supers, 'supers', 'tSuper');
+    if (pool.length && Math.random() < 0.2) return pool[Math.floor(Math.random() * pool.length)];
+    const amounts = [50, 60, 75, 90, 100, 120, 150, 200];                       // small amounts are the most likely
+    return { kind: 'coins', n: amounts[Math.floor(Math.pow(Math.random(), 2) * amounts.length)] };
+  }
+  function prizeName(q) {
+    return q.kind === 'chars' ? CHARS[q.i].name : q.kind === 'balls' ? BALLS[q.i].name : t('s_' + SUPERS[q.i].id);
+  }
+  function fillBox(box, q) {
+    const el = box.querySelector('.prize'); el.innerHTML = '';
+    if (q.kind === 'coins') { el.textContent = '● ' + q.n; return; }
+    el.appendChild(previewCanvas(g => {
+      if (q.kind === 'chars') drawPlayer({ char: CHARS[q.i], dark: false, side: 0, squash: 0, onGround: true, y: GROUND }, 45, 62, 0.8, 80, 30, g);
+      else if (q.kind === 'balls') drawBall({ x: 45, y: 36, angle: 0.4 }, BALLS[q.i], g, 26);
+      else drawSuperIcon(g, SUPERS[q.i].id, 45, 36, 26);
+    }));
+    const n = document.createElement('div'); n.textContent = prizeName(q); el.appendChild(n);
+  }
+  function showTrophy() {
+    const tr = document.getElementById('trophy');
+    tr.classList.remove('claimed');
+    document.getElementById('boxes').classList.add('hidden');
+    document.getElementById('boxes').classList.remove('done');
+    document.querySelectorAll('#trophy .box').forEach(b => { b.className = 'box'; b.querySelector('.prize').innerHTML = ''; });
+    document.getElementById('btnClaim').classList.remove('hidden');
+    document.getElementById('btnTrophyGo').classList.add('hidden');
+    document.getElementById('boxNote').textContent = lastResult.note;
+    drawCup();
+    showScreen('trophy');
+    trophyOpen = true; confetti = []; requestAnimationFrame(confettiLoop);
+  }
+  function claimPrize() {
+    Sound.click();
+    document.getElementById('trophy').classList.add('claimed');
+    document.getElementById('btnClaim').classList.add('hidden');
+    document.getElementById('boxes').classList.remove('hidden');
+    document.getElementById('boxNote').textContent = t('pickBox');
+    boxPrizes = [];
+    for (let i = 0; i < 3; i++) boxPrizes.push(makePrize(boxPrizes));
+  }
+  function openBox(i) {
+    const row = document.getElementById('boxes');
+    if (row.classList.contains('done')) return;
+    row.classList.add('done');
+    const q = boxPrizes[i];
+    if (q.kind === 'coins') { save.coins += q.n; lastResult.coins += q.n; }
+    else save[q.kind].push(q.i);
+    persist(); Sound.win();
+    document.querySelectorAll('#trophy .box').forEach((b, k) => {
+      fillBox(b, boxPrizes[k]);
+      b.classList.add('open', k === i ? 'chosen' : 'other');
+    });
+    document.getElementById('boxNote').textContent = q.kind === 'coins' ? t('prizeCoins', { n: q.n })
+      : t('prizeItem', { type: t(q.label), name: prizeName(q) });
+    document.getElementById('btnTrophyGo').classList.remove('hidden');
+    confetti = [];
   }
 
   function afterRewardChoice() {
@@ -2578,7 +2719,7 @@
   }
 
   // ---------- Menus ----------
-  const screens = ['menu', 'tour', 'career', 'shop', 'pause', 'result'];
+  const screens = ['menu', 'tour', 'career', 'shop', 'pause', 'result', 'trophy'];
   function showScreen(id) {
     for (const s of screens) document.getElementById(s).classList.toggle('hidden', s !== id);
     if (id) refreshCoins();
@@ -2683,13 +2824,117 @@
     beach: ['#4cc9f0', '#f4d58d'], jungle: ['#2d6a4f', '#74c69d'], snow: ['#90e0ef', '#f8f9fa'],
     rooftop: ['#240046', '#7b2cbf'], gym: ['#3d405b', '#d8a35d'],
   };
+  // Themed backdrop behind the level tiles of each world.
+  function drawWorldScenery(c, v) {
+    const W2 = MAP_W, H2 = MAP_H, lin = (y0, y1, stops) => {
+      const g = c.createLinearGradient(0, y0, 0, y1); stops.forEach((col, i) => g.addColorStop(i / (stops.length - 1), col)); return g;
+    };
+    const blob = (x, y, rx, ry, col) => { c.fillStyle = col; c.beginPath(); c.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); c.fill(); };
+    if (v === 'beach') {
+      c.fillStyle = lin(0, 90, ['#4cc9f0', '#a8e6ff']); c.fillRect(0, 0, W2, 90);
+      blob(760, 40, 26, 26, '#fff3b0');
+      c.fillStyle = lin(80, 170, ['#0077b6', '#00b4d8']); c.fillRect(0, 80, W2, 95);
+      c.strokeStyle = 'rgba(255,255,255,0.5)'; c.lineWidth = 2;
+      for (let r = 0; r < 4; r++) for (let x = 0; x < W2; x += 70) {
+        const y = 96 + r * 20, o = (time * 20 + r * 25) % 70;
+        c.beginPath(); c.moveTo(x + o, y); c.quadraticCurveTo(x + o + 12, y - 5, x + o + 24, y); c.stroke();
+      }
+      c.fillStyle = '#e9f5ff';                                    // foam line
+      c.beginPath(); c.moveTo(0, 178);
+      for (let x = 0; x <= W2; x += 20) c.lineTo(x, 172 + Math.sin(x * 0.05 + time * 2) * 4);
+      c.lineTo(W2, 186); c.lineTo(0, 186); c.fill();
+      c.fillStyle = lin(176, H2, ['#f7dc9c', '#e6be6a']); c.fillRect(0, 180, W2, H2 - 180);
+      for (let i = 0; i < 70; i++) { c.fillStyle = 'rgba(160,120,60,0.35)'; c.fillRect(hash(i) * W2, 190 + hash(i + 1) * 105, 2, 2); }
+      for (const [x, y] of [[40, 270], [820, 250], [470, 288]]) {   // shells and a starfish
+        c.fillStyle = '#ff8fab'; c.beginPath(); c.arc(x, y, 6, Math.PI, 0); c.fill();
+      }
+      c.fillStyle = '#ff7b00'; c.save(); c.translate(140, 285); for (let k = 0; k < 5; k++) { c.rotate(Math.PI * 2 / 5); c.beginPath(); c.ellipse(0, -6, 3, 7, 0, 0, Math.PI * 2); c.fill(); } c.restore();
+      c.fillStyle = '#d62828'; c.fillRect(800, 200, 4, 70);         // beach umbrella
+      c.fillStyle = '#ffffff'; c.beginPath(); c.moveTo(760, 205); c.quadraticCurveTo(802, 160, 846, 205); c.fill();
+      c.fillStyle = '#d62828'; c.beginPath(); c.moveTo(780, 205); c.quadraticCurveTo(802, 168, 803, 205); c.fill();
+    } else if (v === 'jungle') {
+      c.fillStyle = lin(0, H2, ['#1b4332', '#2d6a4f', '#52b788']); c.fillRect(0, 0, W2, H2);
+      for (let i = 0; i < 9; i++) blob(i * 110 + 20, 20, 90, 50, ['#081c15', '#1b4332'][i % 2]);
+      for (let i = 0; i < 6; i++) { c.fillStyle = '#3a2618'; c.fillRect(i * 160 + 40, 20, 16, H2); }
+      c.strokeStyle = '#40916c'; c.lineWidth = 3;                      // hanging vines
+      for (let i = 0; i < 12; i++) { const x = i * 75 + 10; c.beginPath(); c.moveTo(x, 0); c.quadraticCurveTo(x + 10, 50, x, 70 + hash(i) * 50); c.stroke(); }
+      c.fillStyle = lin(210, H2, ['#4cc9f0', '#0077b6']);               // river across the bottom
+      c.beginPath(); c.moveTo(0, 250);
+      for (let x = 0; x <= W2; x += 20) c.lineTo(x, 245 + Math.sin(x * 0.02 + 1) * 10);
+      c.lineTo(W2, H2); c.lineTo(0, H2); c.fill();
+      c.strokeStyle = 'rgba(255,255,255,0.4)'; c.lineWidth = 2;
+      for (let x = 0; x < W2; x += 60) { const o = (time * 25) % 60; c.beginPath(); c.moveTo(x + o, 270); c.lineTo(x + o + 20, 270); c.stroke(); }
+      for (const x of [30, 300, 560, 830]) for (let k = 0; k < 5; k++) {  // ferns
+        c.save(); c.translate(x, 245); c.rotate(-1.2 + k * 0.6); blob(0, -22, 7, 24, '#2d6a4f'); c.restore();
+      }
+    } else if (v === 'snow') {
+      c.fillStyle = lin(0, 160, ['#5b8fc7', '#cfe2f3']); c.fillRect(0, 0, W2, 160);
+      for (const [base, amp, col] of [[120, 50, '#8aa5c4'], [150, 40, '#5f7f9f']]) {
+        c.fillStyle = col; c.beginPath(); c.moveTo(0, 200);
+        for (let x = 0; x <= W2; x += 40) c.lineTo(x, base - Math.abs(Math.sin(x * 0.012 + amp)) * amp - hash(x) * 14);
+        c.lineTo(W2, 200); c.fill();
+      }
+      c.fillStyle = lin(150, H2, ['#ffffff', '#dbe9f6']); c.fillRect(0, 150, W2, H2 - 150);
+      for (const [x, y, sc] of [[30, 140, 1], [100, 150, 0.7], [800, 145, 1.1], [730, 155, 0.7]]) {
+        for (let k = 0; k < 3; k++) { c.fillStyle = '#1d4a3a'; c.beginPath(); c.moveTo(x - (22 - k * 5) * sc, y - k * 16 * sc); c.lineTo(x, y - (k * 16 + 28) * sc); c.lineTo(x + (22 - k * 5) * sc, y - k * 16 * sc); c.fill(); }
+      }
+      for (let i = 0; i < 60; i++) { c.fillStyle = 'rgba(255,255,255,0.85)'; c.beginPath(); c.arc((hash(i) * W2 + time * 10) % W2, (hash(i + 3) * H2 + time * 30) % H2, 1.5 + (i % 3), 0, Math.PI * 2); c.fill(); }
+    } else if (v === 'rooftop') {
+      c.fillStyle = lin(0, H2, ['#10002b', '#3c096c', '#7b2cbf']); c.fillRect(0, 0, W2, H2);
+      for (let i = 0; i < 50; i++) { c.fillStyle = 'rgba(255,255,255,' + (0.4 + 0.4 * Math.sin(time * 2 + i)) + ')'; c.fillRect(hash(i) * W2, hash(i + 9) * 110, 2, 2); }
+      blob(90, 50, 22, 22, '#fff8dc');
+      for (let i = 0; i < 16; i++) {                                  // skyline with lit windows
+        const bw = 40 + hash(i) * 30, bh = 90 + hash(i + 5) * 120, bx = i * 56 - 10;
+        c.fillStyle = i % 2 ? '#1a1033' : '#24123f'; c.fillRect(bx, H2 - bh, bw, bh);
+        for (let wy = H2 - bh + 10; wy < H2 - 10; wy += 16) for (let wx = bx + 6; wx < bx + bw - 6; wx += 12)
+          if (hash(wx * 3 + wy) > 0.45) { c.fillStyle = hash(wx + wy) > 0.8 ? '#ff4d6d' : '#ffd166'; c.fillRect(wx, wy, 5, 7); }
+      }
+      c.strokeStyle = 'rgba(255,255,255,0.12)'; c.lineWidth = 30;
+      for (let k = 0; k < 2; k++) { const a = Math.sin(time * 0.8 + k * 2) * 0.5; c.beginPath(); c.moveTo(250 + k * 380, H2); c.lineTo(250 + k * 380 + Math.sin(a) * 300, 0); c.stroke(); }
+    } else { // warehouse
+      c.fillStyle = '#5c4033'; c.fillRect(0, 0, W2, H2);
+      for (let y = 0; y < 200; y += 16) for (let x = (y / 16) % 2 ? -20 : 0; x < W2; x += 40) {   // brick wall
+        c.fillStyle = hash(x + y * 7) > 0.5 ? '#8b4a32' : '#7a3f2a'; c.fillRect(x + 1, y + 1, 38, 14);
+      }
+      c.fillStyle = 'rgba(0,0,0,0.25)'; c.fillRect(0, 0, W2, 18);
+      for (const x of [140, 430, 720]) {                              // windows with daylight
+        c.fillStyle = '#2b2d42'; c.fillRect(x - 50, 30, 100, 60); c.fillStyle = '#a8dadc'; c.fillRect(x - 46, 34, 44, 52); c.fillRect(x + 2, 34, 44, 52);
+      }
+      c.fillStyle = lin(200, H2, ['#8d99ae', '#5c677d']); c.fillRect(0, 200, W2, H2 - 200);
+      c.strokeStyle = '#ffd60a'; c.lineWidth = 6; c.setLineDash([24, 18]); c.beginPath(); c.moveTo(0, 212); c.lineTo(W2, 212); c.stroke(); c.setLineDash([]);
+      for (const [x, y, sz] of [[30, 205, 46], [70, 225, 36], [800, 200, 50], [760, 232, 34]]) {   // crates
+        c.fillStyle = '#b5835a'; c.fillRect(x - sz / 2, y - sz, sz, sz);
+        c.strokeStyle = '#6f4e37'; c.lineWidth = 3; c.strokeRect(x - sz / 2, y - sz, sz, sz);
+        c.beginPath(); c.moveTo(x - sz / 2, y - sz); c.lineTo(x + sz / 2, y); c.stroke();
+      }
+    }
+    c.fillStyle = 'rgba(0,0,0,0.12)'; c.fillRect(0, 0, MAP_W, MAP_H);   // keep the tiles readable
+  }
+  // chains wrapped round a boss tile that still needs stars
+  function drawChains(c, x, y, R, need, have) {
+    c.save();
+    for (const a of [0.75, -0.75]) {
+      c.save(); c.translate(x, y); c.rotate(a);
+      for (let k = -4; k <= 4; k++) {
+        c.strokeStyle = '#adb5bd'; c.lineWidth = 3.5;
+        c.beginPath(); c.ellipse(k * 11, 0, 7, k % 2 ? 2.5 : 4.5, 0, 0, Math.PI * 2); c.stroke();
+        c.strokeStyle = '#495057'; c.lineWidth = 1; c.stroke();
+      }
+      c.restore();
+    }
+    c.fillStyle = '#ffd60a'; c.strokeStyle = '#7a5c00'; c.lineWidth = 2;   // padlock
+    c.fillRect(x - 9, y + 2, 18, 15); c.strokeRect(x - 9, y + 2, 18, 15);
+    c.beginPath(); c.arc(x, y + 2, 6, Math.PI, 0); c.stroke();
+    c.fillStyle = '#7a5c00'; c.fillRect(x - 1.5, y + 7, 3, 6);
+    c.font = '900 14px "Trebuchet MS",sans-serif'; c.textAlign = 'center';
+    c.fillStyle = '#0009'; c.fillRect(x - 34, y - R - 40, 68, 20);
+    c.fillStyle = '#ffd60a'; c.fillText('★ ' + have + '/' + need, x, y - R - 29);
+    c.restore();
+  }
   function drawCareerMap() {
     const c = mapCtx;
     c.setTransform(mapCanvas.width / MAP_W, 0, 0, mapCanvas.height / MAP_H, 0, 0);
-    const [top, bottom] = WORLD_TINT[WORLD_VENUES[careerWorld]];
-    const g = c.createLinearGradient(0, 0, 0, MAP_H);
-    g.addColorStop(0, top); g.addColorStop(1, bottom);
-    c.fillStyle = g; c.fillRect(0, 0, MAP_W, MAP_H);
+    drawWorldScenery(c, WORLD_VENUES[careerWorld]);
     // volcano glow behind the boss tile
     const bossPos = tilePos(9);
     const rg = c.createRadialGradient(bossPos.x, bossPos.y, 10, bossPos.x, bossPos.y, 140);
@@ -2721,6 +2966,7 @@
         c.beginPath(); c.moveTo(q.x + 22, q.y - 20); c.lineTo(q.x + 30, q.y - 46); c.lineTo(q.x + 8, q.y - 30); c.fill();
         c.fillStyle = '#ff3b30'; c.beginPath(); c.arc(q.x - 10, q.y - 4, 5, 0, Math.PI * 2); c.arc(q.x + 10, q.y - 4, 5, 0, Math.PI * 2); c.fill();
         c.font = '900 12px "Trebuchet MS",sans-serif'; c.fillStyle = '#ffd60a'; c.fillText(t('boss'), q.x, q.y + 15);
+        if (!bossUnlocked(careerWorld)) drawChains(c, q.x, q.y, R, BOSS_NEED[careerWorld], worldStars(careerWorld));
       } else {
         c.fillStyle = '#fff'; c.font = '900 18px "Trebuchet MS",sans-serif';
         c.fillText(locked ? '🔒' : String(level), q.x, q.y + 1);
@@ -2742,6 +2988,7 @@
       const q = tilePos(i), level = careerWorld * 10 + i + 1;
       if (Math.hypot(x - q.x, y - q.y) < 38) {
         if (level > save.career) { toast(t('locked')); return; }
+        if (level % 10 === 0 && !bossUnlocked(careerWorld)) { toast(t('bossNeed', { n: BOSS_NEED[careerWorld] })); return; }
         Sound.click(); careerOpen = false; startMatch('career', level);
         return;
       }
@@ -2831,7 +3078,9 @@
       const r = lastResult;
       if (kind === 'duo') startMatch('duo');
       else if (kind === 'career') {
-        if (r.won && careerLevel < CAREER_LEVELS) startMatch('career', careerLevel + 1);
+        const nxt = careerLevel + 1;
+        if (r.won && nxt % 10 === 0 && !bossUnlocked(Math.floor((nxt - 1) / 10))) { openCareer(); toast(t('bossNeed', { n: BOSS_NEED[Math.floor((nxt - 1) / 10)] })); }
+        else if (r.won && careerLevel < CAREER_LEVELS) startMatch('career', nxt);
         else if (r.won) openCareer();
         else startMatch('career', careerLevel);
       } else if (r.won && save.tourRun) startMatch('tour');
@@ -2849,6 +3098,9 @@
       afterRewardChoice();
     });
     on('btnNoThanks', afterRewardChoice);
+    on('btnClaim', claimPrize);
+    document.querySelectorAll('#trophy .box').forEach((b, i) => b.addEventListener('click', () => openBox(i)));
+    on('btnTrophyGo', () => { Sound.click(); trophyOpen = false; showResult(true); });
     document.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click', () => { Sound.click(); goMenu(); }));
     if (isTouch) {
       document.querySelector('#menu .hint').classList.add('hidden');
@@ -2888,7 +3140,7 @@
   window.__spike = {
     get state() { return state; }, get score() { return score; }, get ball() { return ball; },
     get players() { return players; }, get fakes() { return fakes; }, startMatch, save, openCareer, openTour,
-    newTourRun, careerRival, setVenue(v) { venue = v; },
+    newTourRun, careerRival, setVenue(v) { venue = v; }, showTrophy, get lastResult() { return lastResult; }, set lastResult(v) { lastResult = v; },
     tick(n) { for (let i = 0; i < n; i++) update(STEP); },
     effect(side, id) { applySuperEffect(players[side], id); },
   };

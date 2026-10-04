@@ -3,12 +3,12 @@
 Juego de vóley 1 contra 1 para navegador, pensado para publicarse en CrazyGames.
 
 - **Modos:**
-  - **Spike Career:** 50 niveles en 5 mundos (playa, selva, nieve, azotea y almacén), con un camino de casillas. Cada 10 niveles hay un jefe que se juega en el volcán.
-  - **Torneo:** 8 rivales aleatorios que cambian en cada torneo, de dificultad creciente. Si pierdes, vuelves a la ronda 1.
+  - **Spike Career:** 50 niveles en 5 mundos (playa, selva, nieve, azotea y almacén), cada uno con su fondo ilustrado y más difícil que el anterior. Cada nivel da de 0 a 3 estrellas (pierdes: 0; ganas encajando como mucho 2 puntos: 3; como mucho 4: 2; más: 1). El jefe de cada mundo se juega en el volcán y está encadenado hasta que reúnes las estrellas que pide (12, 15, 18, 21 y 24).
+  - **Torneo:** 8 rivales aleatorios, todos con personajes distintos, que cambian en cada torneo y son cada vez más difíciles. Si pierdes, vuelves a la ronda 1. Al ganarlo aparece un trofeo con confeti y «Reclamar premio»: eliges una de tres cajas, que suelen tener monedas y a veces un personaje, balón o súper que aún no tienes.
   - **2 jugadores:** en el mismo teclado (oculto en móviles por ahora).
 - **Controles:** 1 jugador con A/D o flechas para moverse y W, flecha arriba o espacio para saltar. En 2 jugadores, A/D/W contra las flechas. En móvil aparecen botones táctiles.
 - **Remate:** si tocas el balón en el aire, rematas. Cada toque carga la barra; llena, el siguiente remate es un súper remate. Quien saca no carga la barra hasta que el rival toque el balón. Un súper sigue activo hasta que lo toca el rival o termina el punto, aunque toque la red.
-- **Súpers:** 21 súpers que se compran en la tienda. Fuego es el inicial. Los demás son Chicle, Encoger, Meteorito, Hielo, Gravedad cero, Rayo, Fantasma, Clones, Confusión, Tornado, Caracol, Imán, Tinta, Vendaval, Globo, Bumerán, Teletransporte, Bomba, Terremoto y Minibola (encoge el balón hasta que lo toca el rival). Los rivales usan súpers cada vez más fuertes.
+- **Súpers:** 21 súpers que se compran en la tienda. Fuego es el inicial. Los demás son Chicle, Encoger, Meteorito, Hielo, Gravedad cero, Rayo, Fantasma, Clones, Confusión, Tornado, Caracol, Imán, Tinta, Vendaval, Globo, Bumerán, Teletransporte, Bomba, Terremoto y Minibola (encoge el balón hasta que lo toca el rival). El Rayo se queda girando sobre la red de 1 a 3 segundos y sale disparado a un punto al azar del campo rival; Gravedad cero hace flotar 2 segundos a quien la toca; el Tornado gira cada vez más rápido. Los rivales usan súpers cada vez más fuertes.
 - **Progresión:** las monedas de cada partido desbloquean 19 personajes (bota de fútbol, casco de piloto de Fórmula 1, pinchos, cyborg, punk, rey con corona y capa, pirata con loro, astronauta, ninja, nigiri de salmón y Slimy, un slime viscoso; los accesorios solo son estéticos) y 16 balones con diseño propio.
 - **Remontada:** quien pierde un punto carga un 30 % de la barra de súper, sin llegar a llenarla de golpe.
 - **Rivales:** se llaman como su skin (dos Cyborg se llaman los dos Cyborg); los jefes conservan su título. Con la barra llena, incluso los rivales fáciles buscan el remate para usar su súper.
@@ -19,7 +19,7 @@ Juego de vóley 1 contra 1 para navegador, pensado para publicarse en CrazyGames
 - **Botones (móvil):** desde el menú se abre una práctica en un mapa al azar contra un rival de nivel fácil (se mueve, salta y devuelve la pelota) que nunca termina la partida. Manteniendo pulsado 2,5 s el botón de salto se ajustan su tamaño y su posición; manteniendo una flecha, el tamaño, la posición y la separación de las dos flechas. Se guarda.
 - **Bordes:** en pantallas anchas la pista llega hasta los bordes reales de la pantalla (ahí rebota la pelota) y los personajes corren un poco más rápido. En todos los mapas los bordes se ven como una pared de cristal transparente que brilla cuando la pelota rebota.
 - **Cuenta atrás:** 3, 2, 1 al empezar cada partido y al volver de la pausa.
-- **Tienda:** cada objeto tiene su precio en monedas. Para hacer pruebas, `FREE_SHOP = true` en `game.js` hace que todo cueste 0 sin perder los precios.
+- **Tienda:** cada objeto tiene su precio en monedas. Ahora mismo `FREE_SHOP = true` en `game.js` para probarlo todo gratis (los precios se conservan); hay que ponerlo en `false` antes de publicar.
 - **Idioma:** inglés, o español si el navegador está en español.
 
 ## Probarlo en local
