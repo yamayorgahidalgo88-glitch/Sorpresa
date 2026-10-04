@@ -348,6 +348,12 @@
   window.addEventListener('blur', () => { keys.clear(); if (state === 'playing') pauseGame(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'playing') pauseGame(); });
 
+  // iOS Safari: a long press on a button must never select text or open the callout menu
+  document.addEventListener('contextmenu', e => e.preventDefault());
+  document.addEventListener('selectstart', e => { if (!(e.target && e.target.tagName === 'INPUT')) e.preventDefault(); });
+  document.querySelectorAll('#touch button').forEach(b => {
+    for (const ev of ['touchstart', 'touchmove', 'touchend']) b.addEventListener(ev, e => { if (e.cancelable) e.preventDefault(); }, { passive: false });
+  });
   const touchHeld = new Map(); // pointerId -> [player, key, button]
   document.querySelectorAll('#touch button').forEach(b => {
     const p = +b.dataset.p, k = b.dataset.k;
@@ -383,6 +389,7 @@
     }
     for (const [p, k] of touchHeld.values()) input[p][k] = true;
     if (kind === 'online' && net && net.role === 'host') Object.assign(input[1], net.rin);
+    if (window.__spikeBot) window.__spikeBot(input[0], players[0], ball);   // automated tests only
   }
 
   // ---------- Game state ----------
@@ -417,7 +424,7 @@
   }
 
   function resetRally() {
-    if (net && net.role === 'host' && kind === 'online') net.rally++;
+    if (net && net.role === 'host' && kind === 'online') { net.rally++; net.grace = 0; net.gt = null; }
     ball = { x: server === 0 ? 200 : 760, y: 170, vx: 0, vy: 0, spin: 0, angle: 0, trail: [], lastTouch: -1,
       super: null, superOwner: -1, superTime: 0, zig: 0, crossed: false, flight: 0, serveLock: server, r: BR };
     fakes = [];
@@ -584,6 +591,7 @@
     return id === 'heavy';
   }
 
+  let hitInfo = null;
   function collidePlayer(p) {
     const dx = ball.x - p.x, dy = ball.y - p.y;
     const dist = Math.hypot(dx, dy);
@@ -593,10 +601,12 @@
     ball.x = p.x + nx * (p.r + BRb + 0.5);
     ball.y = p.y + ny * (p.r + BRb + 0.5);
     p.hitCooldown = 0.08;
+    hitInfo = { kind: 'bump', eff: null };
 
     // a super from the other side hits this player first
     let weak = false;
     if (ball.super && ball.superOwner !== p.side) {
+      hitInfo.eff = ball.super;
       weak = applySuperEffect(p, ball.super);
       endSuper();
     }
@@ -611,11 +621,11 @@
       if (isSuper) {
         const s = SUPER(p.superId);
         ball.vx = d.x * s.speed; ball.vy = d.y * s.speed;
-        startSuper(p, s);
+        startSuper(p, s); hitInfo.kind = 'super';
       } else {
         ball.vx = d.x * 820; ball.vy = d.y * 820;
         if (ball.serveLock !== p.side) p.power = Math.min(1, p.power + 0.06 * p.powerMul);
-        shake = 0.12; Sound.spike();
+        shake = 0.12; Sound.spike(); hitInfo.kind = 'spike';
         burst(ball.x, ball.y, 12, ['#ffffff', '#ffd23f']);
       }
     } else {
@@ -849,7 +859,10 @@
 
     readInput();
     for (const p of players) if (p.isAI) updateAI(p, input[p.side], dt);
+    const onlineGuest = kind === 'online' && net && net.role === 'host' && net.gt ? players[1] : null;
+    const keep = onlineGuest && { x: onlineGuest.x, y: onlineGuest.y };
     for (const p of players) updatePlayer(p, input[p.side], dt);
+    if (onlineGuest) { onlineGuest.x = keep.x; onlineGuest.y = keep.y; hostEaseGuest(); }   // its own device moves it
 
     ball.trail.push({ x: ball.x, y: ball.y });
     if (ball.trail.length > 10) ball.trail.shift();
@@ -858,7 +871,7 @@
     ball.r += (targetR - ball.r) * Math.min(1, dt * 12);
     stepBall(ball, dt, false, grav);
     if (collideNet(ball)) Sound.hit();
-    for (const p of players) collidePlayer(p);
+    for (const p of players) if (!(kind === 'online' && p.side === 1)) collidePlayer(p);
     ball.angle += ball.spin * dt;
     clampBall(ball);
     const skin = BALLS[save.ball];
@@ -883,7 +896,9 @@
     }
     fakes = fakes.filter(f => !f.dead);
 
-    if (ball.y + ball.r >= GROUND) {
+    if (kind === 'online' && net && ball.y + ball.r >= GROUND && ball.x > NET_X && net.grace < Math.min(0.2, 0.04 + net.rtt / 1000)) {
+      net.grace += dt; ball.y = GROUND - ball.r; ball.vy = Math.min(ball.vy, 0);
+    } else if (ball.y + ball.r >= GROUND) {
       ball.y = GROUND - ball.r;
       const loser = ball.x < NET_X ? 0 : 1;
       const winner = 1 - loser;
@@ -3158,11 +3173,18 @@
   let peerLib = null;
   function loadPeer() {
     if (window.Peer) return Promise.resolve();
+    // two CDNs, in case one is blocked or slow on the player's network
+    const srcs = ['https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js', 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js'];
     if (!peerLib) peerLib = new Promise((res, rej) => {
-      const tag = document.createElement('script');
-      tag.src = 'https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js';
-      tag.onload = () => res(); tag.onerror = () => { peerLib = null; rej(new Error('peerjs')); };
-      document.head.appendChild(tag);
+      const tryLoad = i => {
+        if (i >= srcs.length) { peerLib = null; rej(new Error('peerjs')); return; }
+        const tag = document.createElement('script');
+        tag.src = srcs[i];
+        tag.onload = () => (window.Peer ? res() : tryLoad(i + 1));
+        tag.onerror = () => { tag.remove(); tryLoad(i + 1); };
+        document.head.appendChild(tag);
+      };
+      tryLoad(0);
     });
     return peerLib;
   }
@@ -3182,6 +3204,7 @@
     leaveOnline();
     net = { role, peer: null, conn: null, code: '', rin: { left: false, right: false, jump: false }, ev: [],
       meReady: false, remReady: false, sendAcc: 0, guest: null, mid: 0, rally: 0, buf: [], off: null,
+      rtt: 60, grace: 0, hitSeq: 0, hitAck: 0, ackd: true, pingT: 0, offs: [], corr: { x: 0, y: 0 }, oppDraw: null,
       send(m) { try { if (this.conn && this.conn.open) this.conn.send(m); } catch (e) { /* closed */ } } };
     return net;
   }
@@ -3230,7 +3253,12 @@
       peer.on('open', () => {
         const c = n.conn = peer.connect(roomId(code), { reliable: false, serialization: 'json' });
         wireConn(n, c);
-        c.on('open', () => { clearTimeout(fail); c.send({ t: 'hi', ch: save.char, su: save.superSel, v: 1 }); });
+        c.on('open', () => {
+          clearTimeout(fail);
+          // say hello until the host starts the match (a lost first message must not block it)
+          const hi = () => { if (net === n && kind !== 'online') { c.send({ t: 'hi', ch: save.char, su: save.superSel, v: 1 }); setTimeout(hi, 700); } };
+          hi();
+        });
       });
       peer.on('error', e => {
         if (net !== n) return;
@@ -3262,10 +3290,13 @@
     if (net.role === 'host') {
       if (m.t === 'hi') { net.guest = { ch: m.ch | 0, su: m.su | 0 }; net.guest.ch %= CHARS.length; net.guest.su %= SUPERS.length; if (!players.length || kind !== 'online') startMatch('online'); }
       else if (m.t === 'gs') hostGuestState(m);
+      else if (m.t === 'hit') applyGuestHit(m);
+      else if (m.t === 'pi') net.send({ t: 'po', c: m.c });
       else if (m.t === 're') { net.remReady = true; checkRematch(); }
     } else {
       if (m.t === 'start') { if (m.mid !== net.mid) guestStart(m); }
       else if (m.t === 's') guestSnapshot(m);
+      else if (m.t === 'po') { const r = performance.now() - m.c; net.rtt = net.rtt * 0.7 + r * 0.3; }
       else if (m.t === 'end') { if (m.mid === net.mid && state !== 'result') { score = [m.sc[1], m.sc[0]]; onlineEnd(); } }
       else if (m.t === 're') { net.remReady = true; document.getElementById('resNote').textContent = (LANG === 'es' ? '¿' : '') + t('rematch') + '?'; }
     }
@@ -3275,7 +3306,7 @@
     if (!net || net.role !== 'host' || kind !== 'online' || !players.length || state === 'result') return;
     const r1 = v => Math.round(v * 10) / 10;
     net.send({
-      t: 's', mid: net.mid, ra: net.rally, ht: Math.round(performance.now()), st: state, cd: r1(countdown), sc: score,
+      t: 's', mid: net.mid, ra: net.rally, hc: net.hitAck, ht: Math.round(performance.now()), st: state, cd: r1(countdown), sc: score,
       sh: r1(shake), wf: [r1(wallFlash[0]), r1(wallFlash[1])],
       pl: players.map(p => [r1(p.x), r1(p.y), r1(p.vx), r1(p.vy), r1(p.r), r1(p.squash), p.onGround ? 1 : 0, Math.round(p.power * 100) / 100, p.fx]),
       b: ball ? [r1(ball.x), r1(ball.y), r1(ball.vx), r1(ball.vy), r1(ball.angle), r1(ball.spin), ball.super, ball.superOwner, r1(ball.r)] : null,
@@ -3286,26 +3317,54 @@
   // the guest moves its own player locally and tells the host where it is
   function hostGuestState(m) {
     net.rin.left = !!m.r; net.rin.right = !!m.l; net.rin.jump = !!m.j;   // mirrored view: its left is our right
+    if (m.rt) net.rtt = m.rt;
     if (m.mid !== net.mid || m.ra !== net.rally || state !== 'playing' || !players[1]) return;
+    net.gt = { x: W - m.x, y: m.y, vx: -m.vx, vy: m.vy, g: !!m.g, at: performance.now() };
+  }
+  // host view of the guest: its reported position, projected to now and eased in
+  function hostEaseGuest() {
+    const g = net.gt, p = players[1];
+    if (!g || !p) return;
+    const age = Math.min(0.12, (performance.now() - g.at) / 1000 + net.rtt / 2000);
+    let tx = g.x + g.vx * age, ty = g.y;
+    if (!g.g) ty = Math.min(GROUND, g.y + g.vy * age + 0.5 * P_GRAV * age * age);
+    tx = Math.max(NET_X + NET_HALF + p.r, Math.min(W - p.r, tx));
+    p.x += (tx - p.x) * 0.3; p.y += (ty - p.y) * 0.3; p.vx = g.vx; p.vy = g.vy; p.onGround = g.g && ty >= GROUND - 0.5;
+  }
+  // the guest touched the ball on its screen: take its result as the truth
+  function applyGuestHit(m) {
+    if (m.mid !== net.mid || m.ra !== net.rally || m.hs <= net.hitAck || !players[1]) return;
+    net.hitAck = m.hs;
+    if (state !== 'playing') return;
     const p = players[1];
-    p.x = W - m.x; p.y = m.y; p.vx = -m.vx; p.vy = m.vy; p.onGround = !!m.g;
+    if (m.eff && ball.super && ball.superOwner === 0) { applySuperEffect(p, m.eff); endSuper(); }
+    if (m.kind === 'super') startSuper(p, SUPER(p.superId));
+    else if (ball.serveLock !== 1) p.power = Math.min(1, p.power + (m.kind === 'spike' ? 0.06 : 0.1) * p.powerMul);
+    ball.x = W - m.x; ball.y = m.y; ball.vx = -m.vx; ball.vy = m.vy;
+    if (m.kind === 'spike') { shake = 0.12; Sound.spike(); burst(ball.x, ball.y, 12, ['#ffffff', '#ffd23f']); }
+    else if (m.kind === 'bump') { Sound.hit(); burst(ball.x, ball.y, 5, ['#ffffff']); }
+    ball.serveLock = -1; ball.spin = ball.vx / 40; ball.lastTouch = 1; p.hitCooldown = 0.08; net.grace = 0;
+    // catch up the time the message spent travelling
+    const lag = Math.min(0.12, net.rtt / 2000);
+    for (let t = 0; t < lag; t += STEP) { stepBall(ball, STEP, false, ball.super === 'heavy' ? 2.2 : 1); collideNet(ball); }
   }
   function guestSendInput() {
     if (!net || net.role !== 'guest' || kind !== 'online' || !players.length || state === 'result') return;
-    const p = players[0], i = input[0];
+    const p = players[0], i = input[0], now = performance.now();
+    if (now - net.pingT > 1000) { net.pingT = now; net.send({ t: 'pi', c: now }); }
     net.send({ t: 'gs', mid: net.mid, ra: net.rally, x: Math.round(p.x * 10) / 10, y: Math.round(p.y * 10) / 10,
-      vx: Math.round(p.vx), vy: Math.round(p.vy), g: p.onGround ? 1 : 0, l: i.left, r: i.right, j: i.jump });
+      vx: Math.round(p.vx), vy: Math.round(p.vy), g: p.onGround ? 1 : 0, l: i.left, r: i.right, j: i.jump, rt: Math.round(net.rtt) });
   }
   function guestStart(m) {
     kind = 'online'; mode = 'solo'; score = [0, 0]; particles = []; fakes = []; server = 0;
-    net.mid = m.mid; net.rally = -1; net.buf = []; net.off = null;
+    net.mid = m.mid; net.rally = -1; net.buf = []; net.off = null; net.offs = []; net.hitSeq = 0; net.oppDraw = null;
     venue = m.venue;
     // me on the left with my character, the host on the right
     players = [makePlayer(0, m.ch[1], false, 1, m.su[1]), makePlayer(1, m.ch[0], false, 1, m.su[0])];
     players[1].dark = m.ch[0] === m.ch[1];
     net.meReady = net.remReady = false;
     fit();
-    ball = { x: 760, y: 170, vx: 0, vy: 0, spin: 0, angle: 0, trail: [], super: null, superOwner: -1, r: BR };
+    ball = { x: 760, y: 170, vx: 0, vy: 0, spin: 0, angle: 0, trail: [], super: null, superOwner: -1, r: BR, serveLock: 1 };
     showScreen(null);
     const touch = document.getElementById('touch');
     touch.classList.toggle('hidden', !isTouch); touch.classList.add('solo'); touch.classList.remove('duo');
@@ -3314,32 +3373,58 @@
     Platform.gameplayStart();
   }
   const mx = x => W - x;
+  // ball physics without players, used to bring a host snapshot up to the present
+  function advanceBall(b, secs) {
+    const grav = b.super === 'heavy' ? 2.2 : 1;
+    for (let t = 0; t < secs; t += STEP) {
+      stepBall(b, STEP, false, grav); collideNet(b);
+      if (b.y + (b.r || BR) >= GROUND) { b.y = GROUND - (b.r || BR); b.vy = 0; b.vx *= 0.5; }
+    }
+    return b;
+  }
   function guestSnapshot(m) {
     if (m.mid !== net.mid || state === 'result' || !players.length) return;
-    // keep an estimate of the host clock offset (lowest observed delay, slowly relaxing)
     const d = performance.now() - m.ht;
-    net.off = net.off === null ? d : Math.min(d, net.off + 1);
+    net.offs.push(d); if (net.offs.length > 90) net.offs.shift();
+    const target = Math.min(...net.offs);                       // lowest delay seen recently = clock offset
+    net.off = net.off === null ? target : net.off + (target - net.off) * 0.05;
     if (net.buf.length && m.ht <= net.buf[net.buf.length - 1].ht) return;   // late, out of order
     const hp = m.pl[0], gp = m.pl[1];
-    net.buf.push({
-      ht: m.ht,
-      o: { x: mx(hp[0]), y: hp[1], vx: -hp[2], vy: hp[3] },
-      b: m.b ? { x: mx(m.b[0]), y: m.b[1], vx: -m.b[2], vy: m.b[3], a: -m.b[4] } : null,
-      fk: m.fk.map(f => ({ x: mx(f[0]), y: f[1], vx: -f[2], vy: f[3] })),
-    });
+    net.buf.push({ ht: m.ht, fk: m.fk.map(f => ({ x: mx(f[0]), y: f[1], vx: -f[2], vy: f[3] })),
+      b: m.b ? { x: mx(m.b[0]), y: m.b[1], vx: -m.b[2], vy: m.b[3] } : null });
     if (net.buf.length > 40) net.buf.shift();
+    const prevState = state;
     state = m.st; countdown = m.cd; score = [m.sc[1], m.sc[0]]; shake = Math.max(shake, m.sh);
     wallFlash[0] = Math.max(wallFlash[0], m.wf[1]); wallFlash[1] = Math.max(wallFlash[1], m.wf[0]);
     const me = players[0], opp = players[1];
+    // opponent: latest known state, projected to now (drawn smoothly in guestUpdate)
+    net.opp = { x: mx(hp[0]), y: hp[1], vx: -hp[2], vy: hp[3], g: !!hp[6], at: performance.now() };
     opp.r = hp[4]; opp.squash = hp[5]; opp.onGround = !!hp[6]; opp.power = hp[7]; opp.fx = hp[8];
     me.power = gp[7];
     const fx = Object.assign({}, gp[8]); fx.knock = -fx.knock; me.fx = fx;
-    if (m.b) { ball.super = m.b[6]; ball.superOwner = m.b[7] < 0 ? -1 : 1 - m.b[7]; ball.r = m.b[8]; ball.spin = -m.b[5]; }
-    // outside live play (and on every new rally) the host decides where I stand
-    if (state !== 'playing' || m.ra !== net.rally) {
+    const newRally = m.ra !== net.rally;
+    if (state !== 'playing' || newRally) {                    // outside live play the host decides where I stand
       net.rally = m.ra;
       me.x = mx(gp[0]); me.y = gp[1]; me.vx = -gp[2]; me.vy = gp[3]; me.onGround = !!gp[6]; me.r = gp[4];
-      if (m.b) { ball.trail = []; }
+      if (newRally) { net.hitSeq = m.hc; net.oppDraw = null; }
+    }
+    if (m.b) {
+      const b = m.b;
+      net.ackd = m.hc >= net.hitSeq;
+      const host = { x: mx(b[0]), y: b[1], vx: -b[2], vy: b[3], r: b[8], super: b[6] };
+      if (net.ackd) { ball.super = b[6]; ball.superOwner = b[7] < 0 ? -1 : 1 - b[7]; ball.r = b[8]; }
+      if (state !== 'playing' || newRally || prevState !== 'playing') {
+        Object.assign(ball, { x: host.x, y: host.y, vx: host.vx, vy: host.vy }); ball.trail = []; net.corr = { x: 0, y: 0 };
+      } else if (m.hc >= net.hitSeq) {                         // ignore stale states from before my own touch
+        // age of this snapshot: base one-way delay plus how much later than usual it arrived (jitter)
+        const lead = ball.super ? 0 : Math.min(0.15, Math.max(0, net.rtt / 2 + (d - net.off)) / 1000 + 0.008);
+        const P = advanceBall(host, lead);
+        const ex = P.x - ball.x, ey = P.y - ball.y;
+        if (Math.hypot(ex, ey) > 140) { ball.x = P.x; ball.y = P.y; net.corr = { x: 0, y: 0 }; }
+        else net.corr = { x: ex, y: ey };                       // blended in over the next frames
+        ball.vx = P.vx; ball.vy = P.vy;
+      }
+      if (!ball.super) ball.spin = -b[5];
     }
     for (const e of m.ev) {
       if (e[0] === 'b') { banner = e[1]; bannerTimer = e[2]; bannerColor = e[3]; }
@@ -3353,30 +3438,36 @@
       }
     }
   }
-  // smooth view of the host's player, the ball and clones, ~70 ms behind the host
-  const INTERP = 70;
-  function guestInterpolate() {
+  const SPECIAL_FLIGHT = ['lightning', 'tornado', 'magnet', 'teleport', 'boomerang'];
+  // super balls with special flights (and clones) are drawn interpolated a little behind the host
+  function guestBufferBall() {
     const buf = net.buf;
     if (!buf.length || net.off === null) return;
-    const rt = performance.now() - net.off - INTERP;
+    const rt = performance.now() - net.off - 60;
     let a = buf[0], b = null;
     for (let k = buf.length - 1; k >= 0; k--) if (buf[k].ht <= rt) { a = buf[k]; b = buf[k + 1] || null; break; }
-    const opp = players[1];
-    const lerpObj = (A, B, f) => ({ x: A.x + (B.x - A.x) * f, y: A.y + (B.y - A.y) * f, vx: B.vx, vy: B.vy });
-    let o, bl, fk;
-    if (b) {
+    if (!a.b) return;
+    if (b && b.b && Math.hypot(b.b.x - a.b.x, b.b.y - a.b.y) < 160) {
       const f = Math.max(0, Math.min(1, (rt - a.ht) / (b.ht - a.ht || 1)));
-      o = lerpObj(a.o, b.o, f);
-      bl = a.b && b.b ? (Math.hypot(b.b.x - a.b.x, b.b.y - a.b.y) > 160 ? b.b : lerpObj(a.b, b.b, f)) : (b.b || a.b);
-      fk = b.fk.map((F, k) => a.fk[k] ? lerpObj(a.fk[k], F, f) : F);
-    } else {                                          // ran out of snapshots: extrapolate briefly
-      const dt = Math.min(0.1, Math.max(0, (rt - a.ht) / 1000));
-      const ex = A => ({ x: A.x + A.vx * dt, y: Math.min(GROUND, A.y + A.vy * dt), vx: A.vx, vy: A.vy });
-      o = ex(a.o); bl = a.b ? ex(a.b) : null; fk = a.fk.map(ex);
+      ball.x = a.b.x + (b.b.x - a.b.x) * f; ball.y = a.b.y + (b.b.y - a.b.y) * f; ball.vx = b.b.vx; ball.vy = b.b.vy;
+    } else {
+      const S = (b && b.b) || a.b, age = Math.min(0.1, Math.max(0, (rt - (b ? b.ht : a.ht)) / 1000));
+      ball.x = S.x + S.vx * age; ball.y = S.y + S.vy * age; ball.vx = S.vx; ball.vy = S.vy;
     }
-    opp.x = o.x; opp.y = o.y; opp.vx = o.vx; opp.vy = o.vy;
-    if (bl) { ball.x = bl.x; ball.y = bl.y; ball.vx = bl.vx; ball.vy = bl.vy; }
-    fakes = fk.map(F => ({ x: F.x, y: F.y, vx: F.vx, vy: F.vy, angle: 0, spin: 0 }));
+    net.corr = { x: 0, y: 0 };
+  }
+  // clones: interpolated a little behind the host (they are only decoys)
+  function guestFakes() {
+    const buf = net.buf;
+    if (!buf.length || net.off === null) return;
+    const rt = performance.now() - net.off - 50;
+    let a = buf[0], b = null;
+    for (let k = buf.length - 1; k >= 0; k--) if (buf[k].ht <= rt) { a = buf[k]; b = buf[k + 1] || null; break; }
+    const f = b ? Math.max(0, Math.min(1, (rt - a.ht) / (b.ht - a.ht || 1))) : 0;
+    fakes = (b || a).fk.map((F, k) => {
+      const A = a.fk[k] || F;
+      return { x: A.x + (F.x - A.x) * f, y: A.y + (F.y - A.y) * f, vx: F.vx, vy: F.vy, angle: 0, spin: 0 };
+    });
   }
   function guestUpdate(dt) {
     time += dt;
@@ -3387,13 +3478,58 @@
     particles = particles.filter(pt => pt.life > 0);
     if (state === 'countdown') countdown = Math.max(0, countdown - dt);
     if (!ball || !players.length || state === 'result') return;
-    if (state === 'playing') { readInput(); updatePlayer(players[0], input[0], dt); }   // my player reacts instantly
-    guestInterpolate();
-    if (state === 'playing') {
-      ball.trail.push({ x: ball.x, y: ball.y });
-      if (ball.trail.length > 10) ball.trail.shift();
+    const me = players[0], opp = players[1];
+    // opponent: projected to the present from its last known state, then eased on screen
+    if (net.opp) {
+      const o = net.opp, age = Math.min(0.15, (performance.now() - o.at) / 1000 + net.rtt / 2000);
+      let tx = o.x + o.vx * age, ty = o.y;
+      if (!o.g) ty = Math.min(GROUND, o.y + o.vy * age + 0.5 * P_GRAV * age * age);
+      tx = Math.max(NET_X + NET_HALF + opp.r, Math.min(W - opp.r, tx));
+      if (!net.oppDraw || state !== 'playing') net.oppDraw = { x: tx, y: ty };
+      net.oppDraw.x += (tx - net.oppDraw.x) * 0.35; net.oppDraw.y += (ty - net.oppDraw.y) * 0.35;
+      opp.x = net.oppDraw.x; opp.y = net.oppDraw.y; opp.vx = o.vx; opp.vy = o.vy;
+    }
+    guestFakes();
+    if (state !== 'playing') { ball.angle += ball.spin * dt; return; }
+    readInput(); updatePlayer(me, input[0], dt);                 // my player reacts instantly
+    // the ball runs with the same physics here; host corrections are blended in
+    if (SPECIAL_FLIGHT.includes(ball.super) && net.ackd) guestBufferBall();
+    else {
+      stepBall(ball, dt, false, ball.super === 'heavy' ? 2.2 : 1);
+      collideNet(ball);
+    }
+    const k = 0.06;
+    ball.x += net.corr.x * k; ball.y += net.corr.y * k; net.corr.x *= 1 - k; net.corr.y *= 1 - k;
+    if (ball.y + ball.r >= GROUND) { ball.y = GROUND - ball.r; ball.vy = 0; ball.vx *= 0.9; }
+    // the rival's touch is predicted as a plain bump (the host's real result corrects it smoothly)
+    net.oppCd = Math.max(0, (net.oppCd || 0) - dt);
+    if (!net.oppCd && net.ackd) {
+      const dx = ball.x - opp.x, dy = ball.y - opp.y, dist = Math.hypot(dx, dy);
+      if (dist > 0 && dist < opp.r + ball.r) {
+        const nx = dx / dist, ny = dy / dist;
+        ball.x = opp.x + nx * (opp.r + ball.r + 0.5); ball.y = opp.y + ny * (opp.r + ball.r + 0.5);
+        let rvx = ball.vx - opp.vx, rvy = ball.vy - opp.vy;
+        const vn = rvx * nx + rvy * ny;
+        if (vn < 0) { rvx -= 1.85 * vn * nx; rvy -= 1.85 * vn * ny; }
+        ball.vx = rvx + opp.vx * 0.6; ball.vy = rvy + Math.min(0, opp.vy) * 0.4;
+        const out = ball.vx * nx + ball.vy * ny;
+        if (out < B_MIN_HIT) { ball.vx += nx * (B_MIN_HIT - out); ball.vy += ny * (B_MIN_HIT - out); }
+        clampBall(ball); net.oppCd = 0.15; net.corr = { x: 0, y: 0 };
+      }
+    }
+    // my own touches count straight away; the host is told the result
+    const before = me.hitCooldown;
+    collidePlayer(me);
+    if (me.hitCooldown === 0.08 && before !== 0.08 && hitInfo) {
+      net.hitSeq++;
+      const r1 = v => Math.round(v * 10) / 10;
+      net.send({ t: 'hit', mid: net.mid, ra: net.rally, hs: net.hitSeq, x: r1(ball.x), y: r1(ball.y), vx: r1(ball.vx), vy: r1(ball.vy),
+        kind: hitInfo.kind, eff: hitInfo.eff });
+      net.corr = { x: 0, y: 0 };
     }
     ball.angle += ball.spin * dt;
+    ball.trail.push({ x: ball.x, y: ball.y });
+    if (ball.trail.length > 10) ball.trail.shift();
   }
   function onlineEnd() {
     state = 'result';
@@ -3445,6 +3581,7 @@
     Platform.loadingStop();
     goMenu();
     requestAnimationFrame(frame);
+    if (!onCrazy) setTimeout(() => loadPeer().catch(() => {}), 1500);   // ready before anyone taps "Create room"
   }
 
   // Exposed for automated tests only.
