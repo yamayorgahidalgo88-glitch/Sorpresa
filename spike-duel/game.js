@@ -380,6 +380,7 @@
   let server = 0;
   let pointTimer = 0, banner = '', bannerTimer = 0, bannerColor = '#ffb627';
   let shake = 0, time = 0;
+  const wallFlash = [0, 0];
   let adPlaying = false;
   let lastResult = null;
 
@@ -647,8 +648,8 @@
     b.x += b.vx * dt;
     b.y += b.vy * dt;
     const rb = b.r || BR;
-    if (b.x < -offX + rb) { b.x = -offX + rb; b.vx = Math.abs(b.vx) * 0.85; }
-    if (b.x > W + offX - rb) { b.x = W + offX - rb; b.vx = -Math.abs(b.vx) * 0.85; }
+    if (b.x < -offX + rb) { b.x = -offX + rb; b.vx = Math.abs(b.vx) * 0.85; wallFlash[0] = 1; }
+    if (b.x > W + offX - rb) { b.x = W + offX - rb; b.vx = -Math.abs(b.vx) * 0.85; wallFlash[1] = 1; }
     if (withNet && b.y > NET_TOP - BR && Math.abs(b.x - NET_X) < NET_HALF + BR) {
       b.vx = -b.vx * 0.85; b.x = NET_X + Math.sign(b.x - NET_X || -b.vx) * (NET_HALF + BR + 0.5);
     }
@@ -2347,6 +2348,29 @@
     ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
   }
 
+  // Transparent glass walls at the court edges, so you can see where the ball bounces.
+  function drawWalls() {
+    const T = 16;
+    for (let i = 0; i < 2; i++) {
+      const edge = i ? W + offX : -offX, dir = i ? -1 : 1, x0 = i ? edge - T : edge;
+      wallFlash[i] = Math.max(0, wallFlash[i] - 0.03);
+      const g = ctx.createLinearGradient(edge, 0, edge + dir * T, 0);
+      g.addColorStop(0, 'rgba(170,220,255,' + (0.42 + 0.4 * wallFlash[i]) + ')');
+      g.addColorStop(1, 'rgba(170,220,255,' + (0.14 + 0.25 * wallFlash[i]) + ')');
+      ctx.fillStyle = g; ctx.fillRect(x0, 0, T, GROUND);
+      ctx.fillStyle = 'rgba(255,255,255,' + (0.75 + 0.25 * wallFlash[i]) + ')';
+      ctx.fillRect(edge + dir * T - (i ? 0 : 3), 0, 3, GROUND);
+      // reflections sliding down the glass
+      ctx.fillStyle = 'rgba(255,255,255,0.18)';
+      for (let k = 0; k < 4; k++) {
+        const y = ((time * 40 + k * 140) % (GROUND + 80)) - 80;
+        ctx.save(); ctx.beginPath(); ctx.rect(x0, 0, T, GROUND); ctx.clip();
+        ctx.beginPath(); ctx.moveTo(x0, y + 40); ctx.lineTo(x0 + T, y); ctx.lineTo(x0 + T, y + 18); ctx.lineTo(x0, y + 58); ctx.fill();
+        ctx.restore();
+      }
+    }
+  }
+
   function render() {
     ctx.save();
     if (shake > 0) ctx.translate((Math.random() - 0.5) * shake * 30, (Math.random() - 0.5) * shake * 30);
@@ -2354,6 +2378,7 @@
     ctx.translate(offX, 0);
     if (players.length) {
       drawNet();
+      drawWalls();
       for (const p of players) drawPlayer(p, p.x, p.y, 1, ball.x, ball.y);
       for (const f of fakes) drawSuperBall(Object.assign({}, f, { super: 'clones', trail: [] }));
       if (ball.super) {

@@ -16,7 +16,7 @@ Juego de vóley 1 contra 1 para navegador, pensado para publicarse en CrazyGames
 - **Final de partida:** primero se ofrece ver un anuncio con recompensa (monedas extra) o «No, gracias»; después, siguiente rival/nivel o menú.
 - **Móvil:** se puede instalar como app (pantalla completa, solo horizontal). En pantallas más alargadas que 16:9 el escenario se extiende a los lados en lugar de dejar bandas negras.
 - **Botones (móvil):** desde el menú se abre una práctica en un mapa al azar contra un rival quieto. Manteniendo pulsado 2,5 s el botón de salto se ajustan su tamaño y su posición; manteniendo una flecha, el tamaño, la posición y la separación de las dos flechas. Se guarda.
-- **Bordes:** en pantallas anchas la pista llega hasta los bordes reales de la pantalla (ahí rebota la pelota) y los personajes corren un poco más rápido.
+- **Bordes:** en pantallas anchas la pista llega hasta los bordes reales de la pantalla (ahí rebota la pelota) y los personajes corren un poco más rápido. En todos los mapas los bordes se ven como una pared de cristal transparente que brilla cuando la pelota rebota.
 - **Cuenta atrás:** 3, 2, 1 al empezar cada partido y al volver de la pausa.
 - **Tienda:** cada objeto tiene su precio en monedas. Para hacer pruebas, `FREE_SHOP = true` en `game.js` hace que todo cueste 0 sin perder los precios.
 - **Idioma:** inglés, o español si el navegador está en español.
@@ -30,6 +30,10 @@ python3 -m http.server 8000
 ```
 
 No necesita compilar nada: son archivos estáticos (`index.html`, `style.css`, `sdk.js`, `game.js`) y pesan menos de 100 KB.
+
+## Actualizaciones en el móvil
+
+`index.html` pide `style.css`, `sdk.js` y `game.js` con `?v=...`. Al publicar una versión nueva hay que cambiar ese número para que los móviles no sigan usando la copia guardada.
 
 ## CrazyGames
 
