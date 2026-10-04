@@ -417,6 +417,7 @@
   }
 
   function resetRally() {
+    if (net && net.role === 'host' && kind === 'online') net.rally++;
     ball = { x: server === 0 ? 200 : 760, y: 170, vx: 0, vy: 0, spin: 0, angle: 0, trail: [], lastTouch: -1,
       super: null, superOwner: -1, superTime: 0, zig: 0, crossed: false, flight: 0, serveLock: server, r: BR };
     fakes = [];
@@ -442,7 +443,8 @@
       venue = VENUES[Math.floor(Math.random() * VENUES.length)];
       players = [makePlayer(0, save.char, false, 1, save.superSel), makePlayer(1, g.ch, false, 1, g.su)];
       players[1].dark = g.ch === save.char;
-      net.send({ t: 'start', venue, ch: [save.char, g.ch], su: [save.superSel, g.su] });
+      net.mid++; net.rally = 0;
+      net.send({ t: 'start', mid: net.mid, venue, ch: [save.char, g.ch], su: [save.superSel, g.su] });
       fit();
     } else if (mode === 'solo') {
       if (kind === 'career') { careerLevel = level; rival = careerRival(level); }
@@ -503,7 +505,7 @@
     const canJump = !locked && !fx.sticky;
     if (inp.jump && p.onGround && canJump) {
       p.vy = fx.float ? -P_JUMP * 0.75 : fx.balloon ? -P_JUMP * 0.6 : -P_JUMP;
-      p.onGround = false; Sound.jump();
+      p.onGround = false; Sound.jump(p.side);
     }
     if (fx.float) {                       // floats for 2 seconds, then drops back down
       fx.float = Math.max(0, fx.float - dt);
@@ -575,6 +577,7 @@
       burst(ball.x, ball.y, 34, ['#ff6b35', '#ffd60a', '#343a40', '#ffffff']);
     } else if (id === 'quake') {
       p.vy = -1000; p.onGround = false; fx.stunned = 0.9; key = 'e_quake'; shake = 0.5;
+      netEvent(['k', p.side, -1000]);
       sand(p.x);
     }
     if (key) { showBanner(t(key), 1.1, s.color); Sound.effect(); }
@@ -904,7 +907,7 @@
 
   // ---------- Match end, ads, rewards ----------
   async function endMatch() {
-    if (kind === 'online') { net.send({ t: 'end', sc: score }); onlineEnd(); return; }
+    if (kind === 'online') { net.send({ t: 'end', sc: score, mid: net.mid }); onlineEnd(); return; }
     state = 'result';
     Platform.gameplayStop();
     document.getElementById('hud').classList.add('hidden');
@@ -2630,8 +2633,7 @@
     let n0 = mode === 'duo' ? 'P1' : CHARS[save.char].name;
     let n1 = mode === 'duo' ? 'P2' : kind === 'online' ? '' : rivalName(rival);
     if (kind === 'online') {
-      n0 = players[0].char.name; n1 = players[1].char.name;
-      if (net && net.role === 'guest') n1 += ' (' + t('you') + ')'; else n0 += ' (' + t('you') + ')';
+      n0 = players[0].char.name + ' (' + t('you') + ')'; n1 = players[1].char.name;
       ctx.font = '700 13px "Trebuchet MS",sans-serif'; ctx.fillStyle = '#ffffffcc';
       ctx.fillText(t('room', { c: net ? net.code : '' }), W / 2, 84);
       ctx.font = '700 15px "Trebuchet MS",sans-serif'; ctx.fillStyle = '#fff';
@@ -3179,7 +3181,7 @@
   function newNet(role) {
     leaveOnline();
     net = { role, peer: null, conn: null, code: '', rin: { left: false, right: false, jump: false }, ev: [],
-      meReady: false, remReady: false, sendAcc: 0, guest: null, lastIn: '',
+      meReady: false, remReady: false, sendAcc: 0, guest: null, mid: 0, rally: 0, buf: [], off: null,
       send(m) { try { if (this.conn && this.conn.open) this.conn.send(m); } catch (e) { /* closed */ } } };
     return net;
   }
@@ -3226,7 +3228,7 @@
       const peer = n.peer = new window.Peer(undefined, peerOpts());
       const fail = setTimeout(() => { if (net === n && !(n.conn && n.conn.open)) onNote(t('netFail')); }, 15000);
       peer.on('open', () => {
-        const c = n.conn = peer.connect(roomId(code), { reliable: true });
+        const c = n.conn = peer.connect(roomId(code), { reliable: false, serialization: 'json' });
         wireConn(n, c);
         c.on('open', () => { clearTimeout(fail); c.send({ t: 'hi', ch: save.char, su: save.superSel, v: 1 }); });
       });
@@ -3258,47 +3260,52 @@
   function onNetData(m) {
     if (!m || typeof m !== 'object') return;
     if (net.role === 'host') {
-      if (m.t === 'hi') { net.guest = { ch: m.ch | 0, su: m.su | 0 }; net.guest.ch %= CHARS.length; net.guest.su %= SUPERS.length; startMatch('online'); }
-      else if (m.t === 'in') { net.rin.left = !!m.l; net.rin.right = !!m.r; net.rin.jump = !!m.j; }
+      if (m.t === 'hi') { net.guest = { ch: m.ch | 0, su: m.su | 0 }; net.guest.ch %= CHARS.length; net.guest.su %= SUPERS.length; if (!players.length || kind !== 'online') startMatch('online'); }
+      else if (m.t === 'gs') hostGuestState(m);
       else if (m.t === 're') { net.remReady = true; checkRematch(); }
     } else {
-      if (m.t === 'start') guestStart(m);
+      if (m.t === 'start') { if (m.mid !== net.mid) guestStart(m); }
       else if (m.t === 's') guestSnapshot(m);
-      else if (m.t === 'end') { score = m.sc; onlineEnd(); }
+      else if (m.t === 'end') { if (m.mid === net.mid && state !== 'result') { score = [m.sc[1], m.sc[0]]; onlineEnd(); } }
       else if (m.t === 're') { net.remReady = true; document.getElementById('resNote').textContent = (LANG === 'es' ? '¿' : '') + t('rematch') + '?'; }
     }
   }
-  // host -> guest, about 30 times a second
-  function hostSend(dt) {
+  // host -> guest every frame: the whole match state (the guest mirrors it so it sees itself on the left)
+  function hostSend() {
     if (!net || net.role !== 'host' || kind !== 'online' || !players.length || state === 'result') return;
-    net.sendAcc += dt;
-    if (net.sendAcc < 1 / 30) return;
-    net.sendAcc = 0;
     const r1 = v => Math.round(v * 10) / 10;
     net.send({
-      t: 's', st: state, cd: r1(countdown), sc: score, sh: r1(shake), wf: [r1(wallFlash[0]), r1(wallFlash[1])],
-      pl: players.map(p => [r1(p.x), r1(p.y), r1(p.vx), r1(p.vy), r1(p.r), r1(p.squash), p.onGround ? 1 : 0, r1(p.power), p.fx]),
+      t: 's', mid: net.mid, ra: net.rally, ht: Math.round(performance.now()), st: state, cd: r1(countdown), sc: score,
+      sh: r1(shake), wf: [r1(wallFlash[0]), r1(wallFlash[1])],
+      pl: players.map(p => [r1(p.x), r1(p.y), r1(p.vx), r1(p.vy), r1(p.r), r1(p.squash), p.onGround ? 1 : 0, Math.round(p.power * 100) / 100, p.fx]),
       b: ball ? [r1(ball.x), r1(ball.y), r1(ball.vx), r1(ball.vy), r1(ball.angle), r1(ball.spin), ball.super, ball.superOwner, r1(ball.r)] : null,
       fk: fakes.map(f => [r1(f.x), r1(f.y), r1(f.vx), r1(f.vy)]),
       ev: net.ev.splice(0),
     });
   }
-  // guest -> host, whenever the buttons change (and every half second just in case)
-  function guestSendInput(dt) {
-    if (!net || net.role !== 'guest' || kind !== 'online') return;
-    readInput();
-    const i = input[0], key = (i.left ? 'l' : '') + (i.right ? 'r' : '') + (i.jump ? 'j' : '');
-    net.sendAcc += dt;
-    if (key !== net.lastIn || net.sendAcc > 0.5) { net.lastIn = key; net.sendAcc = 0; net.send({ t: 'in', l: i.left, r: i.right, j: i.jump }); }
+  // the guest moves its own player locally and tells the host where it is
+  function hostGuestState(m) {
+    net.rin.left = !!m.r; net.rin.right = !!m.l; net.rin.jump = !!m.j;   // mirrored view: its left is our right
+    if (m.mid !== net.mid || m.ra !== net.rally || state !== 'playing' || !players[1]) return;
+    const p = players[1];
+    p.x = W - m.x; p.y = m.y; p.vx = -m.vx; p.vy = m.vy; p.onGround = !!m.g;
+  }
+  function guestSendInput() {
+    if (!net || net.role !== 'guest' || kind !== 'online' || !players.length || state === 'result') return;
+    const p = players[0], i = input[0];
+    net.send({ t: 'gs', mid: net.mid, ra: net.rally, x: Math.round(p.x * 10) / 10, y: Math.round(p.y * 10) / 10,
+      vx: Math.round(p.vx), vy: Math.round(p.vy), g: p.onGround ? 1 : 0, l: i.left, r: i.right, j: i.jump });
   }
   function guestStart(m) {
     kind = 'online'; mode = 'solo'; score = [0, 0]; particles = []; fakes = []; server = 0;
+    net.mid = m.mid; net.rally = -1; net.buf = []; net.off = null;
     venue = m.venue;
-    players = [makePlayer(0, m.ch[0], false, 1, m.su[0]), makePlayer(1, m.ch[1], false, 1, m.su[1])];
+    // me on the left with my character, the host on the right
+    players = [makePlayer(0, m.ch[1], false, 1, m.su[1]), makePlayer(1, m.ch[0], false, 1, m.su[0])];
     players[1].dark = m.ch[0] === m.ch[1];
     net.meReady = net.remReady = false;
     fit();
-    ball = { x: 200, y: 170, vx: 0, vy: 0, spin: 0, angle: 0, trail: [], super: null, superOwner: -1, r: BR };
+    ball = { x: 760, y: 170, vx: 0, vy: 0, spin: 0, angle: 0, trail: [], super: null, superOwner: -1, r: BR };
     showScreen(null);
     const touch = document.getElementById('touch');
     touch.classList.toggle('hidden', !isTouch); touch.classList.add('solo'); touch.classList.remove('duo');
@@ -3306,29 +3313,71 @@
     state = 'countdown'; countdown = 3;
     Platform.gameplayStart();
   }
+  const mx = x => W - x;
   function guestSnapshot(m) {
-    if (state === 'result' || !players.length) return;
-    state = m.st; countdown = m.cd; score = m.sc; shake = Math.max(shake, m.sh); wallFlash[0] = m.wf[0]; wallFlash[1] = m.wf[1];
-    m.pl.forEach((a, i) => {
-      const p = players[i];
-      [p.x, p.y, p.vx, p.vy, p.r, p.squash, p.onGround, p.power] = a; p.onGround = !!p.onGround; p.fx = a[8];
+    if (m.mid !== net.mid || state === 'result' || !players.length) return;
+    // keep an estimate of the host clock offset (lowest observed delay, slowly relaxing)
+    const d = performance.now() - m.ht;
+    net.off = net.off === null ? d : Math.min(d, net.off + 1);
+    if (net.buf.length && m.ht <= net.buf[net.buf.length - 1].ht) return;   // late, out of order
+    const hp = m.pl[0], gp = m.pl[1];
+    net.buf.push({
+      ht: m.ht,
+      o: { x: mx(hp[0]), y: hp[1], vx: -hp[2], vy: hp[3] },
+      b: m.b ? { x: mx(m.b[0]), y: m.b[1], vx: -m.b[2], vy: m.b[3], a: -m.b[4] } : null,
+      fk: m.fk.map(f => ({ x: mx(f[0]), y: f[1], vx: -f[2], vy: f[3] })),
     });
-    if (m.b) {
-      const b = m.b;
-      [ball.x, ball.y, ball.vx, ball.vy, ball.angle, ball.spin, ball.super, ball.superOwner, ball.r] = b;
+    if (net.buf.length > 40) net.buf.shift();
+    state = m.st; countdown = m.cd; score = [m.sc[1], m.sc[0]]; shake = Math.max(shake, m.sh);
+    wallFlash[0] = Math.max(wallFlash[0], m.wf[1]); wallFlash[1] = Math.max(wallFlash[1], m.wf[0]);
+    const me = players[0], opp = players[1];
+    opp.r = hp[4]; opp.squash = hp[5]; opp.onGround = !!hp[6]; opp.power = hp[7]; opp.fx = hp[8];
+    me.power = gp[7];
+    const fx = Object.assign({}, gp[8]); fx.knock = -fx.knock; me.fx = fx;
+    if (m.b) { ball.super = m.b[6]; ball.superOwner = m.b[7] < 0 ? -1 : 1 - m.b[7]; ball.r = m.b[8]; ball.spin = -m.b[5]; }
+    // outside live play (and on every new rally) the host decides where I stand
+    if (state !== 'playing' || m.ra !== net.rally) {
+      net.rally = m.ra;
+      me.x = mx(gp[0]); me.y = gp[1]; me.vx = -gp[2]; me.vy = gp[3]; me.onGround = !!gp[6]; me.r = gp[4];
+      if (m.b) { ball.trail = []; }
     }
-    fakes = m.fk.map(f => ({ x: f[0], y: f[1], vx: f[2], vy: f[3], angle: 0, spin: 0 }));
     for (const e of m.ev) {
       if (e[0] === 'b') { banner = e[1]; bannerTimer = e[2]; bannerColor = e[3]; }
-      else if (e[0] === 'p') burst(e[1], e[2], e[3], e[4]);
-      else if (e[0] === 's') sand(e[1]);
+      else if (e[0] === 'p') burst(mx(e[1]), e[2], e[3], e[4]);
+      else if (e[0] === 's') sand(mx(e[1]));
+      else if (e[0] === 'k') { if (e[1] === 1) { me.vy = e[2]; me.onGround = false; } }
       else if (e[0] === 'a') {
+        if (e[1] === 'jump' && e[2] === 1) continue;           // my own jumps already made their sound here
         const name = e[1] === 'point' ? 'lose' : e[1] === 'lose' ? 'point' : e[1];
         if (Sound[name]) Sound[name](e[2]);
       }
     }
   }
-  // the guest keeps things moving smoothly between snapshots
+  // smooth view of the host's player, the ball and clones, ~70 ms behind the host
+  const INTERP = 70;
+  function guestInterpolate() {
+    const buf = net.buf;
+    if (!buf.length || net.off === null) return;
+    const rt = performance.now() - net.off - INTERP;
+    let a = buf[0], b = null;
+    for (let k = buf.length - 1; k >= 0; k--) if (buf[k].ht <= rt) { a = buf[k]; b = buf[k + 1] || null; break; }
+    const opp = players[1];
+    const lerpObj = (A, B, f) => ({ x: A.x + (B.x - A.x) * f, y: A.y + (B.y - A.y) * f, vx: B.vx, vy: B.vy });
+    let o, bl, fk;
+    if (b) {
+      const f = Math.max(0, Math.min(1, (rt - a.ht) / (b.ht - a.ht || 1)));
+      o = lerpObj(a.o, b.o, f);
+      bl = a.b && b.b ? (Math.hypot(b.b.x - a.b.x, b.b.y - a.b.y) > 160 ? b.b : lerpObj(a.b, b.b, f)) : (b.b || a.b);
+      fk = b.fk.map((F, k) => a.fk[k] ? lerpObj(a.fk[k], F, f) : F);
+    } else {                                          // ran out of snapshots: extrapolate briefly
+      const dt = Math.min(0.1, Math.max(0, (rt - a.ht) / 1000));
+      const ex = A => ({ x: A.x + A.vx * dt, y: Math.min(GROUND, A.y + A.vy * dt), vx: A.vx, vy: A.vy });
+      o = ex(a.o); bl = a.b ? ex(a.b) : null; fk = a.fk.map(ex);
+    }
+    opp.x = o.x; opp.y = o.y; opp.vx = o.vx; opp.vy = o.vy;
+    if (bl) { ball.x = bl.x; ball.y = bl.y; ball.vx = bl.vx; ball.vy = bl.vy; }
+    fakes = fk.map(F => ({ x: F.x, y: F.y, vx: F.vx, vy: F.vy, angle: 0, spin: 0 }));
+  }
   function guestUpdate(dt) {
     time += dt;
     if (bannerTimer > 0) bannerTimer -= dt;
@@ -3337,19 +3386,21 @@
     for (const pt of particles) { pt.vy += 900 * dt; pt.x += pt.vx * dt; pt.y += pt.vy * dt; pt.life -= dt; }
     particles = particles.filter(pt => pt.life > 0);
     if (state === 'countdown') countdown = Math.max(0, countdown - dt);
-    if (state !== 'playing' || !ball) return;
-    for (const p of players) { p.x += p.vx * dt; p.y = Math.min(GROUND, p.y + p.vy * dt); }
-    ball.trail.push({ x: ball.x, y: ball.y });
-    if (ball.trail.length > 10) ball.trail.shift();
-    ball.x += ball.vx * dt; ball.y += ball.vy * dt; ball.angle += ball.spin * dt;
-    for (const f of fakes) { f.x += f.vx * dt; f.y += f.vy * dt; }
+    if (!ball || !players.length || state === 'result') return;
+    if (state === 'playing') { readInput(); updatePlayer(players[0], input[0], dt); }   // my player reacts instantly
+    guestInterpolate();
+    if (state === 'playing') {
+      ball.trail.push({ x: ball.x, y: ball.y });
+      if (ball.trail.length > 10) ball.trail.shift();
+    }
+    ball.angle += ball.spin * dt;
   }
   function onlineEnd() {
     state = 'result';
     Platform.gameplayStop();
     document.getElementById('hud').classList.add('hidden');
     document.getElementById('touch').classList.add('hidden');
-    const me = net && net.role === 'guest' ? 1 : 0;
+    const me = 0;   // both devices keep the score as [mine, theirs]
     const won = score[me] > score[1 - me];
     const coins = won ? 15 : 5;
     save.coins += coins; persist();
@@ -3378,7 +3429,7 @@
     if (state === 'menu') time += dt;
     acc += dt;
     while (acc >= STEP) { update(STEP); acc -= STEP; }
-    hostSend(dt); guestSendInput(dt);
+    hostSend(); guestSendInput();
     render();
     if (careerOpen) drawCareerMap();
     requestAnimationFrame(frame);
