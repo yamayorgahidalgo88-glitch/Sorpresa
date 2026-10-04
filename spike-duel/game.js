@@ -427,7 +427,7 @@
     if (mode === 'solo') {
       if (kind === 'career') { careerLevel = level; rival = careerRival(level); }
       else if (kind === 'practice') {
-        rival = { nick: '', char: Math.floor(Math.random() * CHARS.length), venue: VENUES[Math.floor(Math.random() * VENUES.length)], super: 0, ai: 1 };
+        rival = { nick: '', char: Math.floor(Math.random() * CHARS.length), venue: VENUES[Math.floor(Math.random() * VENUES.length)], super: 0, ai: 1 };   // easiest rival, so you can try the buttons in real rallies
       }
       else rival = save.tourRun.rivals[save.tourRun.round];
       venue = rival.venue;
@@ -435,7 +435,6 @@
       const opp = players[1];
       opp.dark = !!rival.boss || rival.char === save.char;
       if (rival.boss) { opp.boss = true; opp.baseR = PR * 1.15; opp.powerMul = 1.5; }
-      if (kind === 'practice') opp.isAI = false;          // the practice dummy never moves
     } else {
       venue = VENUES[Math.floor(Math.random() * VENUES.length)];
       const other = save.char === 1 ? 0 : 1;
@@ -1616,7 +1615,7 @@
     // eyes follow the ball; spirals when confused, crosses when zapped
     const ex = 10 * facing, ey = -16;
     c.fillStyle = '#fff'; c.beginPath(); c.arc(ex, ey, 8, 0, Math.PI * 2); c.fill();
-    if (ch.skin === 'nigiri' || ch.skin === 'astro') { c.strokeStyle = '#3d3a36'; c.lineWidth = 1.8; c.stroke(); }
+    if (ch.skin === 'nigiri' || ch.skin === 'astro' || ch.skin === 'boot') { c.strokeStyle = '#3d3a36'; c.lineWidth = 1.8; c.stroke(); }
     if (fx.confused) {
       c.strokeStyle = '#9d4edd'; c.lineWidth = 2; c.beginPath();
       for (let a = 0; a < 12; a += 0.4) c.lineTo(ex + Math.cos(a + time * 8) * a * 0.55, ey + Math.sin(a + time * 8) * a * 0.55);
@@ -1928,38 +1927,79 @@
       c.fillStyle = 'rgba(255,255,255,0.65)'; c.beginPath(); c.ellipse(-16, -28, 10, 5, -0.5, 0, Math.PI * 2); c.fill();
       c.fillStyle = 'rgba(255,255,255,0.9)'; c.beginPath(); c.arc(-24, -22, 2.2, 0, Math.PI * 2); c.fill();
     } else if (ch.skin === 'boot') {
-      // football boot: shiny upper, toe cap, laces, flash stripe, sole and studs
-      const toe = f;
-      const up = c.createLinearGradient(0, -PR, 0, 0);
-      up.addColorStop(0, dark ? '#0b3d91' : '#4dabff'); up.addColorStop(0.55, dark ? '#062a66' : '#0a84ff'); up.addColorStop(1, '#0548a8');
-      c.fillStyle = up; half(); c.fill();
-      c.save(); half(); c.clip();
-      c.fillStyle = '#0a2e6e';                                            // toe cap
-      c.beginPath(); c.ellipse(PR * 0.78 * toe, -6, 22, 20, 0, 0, Math.PI * 2); c.fill();
-      c.fillStyle = 'rgba(255,255,255,0.12)';                             // stitched panels
-      for (let k = 0; k < 4; k++) { c.beginPath(); c.arc(-PR * 0.2 * toe, 0, 14 + k * 9, Math.PI, Math.PI * 2); c.lineWidth = 1; c.strokeStyle = 'rgba(255,255,255,0.18)'; c.stroke(); }
-      c.fillStyle = '#d4ff00';                                            // flash stripe
-      c.beginPath();
-      c.moveTo(-PR * toe, -12); c.lineTo(-6 * toe, -22); c.lineTo(-10 * toe, -15); c.lineTo(PR * 0.55 * toe, -24);
-      c.lineTo(4 * toe, -10); c.lineTo(8 * toe, -16); c.lineTo(-PR * toe, -5); c.closePath(); c.fill();
+      // football boot seen from the side: long toe towards the net, heel at the back,
+      // knitted sock collar, laced instep, side stripe, neon soleplate and studs
+      c.save(); c.scale(f, 1);                                  // draw facing right, mirror for the other side
+      const upper = () => {
+        c.beginPath();
+        c.moveTo(-40, 0);                                        // heel bottom
+        c.bezierCurveTo(-46, -12, -44, -30, -36, -40);           // heel curve
+        c.lineTo(-30, -44);                                      // into the collar
+        c.quadraticCurveTo(-16, -38, -4, -40);                   // collar opening
+        c.bezierCurveTo(14, -34, 30, -26, 42, -16);              // instep sloping to the toe
+        c.bezierCurveTo(52, -10, 54, -2, 48, 0);                 // rounded toe
+        c.closePath();
+      };
+      const sock = () => {
+        c.beginPath();
+        c.moveTo(-34, -40); c.bezierCurveTo(-36, -54, -30, -62, -18, -63);
+        c.bezierCurveTo(-8, -62, -2, -54, -4, -40); c.quadraticCurveTo(-16, -36, -34, -40); c.closePath();
+      };
+      // knitted sock collar
+      const kg = c.createLinearGradient(-34, -64, -4, -40);
+      kg.addColorStop(0, dark ? '#0c1222' : '#1e2a44'); kg.addColorStop(1, '#0b1020');
+      c.fillStyle = kg; sock(); c.fill();
+      c.save(); sock(); c.clip();
+      c.strokeStyle = 'rgba(255,255,255,0.14)'; c.lineWidth = 1.2;
+      for (let k = -40; k < 0; k += 4) { c.beginPath(); c.moveTo(k, -66); c.lineTo(k + 6, -36); c.stroke(); }
+      c.fillStyle = '#d4ff00'; c.fillRect(-40, -62, 40, 3);        // neon rim
       c.restore();
-      c.lineWidth = 3; c.strokeStyle = '#03224f'; half(); c.stroke();
-      // ankle collar at the back, with a white sock peeking out
-      c.fillStyle = '#ffffff'; c.beginPath(); c.ellipse(-16 * toe, -PR + 5, 15, 6, -0.25 * toe, 0, Math.PI * 2); c.fill();
-      c.fillStyle = '#111827'; c.beginPath(); c.ellipse(-16 * toe, -PR + 7, 13, 4.5, -0.25 * toe, 0, Math.PI * 2); c.fill();
-      // laces down the tongue
-      c.fillStyle = '#e9ecef'; c.beginPath(); c.ellipse(-12 * toe, -PR + 12, 7, 5, 0.6 * toe, 0, Math.PI * 2); c.fill();
-      c.strokeStyle = '#ffffff'; c.lineWidth = 2.2; c.lineCap = 'round';
+      c.strokeStyle = '#03122e'; c.lineWidth = 2; sock(); c.stroke();
+      // glossy upper
+      const ug = c.createLinearGradient(0, -44, 0, 0);
+      ug.addColorStop(0, dark ? '#1b5fc4' : '#5ab4ff'); ug.addColorStop(0.5, dark ? '#0a3f8f' : '#0a84ff'); ug.addColorStop(1, '#063d99');
+      c.fillStyle = ug; upper(); c.fill();
+      c.save(); upper(); c.clip();
+      // heel counter and toe cap panels
+      c.fillStyle = '#0a2e6e';
+      c.beginPath(); c.moveTo(-46, 0); c.lineTo(-46, -44); c.quadraticCurveTo(-24, -26, -26, 0); c.closePath(); c.fill();
+      c.beginPath(); c.ellipse(46, -4, 22, 16, -0.2, 0, Math.PI * 2); c.fill();
+      // strike-zone grip texture on the toe
+      c.fillStyle = 'rgba(255,255,255,0.22)';
+      for (let gx = 28; gx < 50; gx += 5) for (let gy = -16; gy < -3; gy += 5) c.fillRect(gx + (gy % 2), gy, 2, 2);
+      // stitching lines
+      c.setLineDash([3, 3]); c.strokeStyle = 'rgba(255,255,255,0.45)'; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(-26, -2); c.quadraticCurveTo(-24, -24, -38, -40); c.stroke();
+      c.beginPath(); c.moveTo(28, -2); c.quadraticCurveTo(26, -14, 36, -20); c.stroke();
+      c.setLineDash([]);
+      // sweeping side stripe
+      const st = c.createLinearGradient(-38, 0, 30, 0);
+      st.addColorStop(0, '#d4ff00'); st.addColorStop(1, '#8cff00');
+      c.fillStyle = st;
+      c.beginPath(); c.moveTo(-38, -8); c.bezierCurveTo(-16, -6, 6, -10, 30, -24);
+      c.bezierCurveTo(8, -16, -14, -14, -36, -16); c.closePath(); c.fill();
+      // shine
+      c.fillStyle = 'rgba(255,255,255,0.35)'; c.beginPath(); c.ellipse(-8, -30, 16, 4, -0.2, 0, Math.PI * 2); c.fill();
+      c.fillStyle = 'rgba(255,255,255,0.5)'; c.beginPath(); c.ellipse(38, -14, 6, 2.5, -0.6, 0, Math.PI * 2); c.fill();
+      c.restore();
+      c.strokeStyle = '#03224f'; c.lineWidth = 3; upper(); c.stroke();
+      // laces criss-crossing over the instep, with eyelets
+      c.lineCap = 'round';
       for (let k = 0; k < 4; k++) {
-        const lx = (-16 + k * 5) * toe, ly = -PR + 11 + k * 4;
-        c.beginPath(); c.moveTo(lx - 5 * toe, ly - 3); c.lineTo(lx + 5 * toe, ly + 3); c.moveTo(lx - 5 * toe, ly + 3); c.lineTo(lx + 5 * toe, ly - 3); c.stroke();
+        const t2 = k / 3, lx = -4 + t2 * 20, ly = -38 + t2 * 9;
+        c.fillStyle = '#03122e'; c.beginPath(); c.arc(lx - 3, ly + 4, 1.4, 0, Math.PI * 2); c.arc(lx + 3, ly - 3, 1.4, 0, Math.PI * 2); c.fill();
+        c.strokeStyle = '#ffffff'; c.lineWidth = 2.4;
+        c.beginPath(); c.moveTo(lx - 4, ly - 3); c.lineTo(lx + 4, ly + 4); c.moveTo(lx - 4, ly + 4); c.lineTo(lx + 4, ly - 3); c.stroke();
       }
-      // sole and studs
-      c.fillStyle = '#d4ff00'; c.fillRect(-PR, -5, PR * 2, 5);
-      c.fillStyle = '#111827'; c.fillRect(-PR, -1, PR * 2, 2);
-      c.fillStyle = '#e9ecef';
-      for (const sx of [-30, -16, 10, 22, 34]) { c.beginPath(); c.moveTo(sx - 3, 0); c.lineTo(sx + 3, 0); c.lineTo(sx + 2, 5); c.lineTo(sx - 2, 5); c.fill(); }
-      c.fillStyle = 'rgba(255,255,255,0.35)'; c.beginPath(); c.ellipse(-12 * toe, -30, 10, 4, -0.5 * toe, 0, Math.PI * 2); c.fill();
+      // soleplate and studs
+      c.fillStyle = '#d4ff00';
+      c.beginPath(); c.moveTo(-41, -4); c.lineTo(46, -4); c.quadraticCurveTo(52, -3, 49, 1); c.lineTo(-41, 1); c.closePath(); c.fill();
+      c.strokeStyle = '#4a5a00'; c.lineWidth = 1; c.stroke();
+      c.fillStyle = '#f1f3f5'; c.strokeStyle = '#495057'; c.lineWidth = 1;
+      for (const [sx, w] of [[-34, 5], [-22, 5], [6, 4], [18, 4], [30, 4], [40, 3.5]]) {
+        c.beginPath(); c.moveTo(sx - w, 1); c.lineTo(sx + w, 1); c.lineTo(sx + w * 0.55, 7); c.lineTo(sx - w * 0.55, 7); c.closePath(); c.fill(); c.stroke();
+      }
+      c.restore();
     } else if (ch.skin === 'astro') {
       // white space suit with panels, a mission patch and a chest control box
       const sg = c.createLinearGradient(0, -PR, 0, 0);
