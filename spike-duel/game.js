@@ -21,7 +21,7 @@
       characters: 'Characters', balls: 'Balls', supers: 'Supers', paused: 'Paused', resume: 'Resume', menu: 'Menu',
       noThanks: 'No, thanks', youWin: 'You win!', youLose: 'You lose', p1Wins: 'Player 1 wins!', p2Wins: 'Player 2 wins!',
       next: 'Next rival', retry: 'Retry', rematch: 'Rematch', double: 'Double coins', coinsEarned: '+{n} coins',
-      champion: 'Tour champion!', claim: 'Claim prize', pickBox: 'Pick a box!', cont: 'Continue', prizeCoins: '+{n} coins', prizeItem: 'New {type}: {name}!', tCharacter: 'character', tBall: 'ball', tSuper: 'super', bossNeed: 'You need {n} ★ in this world to face the boss', locked: 'Beat the previous rival', select: 'Select', selected: 'Selected',
+      champion: 'Tour champion!', createRoom: 'Create room', joinRoom: 'Join room', join: 'Join', cancel: 'Cancel', roomCode: 'Room code', shareCode: 'Share this code with your friend. Waiting for a rival…', enterCode: 'Type the room code', connecting: 'Connecting…', noRoom: 'That room does not exist', netFail: 'Could not connect. Try another network.', rivalLeft: 'Your rival left the match', waitRival: 'Waiting for your rival…', you: 'You', room: 'Room {c}', claim: 'Claim prize', pickBox: 'Pick a box!', cont: 'Continue', prizeCoins: '+{n} coins', prizeItem: 'New {type}: {name}!', tCharacter: 'character', tBall: 'ball', tSuper: 'super', bossNeed: 'You need {n} ★ in this world to face the boss', locked: 'Beat the previous rival', select: 'Select', selected: 'Selected',
       adUnavailable: 'Ad not available, try again later', serve: 'Serve!', point: 'Point!', superReady: 'SUPER',
       controls: '1P: A/D or arrows to move, W / up / space to jump  ·  2P: A/D/W vs arrows',
       rival: 'Rival {n}', beach: 'beach', gym: 'warehouse', rooftop: 'rooftop', snow: 'snow', jungle: 'jungle', volcano: 'volcano', moon: 'moon',
@@ -61,7 +61,7 @@
       characters: 'Personajes', balls: 'Balones', supers: 'Súpers', paused: 'Pausa', resume: 'Seguir', menu: 'Menú',
       noThanks: 'No, gracias', youWin: '¡Has ganado!', youLose: 'Has perdido', p1Wins: '¡Gana el jugador 1!', p2Wins: '¡Gana el jugador 2!',
       next: 'Siguiente rival', retry: 'Reintentar', rematch: 'Revancha', double: 'Duplicar monedas', coinsEarned: '+{n} monedas',
-      champion: '¡Campeón del torneo!', claim: 'Reclamar premio', pickBox: '¡Elige una caja!', cont: 'Continuar', prizeCoins: '+{n} monedas', prizeItem: '¡Nuevo {type}: {name}!', tCharacter: 'personaje', tBall: 'balón', tSuper: 'súper', bossNeed: 'Necesitas {n} ★ en este mundo para el jefe', locked: 'Gana al rival anterior', select: 'Elegir', selected: 'Elegido',
+      champion: '¡Campeón del torneo!', createRoom: 'Crear sala', joinRoom: 'Unirse a sala', join: 'Unirse', cancel: 'Cancelar', roomCode: 'Código de sala', shareCode: 'Pásale este código a tu amigo. Esperando rival…', enterCode: 'Escribe el código de la sala', connecting: 'Conectando…', noRoom: 'No existe esa sala', netFail: 'No se pudo conectar. Prueba con otra red.', rivalLeft: 'Tu rival ha salido de la partida', waitRival: 'Esperando al rival…', you: 'Tú', room: 'Sala {c}', claim: 'Reclamar premio', pickBox: '¡Elige una caja!', cont: 'Continuar', prizeCoins: '+{n} monedas', prizeItem: '¡Nuevo {type}: {name}!', tCharacter: 'personaje', tBall: 'balón', tSuper: 'súper', bossNeed: 'Necesitas {n} ★ en este mundo para el jefe', locked: 'Gana al rival anterior', select: 'Elegir', selected: 'Elegido',
       adUnavailable: 'Anuncio no disponible, prueba más tarde', serve: '¡Saca!', point: '¡Punto!', superReady: 'SÚPER',
       controls: '1J: A/D o flechas para moverte, W / arriba / espacio para saltar  ·  2J: A/D/W contra flechas',
       rival: 'Rival {n}', beach: 'playa', gym: 'almacén', rooftop: 'azotea', snow: 'nieve', jungle: 'selva', volcano: 'volcán', moon: 'luna',
@@ -302,7 +302,7 @@
     const scale = Math.min(vw / W, vh / H);
     viewW = Math.min(W * 1.45, Math.max(W, vw / scale));
     offX = (viewW - W) / 2;
-    courtExt = ('ontouchstart' in window || navigator.maxTouchPoints > 0) ? Math.max(0, offX - WALL_INSET) : offX;
+    courtExt = kind === 'online' ? 0 : ('ontouchstart' in window || navigator.maxTouchPoints > 0) ? Math.max(0, offX - WALL_INSET) : offX;
     const cw = Math.round(viewW * scale), ch = Math.round(H * scale);
     stage.style.width = cw + 'px';
     stage.style.height = ch + 'px';
@@ -338,6 +338,7 @@
   const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
   const GAME_KEYS = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space', 'KeyA', 'KeyD', 'KeyW'];
   window.addEventListener('keydown', e => {
+    if (e.target && e.target.tagName === 'INPUT') return;
     if (GAME_KEYS.includes(e.code)) e.preventDefault();
     keys.add(e.code);
     if ((e.code === 'Escape' || e.code === 'KeyP') && (state === 'playing' || state === 'countdown')) pauseGame();
@@ -381,12 +382,13 @@
       input[0].jump = keys.has('KeyW') || keys.has('ArrowUp') || keys.has('Space');
     }
     for (const [p, k] of touchHeld.values()) input[p][k] = true;
+    if (kind === 'online' && net && net.role === 'host') Object.assign(input[1], net.rin);
   }
 
   // ---------- Game state ----------
   let state = 'loading';   // loading | menu | playing | point | paused | result | ad
   let mode = 'solo';       // solo | duo
-  let kind = 'tour';       // tour | career | duo
+  let kind = 'tour';       // tour | career | duo | practice | online
   let rival = null;        // the AI opponent of a solo match
   let careerLevel = 1;
   let venue = 'beach';
@@ -434,7 +436,15 @@
     score = [0, 0];
     server = 0;
     particles = [];
-    if (mode === 'solo') {
+    if (kind === 'online') {
+      // host: left = me, right = the friend who joined (their own character and super)
+      const g = net.guest;
+      venue = VENUES[Math.floor(Math.random() * VENUES.length)];
+      players = [makePlayer(0, save.char, false, 1, save.superSel), makePlayer(1, g.ch, false, 1, g.su)];
+      players[1].dark = g.ch === save.char;
+      net.send({ t: 'start', venue, ch: [save.char, g.ch], su: [save.superSel, g.su] });
+      fit();
+    } else if (mode === 'solo') {
       if (kind === 'career') { careerLevel = level; rival = careerRival(level); }
       else if (kind === 'practice') {
         rival = { nick: '', char: Math.floor(Math.random() * CHARS.length), venue: VENUES[Math.floor(Math.random() * VENUES.length)], super: 0, ai: 1 };   // easiest rival, so you can try the buttons in real rallies
@@ -468,7 +478,10 @@
     bannerTimer = 0; Sound.count(false);
   }
 
-  function showBanner(text, dur, color) { banner = text; bannerTimer = dur; bannerColor = color || '#ffb627'; }
+  function showBanner(text, dur, color) {
+    banner = text; bannerTimer = dur; bannerColor = color || '#ffb627';
+    netEvent(['b', text, dur, bannerColor]);
+  }
 
   // ---------- Physics ----------
   function updatePlayer(p, inp, dt) {
@@ -787,6 +800,7 @@
 
   // ---------- Effects ----------
   function burst(x, y, n, colors) {
+    netEvent(['p', Math.round(x), Math.round(y), n, colors]);
     for (let i = 0; i < n; i++) {
       const a = Math.random() * Math.PI * 2, s = 80 + Math.random() * 260;
       particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 80, life: 0.5 + Math.random() * 0.4,
@@ -794,6 +808,7 @@
     }
   }
   function sand(x) {
+    netEvent(['s', Math.round(x)]);
     const c = venue === 'snow' ? ['#ffffff', '#dfefff'] : venue === 'beach' ? ['#f4d58d', '#e6be6a']
       : venue === 'volcano' ? ['#ff8c1a', '#3a2a26'] : venue === 'jungle' ? ['#9c6644', '#52b788'] : venue === 'moon' ? ['#c8c8cc', '#8e8e96'] : ['#cccccc', '#999999'];
     for (let i = 0; i < 14; i++) {
@@ -804,6 +819,7 @@
 
   // ---------- Update ----------
   function update(dt) {
+    if (kind === 'online' && net && net.role === 'guest') { guestUpdate(dt); return; }
     time += dt;
     if (bannerTimer > 0) bannerTimer -= dt;
     shake = Math.max(0, shake - dt);
@@ -888,6 +904,7 @@
 
   // ---------- Match end, ads, rewards ----------
   async function endMatch() {
+    if (kind === 'online') { net.send({ t: 'end', sc: score }); onlineEnd(); return; }
     state = 'result';
     Platform.gameplayStop();
     document.getElementById('hud').classList.add('hidden');
@@ -962,7 +979,7 @@
     document.getElementById('nextRow').classList.toggle('hidden', offerReward);
     document.getElementById('btnDouble').textContent = t('watchAd', { n: r.bonus });
     const next = document.getElementById('btnNext');
-    if (kind === 'duo') next.textContent = t('rematch');
+    if (kind === 'duo' || kind === 'online') next.textContent = t('rematch');
     else if (kind === 'career') next.textContent = r.won ? (careerLevel < CAREER_LEVELS ? t('nextLevel') : t('career')) : t('retry');
     else if (r.won && save.tourRun) next.textContent = t('next');
     else next.textContent = t('newTour');
@@ -1127,6 +1144,7 @@
   // ---------- Pause ----------
   let pausedFrom = 'playing';
   function pauseGame() {
+    if (kind === 'online') { if (state !== 'result') showScreen('pause'); return; }
     if (state !== 'playing' && state !== 'point' && state !== 'countdown') return;
     pausedFrom = state === 'countdown' ? countdownTo : state;
     state = 'paused';
@@ -1134,6 +1152,7 @@
     showScreen('pause');
   }
   function resumeGame() {
+    if (kind === 'online') { showScreen(null); return; }
     showScreen(null);
     keys.clear();
     startCountdown(pausedFrom);
@@ -2608,8 +2627,15 @@
       ctx.fillText(kind === 'career' ? t('level', { n: careerLevel }) : t('round', { n: save.tourRun ? save.tourRun.round + 1 : TOUR_SIZE }), W / 2, 84);
     }
     ctx.font = '700 15px "Trebuchet MS",sans-serif';
-    const n0 = mode === 'duo' ? 'P1' : CHARS[save.char].name;
-    const n1 = mode === 'duo' ? 'P2' : rivalName(rival);
+    let n0 = mode === 'duo' ? 'P1' : CHARS[save.char].name;
+    let n1 = mode === 'duo' ? 'P2' : kind === 'online' ? '' : rivalName(rival);
+    if (kind === 'online') {
+      n0 = players[0].char.name; n1 = players[1].char.name;
+      if (net && net.role === 'guest') n1 += ' (' + t('you') + ')'; else n0 += ' (' + t('you') + ')';
+      ctx.font = '700 13px "Trebuchet MS",sans-serif'; ctx.fillStyle = '#ffffffcc';
+      ctx.fillText(t('room', { c: net ? net.code : '' }), W / 2, 84);
+      ctx.font = '700 15px "Trebuchet MS",sans-serif'; ctx.fillStyle = '#fff';
+    }
     ctx.textAlign = 'left'; ctx.fillText(n0, 20, 28);
     ctx.textAlign = 'right'; ctx.fillText(n1, W - 76, 28);
     powerBar(44, 38, players[0], false);
@@ -2719,7 +2745,7 @@
   }
 
   // ---------- Menus ----------
-  const screens = ['menu', 'tour', 'career', 'shop', 'pause', 'result', 'trophy'];
+  const screens = ['menu', 'tour', 'career', 'shop', 'pause', 'result', 'trophy', 'online'];
   function showScreen(id) {
     for (const s of screens) document.getElementById(s).classList.toggle('hidden', s !== id);
     if (id) refreshCoins();
@@ -2731,6 +2757,7 @@
     clearTimeout(toast.h); toast.h = setTimeout(() => el.classList.add('hidden'), 2200);
   }
   function goMenu() {
+    if (kind === 'online') { leaveOnline(); kind = 'tour'; fit(); }
     careerOpen = false;
     state = 'menu';
     players = []; ball = null; fakes = [];
@@ -3061,6 +3088,11 @@
     on('worldPrev', () => { careerWorld = Math.max(0, careerWorld - 1); updateWorldBar(); });
     on('worldNext', () => { careerWorld = Math.min(4, careerWorld + 1); updateWorldBar(); });
     on('btn2p', () => { Sound.click(); startMatch('duo'); });
+    on('btnCreate', () => { Sound.click(); createRoom(); });
+    on('btnJoin', () => { Sound.click(); openJoin(); });
+    on('btnJoinGo', () => { Sound.click(); joinRoom(); });
+    on('btnOnBack', () => { Sound.click(); leaveOnline(); goMenu(); });
+    document.getElementById('onInput').addEventListener('keydown', e => { if (e.key === 'Enter') joinRoom(); });
     on('btnShop', () => { Sound.click(); shopTab = 'chars'; buildShop(); showScreen('shop'); });
     on('tabChars', () => { shopTab = 'chars'; buildShop(); });
     on('tabBalls', () => { shopTab = 'balls'; buildShop(); });
@@ -3072,11 +3104,12 @@
     if (onCrazy || !canFull) document.getElementById('btnFull').classList.add('hidden');
     on('btnPause', pauseGame);
     on('btnResume', resumeGame);
-    on('btnQuit', () => { Platform.gameplayStop(); goMenu(); });
+    on('btnQuit', () => { Platform.gameplayStop(); goMenu(); });   // also leaves an online match
     on('btnMenu', goMenu);
     on('btnNext', () => {
       const r = lastResult;
-      if (kind === 'duo') startMatch('duo');
+      if (kind === 'online') requestRematch();
+      else if (kind === 'duo') startMatch('duo');
       else if (kind === 'career') {
         const nxt = careerLevel + 1;
         if (r.won && nxt % 10 === 0 && !bossUnlocked(Math.floor((nxt - 1) / 10))) { openCareer(); toast(t('bossNeed', { n: BOSS_NEED[Math.floor((nxt - 1) / 10)] })); }
@@ -3111,6 +3144,232 @@
     if (standalone) document.getElementById('btnFull').classList.add('hidden');
   }
 
+  // ---------- Online (2 devices, peer to peer) ----------
+  // The room creator is the host: it runs the whole match and streams snapshots;
+  // the guest only sends its buttons and draws what it receives.
+  let net = null;
+  const ROOM_ABC = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  const roomId = code => 'spikeduel-v1-' + code;
+  function netEvent(e) { if (net && net.role === 'host' && kind === 'online' && state !== 'result') net.ev.push(e); }
+  // PeerJS cloud broker by default (it also provides STUN/TURN); tests can point to a local server
+  const peerOpts = () => Object.assign({}, window.SPIKE_PEER_OPTS || {});
+  let peerLib = null;
+  function loadPeer() {
+    if (window.Peer) return Promise.resolve();
+    if (!peerLib) peerLib = new Promise((res, rej) => {
+      const tag = document.createElement('script');
+      tag.src = 'https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js';
+      tag.onload = () => res(); tag.onerror = () => { peerLib = null; rej(new Error('peerjs')); };
+      document.head.appendChild(tag);
+    });
+    return peerLib;
+  }
+  // mirror sounds to the guest (a point for the host is a lost point for the guest)
+  ['hit', 'spike', 'superSpike', 'effect', 'jump', 'point', 'lose', 'count'].forEach(name => {
+    const fn = Sound[name];
+    Sound[name] = (...a) => { netEvent(['a', name, a[0]]); fn(...a); };
+  });
+  function onlineScreen(title, showCode, showInput) {
+    document.getElementById('onTitle').textContent = title;
+    document.getElementById('onCode').classList.toggle('hidden', !showCode);
+    document.getElementById('onJoinRow').classList.toggle('hidden', !showInput);
+    showScreen('online');
+  }
+  const onNote = txt => { document.getElementById('onNote').textContent = txt; };
+  function newNet(role) {
+    leaveOnline();
+    net = { role, peer: null, conn: null, code: '', rin: { left: false, right: false, jump: false }, ev: [],
+      meReady: false, remReady: false, sendAcc: 0, guest: null, lastIn: '',
+      send(m) { try { if (this.conn && this.conn.open) this.conn.send(m); } catch (e) { /* closed */ } } };
+    return net;
+  }
+  function createRoom() {
+    const n = newNet('host');
+    onlineScreen(t('createRoom'), true, false);
+    document.getElementById('onCode').textContent = '····';
+    onNote(t('connecting'));
+    loadPeer().then(() => {
+      const tryOpen = () => {
+        if (net !== n) return;
+        n.code = Array.from({ length: 4 }, () => ROOM_ABC[Math.floor(Math.random() * ROOM_ABC.length)]).join('');
+        const peer = n.peer = new window.Peer(roomId(n.code), peerOpts());
+        peer.on('open', () => { document.getElementById('onCode').textContent = n.code; onNote(t('shareCode')); });
+        peer.on('error', e => {
+          if (net !== n) return;
+          if (e.type === 'unavailable-id') { peer.destroy(); tryOpen(); }
+          else if (!n.conn) onNote(t('netFail'));
+        });
+        peer.on('connection', c => {
+          if (n.conn) { c.on('open', () => c.close()); return; }
+          n.conn = c; wireConn(n, c);
+        });
+      };
+      tryOpen();
+    }).catch(() => onNote(t('netFail')));
+  }
+  function openJoin() {
+    newNet('guest');
+    onlineScreen(t('joinRoom'), false, true);
+    onNote(t('enterCode'));
+    const inp = document.getElementById('onInput');
+    inp.value = '';
+    if (!isTouch) setTimeout(() => inp.focus(), 50);
+  }
+  function joinRoom() {
+    const code = document.getElementById('onInput').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (code.length !== 4) { onNote(t('enterCode')); return; }
+    const n = newNet('guest');
+    n.code = code;
+    onNote(t('connecting'));
+    loadPeer().then(() => {
+      if (net !== n) return;
+      const peer = n.peer = new window.Peer(undefined, peerOpts());
+      const fail = setTimeout(() => { if (net === n && !(n.conn && n.conn.open)) onNote(t('netFail')); }, 15000);
+      peer.on('open', () => {
+        const c = n.conn = peer.connect(roomId(code), { reliable: true });
+        wireConn(n, c);
+        c.on('open', () => { clearTimeout(fail); c.send({ t: 'hi', ch: save.char, su: save.superSel, v: 1 }); });
+      });
+      peer.on('error', e => {
+        if (net !== n) return;
+        clearTimeout(fail);
+        onNote(e.type === 'peer-unavailable' ? t('noRoom') : t('netFail'));
+      });
+    }).catch(() => onNote(t('netFail')));
+  }
+  function wireConn(n, c) {
+    c.on('data', m => { if (net === n) onNetData(m); });
+    const lost = () => {
+      if (net !== n) return;
+      const wasPlaying = kind === 'online';
+      leaveOnline();
+      if (wasPlaying || document.getElementById('online').classList.contains('hidden') === false) {
+        goMenu(); toast(t('rivalLeft'));
+      }
+    };
+    c.on('close', lost); c.on('error', lost);
+  }
+  function leaveOnline() {
+    if (!net) return;
+    const n = net; net = null;
+    try { if (n.conn) n.conn.close(); } catch (e) { /* already closed */ }
+    try { if (n.peer) n.peer.destroy(); } catch (e) { /* already gone */ }
+  }
+  function onNetData(m) {
+    if (!m || typeof m !== 'object') return;
+    if (net.role === 'host') {
+      if (m.t === 'hi') { net.guest = { ch: m.ch | 0, su: m.su | 0 }; net.guest.ch %= CHARS.length; net.guest.su %= SUPERS.length; startMatch('online'); }
+      else if (m.t === 'in') { net.rin.left = !!m.l; net.rin.right = !!m.r; net.rin.jump = !!m.j; }
+      else if (m.t === 're') { net.remReady = true; checkRematch(); }
+    } else {
+      if (m.t === 'start') guestStart(m);
+      else if (m.t === 's') guestSnapshot(m);
+      else if (m.t === 'end') { score = m.sc; onlineEnd(); }
+      else if (m.t === 're') { net.remReady = true; document.getElementById('resNote').textContent = (LANG === 'es' ? '¿' : '') + t('rematch') + '?'; }
+    }
+  }
+  // host -> guest, about 30 times a second
+  function hostSend(dt) {
+    if (!net || net.role !== 'host' || kind !== 'online' || !players.length || state === 'result') return;
+    net.sendAcc += dt;
+    if (net.sendAcc < 1 / 30) return;
+    net.sendAcc = 0;
+    const r1 = v => Math.round(v * 10) / 10;
+    net.send({
+      t: 's', st: state, cd: r1(countdown), sc: score, sh: r1(shake), wf: [r1(wallFlash[0]), r1(wallFlash[1])],
+      pl: players.map(p => [r1(p.x), r1(p.y), r1(p.vx), r1(p.vy), r1(p.r), r1(p.squash), p.onGround ? 1 : 0, r1(p.power), p.fx]),
+      b: ball ? [r1(ball.x), r1(ball.y), r1(ball.vx), r1(ball.vy), r1(ball.angle), r1(ball.spin), ball.super, ball.superOwner, r1(ball.r)] : null,
+      fk: fakes.map(f => [r1(f.x), r1(f.y), r1(f.vx), r1(f.vy)]),
+      ev: net.ev.splice(0),
+    });
+  }
+  // guest -> host, whenever the buttons change (and every half second just in case)
+  function guestSendInput(dt) {
+    if (!net || net.role !== 'guest' || kind !== 'online') return;
+    readInput();
+    const i = input[0], key = (i.left ? 'l' : '') + (i.right ? 'r' : '') + (i.jump ? 'j' : '');
+    net.sendAcc += dt;
+    if (key !== net.lastIn || net.sendAcc > 0.5) { net.lastIn = key; net.sendAcc = 0; net.send({ t: 'in', l: i.left, r: i.right, j: i.jump }); }
+  }
+  function guestStart(m) {
+    kind = 'online'; mode = 'solo'; score = [0, 0]; particles = []; fakes = []; server = 0;
+    venue = m.venue;
+    players = [makePlayer(0, m.ch[0], false, 1, m.su[0]), makePlayer(1, m.ch[1], false, 1, m.su[1])];
+    players[1].dark = m.ch[0] === m.ch[1];
+    net.meReady = net.remReady = false;
+    fit();
+    ball = { x: 200, y: 170, vx: 0, vy: 0, spin: 0, angle: 0, trail: [], super: null, superOwner: -1, r: BR };
+    showScreen(null);
+    const touch = document.getElementById('touch');
+    touch.classList.toggle('hidden', !isTouch); touch.classList.add('solo'); touch.classList.remove('duo');
+    document.getElementById('hud').classList.remove('hidden');
+    state = 'countdown'; countdown = 3;
+    Platform.gameplayStart();
+  }
+  function guestSnapshot(m) {
+    if (state === 'result' || !players.length) return;
+    state = m.st; countdown = m.cd; score = m.sc; shake = Math.max(shake, m.sh); wallFlash[0] = m.wf[0]; wallFlash[1] = m.wf[1];
+    m.pl.forEach((a, i) => {
+      const p = players[i];
+      [p.x, p.y, p.vx, p.vy, p.r, p.squash, p.onGround, p.power] = a; p.onGround = !!p.onGround; p.fx = a[8];
+    });
+    if (m.b) {
+      const b = m.b;
+      [ball.x, ball.y, ball.vx, ball.vy, ball.angle, ball.spin, ball.super, ball.superOwner, ball.r] = b;
+    }
+    fakes = m.fk.map(f => ({ x: f[0], y: f[1], vx: f[2], vy: f[3], angle: 0, spin: 0 }));
+    for (const e of m.ev) {
+      if (e[0] === 'b') { banner = e[1]; bannerTimer = e[2]; bannerColor = e[3]; }
+      else if (e[0] === 'p') burst(e[1], e[2], e[3], e[4]);
+      else if (e[0] === 's') sand(e[1]);
+      else if (e[0] === 'a') {
+        const name = e[1] === 'point' ? 'lose' : e[1] === 'lose' ? 'point' : e[1];
+        if (Sound[name]) Sound[name](e[2]);
+      }
+    }
+  }
+  // the guest keeps things moving smoothly between snapshots
+  function guestUpdate(dt) {
+    time += dt;
+    if (bannerTimer > 0) bannerTimer -= dt;
+    shake = Math.max(0, shake - dt);
+    for (const w of [0, 1]) wallFlash[w] = Math.max(0, wallFlash[w] - dt);
+    for (const pt of particles) { pt.vy += 900 * dt; pt.x += pt.vx * dt; pt.y += pt.vy * dt; pt.life -= dt; }
+    particles = particles.filter(pt => pt.life > 0);
+    if (state === 'countdown') countdown = Math.max(0, countdown - dt);
+    if (state !== 'playing' || !ball) return;
+    for (const p of players) { p.x += p.vx * dt; p.y = Math.min(GROUND, p.y + p.vy * dt); }
+    ball.trail.push({ x: ball.x, y: ball.y });
+    if (ball.trail.length > 10) ball.trail.shift();
+    ball.x += ball.vx * dt; ball.y += ball.vy * dt; ball.angle += ball.spin * dt;
+    for (const f of fakes) { f.x += f.vx * dt; f.y += f.vy * dt; }
+  }
+  function onlineEnd() {
+    state = 'result';
+    Platform.gameplayStop();
+    document.getElementById('hud').classList.add('hidden');
+    document.getElementById('touch').classList.add('hidden');
+    const me = net && net.role === 'guest' ? 1 : 0;
+    const won = score[me] > score[1 - me];
+    const coins = won ? 15 : 5;
+    save.coins += coins; persist();
+    if (won) Sound.win(); else Sound.lose();
+    if (net) net.meReady = net.remReady = false;
+    lastResult = { won, coins, title: won ? t('youWin') : t('youLose'), note: '' };
+    showResult(false);
+    document.getElementById('resScore').textContent = score[me] + ' - ' + score[1 - me];
+  }
+  function requestRematch() {
+    if (!net) { goMenu(); return; }
+    net.meReady = true;
+    net.send({ t: 're' });
+    document.getElementById('resNote').textContent = t('waitRival');
+    checkRematch();
+  }
+  function checkRematch() {
+    if (net && net.role === 'host' && net.meReady && net.remReady) { net.meReady = net.remReady = false; startMatch('online'); }
+  }
+
   // ---------- Loop ----------
   let last = 0, acc = 0;
   function frame(ts) {
@@ -3119,6 +3378,7 @@
     if (state === 'menu') time += dt;
     acc += dt;
     while (acc >= STEP) { update(STEP); acc -= STEP; }
+    hostSend(dt); guestSendInput(dt);
     render();
     if (careerOpen) drawCareerMap();
     requestAnimationFrame(frame);
@@ -3140,7 +3400,7 @@
   window.__spike = {
     get state() { return state; }, get score() { return score; }, get ball() { return ball; },
     get players() { return players; }, get fakes() { return fakes; }, startMatch, save, openCareer, openTour,
-    newTourRun, careerRival, setVenue(v) { venue = v; }, showTrophy, get lastResult() { return lastResult; }, set lastResult(v) { lastResult = v; },
+    newTourRun, careerRival, setVenue(v) { venue = v; }, get net() { return net; }, get kind() { return kind; }, showTrophy, get lastResult() { return lastResult; }, set lastResult(v) { lastResult = v; },
     tick(n) { for (let i = 0; i < n; i++) update(STEP); },
     effect(side, id) { applySuperEffect(players[side], id); },
   };

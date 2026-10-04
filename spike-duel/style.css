@@ -126,3 +126,16 @@ button.career{background:linear-gradient(180deg,#ffb627,#ff6b35);box-shadow:0 ca
 #trophy .box.open .prize{display:flex}
 #trophy .box.chosen{outline:calc(4*var(--u)) solid #ffd60a;outline-offset:calc(4*var(--u))}
 #trophy .box.other{opacity:.55}
+
+/* online rooms */
+#menu .row.small.online button.big{background:#7b2cbf;box-shadow:0 calc(6*var(--u)) 0 #4a1a7a;font-size:calc(20*var(--u));padding:calc(10*var(--u)) calc(18*var(--u))}
+#menu .col{gap:calc(8*var(--u))}
+#menu .logo{margin-top:calc(-10*var(--u))}
+.roomcode{font-size:calc(72*var(--u));font-weight:900;letter-spacing:.25em;padding:calc(6*var(--u)) calc(30*var(--u)) calc(6*var(--u)) calc(48*var(--u));
+  background:#0008;border-radius:calc(18*var(--u));border:calc(3*var(--u)) dashed #ffb627;color:#ffd166;user-select:text;-webkit-user-select:text}
+#onInput{font:900 calc(40*var(--u)) "Trebuchet MS",sans-serif;width:calc(220*var(--u));text-align:center;letter-spacing:.2em;text-transform:uppercase;
+  padding:calc(8*var(--u));border-radius:calc(14*var(--u));border:calc(3*var(--u)) solid #ffb627;background:#0d1b2a;color:#fff;
+  user-select:text;-webkit-user-select:text;touch-action:auto}
+#onJoinRow{align-items:center}
+#onJoinRow button.big{min-width:calc(160*var(--u))}
+#online .note{max-width:calc(560*var(--u))}
