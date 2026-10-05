@@ -371,6 +371,7 @@
   // iOS Safari: a long press on a button must never select text or open the callout menu
   document.addEventListener('contextmenu', e => e.preventDefault());
   document.addEventListener('selectstart', e => { if (!(e.target && e.target.tagName === 'INPUT')) e.preventDefault(); });
+  const EDIT_STATES = ['playing', 'point', 'countdown'];
   const touchHeld = new Map(); // pointerId -> [player, key, button]
   document.querySelectorAll('#touch button').forEach(b => {
     const p = +b.dataset.p, k = b.dataset.k;
@@ -379,7 +380,7 @@
       e.preventDefault(); Sound.unlock();
       touchHeld.set(e.pointerId, [p, k, b]); b.classList.add('on');
       try { b.setPointerCapture(e.pointerId); } catch (_) {}
-      if (kind === 'practice' && state === 'playing') {
+      if (kind === 'practice' && EDIT_STATES.includes(state)) {   // works mid-rally, between points and during the countdown
         b.classList.add('charging');
         hold = setTimeout(() => { b.classList.remove('charging'); openEditor(k === 'jump' ? 'jump' : 'dir'); }, 2500);
       }
@@ -1179,7 +1180,7 @@
   }
   let editorFrom = 'playing';
   function openEditor(which) {
-    if (state !== 'playing' && state !== 'point') return;
+    if (!EDIT_STATES.includes(state)) return;
     editorFrom = state; state = 'editing';
     touchHeld.clear(); touchHeldT.clear(); document.querySelectorAll('#touch button').forEach(b => b.classList.remove('on'));
     const list = which === 'jump' ? [['jumpSize', 'ctlSize'], ['jumpX', 'ctlPos']] : [['dirSize', 'ctlSize'], ['dirX', 'ctlPos'], ['dirGap', 'ctlGap']];
