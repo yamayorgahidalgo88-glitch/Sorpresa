@@ -531,7 +531,7 @@ function buyerClubFor(p){const v=valueOf(p);const cands=S.clubs.filter(c=>c.id!=
 function aiOffers(){
   const lvl=clubLevel(S.user.clubId);
   squad(S.user.clubId).forEach(p=>{
-    if(S.news.some(n=>n.type==='offer'&&!n.done&&n.data.pid===p.id))return;
+    if(p.noOffers||S.news.some(n=>n.type==='offer'&&!n.done&&n.data.pid===p.id))return;
     const chance=p.listed?0.35:(p.ovr>=lvl+2?0.05:0.012);
     if(R()<chance){const b=buyerClubFor(p);if(!b)return;const fee=roundMoney(valueOf(p)*(p.listed?0.75+R()*0.3:1.05+R()*0.35));
       addNews(`Oferta de ${esc(b.name)} por ${esc(p.name)}`,`${esc(b.name)} ofrece <b>${money(fee)}</b> por ${esc(p.name)} (${p.pos}, ${p.ovr}). Valor de mercado: ${money(valueOf(p))}. La oferta caduca el ${fmtDate(addDays(S.date,7))}.`,'offer',{pid:p.id,cid:b.id,fee,exp:addDays(S.date,7)});}
@@ -626,7 +626,8 @@ function fillFromReserves(){const c=me();const lvl=c.lvl0||70;const added=[];
   Object.keys(need).forEach(g=>{while(cnt[g]<need[g]){added.push(makePlayer({pos:pick(POS.filter(x=>GROUP[x]===g)),ovr:lvl-9+ri(-3,2),age:ri(18,22),clubId:c.id,contract:2}));cnt[g]++;}});
   while(squad(c.id).length<18)added.push(makePlayer({pos:pick(POS.filter(x=>x!=='POR')),ovr:lvl-9+ri(-3,2),age:ri(18,22),clubId:c.id,contract:2}));
   if(added.length){assignNumbers(c.id);addNews('Refuerzos del filial',`La plantilla se había quedado corta. Suben desde el filial: ${added.map(p=>`${esc(p.name)} (${p.pos}, ${p.ovr})`).join(', ')}.`,'info');}}
-function beginNextSeason(){S.year++;S.date=`${S.year}-07-01`;S.lastSummary=null;fillFromReserves();me().lineup=null;
+function beginNextSeason(){Object.values(S.players).forEach(p=>{p.noOffers=false;});   // el bloqueo de ofertas dura una temporada
+  S.year++;S.date=`${S.year}-07-01`;S.lastSummary=null;fillFromReserves();me().lineup=null;
   const en=S.euroNext||{ucl:DB.euro.ucl.clubs,uel:DB.euro.uel.clubs,uecl:DB.euro.uecl.clubs};
   buildSeason({ucl:en.ucl,uel:en.uel,uecl:en.uecl});S.board.conf=clamp(S.board.conf,35,80);
   addNews('Nueva temporada '+seasonLabel(),`Arranca la pretemporada. Competición: <b>${esc(userDiv().name)}</b>${userEuro()?` y <b>${EURO_NAME[userEuro()]}</b>`:''}. Objetivo: <b>${S.board.objective}</b>. Presupuesto de fichajes: <b>${money(me().budget)}</b>.`,'info');
@@ -702,7 +703,7 @@ const icon=k=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke
 function posTag(pos){return `<span class="pos ${GROUP[pos]}">${pos}</span>`;}
 function ovrTag(o){return `<span class="ovr ${ovrClass(o)}">${o}</span>`;}
 function stars(r){r=Math.round(r*2)/2;return '★'.repeat(Math.floor(r))+(r%1?'½':'')+'<span style="opacity:.25">'+'★'.repeat(5-Math.ceil(r))+'</span>';}
-function status(p){const t=[];if(p.injury)t.push(`<span class="pill bad">Lesión ${p.injury}d</span>`);if(p.susp)t.push(`<span class="pill warn">Sanción ${p.susp}</span>`);if(p.listed)t.push('<span class="pill info">Transferible</span>');if(p.contract<=1&&!p.youth&&p.clubId!=null)t.push('<span class="pill warn">Último año</span>');return t.join(' ');}
+function status(p){const t=[];if(p.injury)t.push(`<span class="pill bad">Lesión ${p.injury}d</span>`);if(p.susp)t.push(`<span class="pill warn">Sanción ${p.susp}</span>`);if(p.listed)t.push('<span class="pill info">Transferible</span>');if(p.noOffers)t.push('<span class="pill">Sin ofertas</span>');if(p.contract<=1&&!p.youth&&p.clubId!=null)t.push('<span class="pill warn">Último año</span>');return t.join(' ');}
 function toast(msg){const t=document.createElement('div');t.className='toast';t.innerHTML=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2600);}
 function clubPlace(c){return c.stadium||c.league;}
 function compTag(c){const comp=S.comps[c];return `<span class="comp ${comp&&comp.type==='E'?c:'lg'}">${esc(compShort(c))}</span>`;}
@@ -834,7 +835,7 @@ function playerModal(id){
   const p=P(id);if(!p)return;const mine=p.clubId===S.user.clubId;const club=p.clubId!=null?S.clubs[p.clubId]:null;
   const hist=p.hist.slice(-5).reverse().map(h=>`<tr><td>${h.s}</td><td>${esc(h.c)}</td><td>${h.apps}</td><td>${h.goals}</td><td>${h.assists}</td><td>${h.apps?(h.rsum/h.apps).toFixed(1):'–'}</td></tr>`).join('');
   let actions='';
-  if(mine&&!p.youth)actions=`<button class="btn" data-act="toggleList" data-id="${p.id}">${p.listed?'Quitar de transferibles':'Declarar transferible'}</button>
+  if(mine&&!p.youth)actions=`<button class="btn" data-act="toggleList" data-id="${p.id}">${p.listed?'Quitar de transferibles':'Declarar transferible'}</button><button class="btn" data-act="blockOffers" data-id="${p.id}" title="Durante esta temporada nadie podrá hacerte ofertas por este jugador">${p.noOffers?'Permitir ofertas':'Bloquear ofertas'}</button>
     <button class="btn" data-act="renew" data-id="${p.id}">Renovar contrato</button><button class="btn danger" data-act="release" data-id="${p.id}">Rescindir</button>`;
   else if(mine&&p.youth)actions=`<button class="btn primary" data-act="promote" data-id="${p.id}">Subir al primer equipo</button><button class="btn danger" data-act="releaseYouth" data-id="${p.id}">Despedir</button>`;
   else actions=`<button class="btn primary" data-act="bid" data-id="${p.id}">${club?'Hacer oferta':'Ofrecer contrato'}</button>`;
@@ -1226,7 +1227,10 @@ function act(a,t){
   case 'endSeason':endSeason();save();render();break;
   case 'nextSeason':busy(t,'Preparando la temporada…',()=>beginNextSeason());break;
   case 'toFired':fired(S.lastSummary.reason);render();break;
-  case 'toggleList':{const p=P(id);p.listed=!p.listed;save();render();playerModal(id);break;}
+  case 'toggleList':{const p=P(id);p.listed=!p.listed;if(p.listed)p.noOffers=false;save();render();playerModal(id);break;}
+  case 'blockOffers':{const p=P(id);p.noOffers=!p.noOffers;
+    if(p.noOffers){p.listed=false;S.news.forEach(n=>{if(n.type==='offer'&&!n.done&&n.data.pid===p.id)n.done='Rechazada';});}
+    save();render();playerModal(id);toast(p.noOffers?`Ofertas por ${esc(p.name)} bloqueadas hasta final de temporada`:`Ya pueden llegar ofertas por ${esc(p.name)}`);break;}
   case 'renew':{const p=P(id);const dem=Math.round(Math.max(p.wage*1.1,wageFor(p,me().rep))/500)*500;
     if(p.morale<35){modal(`<h2>${esc(p.name)}</h2><p>Su moral es demasiado baja: no quiere renovar ahora mismo.</p><button class="btn" data-close>Cerrar</button>`);break;}
     modal(`<h2>Renovar a ${esc(p.name)}</h2><p>Pide <b>${money(dem)}/sem</b> (ahora cobra ${money(p.wage)}). Contrato actual hasta el ${contractEnd(p)}.</p><div class="row"><label class="label" for="ryears">Años</label><select id="ryears">${[1,2,3,4,5].map(y=>`<option value="${y}" ${y===3?'selected':''}>${y} (hasta ${S.year+y})</option>`).join('')}</select>
