@@ -973,12 +973,14 @@
     document.getElementById('hud').classList.add('hidden');
     document.getElementById('touch').classList.add('hidden');
     const won = score[0] > score[1];
+    // fixed reward for beating a rival: the fewer points they score, the more coins (a loss gives nothing)
+    const matchCoins = !won ? 0 : score[1] <= 2 ? 25 : score[1] <= 4 ? 15 : 7;
     let coins = 0, title, champion = false;
     let note = '';
     if (kind === 'tour') {
       const run = save.tourRun;
       if (won) {
-        coins = 25 + run.round * 8 + (score[1] === 0 ? 10 : 0);
+        coins = matchCoins;
         run.round++;
         if (run.round >= TOUR_SIZE) {
           coins += 150; note = t('tourPrize', { n: 150 });
@@ -987,13 +989,12 @@
         Sound.win();
         Platform.happytime();
       } else {
-        coins = 4 + score[0];
         title = t('youLose'); note = t('backToStart');
         save.tourRun = null;
       }
     } else if (kind === 'career') {
       if (won) {
-        coins = 20 + careerLevel * 2 + (rival.boss ? 80 : 0);
+        coins = matchCoins;
         const stars = score[1] <= 2 ? 3 : score[1] <= 4 ? 2 : 1;
         save.cstars[careerLevel] = Math.max(save.cstars[careerLevel] || 0, stars);
         if (save.career === careerLevel) save.career = Math.min(CAREER_LEVELS + 1, careerLevel + 1);
@@ -1002,7 +1003,6 @@
         Sound.win();
         Platform.happytime();
       } else {
-        coins = 3 + score[0];
         title = t('youLose');
       }
     } else {
@@ -1014,12 +1014,11 @@
     persist();
     lastResult = { won, coins, title, note, champion };
 
-    // A win in the tour offers an optional rewarded ad instead of a midgame ad,
-    // so the two are never combined on the same transition.
-    // Solo matches always offer an optional rewarded ad first (never combined with a
-    // midgame ad on the same transition); local 2-player matches get a midgame ad.
-    const offerReward = kind !== 'duo';
-    lastResult.bonus = won ? coins : Math.max(15, coins * 2);
+    // The rewarded ad and the midgame ad are never combined on the same transition.
+    // A watched video doubles the coins of the match (not the tour champion prize). A loss earns
+    // nothing, so there is nothing to double and the usual between-matches ad is shown instead.
+    const offerReward = kind !== 'duo' && won;
+    lastResult.bonus = matchCoins;
     if (!offerReward) await runAd('midgame');
     if (champion) showTrophy(); else showResult(offerReward);
   }
@@ -3551,7 +3550,7 @@
     document.getElementById('touch').classList.add('hidden');
     const me = mySide();
     const won = score[me] > score[1 - me];
-    const coins = won ? 15 : 5;
+    const opp = score[1 - me], coins = !won ? 0 : opp <= 2 ? 25 : opp <= 4 ? 15 : 7;   // same rule as every match
     save.coins += coins; persist();
     if (won) Sound.win(); else Sound.lose();
     if (net) net.meReady = net.remReady = false;
