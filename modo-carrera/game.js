@@ -741,7 +741,11 @@ function topbarHTML(){const c=me();const first=userFixtures().find(f=>f.c===user
 
 /* ---------- simular días: avanza solo y se detiene en partido o ante una notificación ---------- */
 const SIM={on:false,timer:null,mode:'days'};
-function updateTop(){const el=document.querySelector('.topbar');if(el&&S)el.innerHTML=topbarHTML();}
+function updateTop(){const el=document.querySelector('.topbar');if(!el||!S)return;
+  const tmp=document.createElement('div');tmp.innerHTML=topbarHTML();
+  const q='.simbtn,.simbtns',oldB=el.querySelector(q),newB=tmp.querySelector(q);
+  if(oldB&&newB&&oldB.outerHTML===newB.outerHTML)newB.replaceWith(oldB);   // el mismo botón sigue en pantalla: el clic no se pierde
+  el.replaceChildren(...tmp.childNodes);}
 function endSim(msg,view){clearTimeout(SIM.timer);SIM.timer=null;const was=SIM.on;SIM.on=false;if(was){if(view){UI.view=view;UI.selSlot=null;}save();render();if(msg)toast(msg);}}
 function startSim(mode){if(SIM.on||S.seasonDone||S.over||userFixtureToday())return;SIM.mode=mode||'days';SIM.on=true;updateTop();SIM.timer=setTimeout(simTick,60);}
 function simTick(){
@@ -1082,22 +1086,28 @@ function renderMatch(){
   if(m.ended&&m.fx.ratings){const rows=Object.entries(user.mins).filter(([id,mn])=>mn>0).map(([id])=>P(+id)).filter(Boolean).sort((x,y)=>m.fx.ratings[y.id]-m.fx.ratings[x.id]);
     ratings=`<div class="card"><h3>Notas de tus jugadores</h3><div class="mvp">${rows[0]?card(rows[0],{small:true,badge:'MVP'}):''}<div class="tbl-wrap" style="flex:1;min-width:0"><table><thead><tr><th>Jugador</th><th>Min</th><th>G</th><th>A</th><th>Nota</th><th>Barra</th></tr></thead><tbody>${rows.map(p=>`<tr><td><span class="row" style="gap:8px;flex-wrap:nowrap">${face(p,26)}${posTag(p.pos)} ${esc(p.name)}</span></td><td>${user.mins[p.id]}</td><td>${user.contrib[p.id]?.g||0}</td><td>${user.contrib[p.id]?.a||0}</td><td><b style="color:${m.fx.ratings[p.id]>=7.5?'var(--good)':m.fx.ratings[p.id]<6?'var(--bad)':'var(--fg)'}">${m.fx.ratings[p.id].toFixed(1)}</b></td>${(()=>{const d=(m.fx.prog||{})[p.id];return d==null?'<td class="muted">–</td>':`<td style="color:${d>=0?'var(--good)':'var(--bad)'}">${d>=0?'+':''}${d.toFixed(1)}%</td>`;})()}</tr>`).join('')}</tbody></table></div></div></div>`;}
   const tie=m.ended&&m.fx.winner!=null?`<p style="text-align:center;margin:0">${m.fx.pen?'Tras los penaltis, ':''}Se clasifica <b>${esc(S.clubs[m.fx.winner].name)}</b></p>`:'';
-  el.innerHTML=`<div class="inner">
-   <div class="small muted" style="text-align:center">${compTag(m.fx.c)} ${esc(roundLabel(m.fx))} · ${fmtDate(m.fx.d,true)} · ${esc(clubPlace(h))}</div>
+  // el partido se pinta por secciones y solo se sustituye la que cambia: así los botones (pausa, cambios, velocidad…) no se recrean
+  // en cada minuto y un clic nunca se pierde entre pulsar y soltar
+  patchSections(el,[`   <div class="small muted" style="text-align:center">${compTag(m.fx.c)} ${esc(roundLabel(m.fx))} · ${fmtDate(m.fx.d,true)} · ${esc(clubPlace(h))}</div>
    <div class="scoreboard"><div class="t">${crest(h,48)}<span>${esc(h.name)}</span></div><div><div class="score num">${m.home.goals} - ${m.away.goals}</div><span class="clock" style="text-align:center">${minShown}</span></div><div class="t away"><span>${esc(a.name)}</span>${crest(a,48)}</div></div>
    ${tie}
-   ${m.ended?`<div class="row" style="justify-content:center"><button class="btn primary" data-act="finishMatch">Continuar</button></div>`:
+`,`   ${m.ended?`<div class="row" style="justify-content:center"><button class="btn primary" data-act="finishMatch">Continuar</button></div>`:
    `<div class="row" style="justify-content:center">
      <button class="btn ${m.paused?'primary':''}" data-act="pause">${m.paused?(m.half===2&&m.min===45?'Segunda parte':'Reanudar'):'Pausa'}</button>
      <button class="btn" data-act="speed">Velocidad ${['×1','×2','×4'][m.speed]}</button>
      <button class="btn" data-act="subs">Cambios (${user.subs}/5)</button>
      <label class="label" for="liveMent">Mentalidad</label><select id="liveMent" data-change="liveMent">${MENT.map((x,i)=>`<option value="${i}" ${i===user.ment?'selected':''}>${x}</option>`).join('')}</select>
      <button class="btn" data-act="simEnd">Simular hasta el final</button></div>`}
-   ${ratings}
-   <div class="grid g2"><div class="card"><h3>Retransmisión</h3><div class="feed">${feed}</div></div>
+`,`   ${ratings}
+`,`   <div class="grid g2"><div class="card"><h3>Retransmisión</h3><div class="feed">${feed}</div></div>
     <div class="card"><h3>Estadísticas</h3><div class="mstats">${statRow('Posesión %',possH,100-possH)}${statRow('Tiros',m.home.shots,m.away.shots)}${statRow('Tiros a puerta',m.home.sot,m.away.sot)}${statRow('Paradas',m.home.saves,m.away.saves)}${statRow('Amarillas',Object.values(m.home.yellows).reduce((s,x)=>s+x,0),Object.values(m.away.yellows).reduce((s,x)=>s+x,0))}${statRow('Rojas',m.home.red.size,m.away.red.size)}</div>
     <div class="small muted" style="margin-top:12px">Goles: ${m.fx.ev.filter(e=>e.t==='g').map(e=>`${esc(S.clubs[e.side==='h'?m.home.cid:m.away.cid].short)} ${esc(nm(e.pid))} ${e.min}'`).join(' · ')||'—'}</div></div></div>
-  </div>`;
+`]);
+}
+function patchSections(el,parts){
+  let inner=el.firstElementChild;
+  if(!inner||inner.className!=='inner'||inner.children.length!==parts.length){el.innerHTML='<div class="inner">'+parts.map(()=>'<div class="sec" style="display:contents"></div>').join('')+'</div>';inner=el.firstElementChild;}
+  parts.forEach((h,i)=>{const sec=inner.children[i];if(sec._h!==h){sec._h=h;sec.innerHTML=h;}});
 }
 function subsModal(){
   const m=UI.match;const s=m.home.isUser?m.home:m.away;m.paused=true;renderMatch();const out=UI.pendingSubOut;
