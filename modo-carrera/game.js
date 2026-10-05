@@ -720,7 +720,7 @@ function render(){
    <nav class="nav" aria-label="Secciones">
     <div class="brand">Modo <span>Carrera</span></div>
     ${NAV.map(([k,l])=>`<button class="${UI.view===k?'on':''}" data-go="${k}">${icon(k)}<span>${l}</span>${k==='inbox'&&un?`<span class="dot">${un}</span>`:''}${k==='training'&&trainingAvail()&&(S.trainSel||[]).length<3&&!S.seasonDone?'<span class="dot ok"></span>':''}</button>`).join('')}
-    <div class="src small muted">Datos: EA SPORTS FC 26</div>
+    <div class="src small muted">Datos: EA SPORTS FC 26<br>Versión ${window.BUILD||'—'}</div>
    </nav>
    <main>
     <div class="topbar">${topbarHTML()}</div>
@@ -751,7 +751,11 @@ function startSim(mode){if(SIM.on||S.seasonDone||S.over||userFixtureToday())retu
 function simTick(){
   if(!SIM.on)return;
   if(S.seasonDone||S.over||userFixtureToday()){endSim(S.seasonDone?'Fin de temporada':'Día de partido','home');return;}
-  const before=S.msgId;processDay();updateTop();
+  const before=S.msgId;
+  if(SIM.mode==='match'){let k=0;do{processDay();k++;}while(k<6&&!S.seasonDone&&!userFixtureToday());updateTop();
+    if(S.seasonDone||userFixtureToday()){const u=unread();endSim((S.seasonDone?'Fin de temporada':'Día de partido')+(u?` · ${u} mensaje${u===1?'':'s'} sin leer`:''),'home');return;}
+    SIM.timer=setTimeout(simTick,0);return;}
+  processDay();updateTop();
   const nw=S.news.find(n=>n.id>=before&&!n.read);
   if(nw&&SIM.mode==='days'){endSim('Nueva notificación: '+nw.title.replace(/<[^>]*>/g,''),'inbox');return;}
   if(S.seasonDone||userFixtureToday()){const u=unread();endSim((S.seasonDone?'Fin de temporada':'Día de partido')+(u?` · ${u} mensaje${u===1?'':'s'} sin leer`:''),'home');return;}

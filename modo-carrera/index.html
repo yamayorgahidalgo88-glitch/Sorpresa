@@ -104,7 +104,7 @@ tr.me td{background:color-mix(in srgb,var(--accent) 12%,transparent)}
 main{flex:1;min-width:0;padding-inline:24px;padding-block:20px 40px;max-width:1200px}
 .topbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px}
 .topbar h1{font-size:32px;text-transform:uppercase}
-.topbar .meta{margin-left:auto;display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+.topbar .meta{margin-left:auto;display:flex;gap:12px 14px;flex-wrap:wrap;align-items:center}
 .simbtn{min-width:132px}
 .stat .v{font:700 20px/1.1 var(--display)}
 @media (max-width:760px){
@@ -257,13 +257,22 @@ main{flex:1;min-width:0;padding-inline:24px;padding-block:20px 40px;max-width:12
 
 @media (prefers-reduced-motion:no-preference){.ev.new{animation:in .35s ease}@keyframes in{from{opacity:.2;transform:translateY(-4px)}}}
 .slot .fbar{width:34px;height:4px;border-radius:2px;background:rgba(0,0,0,.45);margin:2px auto 0;overflow:hidden}.slot .fbar i{display:block;height:100%}
-.simbtns{display:flex;gap:8px;flex-wrap:wrap}
+.simbtns{display:flex;gap:8px;flex-wrap:nowrap}.simbtns .simbtn{min-width:0;white-space:nowrap}
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script src="data.js"></script>
+<script src="build.js"></script>
 <script src="game.js"></script>
-<script>if('serviceWorker' in navigator&&location.protocol.startsWith('http'))window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));</script>
+<script>
+// Actualización automática: si el service worker nuevo toma el control, se recarga una vez (salvo en pleno partido)
+if('serviceWorker' in navigator&&location.protocol.startsWith('http')){
+  const had=!!navigator.serviceWorker.controller;let done=false;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!had||done)return;done=true;
+    const go=()=>{if(window.UI&&UI.match){setTimeout(go,4000);return;}setTimeout(()=>location.reload(),500);};go();});
+  window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').then(r=>r.update()).catch(()=>{}));
+}
+</script>
 </body>
 </html>
