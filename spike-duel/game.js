@@ -3201,6 +3201,8 @@
       document.getElementById('btn2p').classList.add('hidden');      // 2 players is keyboard-only for now
       document.getElementById('btnControls').classList.remove('hidden');
     }
+    // online rooms are not offered on computers nor on CrazyGames for now (only in the installable mobile version)
+    if (onCrazy || !isTouch) document.querySelector('#menu .row.online').classList.add('hidden');
     const standalone = matchMedia('(display-mode: fullscreen)').matches || matchMedia('(display-mode: standalone)').matches;
     if (standalone) document.getElementById('btnFull').classList.add('hidden');
   }
