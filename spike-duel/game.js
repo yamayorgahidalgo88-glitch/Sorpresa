@@ -54,7 +54,7 @@
       s_fire: 'Fire', s_fire_d: 'A blazing fast spike',
       s_sticky: 'Bubblegum', s_sticky_d: 'Whoever stops it can\'t jump this point',
       s_shrink: 'Shrink', s_shrink_d: 'Whoever stops it shrinks this point',
-      s_heavy: 'Meteor', s_heavy_d: 'Falls hard and barely bounces back',
+      s_heavy: 'Meteor', s_heavy_d: 'Vanishes at the net and crashes down from the sky',
       s_ice: 'Ice', s_ice_d: 'Whoever stops it freezes for 2 seconds',
       s_zerog: 'Zero Gravity', s_zerog_d: 'Whoever stops it floats for 2 seconds',
       s_lightning: 'Lightning', s_lightning_d: 'Hovers over the net, strikes a random spot and zaps for a moment',
@@ -94,7 +94,7 @@
       s_fire: 'Fuego', s_fire_d: 'Un remate rapidísimo',
       s_sticky: 'Chicle', s_sticky_d: 'Quien la para no puede saltar en este punto',
       s_shrink: 'Encoger', s_shrink_d: 'Quien la para se encoge en este punto',
-      s_heavy: 'Meteorito', s_heavy_d: 'Cae a plomo y apenas rebota',
+      s_heavy: 'Meteorito', s_heavy_d: 'Desaparece en la red y cae del cielo como un meteorito',
       s_ice: 'Hielo', s_ice_d: 'Quien la para se congela 2 segundos',
       s_zerog: 'Gravedad cero', s_zerog_d: 'Quien la para flota 2 segundos',
       s_lightning: 'Rayo', s_lightning_d: 'Se queda sobre la red y sale disparado a un punto al azar',
@@ -197,6 +197,10 @@
   const NICKS = ['Wave', 'Lime', 'Coral', 'Tank', 'Frost', 'Volt', 'Shadow', 'Ace', 'Blaze', 'Storm', 'Pixel', 'Rocket',
     'Nova', 'Bolt', 'Kiwi', 'Mango', 'Turbo', 'Ziggy', 'Sunny', 'Echo'];
   const BOSSES = ['Magma King', 'Obsidian', 'Inferno', 'Eclipse', 'Dark Ace'];
+  // Zero-g was retired (too close to Earthquake). Its slot stays so saved indices keep working;
+  // anything that still points at it uses Ice instead.
+  const RETIRED_SUPER = 5;
+  const liveSuper = i => (i === RETIRED_SUPER ? 4 : i);
   const BOSS_SUPERS = [4, 13, 18, 9, 19];          // ice, ink, bomb, confusion, earthquake
   const WORLD_VENUES = ['beach', 'jungle', 'snow', 'rooftop', 'gym'];
   const TOUR_SIZE = 8, CAREER_LEVELS = 50;
@@ -226,7 +230,7 @@
       const lo = Math.max(0, Math.floor(i * 2.4) - 2), hi = Math.min(SUPERS.length - 1, Math.floor(i * 2.4) + 2);
       rivals.push({
         nick: nicks[i], char: chars[i],
-        venue: pick(r, VENUES.filter(v => v !== 'volcano')), super: lo + Math.floor(r() * (hi - lo + 1)), ai: i + 1,
+        venue: pick(r, VENUES.filter(v => v !== 'volcano')), super: liveSuper(lo + Math.floor(r() * (hi - lo + 1))), ai: i + 1,
       });
     }
     return { rivals, round: 0 };
@@ -243,7 +247,7 @@
     const cap = Math.min(SUPERS.length - 1, Math.floor(level / 2.5));
     return {
       nick: pick(r, NICKS), char: Math.floor(r() * CHARS.length), venue: WORLD_VENUES[world],
-      super: Math.max(0, cap - 4) + Math.floor(r() * (Math.min(cap, 4) + 1)), ai: 1 + (level - 1) * 7 / 49,
+      super: liveSuper(Math.max(0, cap - 4) + Math.floor(r() * (Math.min(cap, 4) + 1))), ai: 1 + (level - 1) * 7 / 49,
     };
   }
 
@@ -264,6 +268,12 @@
       if (raw) Object.assign(save, JSON.parse(raw));
     } catch (e) { /* corrupt save: start fresh */ }
     if (!Array.isArray(save.supers) || !save.supers.includes(0)) save.supers = [0].concat(save.supers || []);
+    if (save.supers.includes(RETIRED_SUPER)) {            // bought Zero-g: give the coins back
+      save.supers = save.supers.filter(i => i !== RETIRED_SUPER);
+      save.coins += SUPERS[RETIRED_SUPER].price;
+      setTimeout(persist, 0);
+    }
+    if (save.tourRun && save.tourRun.rivals) for (const r of save.tourRun.rivals) r.super = liveSuper(r.super);
     if (!save.supers.includes(save.superSel)) save.superSel = 0;
     if (!save.chars.includes(save.char)) save.char = 0;
     if (!save.balls.includes(save.ball)) save.ball = 0;
@@ -445,7 +455,7 @@
     return {
       side, x: side === 0 ? 200 : 760, y: GROUND, vx: 0, vy: 0, onGround: true,
       char: CHARS[charIdx], dark: false, isAI, level: level || 1,
-      superId: SUPERS[superIdx || 0].id,
+      superId: SUPERS[liveSuper(superIdx || 0)].id,
       power: 0, hitCooldown: 0, squash: 0, r: PR, baseR: PR, boss: false, powerMul: 1, fx: freshFx(),
       ai: { target: side === 0 ? 200 : 760, think: 0, jumpPlan: null, err: 0, follow: null },
     };
@@ -594,7 +604,6 @@
     else if (id === 'zerog') { fx.float = 2; key = 'e_zerog'; }
     else if (id === 'shrink') { fx.shrink = true; key = 'e_shrink'; }
     else if (id === 'sticky') { fx.sticky = true; key = 'e_sticky'; }
-    else if (id === 'heavy') { key = 'e_heavy'; }
     else if (id === 'snail') { fx.slow = true; key = 'e_snail'; }
     else if (id === 'ink') { fx.ink = 3; key = 'e_ink'; burst(p.x, p.y - 30, 20, ['#212529', '#343a40']); }
     else if (id === 'wind') { fx.wind = 2.5; key = 'e_wind'; }
@@ -607,7 +616,7 @@
       sand(p.x);
     }
     if (key) { showBanner(t(key), 1.1, s.color); Sound.effect(); }
-    return id === 'heavy';
+    return false;
   }
 
   let hitInfo = null;
@@ -689,7 +698,7 @@
     p.power = 0; shake = 0.35; Sound.superSpike();
     ball.super = s.id; ball.superOwner = p.side; ball.superTime = 3; ball.zig = 0;
     ball.crossed = false; ball.flight = 0; ball.teleported = false; ball.turned = false; ball.returned = false;
-    ball.st = 0; ball.tph = 0; ball.hold = 0; ball.struck = false; ball.bt = 0; ball.bax = 0; ball.bay = 0; ball.deflated = false;
+    ball.st = 0; ball.tph = 0; ball.hold = 0; ball.struck = false; ball.bt = 0; ball.bax = 0; ball.bay = 0; ball.deflated = false; ball.mhide = 0; ball.mdone = false;
     burst(ball.x, ball.y, 26, [s.color, s.glow, '#ffffff']);
     fakes = [];
     if (s.id === 'clones') {
@@ -763,6 +772,24 @@
         return 0;
       }
     }
+    // Meteor: vanishes as it reaches the net, then crashes down from the sky at a random spot of the rival's court
+    if (ball.super === 'heavy' && !ball.mdone) {
+      if (!ball.mhide && (ball.x - NET_X) * towards >= -12) {
+        ball.mhide = 1 + simRand();
+        burst(ball.x, ball.y, 18, ['#495057', '#e85d04', '#ffd166']);
+      }
+      if (ball.mhide) {
+        ball.mhide -= dt;
+        ball.x = NET_X + towards * 200; ball.y = -400; ball.vx = 0; ball.vy = 0; ball.trail = [];
+        if (ball.mhide <= 0) {
+          ball.mhide = 0; ball.mdone = true;
+          ball.x = NET_X + towards * (90 + simRand() * (370 + courtExt - 90)); ball.y = -40;
+          ball.vx = -towards * 80 * simRand(); ball.vy = 650; ball.trail = [];
+          Sound.superSpike();
+        }
+        return 0;
+      }
+    }
     const past = (ball.x - NET_X) * towards > 0;     // on the receiving side
     if (past && !ball.crossed) { ball.crossed = true; ball.flight = 0; }
     if (ball.crossed && !past) ball.returned = true;   // came back over the net: stop flight tricks
@@ -821,7 +848,7 @@
       ball.vy = Math.min(ball.vy, 100);
       burst(ball.x, ball.y, 10, ['#f4a261', '#ffe8d6']);
     }
-    if (ball.super === 'heavy') return 2.2;
+    if (ball.super === 'heavy') return ball.mdone ? 1.7 : 1;
     return 1;
   }
 
@@ -858,6 +885,7 @@
     const ownSide = x => (x - NET_X) * towards < 0;
     if (ai.follow && !fakes.includes(ai.follow)) ai.follow = null;
     const tracked = ai.follow || ball;
+    if (ball.mhide) { ai.target = home; inp.left = inp.right = false; return; }
     // how long the ball has been on our side: after a while even easy rivals stop tapping it
     // around (or against their own wall) and jump to send it over
     ai.own = ownSide(ball.x) ? (ai.own || 0) + dt : 0;
@@ -1142,7 +1170,7 @@
   function makePrize(taken) {
     const pool = [];
     const add = (list, owned, kind, label) => list.forEach((it, i) => {
-      if (!owned.includes(i) && !taken.some(q => q.kind === kind && q.i === i)) pool.push({ kind, i, label });
+      if (!owned.includes(i) && !(kind === 'supers' && i === RETIRED_SUPER) && !taken.some(q => q.kind === kind && q.i === i)) pool.push({ kind, i, label });
     });
     add(CHARS, save.chars, 'chars', 'tCharacter'); add(BALLS, save.balls, 'balls', 'tBall'); add(SUPERS, save.supers, 'supers', 'tSuper');
     if (pool.length && Math.random() < 0.2) return pool[Math.floor(Math.random() * pool.length)];
@@ -2831,7 +2859,9 @@
       drawWalls();
       for (const p of players) drawPlayer(p, p.x, p.y, 1, ball.x, ball.y);
       for (const f of fakes) drawSuperBall(Object.assign({}, f, { super: 'clones', trail: [] }));
-      if (ball.super) {
+      if (ball.mhide) {
+        // the meteor is out of sight
+      } else if (ball.super) {
         drawSuperBall(ball);
       } else {
         ball.trail.forEach((tp, i) => {
@@ -2841,7 +2871,7 @@
         drawBall(ball, BALLS[save.ball], null, ball.r);
       }
       // marker when the ball is above the screen
-      if (ball.y < sy - BR && ball.super !== 'ghost') { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(ball.x, sy + 6); ctx.lineTo(ball.x - 8, sy + 20); ctx.lineTo(ball.x + 8, sy + 20); ctx.fill(); }
+      if (ball.y < sy - BR && ball.super !== 'ghost' && !ball.mhide) { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(ball.x, sy + 6); ctx.lineTo(ball.x - 8, sy + 20); ctx.lineTo(ball.x + 8, sy + 20); ctx.fill(); }
       for (const pt of particles) { ctx.globalAlpha = Math.max(0, pt.life / pt.max); ctx.fillStyle = pt.color; circle(pt.x, pt.y, pt.r); }
       ctx.globalAlpha = 1;
       for (const p of players) if (p.fx.ink > 0) drawInk(p);
@@ -3146,6 +3176,7 @@
       supers: { list: SUPERS, owned: save.supers, cur: 'superSel' },
     }[shopTab];
     cfg.list.forEach((it, i) => {
+      if (shopTab === 'supers' && i === RETIRED_SUPER) return;
       const card = document.createElement('button');
       const has = cfg.owned.includes(i);
       const isCur = save[cfg.cur] === i;
@@ -3388,7 +3419,7 @@
     if (m.t === 'po') { const r = performance.now() - m.c; net.rtt = net.rtt * 0.7 + r * 0.3; return; }
     if (net.role === 'host') {
       if (m.t === 'hi') {
-        net.guest = { ch: (m.ch | 0) % CHARS.length, su: (m.su | 0) % SUPERS.length };
+        net.guest = { ch: (m.ch | 0) % CHARS.length, su: liveSuper((m.su | 0) % SUPERS.length) };
         if (kind !== 'online') hostStart();
       } else if (m.t === 'i') netInputs(m);
       else if (m.t === 're') { net.remReady = true; checkRematch(); }
