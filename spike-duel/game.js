@@ -783,7 +783,7 @@
         if (ball.mhide <= 0) {
           ball.mhide = 0; ball.mdone = true;
           ball.x = NET_X + towards * (90 + simRand() * (370 + courtExt - 90)); ball.y = -40;
-          ball.vx = -towards * 80 * simRand(); ball.vy = 650; ball.trail = [];
+          ball.vx = -towards * 80 * simRand(); ball.vy = 950; ball.trail = [];
           Sound.superSpike();
         }
         return 0;
@@ -811,28 +811,28 @@
       const fromNet = (ball.x - NET_X) * towards;
       if (fromNet < 60 && ball.vx * towards < 0) ball.vx = -ball.vx * 0.7;   // bounces off the net side, never goes back
       if (ball.y < 25 && ball.vy < 0) ball.vy = -ball.vy * 0.5;                // and stays on screen
-      if (ball.flight < 1.3) {
+      if (ball.flight < 1.0) {
         ball.bt = (ball.bt || 0) - dt;
         if (ball.bt <= 0) {
           ball.bt = 0.09 + simRand() * 0.14;
           const a = simRand() * 6.283185307179586;
-          ball.bax = dcos(a); ball.bay = dsin(a) * 0.8 - 0.3;          // a slight upward bias keeps it flying
+          ball.bax = dcos(a); ball.bay = dsin(a) * 0.8 - 0.05;         // barely any lift: it darts around while heading down
         }
         let ax = ball.bax, ay = ball.bay;
         if (fromNet < 160) ax = Math.abs(ax) * towards;
         if (ball.y < 90) ay = Math.abs(ay);
         if (ball.y > GROUND - 110) ay = -Math.abs(ay);
-        const thrust = 1900 + ball.flight * 1100;
+        const thrust = 2700 + ball.flight * 1600;
         ball.vx += ax * thrust * dt; ball.vy += ay * thrust * dt;
-        const sp = hyp(ball.vx, ball.vy), cap = 480 + ball.flight * 320;
+        const sp = hyp(ball.vx, ball.vy), cap = 640 + ball.flight * 420;
         if (sp > cap) { ball.vx *= cap / sp; ball.vy *= cap / sp; }
         ball.spin = (ball.bax || 1) * 30;
         if (!resim && Math.random() < dt * 30) particles.push({ x: ball.x - ax * 18, y: ball.y - ay * 18, vx: -ax * 160, vy: -ay * 160,
           life: 0.35, max: 0.35, color: '#ffe5ec', r: 3 });
-        return 0.4;
+        return 0.7;
       }
-      if (!ball.deflated) { ball.deflated = true; ball.vx *= 0.35; ball.vy = Math.max(ball.vy * 0.3, 80); }
-      return 1.5;
+      if (!ball.deflated) { ball.deflated = true; ball.vx *= 0.35; ball.vy = Math.max(ball.vy * 0.5, 260); }
+      return 2;
     } else if (ball.super === 'magnet' && past && rec) {
       ball.vx += Math.sign(ball.x - rec.x || towards) * 1500 * dt;
     } else if (ball.super === 'teleport' && ball.crossed && ball.flight > 0.12 && !ball.teleported) {
@@ -847,7 +847,7 @@
       ball.vy = Math.min(ball.vy, 100);
       burst(ball.x, ball.y, 10, ['#f4a261', '#ffe8d6']);
     }
-    if (ball.super === 'heavy') return ball.mdone ? 1.7 : 1;
+    if (ball.super === 'heavy') return ball.mdone ? 2.4 : 1;
     return 1;
   }
 
