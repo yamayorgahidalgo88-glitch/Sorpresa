@@ -731,24 +731,26 @@ function render(){
 }
 function topbarHTML(){const c=me();const first=userFixtures().find(f=>f.c===userDiv().id);const pre=first&&S.date<=first.d&&!first.played;
   const today=!S.seasonDone&&userFixtureToday();
-  const btn=S.seasonDone?'':SIM.on?'<button class="btn primary simbtn" data-act="simstop">⏸ Pausar</button>':today?'<button class="btn simbtn" disabled>Día de partido</button>':'<button class="btn primary simbtn" data-act="simdays">▶ Simular días</button>';
+  const hasNext=!S.seasonDone&&userFixtures().some(f=>!f.played);
+  const btn=S.seasonDone?'':SIM.on?'<button class="btn primary simbtn" data-act="simstop">⏸ Pausar</button>':today?'<button class="btn primary simbtn" data-act="play">⚽ Ir al partido</button>':
+    `<div class="simbtns"><button class="btn simbtn" data-act="simdays">▶ Simular días</button>${hasNext?'<button class="btn primary simbtn" data-act="gomatch">⚽ Ir al partido</button>':''}</div>`;
   return `${crest(c,44)}<div><h1>${esc(c.name)}</h1><div class="small muted">${esc(S.user.name)} · ${esc(userDiv().name)} · ${seasonLabel()}${S.seasonDone?' · Fin de temporada':pre?' · Pretemporada':' · Jornada '+leagueRound()}</div></div>
      <div class="meta"><div class="stat"><div class="label">Fecha</div><div class="v">${fmtDate(S.date,true)}</div></div><div class="stat"><div class="label">Presupuesto</div><div class="v num">${money(c.budget)}</div></div>
      <div class="stat"><div class="label">Posición</div><div class="v num">${posLabel()}</div></div>
      <div class="stat"><div class="label">Directiva</div><div class="v num" style="color:${confColor()}">${Math.round(S.board.conf)}%</div></div>${btn}</div>`;}
 
 /* ---------- simular días: avanza solo y se detiene en partido o ante una notificación ---------- */
-const SIM={on:false,timer:null};
+const SIM={on:false,timer:null,mode:'days'};
 function updateTop(){const el=document.querySelector('.topbar');if(el&&S)el.innerHTML=topbarHTML();}
-function endSim(msg){clearTimeout(SIM.timer);SIM.timer=null;const was=SIM.on;SIM.on=false;if(was){save();render();if(msg)toast(msg);}}
-function startSim(){if(SIM.on||S.seasonDone||S.over||userFixtureToday())return;SIM.on=true;updateTop();SIM.timer=setTimeout(simTick,60);}
+function endSim(msg,view){clearTimeout(SIM.timer);SIM.timer=null;const was=SIM.on;SIM.on=false;if(was){if(view){UI.view=view;UI.selSlot=null;}save();render();if(msg)toast(msg);}}
+function startSim(mode){if(SIM.on||S.seasonDone||S.over||userFixtureToday())return;SIM.mode=mode||'days';SIM.on=true;updateTop();SIM.timer=setTimeout(simTick,60);}
 function simTick(){
   if(!SIM.on)return;
-  if(S.seasonDone||S.over||userFixtureToday()){endSim(S.seasonDone?'Fin de temporada':'Día de partido');return;}
+  if(S.seasonDone||S.over||userFixtureToday()){endSim(S.seasonDone?'Fin de temporada':'Día de partido','home');return;}
   const before=S.msgId;processDay();updateTop();
   const nw=S.news.find(n=>n.id>=before&&!n.read);
-  if(nw){endSim('Nueva notificación: '+nw.title.replace(/<[^>]*>/g,''));return;}
-  if(S.seasonDone||userFixtureToday()){endSim(S.seasonDone?'Fin de temporada':'Día de partido');return;}
+  if(nw&&SIM.mode==='days'){endSim('Nueva notificación: '+nw.title.replace(/<[^>]*>/g,''),'inbox');return;}
+  if(S.seasonDone||userFixtureToday()){const u=unread();endSim((S.seasonDone?'Fin de temporada':'Día de partido')+(u?` · ${u} mensaje${u===1?'':'s'} sin leer`:''),'home');return;}
   SIM.timer=setTimeout(simTick,90);}
 
 /* ---------- inicio ---------- */
@@ -767,7 +769,7 @@ function vHome(){
     ${today&&probs.length?`<p class="small" style="color:var(--warn)">Tu once tiene ${probs.length} jugador(es) lesionados, sancionados o que ya no están. Se sustituirán automáticamente al empezar.</p>`:''}
     <div class="row" style="justify-content:center;margin-top:6px">
       ${today?`<button class="btn primary" data-act="play">Jugar partido</button><button class="btn" data-act="sim">Simular resultado</button><button class="btn" data-go="tactics">Ajustar alineación</button>`:
-      `<button class="btn primary" data-act="simdays">▶ Simular días</button><button class="btn" data-go="tactics">Alineación</button>`}
+      `<button class="btn primary" data-act="gomatch">⚽ Ir al partido</button><button class="btn" data-act="simdays">▶ Simular días</button><button class="btn" data-go="tactics">Alineación</button>`}
     </div></div>`;}
   else hero=`<div class="card" style="grid-column:1/-1"><h3>Sin partidos pendientes</h3><p class="muted">Tu equipo ya ha terminado la temporada. Avanza hasta que acaben el resto de competiciones.</p><button class="btn primary" data-act="toEnd">Avanzar hasta el final de temporada</button></div>`;
   const upcoming=userFixtures().filter(f=>!f.played&&f!==nf).slice(0,5).map(f=>{const o=S.clubs[f.h===c.id?f.a:f.h];return `<div class="row between fxrow"><span class="small muted" style="min-width:86px">${fmtDate(f.d)}</span><span class="row" style="gap:8px;flex-wrap:nowrap;min-width:0;flex:1">${crest(o,22)} <span class="ellip">${esc(o.name)}</span></span>${S.comps[f.c].type==='E'?compTag(f.c):''}<span class="pill">${f.h===c.id?'Casa':'Fuera'}</span></div>`;}).join('');
@@ -992,8 +994,8 @@ function vLeague(){
 }
 
 /* ---------- bandeja ---------- */
-function vInbox(){
-  return `<div class="card" style="padding:6px 0">${S.news.map(n=>`<div class="msg ${n.read?'':'unread'}" data-msg="${n.id}"><div style="min-width:0;flex:1"><div class="row between"><span class="t">${n.title}</span><span class="small muted">${fmtDate(n.date,true)}</span></div>
+function vInbox(){const un=unread();
+  return `${un?`<div class="row between" style="margin-bottom:10px"><span class="small muted">${un} sin leer</span><button class="btn" data-act="readall">Marcar todo como leído</button></div>`:''}<div class="card" style="padding:6px 0">${S.news.map(n=>`<div class="msg ${n.read?'':'unread'}" data-msg="${n.id}"><div style="min-width:0;flex:1"><div class="row between"><span class="t">${n.title}</span><span class="small muted">${fmtDate(n.date,true)}</span></div>
    <div class="small muted">${n.type==='offer'?(n.done?'Oferta · '+esc(n.done):'<b style="color:var(--accent)">Oferta pendiente</b>'):n.type==='rumor'?'Noticias':n.type==='dev'?'Evolución':'Club'}</div></div></div>`).join('')||'<p class="muted" style="padding:12px">Sin mensajes.</p>'}</div>`;
 }
 function openMsg(id){const n=S.news.find(x=>x.id===id);if(!n)return;n.read=true;save();
@@ -1193,7 +1195,9 @@ function act(a,t){
   case 'play':previewMatch(true);break;
   case 'sim':previewMatch(false);break;
   case 'startmatch':closeModal();startMatch(t.dataset.live==='1');break;
-  case 'simdays':startSim();break;
+  case 'simdays':startSim('days');break;
+  case 'gomatch':startSim('match');break;
+  case 'readall':S.news.forEach(n=>{n.read=true;});save();render();toast('Todos los mensajes marcados como leídos');break;
   case 'simstop':endSim('Simulación en pausa');break;
   case 'train':{const r=trainPlayer(id);if(!r)break;const p=P(id);render();
     modal(`<div class="pmodal">${card(p)}<div class="pinfo"><h2>${esc(p.name)}</h2><p style="color:var(--good);font-weight:600">+${r.gain.toFixed(2)}% de progreso de entrenamiento.</p>${r.up?`<p><b>¡Sube a ${p.ovr} de media!</b></p>`:''}<div class="trainbar"><span>+1</span><div class="bar"><i style="width:${p.training}%"></i></div><b>${Math.round(p.training)}%</b></div></div></div><div class="row" style="margin-top:14px"><button class="btn" data-close style="margin-left:auto">Cerrar</button></div>`,'wide');break;}
