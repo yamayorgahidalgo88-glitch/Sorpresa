@@ -1,5 +1,5 @@
 // Offline cache for the installable (home screen) version. Not used on CrazyGames.
-const CACHE = 'spike-duel-v3';
+const CACHE = 'spike-duel-v4';
 const ASSETS = ['./', 'style.css', 'sdk.js', 'game.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {

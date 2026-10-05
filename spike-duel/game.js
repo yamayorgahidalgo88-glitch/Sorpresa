@@ -31,7 +31,7 @@
     x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x;
     return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
   }
-  const SAVE_KEY = 'spikeduel.save.v1';
+  const SAVE_KEY = 'spikeduel.save.v2';   // v2: fresh start for the public launch
 
   // ---------- Text ----------
   const LANG = (navigator.language || 'en').toLowerCase().startsWith('es') ? 'es' : 'en';
@@ -57,7 +57,7 @@
       s_heavy: 'Meteor', s_heavy_d: 'Falls hard and barely bounces back',
       s_ice: 'Ice', s_ice_d: 'Whoever stops it freezes for 2 seconds',
       s_zerog: 'Zero Gravity', s_zerog_d: 'Whoever stops it floats for 2 seconds',
-      s_lightning: 'Lightning', s_lightning_d: 'Hovers over the net, then strikes a random spot',
+      s_lightning: 'Lightning', s_lightning_d: 'Hovers over the net, strikes a random spot and zaps for a moment',
       s_ghost: 'Ghost', s_ghost_d: 'Turns invisible past the net',
       s_clones: 'Clones', s_clones_d: 'Splits into 3 balls; only one is real',
       s_confusion: 'Confusion', s_confusion_d: 'Whoever stops it gets reversed controls this point',
@@ -71,7 +71,7 @@
       s_ink: 'Ink', s_ink_d: 'Splats ink over the rival\'s side for 3 seconds',
       s_boomerang: 'Boomerang', s_boomerang_d: 'Flies deep, then swings back towards the net',
       s_wind: 'Gale', s_wind_d: 'Whoever stops it is blown back this point',
-      s_balloon: 'Balloon', s_balloon_d: 'Whoever stops it puffs up and can barely jump this point',
+      s_balloon: 'Balloon', s_balloon_d: 'Flies off like a deflating balloon on the rival side',
       s_quake: 'Earthquake', s_quake_d: 'Launches whoever stops it into the air, out of control',
       s_mini: 'Mini Ball', s_mini_d: 'Shrinks the ball to a tiny dot that is hard to return',
       e_bomb: 'Boom!', e_snail: 'So slow!', e_ink: 'Splat!', e_wind: 'Blown away!', e_balloon: 'Puffed up!', e_quake: 'Earthquake!',
@@ -111,7 +111,7 @@
       s_ink: 'Tinta', s_ink_d: 'Mancha de tinta el campo rival durante 3 segundos',
       s_boomerang: 'Bumerán', s_boomerang_d: 'Va al fondo y vuelve de golpe hacia la red',
       s_wind: 'Vendaval', s_wind_d: 'Quien la para sale empujado por el viento en este punto',
-      s_balloon: 'Globo', s_balloon_d: 'Quien la para se hincha y apenas salta en este punto',
+      s_balloon: 'Globo', s_balloon_d: 'En el campo rival sale disparado como un globo que se deshincha',
       s_quake: 'Terremoto', s_quake_d: 'Lanza por los aires a quien la para, sin control',
       s_mini: 'Minibola', s_mini_d: 'Encoge el balón hasta hacerlo diminuto y difícil de devolver',
       e_bomb: '¡Bum!', e_snail: '¡Qué lento!', e_ink: '¡Splash!', e_wind: '¡Por los aires!', e_balloon: '¡Hinchado!', e_quake: '¡Terremoto!',
@@ -192,7 +192,7 @@
   const SUPER = id => SUPERS.find(s => s.id === id);
   // TEMPORARY for playtesting: everything in the shop costs 0. Prices above are kept;
   // set this back to false to restore them.
-  const FREE_SHOP = true;
+  const FREE_SHOP = false;
   const VENUES = ['beach', 'gym', 'rooftop', 'snow', 'jungle', 'volcano', 'moon'];
   const NICKS = ['Wave', 'Lime', 'Coral', 'Tank', 'Frost', 'Volt', 'Shadow', 'Ace', 'Blaze', 'Storm', 'Pixel', 'Rocket',
     'Nova', 'Bolt', 'Kiwi', 'Mango', 'Turbo', 'Ziggy', 'Sunny', 'Echo'];
@@ -526,7 +526,7 @@
     if (fx.slow) speed *= 0.5;
     if (fx.balloon) speed *= 0.75;
     p.vx = dir * speed;
-    if (fx.wind) p.vx += (p.side === 0 ? -1 : 1) * 170;   // blown towards the back wall
+    if (fx.wind) { p.vx += (p.side === 0 ? -1 : 1) * 170; fx.wind = Math.max(0, fx.wind - dt); }   // blown towards the back wall for 2.5 s
     if (fx.knock) { p.vx += fx.knock; fx.knock *= dt === STEP ? KNOCK_DECAY_STEP : Math.pow(0.02, dt); if (Math.abs(fx.knock) < 20) fx.knock = 0; }
     const canJump = !locked && !fx.sticky;
     if (inp.jump && p.onGround && canJump) {
@@ -589,15 +589,14 @@
     let key = null;
     if (id === 'confusion') { fx.confused = true; key = 'e_confusion'; }
     else if (id === 'ice') { fx.frozen = 2; key = 'e_ice'; burst(p.x, p.y - 20, 18, ['#caf0f8', '#48cae4', '#ffffff']); }
-    else if (id === 'lightning') { fx.stunned = 1; key = 'e_lightning'; burst(p.x, p.y - 20, 16, ['#ffd60a', '#ffffff']); }
+    else if (id === 'lightning') { fx.stunned = 0.5; key = 'e_lightning'; burst(p.x, p.y - 20, 16, ['#ffd60a', '#ffffff']); }
     else if (id === 'zerog') { fx.float = 2; key = 'e_zerog'; }
     else if (id === 'shrink') { fx.shrink = true; key = 'e_shrink'; }
     else if (id === 'sticky') { fx.sticky = true; key = 'e_sticky'; }
     else if (id === 'heavy') { key = 'e_heavy'; }
     else if (id === 'snail') { fx.slow = true; key = 'e_snail'; }
     else if (id === 'ink') { fx.ink = 3; key = 'e_ink'; burst(p.x, p.y - 30, 20, ['#212529', '#343a40']); }
-    else if (id === 'wind') { fx.wind = true; key = 'e_wind'; }
-    else if (id === 'balloon') { fx.balloon = true; key = 'e_balloon'; }
+    else if (id === 'wind') { fx.wind = 2.5; key = 'e_wind'; }
     else if (id === 'bomb') {
       fx.knock = (p.side === 0 ? -1 : 1) * 900; fx.stunned = 0.5; key = 'e_bomb'; shake = 0.4;
       burst(ball.x, ball.y, 34, ['#ff6b35', '#ffd60a', '#343a40', '#ffffff']);
@@ -673,7 +672,7 @@
     p.power = 0; shake = 0.35; Sound.superSpike();
     ball.super = s.id; ball.superOwner = p.side; ball.superTime = 3; ball.zig = 0;
     ball.crossed = false; ball.flight = 0; ball.teleported = false; ball.turned = false; ball.returned = false;
-    ball.st = 0; ball.tph = 0; ball.hold = 0; ball.struck = false;
+    ball.st = 0; ball.tph = 0; ball.hold = 0; ball.struck = false; ball.bt = 0; ball.bax = 0; ball.bay = 0; ball.deflated = false;
     burst(ball.x, ball.y, 26, [s.color, s.glow, '#ffffff']);
     fakes = [];
     if (s.id === 'clones') {
@@ -763,6 +762,34 @@
       ball.spin = w * 1.6 * towards;
       if (!resim && Math.random() < dt * 30) particles.push({ x: ball.x, y: ball.y, vx: Math.sin(ball.tph) * 200, vy: -100,
         life: 0.4, max: 0.4, color: '#cfd8dc', r: 3 });
+    } else if (ball.super === 'balloon' && ball.crossed) {
+      // like a balloon letting its air out: sudden darts in random directions, faster and faster,
+      // always over the rival's half; then it runs out of air and drops onto their floor
+      const fromNet = (ball.x - NET_X) * towards;
+      if (fromNet < 60 && ball.vx * towards < 0) ball.vx = -ball.vx * 0.7;   // bounces off the net side, never goes back
+      if (ball.y < 25 && ball.vy < 0) ball.vy = -ball.vy * 0.5;                // and stays on screen
+      if (ball.flight < 1.3) {
+        ball.bt = (ball.bt || 0) - dt;
+        if (ball.bt <= 0) {
+          ball.bt = 0.09 + simRand() * 0.14;
+          const a = simRand() * 6.283185307179586;
+          ball.bax = dcos(a); ball.bay = dsin(a) * 0.8 - 0.3;          // a slight upward bias keeps it flying
+        }
+        let ax = ball.bax, ay = ball.bay;
+        if (fromNet < 160) ax = Math.abs(ax) * towards;
+        if (ball.y < 90) ay = Math.abs(ay);
+        if (ball.y > GROUND - 110) ay = -Math.abs(ay);
+        const thrust = 1900 + ball.flight * 1100;
+        ball.vx += ax * thrust * dt; ball.vy += ay * thrust * dt;
+        const sp = hyp(ball.vx, ball.vy), cap = 480 + ball.flight * 320;
+        if (sp > cap) { ball.vx *= cap / sp; ball.vy *= cap / sp; }
+        ball.spin = (ball.bax || 1) * 30;
+        if (!resim && Math.random() < dt * 30) particles.push({ x: ball.x - ax * 18, y: ball.y - ay * 18, vx: -ax * 160, vy: -ay * 160,
+          life: 0.35, max: 0.35, color: '#ffe5ec', r: 3 });
+        return 0.4;
+      }
+      if (!ball.deflated) { ball.deflated = true; ball.vx *= 0.35; ball.vy = Math.max(ball.vy * 0.3, 80); }
+      return 1.5;
     } else if (ball.super === 'magnet' && past && rec) {
       ball.vx += Math.sign(ball.x - rec.x || towards) * 1500 * dt;
     } else if (ball.super === 'teleport' && ball.crossed && ball.flight > 0.12 && !ball.teleported) {
