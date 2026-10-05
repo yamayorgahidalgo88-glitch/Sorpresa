@@ -49,7 +49,7 @@
       newTour: 'New tournament', round: 'Round {n} of 8', tourRule: 'Rivals change every tournament. Lose once and you start again from round 1.',
       backToStart: 'Back to round 1', tourPrize: '+{n} champion bonus', play: 'Play', beaten: 'Beaten', careerDone: 'All levels cleared!',
       superHint: 'Fill the bar, then spike in the air', go: 'GO!', watchAd: 'Watch an ad: +{n} coins',
-      controlsBtn: 'Buttons', practiceHint: 'Practice · hold a button for 2.5 s to edit it', ctlJump: 'Jump button',
+      controlsBtn: 'Buttons', helpBtn: 'Controls', helpTitle: 'Controls', gotIt: 'Got it!', hMove: 'Move', hJump: 'Jump', hSpike: 'Spike', hSpikeD: 'Jump and hit the ball from above', hSuper: 'Super', hSuperD: 'Fill the bar, then spike', hPause: 'Pause', h2p: '2 players (same keyboard)', hP1: 'Player 1', hP2: 'Player 2', hOr: 'or', hSpace: 'Space', practiceHint: 'Practice · hold a button for 2.5 s to edit it', ctlJump: 'Jump button',
       ctlDir: 'Direction buttons', ctlSize: 'Size', ctlPos: 'Position', ctlGap: 'Spacing', done: 'Done', reset: 'Reset', free: 'Free', rotate: 'Turn your phone sideways to play',
       s_fire: 'Fire', s_fire_d: 'A blazing fast spike',
       s_sticky: 'Bubblegum', s_sticky_d: 'Whoever stops it can\'t jump this point',
@@ -89,7 +89,7 @@
       newTour: 'Nuevo torneo', round: 'Ronda {n} de 8', tourRule: 'Los rivales cambian en cada torneo. Si pierdes, vuelves a la ronda 1.',
       backToStart: 'Vuelves a la ronda 1', tourPrize: '+{n} de premio de campeón', play: 'Jugar', beaten: 'Ganado', careerDone: '¡Todos los niveles superados!',
       superHint: 'Llena la barra y remata en el aire', go: '¡YA!', watchAd: 'Ver anuncio: +{n} monedas',
-      controlsBtn: 'Botones', practiceHint: 'Práctica · mantén pulsado un botón 2,5 s para editarlo', ctlJump: 'Botón de salto',
+      controlsBtn: 'Botones', helpBtn: 'Controles', helpTitle: 'Controles', gotIt: '¡Entendido!', hMove: 'Moverse', hJump: 'Saltar', hSpike: 'Rematar', hSpikeD: 'Salta y golpea la pelota desde arriba', hSuper: 'Súper', hSuperD: 'Llena la barra y remata', hPause: 'Pausa', h2p: '2 jugadores (mismo teclado)', hP1: 'Jugador 1', hP2: 'Jugador 2', hOr: 'o', hSpace: 'Espacio', practiceHint: 'Práctica · mantén pulsado un botón 2,5 s para editarlo', ctlJump: 'Botón de salto',
       ctlDir: 'Botones de dirección', ctlSize: 'Tamaño', ctlPos: 'Posición', ctlGap: 'Separación', done: 'Listo', reset: 'Restablecer', free: 'Gratis', rotate: 'Gira el móvil en horizontal para jugar',
       s_fire: 'Fuego', s_fire_d: 'Un remate rapidísimo',
       s_sticky: 'Chicle', s_sticky_d: 'Quien la para no puede saltar en este punto',
@@ -3222,11 +3222,40 @@
 
   function updateMute() { document.getElementById('btnMute').textContent = save.muted ? '🔇' : '🔊'; }
 
+  // ---------- Keyboard help (computers) ----------
+  function buildHelp() {
+    const key = k => '<kbd' + (k.length > 2 ? ' class="wide"' : '') + '>' + k + '</kbd>';
+    const or = '<span class="or">' + t('hOr') + '</span>';
+    const row = (label, keys, note) => '<div class="hrow"><span class="hlabel">' + label + '</span><span class="hkeys">' + keys + '</span>' +
+      (note ? '<span class="hnote">' + note + '</span>' : '') + '</div>';
+    document.getElementById('helpBody').innerHTML =
+      row(t('hMove'), key('←') + key('→') + or + key('A') + key('D')) +
+      row(t('hJump'), key('↑') + or + key('W') + or + key(t('hSpace'))) +
+      row(t('hSpike'), '', t('hSpikeD')) +
+      row(t('hSuper'), '', t('hSuperD')) +
+      row(t('hPause'), key('Esc') + or + key('P')) +
+      '<div class="hsub">' + t('h2p') + '</div>' +
+      '<div class="hpair"><div><b>' + t('hP1') + '</b>' + key('A') + key('D') + key('W') + '</div>' +
+      '<div><b>' + t('hP2') + '</b>' + key('←') + key('→') + key('↑') + '</div></div>';
+  }
+  function openHelp() { buildHelp(); document.getElementById('help').classList.remove('hidden'); }
+  function closeHelp() { document.getElementById('help').classList.add('hidden'); }
+
   function wireUI() {
     document.querySelectorAll('[data-t]').forEach(el => { el.textContent = t(el.dataset.t); });
     const on = (id, fn) => document.getElementById(id).addEventListener('click', () => { Sound.unlock(); fn(); });
     on('btnTour', () => { Sound.click(); openTour(); });
     on('btnControls', () => { Sound.click(); startMatch('practice'); });
+    on('btnHelp', () => { Sound.click(); openHelp(); });
+    on('helpClose', () => { Sound.click(); closeHelp(); });
+    document.getElementById('help').addEventListener('click', e => { if (e.target.id === 'help') closeHelp(); });
+    window.addEventListener('keydown', e => { if (e.code === 'Escape' && !document.getElementById('help').classList.contains('hidden')) closeHelp(); });
+    // keyboard help: on computers (and touch laptops with a mouse); under "Buttons" when both show
+    if (!isTouch || matchMedia('(pointer: fine)').matches) {
+      const h = document.getElementById('btnHelp');
+      h.classList.remove('hidden');
+      if (isTouch) h.classList.add('second');
+    }
     on('editorDone', closeEditor);
     on('editorReset', () => {
       save.controls = { dirSize: 92, dirGap: 48, dirX: 20, jumpSize: 92, jumpX: 20 }; applyControls();
