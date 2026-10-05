@@ -31,7 +31,7 @@
     x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x;
     return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
   }
-  const SAVE_KEY = 'spikeduel.save.v2';   // v2: fresh start for the public launch
+  const SAVE_KEY = 'spikeduel.save.v3';   // v3: everyone starts from scratch for the launch
 
   // ---------- Text ----------
   const LANG = (navigator.language || 'en').toLowerCase().startsWith('es') ? 'es' : 'en';
@@ -190,8 +190,7 @@
     { id: 'mini', price: 650, color: '#06d6a0', glow: '#b9fbc0', speed: 1060 },
   ];
   const SUPER = id => SUPERS.find(s => s.id === id);
-  // free shop (prices still shown) for the installable test version; CrazyGames keeps charging
-  const FREE_SHOP = !/crazygames/.test(location.hostname);
+  const FREE_SHOP = false;                     // true = everything free (prices still shown), for playtesting
   const VENUES = ['beach', 'gym', 'rooftop', 'snow', 'jungle', 'volcano', 'moon'];
   const NICKS = ['Wave', 'Lime', 'Coral', 'Tank', 'Frost', 'Volt', 'Shadow', 'Ace', 'Blaze', 'Storm', 'Pixel', 'Rocket',
     'Nova', 'Bolt', 'Kiwi', 'Mango', 'Turbo', 'Ziggy', 'Sunny', 'Echo'];
@@ -262,6 +261,7 @@
     tourRun: null, career: 1, cstars: {},
     controls: { dirSize: 92, dirGap: 48, dirX: 20, jumpSize: 92, jumpX: 20 } };
   function loadSave() {
+    for (const old of ['spikeduel.save.v1', 'spikeduel.save.v2']) try { localStorage.removeItem(old); } catch (e) { /* no storage */ }
     try {
       const raw = Platform.load(SAVE_KEY);
       if (raw) Object.assign(save, JSON.parse(raw));

@@ -24,7 +24,7 @@ Juego de vóley 1 contra 1 para navegador, pensado para publicarse en CrazyGames
 - **Cuenta atrás:** 3, 2, 1 al empezar cada partido y al volver de la pausa.
 - **CrazyGames SDK:** el progreso se guarda con el módulo de datos del SDK (en la cuenta del jugador) y el juego respeta el silencio de CrazyGames (`settings.muteAudio`).
 - **Online:** crear sala / unirse a sala solo aparece en móvil y fuera de CrazyGames (en ordenador y en CrazyGames está oculto por ahora).
-- **Tienda:** cada objeto tiene su precio en monedas. `FREE_SHOP` es gratis (se ven los precios) en la versión instalable y de pago en CrazyGames, según el dominio. El guardado usa la clave `spikeduel.save.v2`, así que todo el mundo empieza de cero: 0 monedas, solo lo inicial y el nivel 1 de Spike Career.
+- **Tienda:** cada objeto tiene su precio en monedas. `FREE_SHOP = false` en `game.js` (versión de lanzamiento: todo se paga). El guardado usa la clave `spikeduel.save.v3` (las antiguas v1/v2 se borran al abrir), así que todo el mundo empieza de cero: 0 monedas, solo lo inicial y el nivel 1 de Spike Career.
 - **Safari/iPhone:** mantener pulsado un botón táctil no abre el menú de selección de texto.
 - **Idioma:** inglés, o español si el navegador está en español.
 
