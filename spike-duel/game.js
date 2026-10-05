@@ -63,7 +63,7 @@
       s_confusion: 'Confusion', s_confusion_d: 'Whoever stops it gets reversed controls this point',
       e_sticky: 'Stuck!', e_shrink: 'Tiny!', e_heavy: 'Too heavy!', e_ice: 'Frozen!', e_zerog: 'Floating!',
       e_lightning: 'Zapped!', e_confusion: 'Confused!',
-      s_tornado: 'Tornado', s_tornado_d: 'Spins faster and faster as it flies',
+      s_tornado: 'Tornado', s_tornado_d: 'Once over the net it spins in fast circles',
       s_magnet: 'Magnet', s_magnet_d: 'Bends away from whoever tries to stop it',
       s_teleport: 'Teleport', s_teleport_d: 'Vanishes past the net and pops up somewhere else',
       s_bomb: 'Bomb', s_bomb_d: 'Explodes on touch and blasts the rival back',
@@ -103,7 +103,7 @@
       s_confusion: 'Confusión', s_confusion_d: 'Quien la para tiene los controles al revés en este punto',
       e_sticky: '¡Pegado!', e_shrink: '¡Mini!', e_heavy: '¡Pesa mucho!', e_ice: '¡Congelado!', e_zerog: '¡Flotando!',
       e_lightning: '¡Electrocutado!', e_confusion: '¡Confundido!',
-      s_tornado: 'Tornado', s_tornado_d: 'Gira cada vez más rápido mientras vuela',
+      s_tornado: 'Tornado', s_tornado_d: 'Al cruzar la red gira en círculos muy rápido',
       s_magnet: 'Imán', s_magnet_d: 'Se aparta de quien intenta pararla',
       s_teleport: 'Teletransporte', s_teleport_d: 'Desaparece al pasar la red y aparece en otro sitio',
       s_bomb: 'Bomba', s_bomb_d: 'Explota al tocarla y lanza al rival hacia atrás',
@@ -697,7 +697,7 @@
     p.power = 0; shake = 0.35; Sound.superSpike();
     ball.super = s.id; ball.superOwner = p.side; ball.superTime = 3; ball.zig = 0;
     ball.crossed = false; ball.flight = 0; ball.teleported = false; ball.turned = false; ball.returned = false;
-    ball.st = 0; ball.tph = 0; ball.hold = 0; ball.struck = false; ball.bt = 0; ball.bax = 0; ball.bay = 0; ball.deflated = false; ball.mhide = 0; ball.mdone = false;
+    ball.st = 0; ball.tph = 0; ball.hold = 0; ball.struck = false; ball.bt = 0; ball.bax = 0; ball.bay = 0; ball.deflated = false; ball.mhide = 0; ball.mdone = false; ball.tdrift = false;
     burst(ball.x, ball.y, 26, [s.color, s.glow, '#ffffff']);
     fakes = [];
     if (s.id === 'clones') {
@@ -752,7 +752,7 @@
     if (ball.super === 'lightning' && !ball.returned) {
       ball.spin = 30 * towards;
       if (!ball.hold && !ball.struck && (ball.x - NET_X) * towards >= -12) {
-        ball.hold = 1 + simRand() * 2;
+        ball.hold = 0.5 + simRand() * 2.5;            // random wait: 0.5-3 s
         ball.holdY = Math.max(90, Math.min(ball.y, NET_TOP - 70));
         burst(NET_X, ball.holdY, 14, ['#ffd60a', '#ffffff']);
       }
@@ -762,9 +762,11 @@
         if (Math.random() < dt * 20) burst(ball.x + (Math.random() - 0.5) * 30, ball.y + (Math.random() - 0.5) * 30, 2, ['#ffd60a', '#ffffff']);
         if (ball.hold <= 0) {
           ball.hold = 0; ball.struck = true;
-          const tx = NET_X + towards * (70 + simRand() * (390 + courtExt - 70)), ty = GROUND;
+          // any point of the rival's half: near the net or at the back, low or high (it then drops)
+          const tx = NET_X + towards * (40 + simRand() * (420 + courtExt - 40));
+          const ty = 150 + simRand() * (GROUND - 150);
           const d = norm(tx - ball.x, ty - ball.y);
-          ball.vx = d.x * 560; ball.vy = d.y * 560;
+          ball.vx = d.x * 900; ball.vy = d.y * 900;
           shake = Math.max(shake, 0.2); Sound.superSpike();
           burst(ball.x, ball.y, 20, ['#ffd60a', '#fff3b0', '#ffffff']);
         }
@@ -795,16 +797,24 @@
     if (ball.crossed) ball.flight += dt;
     if (ball.returned) return 1;
     const rec = players[1 - ball.superOwner];
-    if (ball.super === 'tornado') {
-      // starts with slow loops that keep speeding up (capped so it stays playable)
-      const w = Math.min(24, 5 + ball.st * 11);
-      ball.tph = (ball.tph || 0) + w * dt;
-      const amp = Math.min(2300, 1300 + ball.st * 700);
-      ball.vx += dsin(ball.tph) * amp * dt;
-      ball.vy += dcos(ball.tph) * amp * 0.7 * dt;
+    if (ball.super === 'tornado' && ball.crossed) {
+      // flies normally until it crosses the net, then spins in quick, clear circles
+      // around a centre that keeps drifting forward and down into the rival's court
+      if (!ball.tdrift) {
+        ball.tdrift = true;
+        ball.tdx = towards * Math.max(170, Math.abs(ball.vx) * 0.4);
+        ball.tdy = ball.vy * 0.25;
+        ball.tph = towards > 0 ? Math.PI : 0;            // circle centre lies further from the net
+      }
+      const R = Math.min(56, 38 + ball.flight * 14), w = Math.min(17, 13 + ball.flight * 3);
+      ball.tdy += B_GRAV * 0.45 * dt;
+      ball.tph += w * dt * towards;
+      ball.vx = ball.tdx - R * w * towards * dsin(ball.tph);
+      ball.vy = ball.tdy + R * w * towards * dcos(ball.tph);
       ball.spin = w * 1.6 * towards;
       if (!resim && Math.random() < dt * 30) particles.push({ x: ball.x, y: ball.y, vx: Math.sin(ball.tph) * 200, vy: -100,
         life: 0.4, max: 0.4, color: '#cfd8dc', r: 3 });
+      return 0;
     } else if (ball.super === 'balloon' && ball.crossed) {
       // like a balloon letting its air out: sudden darts in random directions, faster and faster,
       // always over the rival's half; then it runs out of air and drops onto their floor
