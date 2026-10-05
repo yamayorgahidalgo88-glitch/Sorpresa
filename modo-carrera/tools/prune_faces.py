@@ -5,6 +5,8 @@ from PIL import Image
 root = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 s = open(os.path.join(root, 'data.js')).read()
 d = json.loads(s[len('window.DB='):].rstrip().rstrip(';'))
+import sys
+ALL = '--all' in sys.argv   # quita todos los retratos de Transfermarkt (rectangulares, no son cutouts como el resto)
 sheets = {}
 def cell(face):
     k, c = divmod(face, 256)
@@ -20,6 +22,6 @@ sil = young = 0
 for p in d['players']:
     if p[16] < 0 or not p[19]: continue          # solo retratos de Transfermarkt
     if placeholder(cell(p[16])): p[16] = -1; p[19] = 0; sil += 1
-    elif p[6] <= 20: p[16] = -1; p[19] = 0; young += 1
+    elif ALL or p[6] <= 20: p[16] = -1; p[19] = 0; young += 1
 open(os.path.join(root, 'data.js'), 'w').write('window.DB=' + json.dumps(d, ensure_ascii=False, separators=(',', ':')) + ';')
-print('siluetas quitadas', sil, '· canteranos quitados', young, '· caras que quedan', sum(1 for p in d['players'] if p[16] >= 0))
+print('siluetas quitadas', sil, '· retratos quitados', young, '· caras que quedan', sum(1 for p in d['players'] if p[16] >= 0))

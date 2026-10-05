@@ -532,7 +532,7 @@ function aiOffers(){
   const lvl=clubLevel(S.user.clubId);
   squad(S.user.clubId).forEach(p=>{
     if(S.news.some(n=>n.type==='offer'&&!n.done&&n.data.pid===p.id))return;
-    const chance=p.listed?0.22:(p.ovr>=lvl+2?0.015:0.003);
+    const chance=p.listed?0.35:(p.ovr>=lvl+2?0.05:0.012);
     if(R()<chance){const b=buyerClubFor(p);if(!b)return;const fee=roundMoney(valueOf(p)*(p.listed?0.75+R()*0.3:1.05+R()*0.35));
       addNews(`Oferta de ${esc(b.name)} por ${esc(p.name)}`,`${esc(b.name)} ofrece <b>${money(fee)}</b> por ${esc(p.name)} (${p.pos}, ${p.ovr}). Valor de mercado: ${money(valueOf(p))}. La oferta caduca el ${fmtDate(addDays(S.date,7))}.`,'offer',{pid:p.id,cid:b.id,fee,exp:addDays(S.date,7)});}
   });
@@ -740,6 +740,7 @@ function topbarHTML(){const c=me();const first=userFixtures().find(f=>f.c===user
      <div class="stat"><div class="label">Directiva</div><div class="v num" style="color:${confColor()}">${Math.round(S.board.conf)}%</div></div>${btn}</div>`;}
 
 /* ---------- simular días: avanza solo y se detiene en partido o ante una notificación ---------- */
+const DAY_MS=650;   // simular días: un día cada 0,65 s (se ven pasar las fechas y da tiempo a ver las notificaciones)
 const SIM={on:false,timer:null,mode:'days'};
 function updateTop(){const el=document.querySelector('.topbar');if(!el||!S)return;
   const tmp=document.createElement('div');tmp.innerHTML=topbarHTML();
@@ -747,7 +748,7 @@ function updateTop(){const el=document.querySelector('.topbar');if(!el||!S)retur
   if(oldB&&newB&&oldB.outerHTML===newB.outerHTML)newB.replaceWith(oldB);   // el mismo botón sigue en pantalla: el clic no se pierde
   el.replaceChildren(...tmp.childNodes);}
 function endSim(msg,view){clearTimeout(SIM.timer);SIM.timer=null;const was=SIM.on;SIM.on=false;if(was){if(view){UI.view=view;UI.selSlot=null;}save();render();if(msg)toast(msg);}}
-function startSim(mode){if(SIM.on||S.seasonDone||S.over||userFixtureToday())return;SIM.mode=mode||'days';SIM.on=true;updateTop();SIM.timer=setTimeout(simTick,60);}
+function startSim(mode){if(SIM.on||S.seasonDone||S.over||userFixtureToday())return;SIM.mode=mode||'days';SIM.on=true;updateTop();SIM.timer=setTimeout(simTick,SIM.mode==='match'?0:250);}
 function simTick(){
   if(!SIM.on)return;
   if(S.seasonDone||S.over||userFixtureToday()){endSim(S.seasonDone?'Fin de temporada':'Día de partido','home');return;}
@@ -759,7 +760,7 @@ function simTick(){
   const nw=S.news.find(n=>n.id>=before&&!n.read);
   if(nw&&SIM.mode==='days'){endSim('Nueva notificación: '+nw.title.replace(/<[^>]*>/g,''),'inbox');return;}
   if(S.seasonDone||userFixtureToday()){const u=unread();endSim((S.seasonDone?'Fin de temporada':'Día de partido')+(u?` · ${u} mensaje${u===1?'':'s'} sin leer`:''),'home');return;}
-  SIM.timer=setTimeout(simTick,90);}
+  SIM.timer=setTimeout(simTick,DAY_MS);}
 
 /* ---------- inicio ---------- */
 function vHome(){
