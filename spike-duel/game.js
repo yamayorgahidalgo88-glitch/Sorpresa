@@ -190,9 +190,8 @@
     { id: 'mini', price: 650, color: '#06d6a0', glow: '#b9fbc0', speed: 1060 },
   ];
   const SUPER = id => SUPERS.find(s => s.id === id);
-  // TEMPORARY for playtesting: everything in the shop costs 0. Prices above are kept;
-  // set this back to false to restore them.
-  const FREE_SHOP = false;
+  // free shop (prices still shown) for the installable test version; CrazyGames keeps charging
+  const FREE_SHOP = !/crazygames/.test(location.hostname);
   const VENUES = ['beach', 'gym', 'rooftop', 'snow', 'jungle', 'volcano', 'moon'];
   const NICKS = ['Wave', 'Lime', 'Coral', 'Tank', 'Frost', 'Volt', 'Shadow', 'Ace', 'Blaze', 'Storm', 'Pixel', 'Rocket',
     'Nova', 'Bolt', 'Kiwi', 'Mango', 'Turbo', 'Ziggy', 'Sunny', 'Echo'];
