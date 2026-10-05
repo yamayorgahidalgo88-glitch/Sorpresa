@@ -9,11 +9,11 @@
     try { fn(sdk); } catch (e) { console.warn('[SDK]', e); }
   }
 
-  // The SDK is only loaded on CrazyGames (and local tests); the installable
-  // phone version runs without it.
+  // The SDK is loaded everywhere except our installable phone version (Vercel).
   function loadSdk() {
     const host = location.hostname;
-    if (!/crazygames|^localhost$|^127\.0\.0\.1$/.test(host)) return Promise.resolve();
+    // only our own installable copy (Vercel) skips it; any CrazyGames domain or partner site gets it
+    if (/\.vercel\.app$/.test(host)) return Promise.resolve();
     return new Promise(resolve => {
       const tag = document.createElement('script');
       tag.src = 'https://sdk.crazygames.com/crazygames-sdk-v3.js';

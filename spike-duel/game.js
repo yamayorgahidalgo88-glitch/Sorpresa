@@ -351,7 +351,8 @@
   });
 
   // Fullscreen + landscape lock on phones (outside CrazyGames, which has its own fullscreen).
-  const onCrazy = /crazygames/.test(location.hostname);
+  // CrazyGames = anywhere that is not our own installable copy (Vercel) or a local test
+  const onCrazy = !/\.vercel\.app$|^localhost$|^127\.0\.0\.1$/.test(location.hostname);
   const canFull = !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
   function goFullscreen() {
     const el = document.documentElement;
