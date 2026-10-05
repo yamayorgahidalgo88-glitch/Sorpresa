@@ -20,6 +20,7 @@ Juego de vóley 1 contra 1 para navegador, pensado para publicarse en CrazyGames
 - **Botones (móvil):** desde el menú se abre una práctica en un mapa al azar contra un rival de nivel fácil (se mueve, salta y devuelve la pelota) que nunca termina la partida. Manteniendo pulsado 2,5 s el botón de salto se ajustan su tamaño y su posición; manteniendo una flecha, el tamaño, la posición y la separación de las dos flechas. Se guarda.
 - **Bordes:** en pantallas anchas la pista llega hasta los bordes reales de la pantalla (ahí rebota la pelota) y los personajes corren un poco más rápido. En todos los mapas los bordes se ven como una pared de cristal transparente que brilla cuando la pelota rebota.
 - **Cuenta atrás:** 3, 2, 1 al empezar cada partido y al volver de la pausa.
+- **CrazyGames SDK:** el progreso se guarda con el módulo de datos del SDK (en la cuenta del jugador) y el juego respeta el silencio de CrazyGames (`settings.muteAudio`).
 - **Online:** crear sala / unirse a sala solo aparece en móvil y fuera de CrazyGames (en ordenador y en CrazyGames está oculto por ahora).
 - **Tienda:** cada objeto tiene su precio en monedas. `FREE_SHOP = false` en `game.js` (versión de lanzamiento). El guardado usa la clave `spikeduel.save.v2`, así que todo el mundo empieza de cero: 0 monedas, solo lo inicial y el nivel 1 de Spike Career.
 - **Safari/iPhone:** mantener pulsado un botón táctil no abre el menú de selección de texto.

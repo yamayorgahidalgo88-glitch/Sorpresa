@@ -40,6 +40,10 @@
       return ready;
     },
     get available() { return ready; },
+    // CrazyGames' own mute setting (site-wide sound switch)
+    get muted() {
+      try { return !!(ready && sdk.game.settings && sdk.game.settings.muteAudio); } catch (e) { return false; }
+    },
     loadingStart() { call(s => s.game.loadingStart()); },
     loadingStop() { call(s => s.game.loadingStop()); },
     gameplayStart() { call(s => s.game.gameplayStart()); },

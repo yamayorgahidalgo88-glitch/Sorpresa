@@ -282,7 +282,7 @@
       if (ctx && ctx.state === 'suspended') ctx.resume();
     }
     function tone(freq, dur, type, vol, slide) {
-      if (!ctx || save.muted || adPlaying) return;
+      if (!ctx || save.muted || adPlaying || Platform.muted) return;
       const o = ctx.createOscillator(), g = ctx.createGain();
       const now = ctx.currentTime;
       o.type = type || 'sine';
