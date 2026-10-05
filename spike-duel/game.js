@@ -40,7 +40,7 @@
       tagline: 'Jump. Spike. Win the beach.', tour: 'Tour', twoPlayers: '2 Players', shop: 'Shop', back: 'Back',
       characters: 'Characters', balls: 'Balls', supers: 'Supers', paused: 'Paused', resume: 'Resume', menu: 'Menu',
       noThanks: 'No, thanks', youWin: 'You win!', youLose: 'You lose', p1Wins: 'Player 1 wins!', p2Wins: 'Player 2 wins!',
-      next: 'Next rival', retry: 'Retry', rematch: 'Rematch', double: 'Double coins', coinsEarned: '+{n} coins',
+      next: 'Next rival', retry: 'Retry', rematch: 'Rematch', double: 'Double coins', coinsEarned: '+{n} coins', noMoreCoins: 'Get more stars here to earn coins again', allStars: 'All 3 stars done: this level gives no more coins',
       champion: 'Tour champion!', createRoom: 'Create room', joinRoom: 'Join room', join: 'Join', cancel: 'Cancel', roomCode: 'Room code', shareCode: 'Share this code with your friend. Waiting for a rival…', enterCode: 'Type the room code', connecting: 'Connecting…', noRoom: 'That room does not exist', netFail: 'Could not connect. Try another network.', rivalLeft: 'Your rival left the match', waitRival: 'Waiting for your rival…', you: 'You', room: 'Room {c}', claim: 'Claim prize', pickBox: 'Pick a box!', cont: 'Continue', prizeCoins: '+{n} coins', prizeItem: 'New {type}: {name}!', tCharacter: 'character', tBall: 'ball', tSuper: 'super', bossNeed: 'You need {n} ★ in this world to face the boss', locked: 'Beat the previous rival', select: 'Select', selected: 'Selected',
       adUnavailable: 'Ad not available, try again later', serve: 'Serve!', point: 'Point!', superReady: 'SUPER',
       controls: '1P: A/D or arrows to move, W / up / space to jump  ·  2P: A/D/W vs arrows',
@@ -80,7 +80,7 @@
       tagline: 'Salta. Remata. Conquista la playa.', tour: 'Torneo', twoPlayers: '2 Jugadores', shop: 'Tienda', back: 'Volver',
       characters: 'Personajes', balls: 'Balones', supers: 'Súpers', paused: 'Pausa', resume: 'Seguir', menu: 'Menú',
       noThanks: 'No, gracias', youWin: '¡Has ganado!', youLose: 'Has perdido', p1Wins: '¡Gana el jugador 1!', p2Wins: '¡Gana el jugador 2!',
-      next: 'Siguiente rival', retry: 'Reintentar', rematch: 'Revancha', double: 'Duplicar monedas', coinsEarned: '+{n} monedas',
+      next: 'Siguiente rival', retry: 'Reintentar', rematch: 'Revancha', double: 'Duplicar monedas', coinsEarned: '+{n} monedas', noMoreCoins: 'Consigue más estrellas aquí para volver a ganar monedas', allStars: 'Ya tienes las 3 estrellas: este nivel no da más monedas',
       champion: '¡Campeón del torneo!', createRoom: 'Crear sala', joinRoom: 'Unirse a sala', join: 'Unirse', cancel: 'Cancelar', roomCode: 'Código de sala', shareCode: 'Pásale este código a tu amigo. Esperando rival…', enterCode: 'Escribe el código de la sala', connecting: 'Conectando…', noRoom: 'No existe esa sala', netFail: 'No se pudo conectar. Prueba con otra red.', rivalLeft: 'Tu rival ha salido de la partida', waitRival: 'Esperando al rival…', you: 'Tú', room: 'Sala {c}', claim: 'Reclamar premio', pickBox: '¡Elige una caja!', cont: 'Continuar', prizeCoins: '+{n} monedas', prizeItem: '¡Nuevo {type}: {name}!', tCharacter: 'personaje', tBall: 'balón', tSuper: 'súper', bossNeed: 'Necesitas {n} ★ en este mundo para el jefe', locked: 'Gana al rival anterior', select: 'Elegir', selected: 'Elegido',
       adUnavailable: 'Anuncio no disponible, prueba más tarde', serve: '¡Saca!', point: '¡Punto!', superReady: 'SÚPER',
       controls: '1J: A/D o flechas para moverte, W / arriba / espacio para saltar  ·  2J: A/D/W contra flechas',
@@ -658,6 +658,7 @@
       if (out < minHit) { ball.vx += nx * (minHit - out); ball.vy += ny * (minHit - out); }
       if (weak) { ball.vx *= 0.45; ball.vy *= 0.45; }
       else if (ball.vy > -260 && ny < 0) ball.vy = Math.min(ball.vy, -420);
+      if (!weak && p.isAI && p.ai.pass && onOwnSide) aiLob(p);
       if (ball.serveLock !== p.side) p.power = Math.min(1, p.power + 0.1 * p.powerMul);
       Sound.hit();
       burst(ball.x - nx * BR, ball.y - ny * BR, 5, ['#ffffff']);
@@ -667,6 +668,21 @@
     ball.lastTouch = p.side;
     p.squash = 0.12;
     clampBall(ball);
+  }
+
+  // a computer rival that has kept the ball too long sends a clean lob over the net
+  function aiLob(p) {
+    const towards = p.side === 0 ? 1 : -1;
+    const tx = NET_X + towards * (150 + Math.random() * 200);
+    for (let vy0 = 560; vy0 <= 940; vy0 += 40) {
+      const disc = vy0 * vy0 + 2 * B_GRAV * (GROUND - BR - ball.y);
+      const T = (vy0 + Math.sqrt(disc)) / B_GRAV;          // time until it reaches the floor
+      const vx = (tx - ball.x) / T;
+      const tNet = (NET_X - ball.x) / vx;
+      const yNet = ball.y - vy0 * tNet + B_GRAV / 2 * tNet * tNet;
+      if (yNet < NET_TOP - BR - 12 && hyp(vx, vy0) <= B_MAX) { ball.vx = vx; ball.vy = -vy0; break; }
+    }
+    p.ai.own = 0;
   }
 
   function startSuper(p, s) {
@@ -822,6 +838,19 @@
     return b.x;
   }
 
+  // would a jump right now meet the ball from below (so the touch becomes a spike)?
+  function jumpMeetsBall(p, targetX) {
+    for (let t = 0.08; t <= 0.5; t += 0.02) {
+      const bx = ball.x + ball.vx * t, by = ball.y + ball.vy * t + B_GRAV / 2 * t * t;
+      const py = GROUND - P_JUMP * t + P_GRAV / 2 * t * t;
+      if (py > GROUND) break;
+      const reach = P_SPEED * t, px = p.x + Math.max(-reach, Math.min(reach, targetX - p.x));
+      const dx = bx - px, dy = by - py;
+      if (dy < -20 && Math.hypot(dx, dy) < p.r + BR - 4) return true;
+    }
+    return false;
+  }
+
   function updateAI(p, inp, dt) {
     const ai = p.ai;
     const towards = p.side === 0 ? 1 : -1;
@@ -829,6 +858,10 @@
     const ownSide = x => (x - NET_X) * towards < 0;
     if (ai.follow && !fakes.includes(ai.follow)) ai.follow = null;
     const tracked = ai.follow || ball;
+    // how long the ball has been on our side: after a while even easy rivals stop tapping it
+    // around (or against their own wall) and jump to send it over
+    ai.own = ownSide(ball.x) ? (ai.own || 0) + dt : 0;
+    const pass = ai.pass = ai.own > Math.max(0.9, 2.4 - p.level * 0.15);
     ai.think -= dt;
     if (ai.think <= 0) {
       ai.think = Math.max(0.03, 0.24 - p.level * 0.025);
@@ -839,6 +872,16 @@
         if (Math.random() < 0.15 || ghost) ai.err = (Math.random() - 0.5) * Math.max(8, 90 - p.level * 10) * (ghost ? 2 : 1);
         // stand slightly behind the ball so the touch sends it towards the net
         ai.target = ownSide(land) ? land - towards * (16 + (8 - p.level) * 2) + ai.err : home;
+        if (pass && !ai.follow) {
+          // stand under the point where the ball comes down to spiking height, slightly behind it
+          const yHit = GROUND - 190, a = B_GRAV / 2, bq = tracked.vy, c = tracked.y - yHit;
+          const disc = bq * bq - 4 * a * c;
+          if (disc >= 0) {
+            const tHit = (-bq + Math.sqrt(disc)) / (2 * a);
+            const xHit = tracked.x + tracked.vx * tHit;
+            if (tHit > 0 && ownSide(xHit)) ai.target = xHit - towards * 12;
+          }
+        }
       } else {
         ai.target = home;
       }
@@ -849,11 +892,13 @@
     // jump to spike when the ball drops near the net on our side
     const near = Math.abs(ball.x - p.x) < 80 && ownSide(ball.x);
     const height = GROUND - ball.y;
-    if (p.onGround && near && height > 150 && height < 300 && ball.vy > -120) {
+    if (pass && p.onGround && ownSide(ball.x) && jumpMeetsBall(p, ai.target)) {
+      inp.jump = true;                 // jump and spike it over (any distance from the net)
+    } else if (p.onGround && near && height > 150 && height < 300 && ball.vy > -120) {
       // with the super ready even easy rivals go for the spike now and then
-      const chance = p.power >= 1 ? Math.max(0.45, 0.3 + p.level * 0.08) : 0.08 + p.level * 0.11;
+      const chance = p.power >= 1 ? Math.max(0.45, 0.3 + p.level * 0.08) : 0.18 + p.level * 0.1;
       if (ai.jumpPlan === null) ai.jumpPlan = Math.random() < chance;
-      if (ai.jumpPlan && Math.abs(p.x - NET_X) < (p.power >= 1 ? 340 : 260)) inp.jump = true;
+      if (ai.jumpPlan && Math.abs(p.x - NET_X) < (p.power >= 1 ? 340 : 280)) inp.jump = true;
     }
     if (!ownSide(ball.x)) ai.jumpPlan = null;
   }
@@ -994,12 +1039,14 @@
       }
     } else if (kind === 'career') {
       if (won) {
-        coins = matchCoins;
         const stars = score[1] <= 2 ? 3 : score[1] <= 4 ? 2 : 1;
+        // coins only when this level gets more stars than before (no farming easy levels)
+        coins = stars > (save.cstars[careerLevel] || 0) ? matchCoins : 0;
         save.cstars[careerLevel] = Math.max(save.cstars[careerLevel] || 0, stars);
         if (save.career === careerLevel) save.career = Math.min(CAREER_LEVELS + 1, careerLevel + 1);
         title = careerLevel === CAREER_LEVELS ? t('careerDone') : t('youWin');
         note = '★'.repeat(stars) + '☆'.repeat(3 - stars);
+        if (!coins) note += ' · ' + t(save.cstars[careerLevel] >= 3 ? 'allStars' : 'noMoreCoins');
         Sound.win();
         Platform.happytime();
       } else {
@@ -1017,8 +1064,8 @@
     // The rewarded ad and the midgame ad are never combined on the same transition.
     // A watched video doubles the coins of the match (not the tour champion prize). A loss earns
     // nothing, so there is nothing to double and the usual between-matches ad is shown instead.
-    const offerReward = kind !== 'duo' && won;
-    lastResult.bonus = matchCoins;
+    lastResult.bonus = kind === 'tour' || kind === 'career' ? Math.min(coins, matchCoins) : 0;
+    const offerReward = lastResult.bonus > 0;
     if (!offerReward) await runAd('midgame');
     if (champion) showTrophy(); else showResult(offerReward);
   }
