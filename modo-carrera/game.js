@@ -324,10 +324,11 @@ function stepMinute(m){
       else if(m.live&&R()<0.45)push(m,dm,'miss',fill(pick(COM.miss),{p:nm(sh)}),side);}
     // tasas reales (liga): ~4 amarillas y ~0,11 rojas por partido; quien ya tiene amarilla se cuida y rara vez ve la segunda
     if(R()<0.021){const pl=pick(onPitch(s));if(pl&&((s.yellows[pl]||0)<1||R()<0.18)){s.yellows[pl]=(s.yellows[pl]||0)+1;
-      if(s.yellows[pl]>=2){s.red.add(pl);m.fx.ev.push({t:'r',pid:pl,min:dm});push(m,dm,'card-r',fill(COM.red[1],{p:nm(pl)}),side);}
+      if(s.yellows[pl]>=2){s.red.add(pl);m.fx.ev.push({t:'r',pid:pl,min:dm});push(m,dm,'card-r',fill(COM.red[1],{p:nm(pl)}),side);if(s.isUser&&m.live)m.manage=`Expulsado: ${nm(pl)}`;}
       else push(m,dm,'card-y',fill(pick(COM.yellow),{p:nm(pl)}),side);}}
-    if(R()<0.0003){const pl=pick(onPitch(s).filter(id=>slotOf(s,id)!=='POR'));if(pl){s.red.add(pl);s.straight=(s.straight||[]).concat(pl);m.fx.ev.push({t:'r',pid:pl,min:dm});push(m,dm,'card-r',fill(COM.red[0],{p:nm(pl)}),side);}}
-    if(R()<0.0011){const pl=pick(onPitch(s));if(pl&&R()<injRisk(s.fit[pl]??100)){s.injured=(s.injured||[]).concat(pl);push(m,dm,'inj',fill(COM.inj[0],{p:nm(pl)}),side);autoSub(m,s,pl,true);}}
+    if(R()<0.0003){const pl=pick(onPitch(s).filter(id=>slotOf(s,id)!=='POR'));if(pl){s.red.add(pl);s.straight=(s.straight||[]).concat(pl);m.fx.ev.push({t:'r',pid:pl,min:dm});push(m,dm,'card-r',fill(COM.red[0],{p:nm(pl)}),side);if(s.isUser&&m.live)m.manage=`Expulsado: ${nm(pl)}`;}}
+    if(R()<0.0011){const pl=pick(onPitch(s));if(pl&&R()<injRisk(s.fit[pl]??100)){s.injured=(s.injured||[]).concat(pl);push(m,dm,'inj',fill(COM.inj[0],{p:nm(pl)}),side);
+      if(s.isUser&&m.live){s.red.add(pl);s.offAt=s.offAt||{};s.offAt[pl]=dm;m.manage=`Lesionado: ${nm(pl)}. Haz el cambio.`;}else autoSub(m,s,pl,true);}}
   });
   const mh=midStr(m.home),ma=midStr(m.away);m.home.pt=(m.home.pt||0)+mh/(mh+ma);m.away.pt=(m.away.pt||0)+ma/(mh+ma);
   [m.home,m.away].forEach(s=>{if(s.isUser&&m.live)return;if([58,68,78].includes(min)&&m.half===2&&s.subs<5){const tired=onPitch(s).filter(id=>slotOf(s,id)!=='POR').sort((a,b)=>s.fit[a]-s.fit[b]);if(tired.length&&s.fit[tired[0]]<80)autoSub(m,s,tired[0],false);}});
@@ -335,6 +336,7 @@ function stepMinute(m){
   else if(m.half===2&&min>=90+m.st2){m.ended=true;push(m,90,'info','¡Final del partido! '+scoreStr(m),'');}
 }
 function midStr(s){let sum=0,n=0;s.xi.forEach((id,i)=>{if(!id||s.red.has(id))return;if(GROUP[s.slots[i]]==='MED'){sum+=P(id).ovr;n++;}});return Math.max(1,(n?sum/n:60)-55+n*3);}
+function redCount(s){return [...s.red].filter(id=>!(s.injured||[]).includes(id)).length;}
 function scoreStr(m){return `${S.clubs[m.home.cid].short} ${m.home.goals}-${m.away.goals} ${S.clubs[m.away.cid].short}`;}
 function autoSub(m,s,outId,forced){
   if(s.subs>=5||!s.bench.length){if(forced)s.red.add(outId);return false;}
@@ -354,7 +356,7 @@ function finalizeMatch(m){
   [[m.home,m.away],[m.away,m.home]].forEach(([s,o])=>{
     squad(s.cid).forEach(p=>{if(p.susp>0)p.susp--;}); // los sancionados cumplen este partido
     onPitch(s).forEach(id=>{s.mins[id]=(s.mins[id]||0)+(90-s.on[id]);});
-    s.red.forEach(id=>{if(s.on[id]!=null){const ev=fx.ev.find(e=>e.t==='r'&&e.pid===id);s.mins[id]=(s.mins[id]||0)+((ev?ev.min:90)-s.on[id]);}});
+    s.red.forEach(id=>{if(s.on[id]!=null){const ev=fx.ev.find(e=>e.t==='r'&&e.pid===id);s.mins[id]=(s.mins[id]||0)+((s.offAt&&s.offAt[id]!=null?s.offAt[id]:ev?ev.min:90)-s.on[id]);}});
     const res=s.goals>o.goals?1:s.goals<o.goals?-1:0;
     Object.keys(s.mins).forEach(k=>{const id=+k;const p=P(id);if(!p)return;const mins=s.mins[id];if(mins<=0)return;
       const c=s.contrib[id]||{g:0,a:0};const g=GROUP[p.pos];
@@ -371,8 +373,8 @@ function finalizeMatch(m){
       p.form=clamp((p.form||0)*0.9+clamp((r-6.8)*1.2,-2,2),-10,10);
       p.fitness=clamp(Math.round(s.fit[id]??p.fitness),15,100);
       p.morale=clamp(p.morale+(r>=7.5?4:r<6?-3:1),15,100);});
-    Object.entries(s.yellows).forEach(([id,n])=>{const p=P(+id);if(!p)return;p.stats.yel++;p.yellows++;if(n<2&&p.yellows%5===0)p.susp=Math.max(p.susp,1);});
-    s.red.forEach(id=>{const p=P(id);if(!p||(s.injured||[]).includes(id))return;p.stats.red++;p.susp=Math.max(p.susp,(s.straight||[]).includes(id)?2:1);});
+    Object.entries(s.yellows).forEach(([id,n])=>{const p=P(+id);if(!p)return;p.stats.yel++;p.yellows++;p.yc=p.yc||{};p.yc[fx.c]=(p.yc[fx.c]||0)+1;if(n<2&&p.yc[fx.c]%5===0)p.susp=Math.max(p.susp,1);});
+    s.red.forEach(id=>{const p=P(id);if(!p||(s.injured||[]).includes(id))return;p.stats.red++;p.susp=Math.max(p.susp,1);});
     (s.injured||[]).forEach(id=>{const p=P(id);if(p)p.injury=injDays();});
     squad(s.cid).forEach(p=>{p.morale=clamp(p.morale+res*2,15,100);});
   });
@@ -540,11 +542,14 @@ function wageTalk(key,dem,w){
 function wageKey(p,kind){return kind+p.id+'-'+S.year;}
 function curAsk(p,kind,dem){const n=S.neg[wageKey(p,kind)];return n&&typeof n==='object'?n.ask:dem;}
 function renewDemand(p){const base=Math.max(p.wage*1.1,wageFor(p,me().rep));const m=p.age>=31?0.9:p.age<=23&&p.pot-p.ovr>=5?1.1:1;const mo=p.morale>=75?0.95:p.morale<50?1.1:1;return Math.round(base*m*mo/500)*500;}
+const fmtNum=v=>{const d=String(v).replace(/\D/g,'').replace(/^0+(?=\d)/,'');return d?d.replace(/\B(?=(\d{3})+(?!\d))/g,'.'):'';};
+const numVal=id=>{const e=document.getElementById(id);return e?+(e.value.replace(/\D/g,''))||0:0;};
+const numInput=(id,v,extra)=>`<input type="text" inputmode="numeric" autocomplete="off" class="num-in" id="${id}" value="${fmtNum(Math.round(v))}" ${extra||''}>`;
 function wageBill(cid){return squad(cid,true).reduce((s,p)=>s+p.wage,0);}
 function signPlayer(p,fee,wage,years){
   const c=me();const from=p.clubId!=null?S.clubs[p.clubId]:null;
   c.budget-=fee;if(from)from.budget+=fee;
-  p.clubId=c.id;p.youth=false;p.wage=wage;p.contract=years;p.listed=false;p.morale=80;p.num=0;p.yellows=0;invalidate();
+  p.clubId=c.id;p.youth=false;p.wage=wage;p.contract=years;p.listed=false;p.morale=80;p.num=0;p.yellows=0;p.yc={};invalidate();
   assignNumbers(c.id);if(from&&!from.partial)assignNumbers(from.id);
   addNews('Fichaje cerrado: '+esc(p.name),`${esc(p.name)} (${p.pos}, ${p.ovr}) se une a ${esc(c.name)}${from?' procedente de '+esc(from.name):' como agente libre'}. Traspaso: <b>${money(fee)}</b>. Salario: ${money(wage)}/sem hasta el 30/06/${S.year+years}.`,'info');
   save();}
@@ -619,7 +624,7 @@ function endSeason(){
   const left=[];
   for(const k in S.players){const p=S.players[k];
     if(p.stats.apps)p.hist.push({s:seasonLabel(),c:p.clubId!=null?S.clubs[p.clubId].short:'—',...p.stats});
-    p.stats=newStats();p.yellows=0;p.susp=0;p.age++;
+    p.stats=newStats();p.yellows=0;p.yc={};p.susp=0;p.age++;
     if(p.age>=29){p.ovr=Math.max(45,p.ovr-ri(0,Math.min(4,p.age-28)));p.pot=Math.min(p.pot,p.ovr+1);}
     if(p.age<=23&&p.clubId!==S.user.clubId&&p.ovr<p.pot)p.ovr+=ri(0,Math.min(3,Math.ceil((p.pot-p.ovr)/4))); // la IA: crecimiento natural de los jóvenes
     if(p.age>=27)p.pot=Math.min(p.pot,Math.max(p.ovr,p.pot-ri(0,1)));
@@ -889,7 +894,7 @@ function vTactics(){
     <div class="row" style="margin-bottom:12px"><label class="label" for="formation">Formación</label><select id="formation" data-change="formation">${Object.keys(FORMATIONS).map(f=>`<option ${f===c.formation?'selected':''}>${f}</option>`).join('')}</select>
      <label class="label" for="ment">Mentalidad</label><select id="ment" data-change="ment">${MENT.map((m,i)=>`<option value="${i}" ${i===c.ment?'selected':''}>${m}</option>`).join('')}</select></div>
     <div class="pitch"><div class="circle"></div>${pitch}</div>
-    <div class="row" style="margin-top:12px"><button class="btn primary" data-act="autoXI">Mejor once automático</button><span class="small muted">${UI.selBench!=null?'Ahora toca la posición del campo donde quieres meter a '+esc(P(UI.selBench).name)+'.':sel!=null?'Elige un suplente o toca otra posición del campo para intercambiar.':'Toca un jugador del campo, de suplentes o de reservas para cambiarlo (toca uno de suplentes y otro de reservas para intercambiarlos); doble toque para ver su carta y su físico.'}</span></div>
+    <div class="row" style="margin-top:12px"><button class="btn primary" data-act="autoXI">Mejor once automático</button><span class="small muted">${UI.selBench!=null?'Ahora toca la posición del campo donde quieres meter a '+esc(P(UI.selBench).name)+'.':sel!=null?'Elige un suplente o toca otra posición del campo para intercambiar.':'Toca un jugador (del campo, suplentes o reservas) y después otro para intercambiarlos. Doble toque para ver su carta y su físico.'}</span></div>
     <p class="small muted" style="margin-top:8px">Borde naranja: fuera de sus posiciones (penaliza la media). Borde rojo: lesionado o sancionado. Con partidos entre semana, rota a los cansados.</p>
    </div>
    <div class="card">${benchTable('Suplentes',`${subs.length}/9 · pueden entrar en los partidos`,subs,true,sel)}
@@ -898,10 +903,12 @@ function vTactics(){
 }
 
 function benchTable(title,sub,list,isBench,sel){
+  const empty=isBench?Math.max(0,9-list.length):0;
   return `<div class="row between"><h3 style="margin:0">${title}</h3><span class="small muted">${sub}</span></div>
-   <div class="tbl-wrap" style="margin-top:8px"><table><thead><tr><th>Pos</th><th>Nombre</th><th>Med</th><th>Físico</th><th></th></tr></thead><tbody>
-   ${list.map(p=>`<tr class="click${UI.selBench===p.id?' sel':''}" data-benchp="${p.id}"><td>${posTag(p.pos)}</td><td><span class="row" style="gap:8px;flex-wrap:nowrap">${face(p,28)}${esc(p.name)} ${p.injury?'<span class="pill bad">Les.</span>':p.susp?'<span class="pill warn">Sanc.</span>':''}</span></td><td>${ovrTag(p.ovr)}</td><td class="num" style="color:${fitCol(p.fitness)}">${p.fitness}%</td>
-    <td style="white-space:nowrap">${sel!=null?'<span class="pill info">Meter</span>':isBench?`<button class="btn sm" data-act="toRes" data-id="${p.id}" title="Pasar a reservas" aria-label="Pasar a reservas">↓</button>`:`<button class="btn sm" data-act="toBench" data-id="${p.id}" title="Pasar a suplentes" aria-label="Pasar a suplentes">↑</button>`}</td></tr>`).join('')||`<tr><td colspan="5" class="muted">${isBench?'Sin suplentes: sube jugadores desde reservas.':'Nadie en reservas.'}</td></tr>`}
+   <div class="tbl-wrap" style="margin-top:8px"><table><thead><tr><th>Pos</th><th>Nombre</th><th>Med</th><th>Físico</th></tr></thead><tbody>
+   ${list.map(p=>`<tr class="click${UI.selBench===p.id?' sel':''}" data-benchp="${p.id}"><td>${posTag(p.pos)}</td><td><span class="row" style="gap:8px;flex-wrap:nowrap">${face(p,28)}${esc(p.name)} ${p.injury?'<span class="pill bad">Les.</span>':p.susp?'<span class="pill warn">Sanc.</span>':''}</span></td><td>${ovrTag(p.ovr)}</td><td class="num" style="color:${fitCol(p.fitness)}">${p.fitness}%</td></tr>`).join('')}
+   ${Array.from({length:empty},()=>`<tr class="click emptyrow" data-benchslot="1"><td colspan="4" class="muted small">Hueco libre · toca un reserva y luego aquí para convocarlo</td></tr>`).join('')}
+   ${!list.length&&!isBench?'<tr><td colspan="4" class="muted">Nadie en reservas.</td></tr>':''}
    </tbody></table></div>`;}
 
 /* ---------- entrenamiento ---------- */
@@ -975,7 +982,7 @@ function bidModal(id,stage,extra){
      <p>Intentos restantes con ${esc(club.name)}: <b>${3-neg.tries}</b>. Presupuesto disponible: <b>${money(c.budget)}</b>.</p>
      ${extra&&extra.msg?`<p style="color:${extra.ok?'var(--good)':'var(--warn)'}">${esc(extra.msg)}</p>`:''}
      <label class="label" for="fee">Traspaso ofrecido (€)</label>
-     <div class="row" style="margin:6px 0 10px"><input type="number" id="fee" value="${extra&&extra.counter?extra.counter:sug[1]}" step="100000" min="0" style="flex:1"></div>
+     <div class="row" style="margin:6px 0 10px">${numInput('fee',extra&&extra.counter?extra.counter:sug[1],'style="flex:1"')}</div>
      <div class="row" style="margin-bottom:14px">${sug.map(s=>`<button class="btn sm" data-setfee="${s}">${money(s)}</button>`).join('')}</div>
      <div class="row"><button class="btn primary" data-act="sendBid" data-id="${p.id}" ${neg.tries>=3?'disabled':''}>Enviar oferta</button>${extra&&extra.counter?`<button class="btn" data-act="acceptCounter" data-id="${p.id}" data-fee="${extra.counter}">Aceptar ${money(extra.counter)}</button>`:''}<button class="btn" data-close style="margin-left:auto">Cancelar</button></div>`);
     return;}
@@ -983,7 +990,7 @@ function bidModal(id,stage,extra){
   modal(`<h2>Contrato · ${esc(p.name)}</h2>${fee?`<p class="small" style="color:var(--good)">Traspaso acordado: <b>${money(fee)}</b>.</p>`:'<p class="small muted">Agente libre: sin coste de traspaso.</p>'}
    <p>Pretensiones del jugador: <b>${money(dem)}/sem</b>. Margen salarial: <b>${money(c.wageBudget-wageBill(c.id))}/sem</b>.</p>
    ${extra&&extra.msg?`<p style="color:var(--warn)">${esc(extra.msg)}</p>`:''}
-   <div class="row" style="margin-bottom:12px"><label class="label" for="wage">Salario semanal</label><input type="number" id="wage" value="${dem}" step="500" min="0" style="flex:1">
+   <div class="row" style="margin-bottom:12px"><label class="label" for="wage">Salario semanal</label>${numInput('wage',dem,'style="flex:1"')}
    <label class="label" for="years">Años</label><select id="years">${[1,2,3,4,5].map(y=>`<option value="${y}" ${y===4?'selected':''}>${y} (hasta ${S.year+y})</option>`).join('')}</select></div>
    <div class="row"><button class="btn primary" data-act="sendContract" data-id="${p.id}" data-fee="${fee}">Proponer contrato</button><button class="btn" data-close style="margin-left:auto">Cancelar</button></div>`);
 }
@@ -992,7 +999,7 @@ function renewModal(id,msg){const p=P(id);const c=me();const ask=curAsk(p,'rn',r
   modal(`<div class="row" style="gap:12px;flex-wrap:nowrap;align-items:center">${face(p,56)}<div><h2 style="margin:0">Renovar a ${esc(p.name)}</h2><div class="small muted">Cobra ${money(p.wage)}/sem · contrato hasta el ${contractEnd(p)}</div></div></div>
    <p>Pide <b>${money(ask)}/sem</b>. Propón tú el salario: puede aceptar algo menos, pero si te quedas muy corto se molestará. Intentos restantes: <b>${left}</b>. Margen salarial: <b>${money(c.wageBudget-wageBill(c.id))}/sem</b>.</p>
    ${msg?`<p style="color:var(--warn)">${esc(msg)}</p>`:''}
-   <div class="row" style="margin-bottom:12px"><label class="label" for="rwage">Salario semanal</label><input type="number" id="rwage" value="${ask}" step="500" min="0" style="flex:1">
+   <div class="row" style="margin-bottom:12px"><label class="label" for="rwage">Salario semanal</label>${numInput('rwage',ask,'style="flex:1"')}
    <label class="label" for="ryears">Años</label><select id="ryears">${[1,2,3,4,5].map(y=>`<option value="${y}" ${y===3?'selected':''}>${y} (hasta ${S.year+y})</option>`).join('')}</select></div>
    <div class="row"><button class="btn primary" data-act="doRenew" data-id="${p.id}">Negociar renovación</button><button class="btn" data-close style="margin-left:auto">Cancelar</button></div>`);
 }
@@ -1060,7 +1067,7 @@ function counterModal(id,msg,final){
    ${left>0?`<p>Fija tú el precio que pides. Intentos restantes: <b>${left}</b>.</p>`:`<p>${esc(b.name)} no va a negociar más.</p>`}
    ${msg?`<p style="color:var(--warn)">${esc(msg)}</p>`:''}
    ${left>0?`<label class="label" for="ask">Precio que pides (€)</label>
-   <div class="row" style="margin:6px 0 10px"><input type="number" id="ask" value="${roundMoney(cur*1.1)}" step="100000" min="0" style="flex:1"></div>
+   <div class="row" style="margin:6px 0 10px">${numInput('ask',roundMoney(cur*1.1),'style="flex:1"')}</div>
    <div class="row" style="margin-bottom:14px">${sug.map(s=>`<button class="btn sm" data-setask="${s}">${money(s)}</button>`).join('')}</div>`:''}
    <div class="row">${left>0?`<button class="btn primary" data-act="sendCounter" data-id="${n.id}">Enviar contraoferta</button>`:''}<button class="btn ${left>0?'':'primary'}" data-act="acceptLast" data-id="${n.id}">Aceptar ${money(cur)}</button><button class="btn" data-close style="margin-left:auto">Cancelar</button></div>`);
 }
@@ -1118,7 +1125,7 @@ function startMatch(live){
   render();if(live)runTimer();
 }
 const SPEEDS=[500,220,70];
-function runTimer(){clearInterval(timer);const m=UI.match;if(!m)return;timer=setInterval(()=>{if(!UI.match||m.paused||m.ended){if(m.ended){clearInterval(timer);if(!m.fx.played)finalizeMatch(m);renderMatch();}return;}stepMinute(m);if(m.ended)finalizeMatch(m);renderMatch();},SPEEDS[m.speed]);}
+function runTimer(){clearInterval(timer);const m=UI.match;if(!m)return;timer=setInterval(()=>{if(!UI.match||m.paused||m.ended){if(m.ended){clearInterval(timer);if(!m.fx.played)finalizeMatch(m);renderMatch();}return;}stepMinute(m);if(m.ended)finalizeMatch(m);renderMatch();if(m.manage&&!m.ended){const why=m.manage;m.manage=null;m.paused=true;renderMatch();manageModal(why);}},SPEEDS[m.speed]);}
 function renderMatch(){
   const m=UI.match;let el=document.getElementById('matchView');if(!el){el=document.createElement('div');el.id='matchView';el.className='match';document.body.appendChild(el);}
   const h=S.clubs[m.home.cid],a=S.clubs[m.away.cid];const user=m.home.isUser?m.home:m.away;
@@ -1140,12 +1147,12 @@ function renderMatch(){
    `<div class="row" style="justify-content:center">
      <button class="btn ${m.paused?'primary':''}" data-act="pause">${m.paused?(m.half===2&&m.min===45?'Segunda parte':'Reanudar'):'Pausa'}</button>
      <button class="btn" data-act="speed">Velocidad ${['×1','×2','×4'][m.speed]}</button>
-     <button class="btn" data-act="subs">Cambios (${user.subs}/5)</button>
+     <button class="btn" data-act="subs">Gestionar plantilla (${user.subs}/5)</button>
      <label class="label" for="liveMent">Mentalidad</label><select id="liveMent" data-change="liveMent">${MENT.map((x,i)=>`<option value="${i}" ${i===user.ment?'selected':''}>${x}</option>`).join('')}</select>
      <button class="btn" data-act="simEnd">Simular hasta el final</button></div>`}
 `,`   ${ratings}
 `,`   <div class="grid g2"><div class="card"><h3>Retransmisión</h3><div class="feed">${feed}</div></div>
-    <div class="card"><h3>Estadísticas</h3><div class="mstats">${statRow('Posesión %',possH,100-possH)}${statRow('Tiros',m.home.shots,m.away.shots)}${statRow('Tiros a puerta',m.home.sot,m.away.sot)}${statRow('Paradas',m.home.saves,m.away.saves)}${statRow('Amarillas',Object.values(m.home.yellows).reduce((s,x)=>s+x,0),Object.values(m.away.yellows).reduce((s,x)=>s+x,0))}${statRow('Rojas',m.home.red.size,m.away.red.size)}</div>
+    <div class="card"><h3>Estadísticas</h3><div class="mstats">${statRow('Posesión %',possH,100-possH)}${statRow('Tiros',m.home.shots,m.away.shots)}${statRow('Tiros a puerta',m.home.sot,m.away.sot)}${statRow('Paradas',m.home.saves,m.away.saves)}${statRow('Amarillas',Object.values(m.home.yellows).reduce((s,x)=>s+x,0),Object.values(m.away.yellows).reduce((s,x)=>s+x,0))}${statRow('Rojas',redCount(m.home),redCount(m.away))}</div>
     <div class="small muted" style="margin-top:12px">Goles: ${m.fx.ev.filter(e=>e.t==='g').map(e=>`${esc(S.clubs[e.side==='h'?m.home.cid:m.away.cid].short)} ${esc(nm(e.pid))} ${e.min}'`).join(' · ')||'—'}</div></div></div>
 `]);
 }
@@ -1154,19 +1161,40 @@ function patchSections(el,parts){
   if(!inner||inner.className!=='inner'||inner.children.length!==parts.length){el.innerHTML='<div class="inner">'+parts.map(()=>'<div class="sec" style="display:contents"></div>').join('')+'</div>';inner=el.firstElementChild;}
   parts.forEach((h,i)=>{const sec=inner.children[i];if(sec._h!==h){sec._h=h;sec.innerHTML=h;}});
 }
-function subsModal(){
-  const m=UI.match;const s=m.home.isUser?m.home:m.away;m.paused=true;renderMatch();const out=UI.pendingSubOut;
-  modal(`<h2>Cambios (${s.subs}/5)</h2>${s.subs>=5?'<p>Ya has hecho los 5 cambios.</p>':`
-   <p class="small muted">${out?'Ahora elige quién entra por '+esc(nm(out))+'.':'Elige el jugador que sale.'}</p>
-   <div class="grid g2"><div><div class="label" style="margin-bottom:6px">En el campo</div>${onPitch(s).map(id=>{const p=P(id);return `<button class="btn subbtn" style="${out===id?'border-color:var(--accent)':''}" data-subout="${id}"><span class="row" style="gap:6px;flex-wrap:nowrap">${face(p,24)}${posTag(slotOf(s,id))} ${esc(p.name)}</span><span class="num muted">${Math.round(s.fit[id])}%${s.yellows[id]?' · TA':''}</span></button>`;}).join('')}</div>
-   <div><div class="label" style="margin-bottom:6px">Banquillo</div>${s.bench.map(id=>{const p=P(id);return `<button class="btn subbtn" data-subin="${id}" ${out?'':'disabled'}><span class="row" style="gap:6px;flex-wrap:nowrap">${face(p,24)}${posTag(p.pos)} ${esc(p.name)}</span><span class="num">${p.ovr}</span></button>`;}).join('')}</div></div>`}
-   <div class="row" style="margin-top:10px"><button class="btn" data-close style="margin-left:auto">Volver al partido</button></div>`);
+function userSide(m){return m.home.isUser?m.home:m.away;}
+function manageModal(msg){
+  const m=UI.match;const s=userSide(m);m.paused=true;renderMatch();const sel=UI.mSel;
+  if(msg!==undefined)UI.mMsg=msg;
+  const slots=FORMATIONS[s.form||me().formation];
+  const pitch=s.slots.map((pos,i)=>{const id=s.xi[i];const p=id?P(id):null;const off=id&&s.red.has(id);const inj=off&&(s.injured||[]).includes(id);const f=id?Math.round(s.fit[id]??p.fitness):0;const xy=slots[i]||[pos,50,50];
+    return `<div class="slot ${sel&&sel.t==='xi'&&sel.i===i?'sel':''}" style="left:${xy[1]}%;top:${xy[2]}%" data-mslot="${i}"><div class="chip ${off?'bad':p&&posPen(p,pos)>1?'oop':''}" style="${off?'opacity:.45':''}">${p?face(p,48):''}<span class="chip-ovr">${p?p.ovr-posPen(p,pos):'–'}</span></div>
+     <div class="nm">${p?esc(p.name.split(' ').slice(-1)[0]):'Vacío'}${inj?' 🚑':off?' 🟥':s.yellows[id]?' 🟨':''}</div>${p&&!off?`<div class="fbar"><i style="width:${f}%;background:${fitCol(f)}"></i></div>`:''}<div class="sp">${pos}</div></div>`;}).join('');
+  const benchRows=s.bench.map(id=>{const p=P(id);return `<tr class="click${sel&&sel.t==='b'&&sel.id===id?' sel':''}" data-mbench="${id}"><td>${posTag(p.pos)}</td><td><span class="row" style="gap:8px;flex-wrap:nowrap">${face(p,28)}${esc(p.name)}</span></td><td>${ovrTag(p.ovr)}</td><td class="num" style="color:${fitCol(p.fitness)}">${p.fitness}%</td></tr>`;}).join('')||'<tr><td colspan="4" class="muted">No quedan suplentes.</td></tr>';
+  modal(`<div class="row between" style="margin-bottom:8px"><h2 style="margin:0">Gestionar plantilla</h2><span class="pill ${s.subs>=5?'bad':'info'}">Cambios ${s.subs}/5</span></div>
+   ${UI.mMsg?`<p style="color:var(--warn);margin:0 0 8px">${esc(UI.mMsg)}</p>`:''}
+   <p class="small muted" style="margin:0 0 10px">Toca un jugador del campo y luego un suplente para hacer el cambio, o dos del campo para intercambiar sus posiciones. El físico es el del partido.</p>
+   <div class="grid g2"><div><div class="row" style="margin-bottom:8px"><label class="label" for="mForm">Formación</label><select id="mForm" data-change="mForm">${Object.keys(FORMATIONS).map(f=>`<option ${f===(s.form||me().formation)?'selected':''}>${f}</option>`).join('')}</select>
+     <label class="label" for="mMent">Mentalidad</label><select id="mMent" data-change="liveMent">${MENT.map((x,i)=>`<option value="${i}" ${i===s.ment?'selected':''}>${x}</option>`).join('')}</select></div>
+     <div class="pitch"><div class="circle"></div>${pitch}</div></div>
+    <div><h3 style="margin:0 0 6px">Suplentes</h3><div class="tbl-wrap"><table><thead><tr><th>Pos</th><th>Nombre</th><th>Med</th><th>Físico</th></tr></thead><tbody>${benchRows}</tbody></table></div></div></div>
+   <div class="row" style="margin-top:12px"><button class="btn primary" data-act="mDone" style="margin-left:auto">Volver al partido</button></div>`,'wide');
 }
+function mTap(kind,v){const m=UI.match;const s=userSide(m);const sel=UI.mSel;UI.mMsg='';
+  if(kind==='xi'){
+    if(sel&&sel.t==='xi'&&sel.i!==v){[s.xi[sel.i],s.xi[v]]=[s.xi[v],s.xi[sel.i]];UI.mSel=null;}       // intercambio de posiciones
+    else if(sel&&sel.t==='b')trySub(s,s.xi[v],sel.id);
+    else UI.mSel=sel&&sel.t==='xi'&&sel.i===v?null:{t:'xi',i:v};}
+  else{ if(sel&&sel.t==='xi')trySub(s,s.xi[sel.i],v);else UI.mSel=sel&&sel.t==='b'&&sel.id===v?null:{t:'b',id:v};}
+  manageModal();}
+function trySub(s,outId,inId){const m=UI.match;UI.mSel=null;
+  if(!outId)return;
+  if(s.subs>=5){UI.mMsg='Ya has hecho los 5 cambios.';return;}
+  if(s.red.has(outId)&&!(s.injured||[]).includes(outId)){UI.mMsg='No puedes sustituir a un expulsado.';return;}
+  doSub(m,s,outId,inId);}
 function finishUserMatch(){
   const m=UI.match;clearInterval(timer);
   if(!m.fx.played)finalizeMatch(m);
   const my=m.home.isUser?m.home:m.away,op=m.home.isUser?m.away:m.home;
-  me().ment=my.ment;
   const res=my.goals>op.goals?'Victoria':my.goals<op.goals?'Derrota':'Empate';
   afterUserMatch(m.fx,my.goals,op.goals);
   UI.match=null;const el=document.getElementById('matchView');if(el)el.remove();
@@ -1199,7 +1227,7 @@ function closeModal(){const m=document.getElementById('modal');if(m)m.remove();}
 
 /* ================= eventos ================= */
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-go],[data-act],[data-player],[data-slot],[data-benchp],[data-sort],[data-ltab],[data-round],[data-msg],[data-pick],[data-sdiv],[data-close],[data-page],[data-setfee],[data-setask],[data-subout],[data-subin],[data-job],[data-sqmode]');
+  const t=e.target.closest('[data-go],[data-act],[data-player],[data-slot],[data-benchp],[data-benchslot],[data-mslot],[data-mbench],[data-sort],[data-ltab],[data-round],[data-msg],[data-pick],[data-sdiv],[data-close],[data-page],[data-setfee],[data-setask],[data-subout],[data-subin],[data-job],[data-sqmode]');
   if(!t)return;const d=t.dataset;
   if(S)invalidate();
   if(d.close!==undefined){closeModal();UI.pendingSubOut=null;return;}
@@ -1214,14 +1242,18 @@ document.addEventListener('click',e=>{
   if(d.round){UI.round=+d.round;render();return;}
   if(d.msg){openMsg(+d.msg);return;}
   if(d.page){UI.mk.page=Math.max(0,UI.mk.page+ +d.page);render();return;}
-  if(d.setask){const f=document.getElementById('ask');if(f)f.value=d.setask;return;}
-  if(d.setfee){const f=document.getElementById('fee');if(f)f.value=d.setfee;return;}
+  if(d.setask){const f=document.getElementById('ask');if(f)f.value=fmtNum(d.setask);return;}
+  if(d.setfee){const f=document.getElementById('fee');if(f)f.value=fmtNum(d.setfee);return;}
   if(d.slot!==undefined){const i=+d.slot;const xi=userLineup();
     if(UI.selBench!=null){placeInXI(i,UI.selBench);UI.selBench=null;UI.selSlot=null;UI.lastSlot=null;save();render();return;}
     const now=Date.now();if(UI.lastSlot===i&&now-(UI.lastSlotT||0)<400&&xi[i]){UI.lastSlot=null;UI.selSlot=null;render();playerModal(xi[i]);return;}
     UI.lastSlot=i;UI.lastSlotT=now;
     if(UI.selSlot==null)UI.selSlot=i;else if(UI.selSlot===i)UI.selSlot=null;else{[xi[UI.selSlot],xi[i]]=[xi[i],xi[UI.selSlot]];UI.selSlot=null;save();}
     render();return;}
+  if(d.benchslot){const bn=userBench();if(bn.length>=9)return;
+    if(UI.selBench!=null&&!bn.includes(UI.selBench)){bn.push(UI.selBench);UI.selBench=null;save();render();}
+    else if(UI.selSlot!=null){const xi=userLineup();const id=xi[UI.selSlot];if(id){xi[UI.selSlot]=null;bn.push(id);}UI.selSlot=null;save();render();}
+    else toast('Toca primero un jugador de reservas.');return;}
   if(d.benchp){const id=+d.benchp;const now=Date.now();
     if(UI.lastBench===id&&now-(UI.lastBenchT||0)<400){UI.lastBench=null;UI.selBench=null;render();playerModal(id);return;}   // doble toque: carta en grande
     UI.lastBench=id;UI.lastBenchT=now;
@@ -1229,18 +1261,23 @@ document.addEventListener('click',e=>{
     if(UI.selBench!=null&&UI.selBench!==id){const bn=userBench();const a=bn.indexOf(UI.selBench),b=bn.indexOf(id);
       if((a>=0)!==(b>=0)){if(a>=0)bn[a]=id;else bn[b]=UI.selBench;UI.selBench=null;save();render();return;}}   // uno es suplente y otro reserva: se intercambian
     UI.selBench=UI.selBench===id?null:id;render();return;}
-  if(d.subout){UI.pendingSubOut=+d.subout;subsModal();return;}
-  if(d.subin){const m=UI.match;const s=m.home.isUser?m.home:m.away;if(UI.pendingSubOut&&s.subs<5)doSub(m,s,UI.pendingSubOut,+d.subin);UI.pendingSubOut=null;subsModal();return;}
+  if(d.mslot!==undefined){mTap('xi',+d.mslot);return;}
+  if(d.mbench){mTap('b',+d.mbench);return;}
   if(d.act)act(d.act,t);
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.getElementById('modal')){closeModal();UI.pendingSubOut=null;}
   if((e.key==='Enter'||e.key===' ')&&e.target.matches&&e.target.matches('.fut[data-player]')){e.preventDefault();playerModal(+e.target.dataset.player);}});
+// cifras: se escriben con puntos de miles mientras tecleas (46000000 → 46.000.000)
+document.addEventListener('input',e=>{const t=e.target;if(!t.classList||!t.classList.contains('num-in'))return;
+  const right=t.value.slice(t.selectionStart??t.value.length).replace(/\D/g,'').length;t.value=fmtNum(t.value);
+  let i=t.value.length,c=0;while(i>0&&c<right){i--;if(/\d/.test(t.value[i]))c++;}try{t.setSelectionRange(i,i);}catch(_){}});
 document.addEventListener('change',e=>{
   const t=e.target;const d=t.dataset;
-  if(d.change==='formation'){const c=me();c.formation=t.value;c.lineup=bestXI(c.id,c.formation);UI.selSlot=null;save();render();}
+  if(d.change==='formation'){const c=me();c.formation=t.value;c.lineup=bestXI(c.id,c.formation);c.bench=null;UI.selSlot=null;save();render();}
   else if(d.change==='ment'){me().ment=+t.value;save();}
   else if(d.change==='sqSort'){UI.sqSort=t.value;render();}
-  else if(d.change==='liveMent'){const m=UI.match;(m.home.isUser?m.home:m.away).ment=+t.value;}
+  else if(d.change==='liveMent'){const m=UI.match;userSide(m).ment=+t.value;if(document.getElementById('liveMent'))document.getElementById('liveMent').value=t.value;renderMatch();}
+  else if(d.change==='mForm'){const m=UI.match;const s=userSide(m);s.form=t.value;s.slots=FORMATIONS[t.value].map(x=>x[0]);manageModal();}
   else if(d.change==='leagueComp'){UI.leagueComp=t.value;UI.round=null;if(UI.leagueTab==='ko'&&S.comps[t.value].type!=='E')UI.leagueTab='tabla';render();}
   else if(d.mk){UI.mk[d.mk]=['q','pos','league'].includes(d.mk)?t.value:+t.value;UI.mk.page=0;render();}
   else if(t.id==='importFile'&&t.files[0]){const r=new FileReader();r.onload=()=>{parseSave(String(r.result)).then(data=>{if(!data||!data.clubs||!data.players||!data.fx)throw 0;boot(data);save();UI.view='home';render();toast('Partida importada');}).catch(()=>toast('El archivo no es una partida válida.'));};r.readAsText(t.files[0]);}
@@ -1266,7 +1303,8 @@ function act(a,t){
   case 'toEnd':busy(t,'Simulando…',()=>{let n=0;while(!S.seasonDone&&n++<400)processDay();save();});break;
   case 'pause':{const m=UI.match;m.paused=!m.paused;renderMatch();if(!m.paused)runTimer();break;}
   case 'speed':{const m=UI.match;m.speed=(m.speed+1)%3;runTimer();renderMatch();break;}
-  case 'subs':UI.pendingSubOut=null;subsModal();break;
+  case 'subs':UI.mSel=null;UI.mMsg='';manageModal();break;
+  case 'mDone':UI.mSel=null;UI.mMsg='';closeModal();renderMatch();break;
   case 'simEnd':{const m=UI.match;m.live=false;simToEnd(m);finalizeMatch(m);clearInterval(timer);renderMatch();break;}
   case 'finishMatch':finishUserMatch();break;
   case 'toRes':{const bn=userBench();const k=bn.indexOf(id);if(k>=0)bn.splice(k,1);UI.selBench=null;save();render();break;}
@@ -1283,7 +1321,7 @@ function act(a,t){
     if(p.morale<35){modal(`<h2>${esc(p.name)}</h2><p>Su moral es demasiado baja: no quiere renovar ahora mismo.</p><button class="btn" data-close>Cerrar</button>`);break;}
     if(p.renewBlock&&p.renewBlock>S.date){modal(`<h2>${esc(p.name)}</h2><p>Rompió las negociaciones de renovación. No quiere volver a hablar hasta el ${fmtDate(p.renewBlock,true)}.</p><button class="btn" data-close>Cerrar</button>`);break;}
     renewModal(id);break;}
-  case 'doRenew':{const p=P(id);const c=me();const w=Math.round(+document.getElementById('rwage').value||0);const y=+document.getElementById('ryears').value;
+  case 'doRenew':{const p=P(id);const c=me();const w=numVal('rwage');const y=+document.getElementById('ryears').value;
     if(wageBill(c.id)-p.wage+w>c.wageBudget){renewModal(id,'Ese salario supera tu límite salarial semanal.');break;}
     const r=wageTalk(wageKey(p,'rn'),renewDemand(p),w);
     if(r.broken){p.renewBlock=addDays(S.date,30);delete S.neg[wageKey(p,'rn')];p.morale=clamp(p.morale-5,0,100);save();closeModal();toast(`${esc(p.name)} rompe las negociaciones de renovación`);render();break;}
@@ -1296,7 +1334,7 @@ function act(a,t){
   case 'scout':{const lv=+document.getElementById('sc-lv').value;const region=document.getElementById('sc-region').value;const c=me();const cost=SCOUT_LV[lv].cost;
     if(c.budget<cost){toast('Presupuesto insuficiente.');break;}c.budget-=cost;S.scout={lv,region,days:21};save();render();toast('Ojeador enviado: '+REGIONS[region]);break;}
   case 'bid':closeModal();bidModal(id);break;
-  case 'sendBid':{const p=P(id);const neg=askingPrice(p);const fee=Math.max(0,Math.round(+document.getElementById('fee').value||0));const c=me();
+  case 'sendBid':{const p=P(id);const neg=askingPrice(p);const fee=numVal('fee');const c=me();
     if(fee>c.budget){bidModal(id,null,{msg:'No tienes presupuesto suficiente para esa oferta.'});break;}
     neg.tries++;const club=S.clubs[p.clubId];
     const flex=neg.flex??0.03,floor=neg.floor??0.6;
@@ -1307,7 +1345,7 @@ function act(a,t){
     else bidModal(id,null,{msg:neg.tries>=3?`${club.name} da por cerradas las negociaciones hasta el próximo mercado.`:`${club.name} considera la oferta insuficiente.`});
     save();break;}
   case 'acceptCounter':{const p=P(id);const fee=+t.dataset.fee;if(fee>me().budget){toast('Presupuesto insuficiente.');break;}askingPrice(p).agreed=fee;save();bidModal(id,'contract',{fee});break;}
-  case 'sendContract':{const p=P(id);const fee=+t.dataset.fee;const w=Math.round(+document.getElementById('wage').value||0);const y=+document.getElementById('years').value;const c=me();const dem=wageDemand(p);
+  case 'sendContract':{const p=P(id);const fee=+t.dataset.fee;const w=numVal('wage');const y=+document.getElementById('years').value;const c=me();const dem=wageDemand(p);
     if(wageBill(c.id)+w>c.wageBudget){bidModal(id,'contract',{fee,msg:'Ese salario supera tu límite salarial semanal. Vende o rescinde para liberar masa salarial.'});break;}
     {const r=wageTalk(wageKey(p,'wt'),dem,w);
      if(r.broken){closeModal();toast(`${esc(p.name)} rompe las negociaciones.`);if(fee)askingPrice(p).agreed=0;save();break;}
@@ -1318,7 +1356,7 @@ function act(a,t){
   case 'rejectOffer':{const n=S.news.find(x=>x.id===id);n.done='Rechazada';const p=P(n.data.pid);if(p)p.morale=clamp(p.morale-(p.listed?0:4),0,100);save();closeModal();render();break;}
   case 'counterOffer':counterModal(id);break;
   case 'acceptLast':{const n=S.news.find(x=>x.id===id);const p=P(n.data.pid);const fee=n.data.lastOffer||n.data.fee;sellPlayer(p,n.data.cid,fee);n.done='Venta cerrada · '+money(fee);save();closeModal();render();break;}
-  case 'sendCounter':{const n=S.news.find(x=>x.id===id);const p=P(n.data.pid);const b=S.clubs[n.data.cid];const ask=Math.max(0,Math.round(+document.getElementById('ask').value||0));
+  case 'sendCounter':{const n=S.news.find(x=>x.id===id);const p=P(n.data.pid);const b=S.clubs[n.data.cid];const ask=numVal('ask');
     if(!p||p.clubId!==S.user.clubId){closeModal();break;}
     if(!n.data.maxPay)n.data.maxPay=roundMoney(Math.max(n.data.fee,n.data.fee*(1.03+R()*0.3)));   // tope oculto: nunca por debajo de lo que ya ofrecen
     const cur=n.data.lastOffer||n.data.fee;
