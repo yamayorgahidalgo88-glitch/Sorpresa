@@ -1,0 +1,21 @@
+CIFRA V44 — instalación como aplicación en Android
+
+Esta versión está preparada como aplicación web instalable (PWA), con icono propio y modo pantalla completa.
+
+IMPORTANTE:
+Si abres index.html directamente desde un ZIP/gestor de archivos (content://...), Android lo tratará como un archivo local y Chrome no puede instalarlo como PWA completa.
+
+Para instalarla como una app real:
+1. Publica esta carpeta en una dirección web HTTPS.
+2. Abre esa dirección con Chrome en el móvil.
+3. En Chrome, pulsa ⋮ y elige «Instalar app» o «Instalar y crear acceso directo».
+4. Acepta.
+
+La app aparecerá en el móvil con el icono de CIFRA y se abrirá en modo aplicación, sin la barra normal del navegador.
+
+El propio juego también mostrará el botón «Instalar CIFRA en el móvil» cuando Chrome detecte que la instalación está disponible.
+
+
+ICONO V43: actualizado al logo proporcionado por el usuario. Incluye icon-192.png, icon-512.png, favicon-32.png y apple-touch-icon.png.
+
+V44: entrada de cifra con regla deslizante estilo Circa (Splash) y banco de preguntas renovado (cosas conocidas, datos sorprendentes).

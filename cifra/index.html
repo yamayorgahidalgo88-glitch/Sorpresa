@@ -1,0 +1,1279 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#07111f" />
+  <meta name="application-name" content="CIFRA" />
+  <meta name="description" content="CIFRA — juego móvil de estimación numérica con preguntas curiosas sobre cosas conocidas." />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="favicon-32.png" type="image/png" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <title>CIFRA — ¿Qué tan cerca estás?</title>
+  <style>
+    :root{
+      --bg:#07111f; --panel:#0d1a2b; --panel2:#10233a; --text:#f5f7fb; --muted:#91a0b8;
+      --line:rgba(255,255,255,.10); --blue:#2e8cff; --blue2:#57a5ff; --green:#2ad276; --green2:#62e69f;
+      --red:#ff4f5e; --gold:#ffd66b; --radius:22px; --shadow:0 18px 50px rgba(0,0,0,.35);
+    }
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{margin:0;padding:0;background:radial-gradient(circle at 50% -20%,#17335a 0,#07111f 52%);min-height:100%;color:var(--text);font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    body{overflow-x:hidden}
+    button,input,select{font:inherit}
+    button{border:0}
+    #app{min-height:100svh;display:flex;justify-content:center}
+    .phone{width:100%;max-width:520px;min-height:100svh;padding:18px 16px 24px;display:flex;flex-direction:column}
+    .screen{display:none;flex:1;flex-direction:column;gap:16px}
+    .screen.active{display:flex}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 2px}
+    .brand{display:flex;align-items:center;gap:10px}
+    .logo{width:42px;height:42px;border-radius:13px;background:linear-gradient(160deg,#1c4d89,#112b4a);display:grid;place-items:center;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+    .logo-mark{width:18px;height:26px;border-radius:9px;border:3px solid #fff;position:relative}
+    .logo-mark:after{content:"";position:absolute;left:5px;top:4px;width:4px;height:12px;border-radius:4px;background:#fff}
+    .brand h1{font-size:19px;margin:0;letter-spacing:.05em}
+    .brand p{font-size:11px;color:var(--muted);margin:2px 0 0}
+    .pill{border:1px solid var(--line);background:rgba(255,255,255,.04);padding:8px 10px;border-radius:999px;font-size:12px;color:var(--muted)}
+    .hero{margin-top:16px;padding:8px 2px 4px}
+    .hero .eyebrow{color:#71aefc;text-transform:uppercase;letter-spacing:.16em;font-weight:700;font-size:11px}
+    .hero h2{font-size:42px;line-height:.94;margin:8px 0 12px;letter-spacing:-.045em}
+    .hero p{color:var(--muted);line-height:1.5;margin:0;max-width:420px}
+    .card{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.035));border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+    .card.pad{padding:18px}
+    .field{display:flex;flex-direction:column;gap:7px}
+    .field label{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:700}
+    .field input,.field select{width:100%;background:#0a1626;border:1px solid var(--line);color:var(--text);padding:14px;border-radius:15px;outline:none}
+    .field input:focus,.field select:focus{border-color:#3d8eff;box-shadow:0 0 0 3px rgba(46,140,255,.12)}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .players-list{display:grid;gap:10px;margin-top:10px}
+    .player-row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:9px}
+    .player-badge{width:32px;height:32px;border-radius:11px;display:grid;place-items:center;font-size:12px;font-weight:950;background:rgba(46,140,255,.12);border:1px solid rgba(87,165,255,.25);color:#9bc9ff}
+    .player-remove{width:38px;height:42px;border-radius:13px;background:rgba(255,255,255,.045);border:1px solid var(--line);color:var(--muted);cursor:pointer;font-size:18px}
+    .player-remove:hover{color:#fff;background:rgba(255,255,255,.08)}
+    .add-player{width:100%;margin-top:10px;padding:12px 14px;border-radius:14px;background:rgba(46,140,255,.08);border:1px dashed rgba(87,165,255,.35);color:#8fc4ff;font-weight:800;cursor:pointer}
+    .add-player:disabled{opacity:.4;cursor:not-allowed}
+    .primary{background:linear-gradient(180deg,#3999ff,#2274e5);color:white;padding:15px 18px;border-radius:16px;font-weight:800;cursor:pointer;box-shadow:0 12px 26px rgba(46,140,255,.24)}
+    .secondary{background:rgba(255,255,255,.06);color:var(--text);padding:15px 18px;border-radius:16px;font-weight:750;cursor:pointer;border:1px solid var(--line)}
+    .install-btn{display:block;width:100%;margin-top:10px;padding:14px 18px;border:1px solid rgba(87,165,255,.45);border-radius:16px;background:rgba(46,140,255,.10);color:#8fc4ff;font:inherit;font-weight:700;cursor:pointer}.install-btn[hidden]{display:none}
+.ghost{background:transparent;color:var(--muted);padding:10px;border-radius:12px;cursor:pointer}
+    .spacer{flex:1}
+    .rules{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:10px}
+    .mini{padding:12px;border-radius:17px;background:rgba(255,255,255,.035);border:1px solid var(--line);text-align:center}
+    .mini b{font-size:18px;display:block;margin-bottom:4px}.mini span{font-size:11px;color:var(--muted);line-height:1.3}
+
+    .progress{display:flex;align-items:center;gap:10px}
+    .progress-line{height:7px;background:rgba(255,255,255,.09);border-radius:20px;overflow:hidden;flex:1}.progress-line>span{display:block;height:100%;background:linear-gradient(90deg,#2e8cff,#73b6ff);border-radius:20px;transition:width .3s ease}
+    .round-label{font-size:12px;color:var(--muted);white-space:nowrap}
+    .question-card{padding:18px}
+    .category{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:800}
+    .question{font-size:26px;line-height:1.08;letter-spacing:-.03em;margin:8px 0 7px}
+    .hint{font-size:12px;color:var(--muted);line-height:1.45}
+    .player-turn{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:6px}
+    .turn-name{font-size:14px;font-weight:850}.turn-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:6px;vertical-align:1px}.blue{background:var(--blue)}.green{background:var(--green)}
+
+    /* Escala estilo Circa/Splash: una superficie vertical completa que se rellena desde abajo. */
+    .scale-wrap{flex:1;display:flex;align-items:stretch;justify-content:center;min-height:370px;padding:2px 0 0}
+    .scale{position:relative;width:min(100%,380px);height:calc(100svh - 420px);min-height:360px;max-height:590px;touch-action:none;user-select:none;-webkit-user-select:none}
+    .axis{position:absolute;inset:10px 0 12px;border-radius:28px;background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.075));border:1px solid rgba(255,255,255,.10);overflow:hidden;box-shadow:inset 0 0 30px rgba(0,0,0,.20)}
+    .axis:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(to top,transparent 0,transparent calc(16.666% - 1px),rgba(255,255,255,.075) calc(16.666% - 1px),rgba(255,255,255,.075) 16.666%);pointer-events:none}
+    .fill{position:absolute;left:0;right:0;bottom:0;border-radius:25px 25px 0 0;min-height:0;transform-origin:bottom;transition:height .08s linear;box-shadow:0 -10px 30px rgba(0,0,0,.12)}
+    .fill.blueFill{background:linear-gradient(180deg,#49a2ff 0%,#1475ed 42%,#0755c5 100%)}.fill.greenFill{background:linear-gradient(180deg,#55e99a 0%,#16b86b 42%,#0c8d50 100%)}
+    .thumb{position:absolute;left:50%;width:min(82%,310px);height:58px;transform:translate(-50%,50%);border-radius:17px;border:2px solid rgba(255,255,255,.92);box-shadow:0 10px 30px rgba(0,0,0,.42);z-index:5;display:flex;align-items:center;justify-content:center;cursor:grab;transition:bottom .08s linear;backdrop-filter:blur(7px)}
+    .thumb:active{cursor:grabbing}.thumb.blueThumb{background:rgba(23,122,239,.94)}.thumb.greenThumb{background:rgba(20,184,105,.94)}
+    .thumb .thumb-value{font-size:21px;font-weight:950;text-align:center;line-height:1;letter-spacing:-.03em;padding:0 10px;white-space:nowrap}
+        .scale:after{content:"DESLIZA PARA COLOCAR TU CIFRA";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:rgba(255,255,255,.14);font-size:10px;font-weight:850;letter-spacing:.16em;text-align:center;white-space:nowrap;pointer-events:none;z-index:2}
+    .scale.has-value:after{display:none}
+    .answer-readout{display:flex;align-items:center;justify-content:center;gap:7px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid var(--line);font-size:13px;color:var(--muted)}
+    .answer-readout strong{color:var(--text);font-size:22px;font-variant-numeric:tabular-nums}
+
+    .answer-box-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:28px 10px 22px;flex:1;min-height:300px}
+    .answer-entry{width:min(100%,360px);display:flex;align-items:center;justify-content:center;gap:10px}
+    .answer-input{width:min(100%,300px);box-sizing:border-box;background:#0b1728;border:2px solid rgba(255,255,255,.14);border-radius:20px;color:var(--text);font-size:38px;font-weight:950;text-align:center;padding:20px 16px;outline:none;font-variant-numeric:tabular-nums;box-shadow:inset 0 0 20px rgba(0,0,0,.18),0 8px 30px rgba(0,0,0,.12);transition:border-color .18s,box-shadow .18s}
+    .answer-input:focus{border-color:var(--blue);box-shadow:0 0 0 4px rgba(46,140,255,.12),inset 0 0 20px rgba(0,0,0,.18)}
+    .answer-input::placeholder{color:rgba(255,255,255,.2)}
+    .answer-unit{font-size:16px;font-weight:850;color:var(--muted);white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis}
+    .entry-hint{font-size:12px;color:var(--muted);text-align:center;max-width:320px;line-height:1.45}
+    .pass-card{text-align:center;padding:28px 20px}.pass-icon{width:76px;height:76px;border-radius:24px;display:grid;place-items:center;margin:2px auto 18px;font-size:36px;background:rgba(255,255,255,.07);border:1px solid var(--line)}
+    .pass-card h3{font-size:28px;margin:0 0 8px}.pass-card p{color:var(--muted);line-height:1.5;margin:0 auto;max-width:350px}
+
+    .reveal-card{padding:16px}.reveal-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-end}.target{font-size:37px;font-weight:950;letter-spacing:-.04em}.target small{display:block;color:var(--muted);font-size:10px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:4px}
+    .reveal-scale{height:430px;position:relative;margin-top:12px;border-radius:24px;background:rgba(4,10,18,.35);border:1px solid rgba(255,255,255,.06);overflow:hidden}
+    .reveal-scale:before{content:"";position:absolute;left:50%;top:18px;bottom:18px;width:1px;background:rgba(255,255,255,.07);transform:translateX(-50%)}
+    .result-columns{height:100%;display:grid;grid-template-columns:repeat(var(--result-count,2),minmax(0,1fr));gap:clamp(4px,1.5vw,10px);padding:18px 6px 0}
+    .result-column{position:relative;height:100%;display:flex;align-items:center;justify-content:flex-end;flex-direction:column;padding:0 clamp(2px,1vw,10px)}
+    .result-bar{width:100%;height:0;min-height:7px;border-radius:20px 20px 0 0;box-shadow:0 -12px 28px rgba(0,0,0,.15);transition:height .45s cubic-bezier(.2,.8,.2,1);position:relative}
+    .result-bar.result-c0{background:linear-gradient(180deg,#49a2ff 0%,#1475ed 45%,#0755c5 100%)}
+    .result-bar.result-c1{background:linear-gradient(180deg,#55e99a 0%,#16b86b 45%,#0c8d50 100%)}
+    .result-bar.result-c2{background:linear-gradient(180deg,#c18cff 0%,#8b4de8 45%,#6330b7 100%)}
+    .result-bar.result-c3{background:linear-gradient(180deg,#ffb35b 0%,#ef7c20 45%,#bd4d09 100%)}
+    .result-bar.result-c4{background:linear-gradient(180deg,#ff78a8 0%,#ed3e79 45%,#b51f58 100%)}
+    .result-labels{display:grid;grid-template-columns:repeat(var(--result-count,2),minmax(0,1fr));gap:clamp(4px,1.5vw,10px);margin:12px 0 0}.result-label{font-size:12px;font-weight:900;white-space:nowrap;padding:9px 7px;border-radius:14px;background:#0d1a2b;border:1px solid rgba(255,255,255,.15);text-align:center;overflow:hidden;text-overflow:ellipsis}.result-label .result-estimate{display:block;color:#fff;font-size:13px;margin-top:2px}.result-label .result-player-name{display:block;overflow:hidden;text-overflow:ellipsis}.result-name{font-size:11px;font-weight:800;color:rgba(255,255,255,.75);padding:8px 0 12px;z-index:4;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .diffs{display:grid;grid-template-columns:repeat(var(--result-count,2),minmax(0,1fr));gap:7px;margin-top:10px}.diff{padding:10px 6px;border:1px solid var(--line);background:rgba(255,255,255,.035);border-radius:15px;text-align:center;min-width:0}.diff span{display:block;color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.diff strong{font-size:15px;display:block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    @media (max-width:430px){.result-label{font-size:10px;padding:7px 4px}.result-label .result-estimate{font-size:11px}.result-name{font-size:9px}.diff strong{font-size:12px}.reveal-scale{height:390px}}
+    @media (max-width:360px){.result-label .result-estimate{font-size:10px}.diff{padding:8px 3px}.diff strong{font-size:11px}.reveal-scale{height:360px}}
+    .source{font-size:10px;color:#74839b;line-height:1.4;margin-top:10px}.source a{color:#8ebcff;text-decoration:none}
+
+    .scoreboard{display:grid;grid-template-columns:repeat(var(--player-count,2),minmax(0,1fr));gap:8px}.score{padding:12px 8px;border-radius:18px;border:1px solid var(--line);background:rgba(255,255,255,.035);min-width:0}.score .name{font-size:11px;color:var(--muted);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.score b{font-size:27px;display:block;margin-top:2px}.score .muted{font-size:10px;display:block}.score.score-c0{box-shadow:inset 0 0 0 1px rgba(46,140,255,.12)}.score.score-c1{box-shadow:inset 0 0 0 1px rgba(42,210,118,.12)}.score.score-c2{box-shadow:inset 0 0 0 1px rgba(193,140,255,.12)}.score.score-c3{box-shadow:inset 0 0 0 1px rgba(255,179,91,.12)}.score.score-c4{box-shadow:inset 0 0 0 1px rgba(255,120,168,.12)}
+    .final-card{text-align:center;padding:24px}.final-card h2{font-size:36px;letter-spacing:-.04em;margin:4px 0 8px}.final-card p{color:var(--muted);line-height:1.5}.winner-name{font-size:18px;font-weight:900}.statline{margin-top:16px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap}.statline span{font-size:11px;color:var(--muted);padding:8px 10px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.03)}
+    .fade{animation:fade .28s ease}@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+    .danger{color:#ff9ca6}.muted{color:var(--muted)}
+    .entity-link{padding:0;margin:0;border:0;background:transparent;font:inherit;color:inherit;text-decoration:underline;text-decoration-color:rgba(255,255,255,.65);text-decoration-thickness:1.5px;text-underline-offset:3px;cursor:pointer;border-radius:4px;transition:background .15s,color .15s}.entity-link:hover,.entity-link:focus{background:rgba(255,255,255,.09);outline:none}.entity-link:active{background:rgba(255,255,255,.14)}
+  .entity-modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:24px;z-index:100;background:rgba(2,7,15,.72);backdrop-filter:blur(8px)}.entity-modal.open{display:flex}.entity-modal-card{width:min(100%,390px);background:linear-gradient(180deg,#15263c,#0d1a2b);border:1px solid rgba(255,255,255,.14);border-radius:24px;box-shadow:0 24px 70px rgba(0,0,0,.55);padding:22px;animation:entityPop .2s ease}.entity-modal-kicker{font-size:10px;text-transform:uppercase;letter-spacing:.15em;color:#74b5ff;font-weight:850;margin-bottom:7px}.entity-modal-title{font-size:25px;font-weight:900;letter-spacing:-.03em;margin:0 0 9px}.entity-modal-text{font-size:14px;line-height:1.55;color:#b9c5d7;margin:0}.entity-modal-close{width:100%;margin-top:18px;padding:13px;border-radius:14px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.10);color:#fff;font-weight:800;cursor:pointer}.entity-modal-source{font-size:10px;color:#718199;margin-top:10px;line-height:1.4}@keyframes entityPop{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+  @media (max-width:380px){.hero h2{font-size:36px}.question{font-size:23px}.scale{min-height:330px}.thumb{width:68px;height:68px}.target{font-size:31px}}
+  .confetti-layer{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:50}
+  .confetti-piece{position:absolute;top:-24px;width:9px;height:14px;border-radius:2px;opacity:0;animation:confetti-fall var(--dur) cubic-bezier(.2,.7,.2,1) forwards;animation-delay:var(--delay);transform:translate3d(0,0,0) rotate(0deg)}
+  @keyframes confetti-fall{0%{opacity:0;transform:translate3d(0,-30px,0) rotate(0deg)}10%{opacity:1}100%{opacity:1;transform:translate3d(var(--drift),110vh,0) rotate(var(--rot))}}
+  .final-actions{display:grid;gap:10px;width:100%;max-width:520px;margin:0 auto}
+
+    /* Entrada de cifra estilo Circa (Splash): tarjeta blanca, cifra grande y regla deslizante. */
+    .turn-player{display:flex;align-items:center;justify-content:center;gap:8px;font-weight:850;font-size:15px}
+    .turn-dot{width:12px;height:12px;border-radius:50%;display:inline-block;background:var(--player-color,#2e8cff);box-shadow:0 0 12px var(--player-color,#2e8cff)}
+    .circa-card{background:#fff;color:#0b0f17;border-radius:26px;padding:34px 22px;min-height:200px;display:flex;align-items:center;justify-content:center;text-align:center;box-shadow:0 18px 50px rgba(0,0,0,.35)}
+    .circa-card .question{font-size:25px;font-weight:900;line-height:1.18;letter-spacing:-.02em;margin:0}
+    .circa-card .entity-link{text-decoration-color:rgba(11,15,23,.45)}
+    .circa-card .entity-link:hover,.circa-card .entity-link:focus{background:rgba(11,15,23,.07)}
+    .circa-answer{display:flex;flex-direction:column;align-items:center;gap:2px;margin-top:10px}
+    .your-answer{font-size:14px;color:var(--muted);font-weight:600}
+    .answer-value{background:transparent;color:var(--text);font-size:52px;font-weight:950;letter-spacing:-.03em;line-height:1.1;font-variant-numeric:tabular-nums;cursor:text;padding:0 8px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .answer-type{width:min(100%,300px);background:#0b1728;border:2px solid var(--player-color,#2e8cff);border-radius:16px;color:var(--text);font-size:38px;font-weight:950;text-align:center;padding:6px 12px;outline:none;font-variant-numeric:tabular-nums}
+    .answer-type[hidden],.answer-value[hidden]{display:none}
+    .answer-unit{font-size:13px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.1em;min-height:16px}
+    .tape{position:relative;height:118px;margin:8px -16px 0;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;outline:none}
+    .tape:active{cursor:grabbing}
+    .tape:focus-visible{box-shadow:inset 0 0 0 2px rgba(255,255,255,.25)}
+    .tape canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+    .tape-hint{text-align:center;font-size:11px;color:rgba(255,255,255,.35);letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-top:6px}
+    .done-btn{align-self:center;min-width:132px;background:#fff;color:#0b0f17;padding:15px 34px;border-radius:999px;font-weight:850;font-size:17px;cursor:pointer;box-shadow:0 10px 26px rgba(0,0,0,.3)}
+    .done-btn:disabled{opacity:.6}
+    #targetValue{color:#2ee66b}
+  </style>
+</head>
+<body>
+<div id="app"><main class="phone">
+  <section id="home" class="screen active fade">
+    <div class="topbar"><div class="brand"><div class="logo"><div class="logo-mark"></div></div><div><h1>CIFRA</h1><p>¿Qué tan cerca estás?</p></div></div><div class="pill" id="playerCountPill">2 jugadores</div></div>
+    <div class="hero"><div class="eyebrow">partida local</div><h2>No hace falta saberlo.<br>Hay que clavarlo.</h2><p>Deslizad la regla para elegir vuestra cifra por turnos. Después se descubre el dato real. El que esté más cerca gana.</p></div>
+    <div class="card pad" style="margin-top:14px">
+      <div id="playersList" class="players-list">
+        <div class="player-row" data-player-row="0"><span class="player-badge">1</span><div class="field"><label>Jugador 1</label><input id="p1Input" maxlength="18" value="Jugador 1" /></div></div>
+        <div class="player-row" data-player-row="1"><span class="player-badge">2</span><div class="field"><label>Jugador 2</label><input id="p2Input" maxlength="18" value="Jugador 2" /></div></div>
+      </div>
+      <button type="button" class="add-player" id="addPlayerBtn">＋ Añadir jugador</button>
+      <div class="row" style="margin-top:10px">
+        <div class="field" style="width:100%"><label>Rondas</label><select id="rounds"><option value="5">5</option><option value="10" selected>10</option><option value="15">15</option><option value="20">20</option></select></div>
+      </div>
+    </div>
+    <div class="rules"><div class="mini"><b>01</b><span>Pregunta real y curiosa</span></div><div class="mini"><b>02</b><span>Desliza tu cifra</span></div><div class="mini"><b>03</b><span>Gana quien más se acerque</span></div></div>
+    <div class="spacer"></div>
+    <button type="button" class="primary" id="startBtn">Empezar partida</button>
+    <button type="button" class="install-btn" id="installBtn" hidden>Instalar CIFRA en el móvil</button>
+    <button type="button" class="ghost" id="howBtn">¿Cómo se juega?</button>
+  </section>
+
+  <section id="turn" class="screen">
+    <div class="topbar"><div class="round-label" id="turnRound">Ronda 1/10</div><div class="pill" id="turnCategory">Categoría</div></div>
+    <div class="turn-player"><span id="turnDot" class="turn-dot"></span><span id="turnPlayer">Jugador 1</span></div>
+    <div class="circa-card"><div class="question" id="turnQuestion">Pregunta</div></div>
+    <div class="circa-answer">
+      <div class="your-answer">Tu respuesta</div>
+      <button type="button" id="answerValue" class="answer-value" aria-label="Toca para escribir la cifra">0</button>
+      <input id="answerInput" class="answer-type" type="text" inputmode="decimal" autocomplete="off" maxlength="20" enterkeyhint="done" aria-label="Escribe tu cifra" hidden>
+      <div id="answerUnit" class="answer-unit">unidades</div>
+    </div>
+    <div id="tape" class="tape" role="slider" tabindex="0" aria-label="Regla para elegir la cifra"><canvas id="tapeCanvas"></canvas></div>
+    <div class="tape-hint">Arrastra la regla · toca la cifra para escribirla</div>
+    <div class="spacer"></div>
+    <button type="button" class="done-btn" id="confirmBtn">Hecho</button>
+  </section>
+
+  <section id="pass" class="screen">
+    <div class="spacer"></div>
+    <div class="card pass-card fade"><div id="passIcon" class="pass-icon">↔</div><h3 id="passTitle">Pasa el móvil</h3><p id="passText">Ahora le toca a Jugador 2. La respuesta de Jugador 1 queda guardada.</p></div>
+    <div class="spacer"></div><button type="button" class="primary" id="passBtn">Continuar</button>
+  </section>
+
+  <section id="reveal" class="screen">
+    <div class="topbar"><div class="round-label" id="revealRound">Ronda 1 de 10</div></div>
+    <div class="card reveal-card"><div class="reveal-head"><div><div class="target"><small>dato correcto</small><span id="targetValue">0</span></div><div class="hint" id="targetLabel">—</div></div></div>
+      <div class="result-labels" id="resultLabels"></div><div id="revealScale" class="reveal-scale">
+        <div class="result-columns" id="resultColumns"></div>
+      </div>
+      <div class="diffs" id="resultDiffs"></div>
+      <div class="winner"><h3 id="winnerTitle">—</h3><p id="winnerText">—</p></div>
+      <div class="source">Fuente: <a id="sourceLink" target="_blank" rel="noopener">—</a><br><span id="sourceDate"></span></div>
+    </div>
+    <div class="spacer"></div><button type="button" class="primary" id="nextBtn">Siguiente ronda</button>
+  </section>
+
+  <section id="final" class="screen">
+    <div id="confettiLayer" class="confetti-layer" aria-hidden="true"></div>
+    <div class="spacer"></div>
+    <div class="card final-card fade"><div class="eyebrow">partida terminada</div><h2 id="finalTitle">🏆</h2><div class="winner-name" id="finalWinner">—</div><p id="finalSub">—</p><div class="scoreboard" id="finalScoreboard"></div><div class="statline"><span id="statQuestions">200 preguntas</span><span id="statRounds">10 rondas</span><span id="statSource">datos oficiales</span></div></div>
+    <div class="spacer"></div><div class="final-actions"><button type="button" class="primary" id="againBtn">Volver a jugar</button><button type="button" class="ghost" id="homeBtn">Volver al inicio</button></div>
+  </section>
+</main></div>
+<div id="entityModal" class="entity-modal" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="entity-modal-card" role="document">
+    <div class="entity-modal-kicker">¿Qué es?</div>
+    <h3 id="entityModalTitle" class="entity-modal-title">—</h3>
+    <p id="entityModalText" class="entity-modal-text">—</p>
+    <div id="entityModalSource" class="entity-modal-source"></div>
+    <button type="button" id="entityModalClose" class="entity-modal-close">Cerrar</button>
+  </div>
+</div>
+<script>
+const SOURCES={
+  takeTwo:{name:'Take-Two Interactive — notas de prensa',url:'https://ir.take2games.com/'},
+  rockstar:{name:'Rockstar Games — Newswire',url:'https://www.rockstargames.com/newswire'},
+  guinness:{name:'Guinness World Records',url:'https://www.guinnessworldrecords.com/'},
+  nintendo:{name:'Nintendo — datos de ventas oficiales',url:'https://www.nintendo.co.jp/ir/en/finance/hard_soft/index.html'},
+  nintendoHist:{name:'Nintendo — historia de la compañía',url:'https://www.nintendo.com/'},
+  sony:{name:'Sony Interactive Entertainment',url:'https://sonyinteractive.com/en/our-company/business-data-sales/'},
+  xbox:{name:'Xbox Wire / Microsoft',url:'https://news.xbox.com/'},
+  microsoft:{name:'Microsoft — notas de prensa',url:'https://news.microsoft.com/'},
+  epic:{name:'Epic Games',url:'https://www.epicgames.com/'},
+  britannica:{name:'Encyclopaedia Britannica',url:'https://www.britannica.com/'},
+  nasa:{name:'NASA',url:'https://www.nasa.gov/'},
+  apollo:{name:'NASA — Apollo 11',url:'https://www.nasa.gov/mission/apollo-11/'},
+  esa:{name:'ESA — Agencia Espacial Europea',url:'https://www.esa.int/'},
+  boxoffice:{name:'Box Office Mojo',url:'https://www.boxofficemojo.com/'},
+  oscars:{name:'Academia de Hollywood — base de datos de los Óscar',url:'https://awardsdatabase.oscars.org/'},
+  billboard:{name:'Billboard — Hot 100',url:'https://www.billboard.com/charts/hot-100/'},
+  grammy:{name:'Recording Academy — Grammy',url:'https://www.grammy.com/'},
+  eurovision:{name:'Eurovision Song Contest — sitio oficial',url:'https://eurovision.tv/'},
+  youtube:{name:'YouTube — «Me at the zoo»',url:'https://www.youtube.com/watch?v=jNQXAC9IVRw'},
+  spotify:{name:'Spotify — Company Info',url:'https://newsroom.spotify.com/company-info/'},
+  netflix:{name:'Netflix — About',url:'https://about.netflix.com/'},
+  disney:{name:'The Walt Disney Company — notas de prensa',url:'https://thewaltdisneycompany.com/'},
+  apple:{name:'Apple Newsroom',url:'https://www.apple.com/newsroom/'},
+  meta:{name:'Meta Newsroom',url:'https://about.fb.com/news/'},
+  google:{name:'Google — Nuestra historia',url:'https://about.google/'},
+  sec:{name:'SEC — documentos oficiales de la operación',url:'https://www.sec.gov/'},
+  nokia:{name:'Nokia',url:'https://www.nokia.com/'},
+  motorola:{name:'Motorola Solutions — historia',url:'https://www.motorolasolutions.com/en_us/about/company-overview/history.html'},
+  chm:{name:'Computer History Museum',url:'https://www.computerhistory.org/'},
+  cern:{name:'CERN — La primera web',url:'https://home.cern/science/computing/birth-web'},
+  wikimedia:{name:'Wikimedia Foundation',url:'https://wikimediafoundation.org/'},
+  fifa:{name:'FIFA',url:'https://www.fifa.com/'},
+  uefa:{name:'UEFA',url:'https://www.uefa.com/'},
+  olympics:{name:'Olympics.com',url:'https://www.olympics.com/'},
+  athletics:{name:'World Athletics — récords',url:'https://worldathletics.org/records/by-category/world-records'},
+  rg:{name:'Roland-Garros — sitio oficial',url:'https://www.rolandgarros.com/'},
+  atp:{name:'ATP Tour',url:'https://www.atptour.com/'},
+  wimbledon:{name:'Wimbledon — sitio oficial',url:'https://www.wimbledon.com/'},
+  nba:{name:'NBA.com',url:'https://www.nba.com/'},
+  f1:{name:'Formula 1 — sitio oficial',url:'https://www.formula1.com/'},
+  letour:{name:'Tour de France — sitio oficial',url:'https://www.letour.fr/'},
+  ballon:{name:'France Football — Balón de Oro',url:'https://www.francefootball.fr/'},
+  fcb:{name:'FC Barcelona — sitio oficial',url:'https://www.fcbarcelona.es/'},
+  rm:{name:'Real Madrid — sitio oficial',url:'https://www.realmadrid.com/'},
+  wa:{name:'World Athletics — reglamento',url:'https://worldathletics.org/'},
+  eiffel:{name:'Torre Eiffel — sitio oficial',url:'https://www.toureiffel.paris/es'},
+  burj:{name:'Burj Khalifa — sitio oficial',url:'https://www.burjkhalifa.ae/'},
+  nps:{name:'National Park Service — Estatua de la Libertad',url:'https://www.nps.gov/stli/'},
+  louvre:{name:'Museo del Louvre',url:'https://www.louvre.fr/'},
+  reinasofia:{name:'Museo Reina Sofía — Guernica',url:'https://www.museoreinasofia.es/coleccion/obra/guernica'},
+  prado:{name:'Museo del Prado',url:'https://www.museodelprado.es/'},
+  christies:{name:"Christie's",url:'https://www.christies.com/'},
+  unesco:{name:'UNESCO — Patrimonio Mundial',url:'https://whc.unesco.org/'},
+  sagrada:{name:'Basílica de la Sagrada Familia — sitio oficial',url:'https://sagradafamilia.org/'},
+  bne:{name:'Biblioteca Nacional de España',url:'https://www.bne.es/'},
+  bde:{name:'Banco de España — el euro',url:'https://www.bde.es/'},
+  congreso:{name:'Congreso de los Diputados — Constitución',url:'https://www.congreso.es/constitucion'},
+  un:{name:'Naciones Unidas',url:'https://www.un.org/es/'},
+  cocacola:{name:'The Coca-Cola Company — historia',url:'https://www.coca-colacompany.com/about-us/history'},
+  lego:{name:'The LEGO Group — historia',url:'https://www.lego.com/es-es/aboutus/lego-group/the-lego-group-history'},
+  ikea:{name:'IKEA — historia',url:'https://about.ikea.com/'},
+  inditex:{name:'Inditex — historia',url:'https://www.inditex.com/'},
+  mercadona:{name:'Mercadona — historia',url:'https://info.mercadona.es/'},
+  ferrero:{name:'Ferrero / Nutella — historia',url:'https://www.nutella.com/'},
+  mattel:{name:'Mattel — Barbie',url:'https://corporate.mattel.com/'},
+  chupachups:{name:'Chupa Chups — historia',url:'https://www.chupachups.es/'},
+  mcdonalds:{name:"McDonald's — historia",url:'https://corporate.mcdonalds.com/'},
+  ford:{name:'Ford Motor Company — historia',url:'https://corporate.ford.com/'},
+  pollstar:{name:'Pollstar / Billboard Boxscore',url:'https://news.pollstar.com/'},
+  shueisha:{name:'Shueisha / Guinness World Records',url:'https://www.guinnessworldrecords.com/'},
+  smithsonian:{name:'Smithsonian Institution',url:'https://www.si.edu/'},
+  nhm:{name:'Natural History Museum',url:'https://www.nhm.ac.uk/'},
+  nepal:{name:'Gobiernos de Nepal y China — medición de 2020',url:'https://www.britannica.com/place/Mount-Everest'},
+  aquatics:{name:'World Aquatics — reglamento de instalaciones',url:'https://www.worldaquatics.com/'}
+};
+
+function q(text,answer,unit,category,source,opts={}){
+  return {text,answer,unit,category,source,approx:!!opts.approx,year:!!opts.year,dec:opts.dec||0,note:opts.note||''};
+}
+// Los años se responden con la regla en modo «año».
+function y(text,answer,category,source,opts={}){return q(text,answer,'',category,source,{...opts,year:true});}
+
+const RAW_QUESTIONS=[
+  // ───────── VIDEOJUEGOS ─────────
+  q('¿Cuántos millones de dólares ingresó GTA V en sus primeras 24 horas a la venta?',800,'millones $','Videojuegos','takeTwo',{note:'Take-Two comunicó «más de 800 millones de dólares» el primer día (septiembre de 2013).'}),
+  q('¿Cuántos días tardó GTA V en superar los 1.000 millones de dólares de recaudación?',3,'días','Videojuegos','guinness',{note:'Récord Guinness: la propiedad de entretenimiento más rápida en llegar a 1.000 millones.'}),
+  q('¿Cuántos millones de dólares recaudó Red Dead Redemption 2 en su primer fin de semana (3 días)?',725,'millones $','Videojuegos','rockstar'),
+  q('¿Cuántos millones de copias había vendido Minecraft en octubre de 2023?',300,'millones','Videojuegos','xbox',{note:'Cifra anunciada por Mojang/Microsoft en su 15.º aniversario.'}),
+  q('¿Cuántos millones de unidades vendió la PlayStation 2, la consola más vendida de la historia?',160,'millones','Videojuegos','sony',{approx:true,note:'Sony confirmó «más de 160 millones» en 2024.'}),
+  q('¿Cuántos millones de unidades vendió la Nintendo DS?',154,'millones','Videojuegos','nintendo',{approx:true,note:'154,02 millones según Nintendo.'}),
+  q('¿Cuántos millones de unidades vendió la Nintendo Wii?',101,'millones','Videojuegos','nintendo',{approx:true,note:'101,63 millones según Nintendo.'}),
+  q('¿Cuántos millones de unidades vendieron entre la Game Boy y la Game Boy Color?',118,'millones','Videojuegos','nintendo',{approx:true,note:'118,69 millones según Nintendo.'}),
+  q('¿Cuántos Pokémon había en la primera generación (Rojo y Azul)?',151,'Pokémon','Videojuegos','nintendoHist'),
+  q('¿Cuál es la puntuación máxima posible (partida perfecta) en el Pac-Man original?',3333360,'puntos','Videojuegos','guinness'),
+  q('¿Cuántos millones de dólares pagó Microsoft por Mojang, la creadora de Minecraft?',2500,'millones $','Videojuegos','microsoft',{note:'Operación anunciada en septiembre de 2014.'}),
+  q('¿Cuántos millones de dólares pagó Microsoft por Activision Blizzard (Call of Duty, Candy Crush…)?',68700,'millones $','Videojuegos','microsoft',{approx:true,note:'68.700 millones de dólares, cerrada en octubre de 2023.'}),
+  y('¿En qué año salió a la venta la primera PlayStation en Japón?',1994,'Videojuegos','sony'),
+  y('¿En qué año apareció Mario por primera vez en un videojuego (Donkey Kong)?',1981,'Videojuegos','nintendoHist'),
+  y('¿En qué año salió el primer Super Mario Bros.?',1985,'Videojuegos','nintendoHist'),
+  y('¿En qué año salieron en Japón los primeros juegos de Pokémon?',1996,'Videojuegos','nintendoHist'),
+  y('¿En qué año se creó el Tetris?',1984,'Videojuegos','britannica'),
+  y('¿En qué año salió el Pac-Man original en los recreativos?',1980,'Videojuegos','britannica'),
+  y('¿En qué año salió el primer juego de Sonic the Hedgehog?',1991,'Videojuegos','britannica'),
+  y('¿En qué año salió el modo Battle Royale de Fortnite?',2017,'Videojuegos','epic'),
+  y('¿En qué año salió el primer «Los Sims»?',2000,'Videojuegos','britannica'),
+  y('¿En qué año salió GTA: San Andreas?',2004,'Videojuegos','rockstar'),
+  y('¿En qué año salió World of Warcraft?',2004,'Videojuegos','britannica'),
+  y('¿En qué año salió originalmente Among Us (aunque se hizo famoso en 2020)?',2018,'Videojuegos','britannica'),
+
+  // ───────── MÚSICA ─────────
+  q('¿Cuántos números 1 consiguieron los Beatles en el Billboard Hot 100?',20,'números 1','Música','billboard'),
+  q('¿Cuántas semanas estuvo «Despacito» en el número 1 del Billboard Hot 100?',16,'semanas','Música','billboard'),
+  q('¿Cuántas semanas estuvo «Old Town Road» de Lil Nas X en el número 1 del Billboard Hot 100?',19,'semanas','Música','billboard'),
+  q('¿Cuántos segundos dura «Bohemian Rhapsody» de Queen (versión del álbum)?',355,'segundos','Música','britannica',{note:'5 minutos y 55 segundos.'}),
+  q('¿Cuántos premios Grammy había ganado Beyoncé tras la gala de 2025?',35,'Grammys','Música','grammy',{note:'Es la artista con más Grammys de la historia.'}),
+  q('¿Cuántos millones de dólares recaudó el «Eras Tour» de Taylor Swift, la gira más taquillera de la historia?',2077,'millones $','Música','pollstar',{approx:true,note:'2.077 millones de dólares en 149 conciertos.'}),
+  q('¿Cuántos conciertos dio Taylor Swift en el «Eras Tour»?',149,'conciertos','Música','pollstar'),
+  q('¿A qué edad murió Elvis Presley?',42,'años','Música','britannica'),
+  q('¿A qué edad murió Michael Jackson?',50,'años','Música','britannica'),
+  q('¿A qué edad murió Freddie Mercury?',45,'años','Música','britannica'),
+  q('¿A qué edad murió John Lennon?',40,'años','Música','britannica'),
+  q('¿A qué edad murió Mozart?',35,'años','Música','britannica'),
+  q('¿Cuántas veces ha ganado España el festival de Eurovisión?',2,'veces','Música','eurovision',{note:'Massiel (1968) y Salomé (1969).'}),
+  y('¿En qué año se publicó el álbum «Thriller» de Michael Jackson?',1982,'Música','britannica'),
+  y('¿En qué año se publicó «All I Want for Christmas Is You» de Mariah Carey?',1994,'Música','billboard'),
+  y('¿En qué año se convirtió «Gangnam Style» en el primer vídeo de YouTube con 1.000 millones de visitas?',2012,'Música','guinness'),
+  y('¿En qué año se lanzó Spotify al público?',2008,'Música','spotify'),
+  y('¿En qué año se formaron los Rolling Stones?',1962,'Música','britannica'),
+  y('¿En qué año se publicó «Bohemian Rhapsody»?',1975,'Música','britannica'),
+
+  // ───────── CINE Y TV ─────────
+  q('¿Cuántos premios Óscar ganó la película «Titanic» (1997)?',11,'Óscar','Cine y TV','oscars'),
+  q('¿Cuántos minutos dura la película «Titanic» (1997)?',194,'minutos','Cine y TV','britannica'),
+  q('¿Cuántos millones de dólares costó rodar «Titanic» (1997)?',200,'millones $','Cine y TV','boxoffice',{approx:true}),
+  q('¿Cuántos millones de dólares ha recaudado «Avatar» (2009), la película más taquillera de la historia?',2923,'millones $','Cine y TV','boxoffice',{approx:true}),
+  q('¿Cuántos millones de dólares recaudó «Vengadores: Endgame» en todo el mundo?',2799,'millones $','Cine y TV','boxoffice',{approx:true}),
+  q('¿Cuántos premios Óscar competitivos ganó Walt Disney, récord absoluto para una persona?',22,'Óscar','Cine y TV','guinness'),
+  q('¿Cuántas películas oficiales de James Bond ha producido Eon Productions hasta «Sin tiempo para morir»?',25,'películas','Cine y TV','britannica'),
+  q('¿Cuántos episodios tiene «Friends»?',236,'episodios','Cine y TV','britannica'),
+  q('¿Cuántos episodios tiene «Breaking Bad»?',62,'episodios','Cine y TV','britannica'),
+  q('¿Cuántos episodios tiene «Juego de Tronos»?',73,'episodios','Cine y TV','britannica'),
+  q('¿Cuántos años tiene Bart Simpson?',10,'años','Cine y TV','britannica'),
+  q('¿Cuántos años tiene Lisa Simpson?',8,'años','Cine y TV','britannica'),
+  q('¿Cuántos segundos dura el primer vídeo subido a YouTube, «Me at the zoo»?',19,'segundos','Cine y TV','youtube'),
+  q('¿Cuántos millones de dólares pagó Disney por Lucasfilm (Star Wars)?',4050,'millones $','Cine y TV','disney',{approx:true,note:'Unos 4.050 millones de dólares (2012).'}),
+  q('¿Cuántos millones de dólares pagó Disney por Marvel?',4000,'millones $','Cine y TV','disney',{approx:true,note:'Unos 4.000 millones de dólares (2009).'}),
+  q('¿Cuántos millones de dólares pagó Disney por Pixar?',7400,'millones $','Cine y TV','disney',{approx:true,note:'Unos 7.400 millones de dólares (2006).'}),
+  q('¿Cuántos millones de ejemplares ha vendido la saga de libros de Harry Potter?',600,'millones','Cine y TV','britannica',{approx:true,note:'Las editoriales hablan de «más de 600 millones».'}),
+  q('¿Cuántos millones de copias se han publicado del manga One Piece (récord Guinness en 2022)?',500,'millones','Cine y TV','shueisha',{approx:true}),
+  y('¿En qué año se estrenó «Los Simpson» como serie propia?',1989,'Cine y TV','britannica'),
+  y('¿En qué año se estrenó «Toy Story», la primera película hecha totalmente por ordenador?',1995,'Cine y TV','britannica'),
+  y('¿En qué año apareció Mickey Mouse en «Steamboat Willie»?',1928,'Cine y TV','disney'),
+  y('¿En qué año ganó Leonardo DiCaprio su primer Óscar?',2016,'Cine y TV','oscars'),
+  y('¿En qué año se fundó Netflix?',1997,'Cine y TV','netflix'),
+  y('¿En qué año se publicó el primer libro de Harry Potter?',1997,'Cine y TV','britannica'),
+  y('¿En qué año se estrenó la primera película de Star Wars?',1977,'Cine y TV','britannica'),
+  y('¿En qué año se estrenó «Shrek»?',2001,'Cine y TV','britannica'),
+  y('¿En qué año empezó a publicarse el manga de Dragon Ball?',1984,'Cine y TV','britannica'),
+  y('¿En qué año empezó a publicarse el manga de One Piece?',1997,'Cine y TV','britannica'),
+  y('¿En qué año se estrenó «Bob Esponja»?',1999,'Cine y TV','britannica'),
+
+  // ───────── TECNOLOGÍA ─────────
+  q('¿Cuántos dólares costaba el primer iPhone (modelo de 4 GB) en su lanzamiento?',499,'$','Tecnología','apple'),
+  q('¿Cuántos millones de dólares pagó Facebook por Instagram en 2012?',1000,'millones $','Tecnología','meta'),
+  q('¿Cuántos millones de dólares pagó Facebook por WhatsApp en 2014?',19000,'millones $','Tecnología','meta',{approx:true}),
+  q('¿Cuántos millones de dólares pagó Elon Musk por Twitter en 2022?',44000,'millones $','Tecnología','sec',{approx:true}),
+  q('¿Cuántos millones de dólares pagó Google por YouTube en 2006?',1650,'millones $','Tecnología','google'),
+  q('¿Cuántos caracteres permitía un tuit antes de 2017?',140,'caracteres','Tecnología','britannica'),
+  q('¿Cuántos ceros tiene un «gúgol», el número que inspiró el nombre de Google?',100,'ceros','Tecnología','google'),
+  q('¿Cuántos millones de unidades vendió el Nokia 3310?',126,'millones','Tecnología','nokia',{approx:true}),
+  q('¿Cuántos dólares costaba el primer móvil comercial, el Motorola DynaTAC 8000X?',3995,'$','Tecnología','motorola'),
+  q('¿Cuántos bitcoins se pagaron en 2010 por dos pizzas, la primera compra conocida con bitcoin?',10000,'bitcoins','Tecnología','britannica'),
+  y('¿En qué año se presentó el primer iPhone?',2007,'Tecnología','apple'),
+  y('¿En qué año se fundó Apple?',1976,'Tecnología','apple'),
+  y('¿En qué año se fundó Google?',1998,'Tecnología','google'),
+  y('¿En qué año se fundó Facebook?',2004,'Tecnología','meta'),
+  y('¿En qué año se fundó Amazon?',1994,'Tecnología','britannica'),
+  y('¿En qué año se fundó Microsoft?',1975,'Tecnología','microsoft'),
+  y('¿En qué año se lanzó WhatsApp?',2009,'Tecnología','meta'),
+  y('¿En qué año se lanzó Instagram?',2010,'Tecnología','meta'),
+  y('¿En qué año nació Wikipedia?',2001,'Tecnología','wikimedia'),
+  y('¿En qué año se envió el primer SMS de la historia?',1992,'Tecnología','britannica'),
+  y('¿En qué año se envió el primer correo electrónico?',1971,'Tecnología','britannica'),
+  y('¿En qué año se publicó la primera página web?',1991,'Tecnología','cern'),
+  y('¿En qué año se convirtió Apple en la primera empresa en valer un billón de dólares?',2018,'Tecnología','apple'),
+  y('¿En qué año salió el Nokia 3310?',2000,'Tecnología','nokia'),
+
+  // ───────── DEPORTE ─────────
+  q('¿Cuántos Balones de Oro ha ganado Leo Messi?',8,'Balones de Oro','Deporte','ballon'),
+  q('¿Cuántos goles marcó Messi en el año 2012, récord Guinness en un año natural?',91,'goles','Deporte','guinness'),
+  q('¿Cuántos goles oficiales marcó Messi con el FC Barcelona?',672,'goles','Deporte','fcb'),
+  q('¿Cuántos títulos ganó Messi con el FC Barcelona?',35,'títulos','Deporte','fcb'),
+  q('¿Cuántos goles oficiales marcó Cristiano Ronaldo con el Real Madrid?',450,'goles','Deporte','rm'),
+  q('¿Cuántos millones de euros pagó el Real Madrid por Cristiano Ronaldo en 2009?',94,'millones €','Deporte','rm',{approx:true}),
+  q('¿Cuántos millones de euros pagó el PSG por Neymar, el fichaje más caro de la historia?',222,'millones €','Deporte','fcb',{note:'Importe de su cláusula de rescisión (2017).'}),
+  q('¿Cuántos Roland Garros ganó Rafa Nadal?',14,'títulos','Deporte','rg'),
+  q('¿Cuántos Grand Slams ganó Rafa Nadal?',22,'Grand Slams','Deporte','atp'),
+  q('¿Cuántas medallas olímpicas ganó Michael Phelps en total?',28,'medallas','Deporte','olympics'),
+  q('¿Cuántas medallas de oro olímpicas ganó Michael Phelps?',23,'oros','Deporte','olympics'),
+  q('¿Cuántas medallas de oro olímpicas tiene Usain Bolt?',8,'oros','Deporte','olympics'),
+  q('¿En cuántos segundos corrió Usain Bolt los 100 metros en su récord del mundo?',9.58,'s','Deporte','athletics',{dec:2}),
+  q('¿Cuántos puntos anotó Kobe Bryant en su mejor partido de la NBA?',81,'puntos','Deporte','nba'),
+  q('¿Cuántos puntos anotó Wilt Chamberlain en un solo partido, récord de la NBA?',100,'puntos','Deporte','nba'),
+  q('¿Cuántos anillos de la NBA ganó Michael Jordan?',6,'anillos','Deporte','nba'),
+  q('¿Cuántos títulos mundiales de Fórmula 1 ganó Michael Schumacher?',7,'títulos','Deporte','f1'),
+  q('¿Cuántas vueltas tiene el Gran Premio de Mónaco de Fórmula 1?',78,'vueltas','Deporte','f1'),
+  q('¿Cuántos metros mide exactamente una maratón?',42195,'m','Deporte','wa'),
+  q('¿Cuántas etapas tiene el Tour de Francia?',21,'etapas','Deporte','letour'),
+  q('¿En qué minuto marcó Iniesta el gol que dio a España el Mundial de 2010?',116,'minuto','Deporte','fifa'),
+  q('¿Cuántos goles marcó Miroslav Klose en Mundiales, récord histórico?',16,'goles','Deporte','fifa'),
+  q('¿Cuántas Eurocopas ha ganado la selección española?',4,'Eurocopas','Deporte','uefa',{note:'1964, 2008, 2012 y 2024.'}),
+  q('¿Cuántas horas duró el partido de tenis más largo de la historia (Isner–Mahut, Wimbledon 2010)?',11,'horas','Deporte','wimbledon',{note:'Exactamente 11 horas y 5 minutos.'}),
+  q('¿Cuántos juegos ganó Isner en el último set de su partido histórico contra Mahut en Wimbledon 2010?',70,'juegos','Deporte','wimbledon',{note:'El último set terminó 70-68.'}),
+  y('¿En qué año se jugó el primer Mundial de fútbol?',1930,'Deporte','fifa'),
+  y('¿En qué año marcó Maradona «la mano de Dios»?',1986,'Deporte','fifa'),
+  y('¿En qué año se celebraron los primeros Juegos Olímpicos modernos?',1896,'Deporte','olympics'),
+  y('¿En qué año se fundó el Real Madrid?',1902,'Deporte','rm'),
+  y('¿En qué año se fundó el FC Barcelona?',1899,'Deporte','fcb'),
+  y('¿En qué año ganó Cristiano Ronaldo su primer Balón de Oro?',2008,'Deporte','ballon'),
+  y('¿En qué año se inauguró el Camp Nou?',1957,'Deporte','fcb'),
+  y('¿En qué año se inauguró el estadio Santiago Bernabéu?',1947,'Deporte','rm'),
+  y('¿En qué año ganó Fernando Alonso su primer Mundial de Fórmula 1?',2005,'Deporte','f1'),
+
+  // ───────── RÉCORDS GUINNESS ─────────
+  q('¿Cuántos centímetros medía Robert Wadlow, el hombre más alto de la historia?',272,'cm','Récords','guinness'),
+  q('¿Cuántos años vivió Jeanne Calment, la persona más longeva de la historia?',122,'años','Récords','guinness'),
+  q('¿Cuántos perritos calientes se comió Joey Chestnut en 10 minutos en el concurso de Nathan’s de 2021?',76,'perritos','Récords','guinness'),
+  q('¿Cuántos millones de dólares se pagaron por el «Salvator Mundi» de Leonardo, el cuadro más caro de la historia?',450,'millones $','Récords','christies',{approx:true,note:'450,3 millones de dólares en 2017.'}),
+  q('¿Cuántas plantas tiene el Burj Khalifa, el edificio más alto del mundo?',163,'plantas','Récords','burj'),
+  q('¿Cuántos metros mide el Burj Khalifa?',828,'m','Récords','burj'),
+  q('¿Cuántos metros mide el Everest según la medición oficial de 2020?',8849,'m','Récords','nepal'),
+  q('¿Cuántos kilómetros mide la Gran Muralla China contando todos sus tramos?',21196,'km','Récords','unesco',{approx:true,note:'Medición oficial china de 2012.'}),
+
+  // ───────── HISTORIA ─────────
+  q('¿Cuántas personas iban a bordo del Titanic?',2224,'personas','Historia','britannica',{approx:true}),
+  q('¿Cuántos botes salvavidas llevaba el Titanic?',20,'botes','Historia','britannica'),
+  q('¿Cuántos minutos tardó en hundirse el Titanic desde que chocó con el iceberg?',160,'minutos','Historia','britannica',{note:'Unas 2 horas y 40 minutos.'}),
+  q('¿Cuántas personas han caminado sobre la Luna?',12,'personas','Historia','nasa'),
+  q('¿Cuántos días duró la misión Apolo 11, desde el despegue hasta el amerizaje?',8,'días','Historia','apollo',{note:'8 días, 3 horas y 18 minutos.'}),
+  q('¿Cuántos minutos duró el vuelo de Yuri Gagarin, el primer ser humano en el espacio?',108,'minutos','Historia','esa'),
+  q('¿Cuántos segundos duró el primer vuelo de los hermanos Wright?',12,'segundos','Historia','smithsonian'),
+  q('¿Cuántos años estuvo en pie el Muro de Berlín?',28,'años','Historia','britannica'),
+  q('¿Cuántos kilómetros medía el Muro de Berlín rodeando Berlín Occidental?',155,'km','Historia','britannica',{approx:true}),
+  q('¿Cuántos años duró la Guerra de los Cien Años?',116,'años','Historia','britannica'),
+  q('¿Cuántos días pasaron desde que Colón zarpó de Palos hasta que llegó a América en 1492?',70,'días','Historia','britannica',{note:'Del 3 de agosto al 12 de octubre de 1492.'}),
+  q('¿Cuántos años tenía aproximadamente Tutankamón cuando murió?',19,'años','Historia','britannica',{approx:true}),
+  q('¿Cuántas pesetas valía un euro en el cambio oficial?',166.386,'pesetas','Historia','bde',{dec:3}),
+  q('¿Cuántos capítulos tiene «Don Quijote de la Mancha» sumando sus dos partes?',126,'capítulos','Historia','bne',{note:'52 en la primera parte y 74 en la segunda.'}),
+  q('¿Cuántos países son miembros de la ONU?',193,'países','Historia','un'),
+  y('¿En qué año se hundió el Titanic?',1912,'Historia','britannica'),
+  y('¿En qué año cayó el Muro de Berlín?',1989,'Historia','britannica'),
+  y('¿En qué año se construyó el Muro de Berlín?',1961,'Historia','britannica'),
+  y('¿En qué año llegó el ser humano a la Luna?',1969,'Historia','apollo'),
+  y('¿En qué año viajó Yuri Gagarin al espacio?',1961,'Historia','esa'),
+  y('¿En qué año fue al espacio la perra Laika?',1957,'Historia','esa'),
+  y('¿En qué año volaron por primera vez los hermanos Wright?',1903,'Historia','smithsonian'),
+  y('¿En qué año comenzó la Primera Guerra Mundial?',1914,'Historia','britannica'),
+  y('¿En qué año empezó la Revolución francesa?',1789,'Historia','britannica'),
+  y('¿En qué año ocurrió el accidente nuclear de Chernóbil?',1986,'Historia','britannica'),
+  y('¿En qué año se descubrió la tumba de Tutankamón?',1922,'Historia','britannica'),
+  y('¿En qué año se aprobó la Constitución española actual?',1978,'Historia','congreso'),
+  y('¿En qué año empezaron a circular las monedas y billetes de euro?',2002,'Historia','bde'),
+  y('¿En qué año se publicó la primera parte del Quijote?',1605,'Historia','bne'),
+  y('¿En qué año murieron Cervantes y Shakespeare?',1616,'Historia','britannica'),
+  y('¿En qué año pintó Velázquez «Las Meninas»?',1656,'Historia','prado'),
+  y('¿En qué año pintó Picasso el «Guernica»?',1937,'Historia','reinasofia'),
+  y('¿En qué año se empezó a construir la Sagrada Familia?',1882,'Historia','sagrada'),
+  y('¿En qué año murió Antoni Gaudí?',1926,'Historia','sagrada'),
+  y('¿En qué año robaron La Gioconda del Louvre?',1911,'Historia','louvre'),
+  y('¿En qué año se inauguró la Torre Eiffel?',1889,'Historia','eiffel'),
+  y('¿En qué año se inauguró la Estatua de la Libertad?',1886,'Historia','nps'),
+  y('¿En qué año se subió al Everest por primera vez?',1953,'Historia','britannica'),
+  y('¿En qué año alcanzó la población mundial los 8.000 millones de personas?',2022,'Historia','un'),
+
+  // ───────── MUNDO Y MONUMENTOS ─────────
+  q('¿Cuántos metros mide la Torre Eiffel?',330,'m','Mundo','eiffel'),
+  q('¿Cuántas toneladas de pintura se usan cada vez que se pinta la Torre Eiffel?',60,'toneladas','Mundo','eiffel'),
+  q('¿Cuántos metros mide la Estatua de la Libertad desde el suelo hasta la antorcha?',93,'m','Mundo','nps'),
+  q('¿Cuántos metros medía originalmente la Gran Pirámide de Guiza?',147,'m','Mundo','britannica',{approx:true}),
+  q('¿Cuántos centímetros de alto mide La Gioconda?',77,'cm','Mundo','louvre'),
+  q('¿Cuántos centímetros de ancho mide el «Guernica» de Picasso?',777,'cm','Mundo','reinasofia',{approx:true,note:'Mide 349,3 × 776,6 cm.'}),
+  q('¿Cuántos metros mide el Cristo Redentor de Río de Janeiro sin contar el pedestal?',30,'m','Mundo','britannica'),
+  q('¿Cuántos años se tardó en terminar la Torre de Pisa?',199,'años','Mundo','britannica',{approx:true,note:'Se empezó en 1173 y se terminó hacia 1372.'}),
+  q('¿Cuántos kilómetros hay de media entre la Tierra y la Luna?',384400,'km','Mundo','nasa'),
+  q('¿Cuántos segundos tarda la luz del Sol en llegar a la Tierra?',499,'segundos','Mundo','nasa',{approx:true,note:'Unos 8 minutos y 20 segundos.'}),
+  q('¿Cuántas vueltas a la Tierra da la Estación Espacial Internacional cada día?',16,'vueltas','Mundo','nasa',{approx:true}),
+  q('¿Cuántos litros de agua caben en una piscina olímpica?',2500000,'litros','Mundo','aquatics',{approx:true,note:'50 × 25 × 2 m de profundidad mínima.'}),
+  q('¿Cuántas teclas tiene un piano estándar?',88,'teclas','Mundo','britannica'),
+  q('¿Cuántas fichas tiene un dominó clásico?',28,'fichas','Mundo','britannica'),
+  q('¿Cuántos puntos suman todas las caras de un dado?',21,'puntos','Mundo','britannica'),
+
+  // ───────── MARCAS Y PRODUCTOS ─────────
+  q('¿Cuántos millones de unidades se fabricaron del Ford Model T?',15,'millones','Marcas','ford',{approx:true}),
+  y('¿En qué año se inventó la Coca-Cola?',1886,'Marcas','cocacola'),
+  y('¿En qué año se creó la Nutella?',1964,'Marcas','ferrero'),
+  y('¿En qué año se patentó el ladrillo de LEGO tal y como lo conocemos?',1958,'Marcas','lego'),
+  y('¿En qué año se fundó LEGO?',1932,'Marcas','lego'),
+  y('¿En qué año salió a la venta la primera Barbie?',1959,'Marcas','mattel'),
+  y('¿En qué año nació Chupa Chups?',1958,'Marcas','chupachups'),
+  y('¿En qué año se creó el Big Mac?',1967,'Marcas','mcdonalds'),
+  y('¿En qué año se fundó IKEA?',1943,'Marcas','ikea'),
+  y('¿En qué año abrió la primera tienda de Zara?',1975,'Marcas','inditex'),
+  y('¿En qué año se fundó Mercadona?',1977,'Marcas','mercadona'),
+  y('¿En qué año se inventó el cubo de Rubik?',1974,'Marcas','britannica'),
+
+  // ───────── NATURALEZA Y CUERPO ─────────
+  q('¿Cuántos huesos tiene el cuerpo humano adulto?',206,'huesos','Naturaleza','britannica'),
+  q('¿Cuántos huesos tiene cada pie humano?',26,'huesos','Naturaleza','britannica'),
+  q('¿Cuántos meses dura el embarazo de una elefanta?',22,'meses','Naturaleza','smithsonian'),
+  q('¿Cuántas vértebras tiene el cuello de una jirafa?',7,'vértebras','Naturaleza','smithsonian'),
+  q('¿Cuántos corazones tiene un pulpo?',3,'corazones','Naturaleza','nhm')
+];
+
+const bank=RAW_QUESTIONS.map((item,i)=>({...item,id:i+1}));
+
+// Nombres subrayables: una ficha breve para quien no los conozca. No revelan la respuesta.
+const CONTEXT_INFO={
+  'Eon Productions':'Es la productora británica responsable de la saga oficial de películas de James Bond.',
+  'Isner':'John Isner es un tenista estadounidense, famoso por su saque y por jugar el partido más largo de la historia.',
+  'Mahut':'Nicolas Mahut es un tenista francés, rival de Isner en el partido más largo de la historia.',
+  'Robert Wadlow':'Fue un estadounidense (1918–1940) reconocido por Guinness como el hombre más alto de la historia.',
+  'Jeanne Calment':'Fue una mujer francesa (1875–1997), reconocida como la persona más longeva de la historia.',
+  'Joey Chestnut':'Es un comedor competitivo estadounidense, múltiple campeón del concurso de perritos calientes de Nathan’s.',
+  'Salvator Mundi':'Es un cuadro atribuido a Leonardo da Vinci que representa a Cristo como «Salvador del mundo».',
+  'Mojang':'Es el estudio sueco que creó Minecraft.',
+  'Activision Blizzard':'Es la editora de sagas como Call of Duty, World of Warcraft o Candy Crush.',
+  'Lucasfilm':'Es la productora fundada por George Lucas, dueña de Star Wars e Indiana Jones.',
+  'Pixar':'Es el estudio de animación de Toy Story, Buscando a Nemo o Del revés.',
+  'Wilt Chamberlain':'Fue un legendario pívot de la NBA de los años 60 y 70.',
+  'Miroslav Klose':'Es un exdelantero alemán, campeón del mundo en 2014.',
+  'Motorola DynaTAC 8000X':'Fue el primer teléfono móvil comercial, conocido como «el ladrillo».',
+  'Billboard Hot 100':'Es la lista semanal de las canciones más populares de Estados Unidos.',
+  'Eras Tour':'Es la gira mundial de Taylor Swift entre 2023 y 2024.',
+  'Laika':'Fue una perra soviética, el primer animal en orbitar la Tierra.',
+  'Yuri Gagarin':'Fue un cosmonauta soviético, el primer ser humano en viajar al espacio.',
+  'Tutankamón':'Fue un faraón del antiguo Egipto cuya tumba se encontró casi intacta.',
+  'Apolo 11':'Fue la misión de la NASA que llevó por primera vez a seres humanos a la Luna.',
+  'Me at the zoo':'Es el primer vídeo subido a YouTube, grabado por uno de sus fundadores.',
+  'Pac-Man':'Es un clásico de los recreativos de 1980 en el que un comecocos recorre un laberinto.',
+  'Nathan’s':'Es una cadena de perritos calientes de Nueva York que organiza un famoso concurso cada 4 de julio.'
+};
+
+let contextQuestionText='';
+
+function escapeHtml(s){return String(s).replace(/[&<>\"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch]));}
+function contextCaseSensitive(name){
+  const first=(name||'').trim().charAt(0);
+  return /[A-ZÁÉÍÓÚÑÜ]/.test(first);
+}
+function getContextInfo(name){
+  const raw=CONTEXT_INFO[name];
+  return typeof raw==='string' ? {text:raw} : raw;
+}
+function shouldMatchContextOccurrence(){return true;}
+function renderQuestion(text){
+  contextQuestionText=String(text||'');
+  const candidates=Object.keys(CONTEXT_INFO)
+    .filter(n=>text.toLowerCase().includes(n.toLowerCase()))
+    .sort((a,b)=>b.length-a.length);
+  if(!candidates.length)return escapeHtml(text);
+
+  const hits=[];
+  const haystack=text.toLowerCase();
+  for(const name of candidates){
+    const needle=name.toLowerCase();
+    let from=0;
+    while(true){
+      const idx=haystack.indexOf(needle,from);
+      if(idx<0)break;
+      const end=idx+needle.length;
+      const before=idx>0?text[idx-1]:'';
+      const after=end<text.length?text[end]:'';
+      const isWordBoundary=(c)=>!c||!(/[\p{L}\p{N}]/u.test(c));
+      if(isWordBoundary(before)&&isWordBoundary(after)&&shouldMatchContextOccurrence(name,text,idx,end)){
+        hits.push({idx,end,name});
+      }
+      from=idx+Math.max(1,needle.length);
+    }
+  }
+  hits.sort((a,b)=>a.idx-b.idx||(b.end-b.idx)-(a.end-a.idx));
+  const kept=[];
+  for(const h of hits){
+    if(kept.some(k=>h.idx<k.end&&h.end>k.idx)) continue;
+    kept.push(h);
+  }
+  kept.sort((a,b)=>a.idx-b.idx);
+
+  let out='',pos=0;
+  for(const h of kept){
+    out+=escapeHtml(text.slice(pos,h.idx));
+    const shown=text.slice(h.idx,h.end);
+    out+=`<button type="button" class="entity-link" data-entity="${escapeHtml(h.name)}">${escapeHtml(shown)}</button>`;
+    pos=h.end;
+  }
+  out+=escapeHtml(text.slice(pos));
+  return out;
+}
+function openEntityModal(name){
+  const info=getContextInfo(name); if(!info)return;
+  const modal=el('entityModal'); if(!modal)return;
+  el('entityModalTitle').textContent=name;
+  el('entityModalText').textContent=info.text;
+  el('entityModalSource').textContent='Información contextual · no revela la respuesta de la pregunta';
+  modal.classList.add('open'); modal.setAttribute('aria-hidden','false');
+  el('entityModalClose')?.focus();
+}
+function closeEntityModal(){
+  const modal=el('entityModal'); if(!modal)return;
+  modal.classList.remove('open'); modal.setAttribute('aria-hidden','true');
+}
+
+let state={players:['Jugador 1','Jugador 2'],rounds:10,category:'Todas',deck:[],idx:0,turn:0,scores:[0,0],current:null,answers:[],estimate:0};
+let actionBusy=false;
+
+const el=id=>document.getElementById(id); const screens=[...document.querySelectorAll('.screen')];
+
+document.addEventListener('click',e=>{
+  const trigger=e.target.closest?.('[data-entity]');
+  if(trigger){e.preventDefault();openEntityModal(trigger.getAttribute('data-entity'));return;}
+  if(e.target.id==='entityModal' || e.target.id==='entityModalClose') closeEntityModal();
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeEntityModal();});
+function show(id){screens.forEach(s=>s.classList.toggle('active',s.id===id));}
+function fmt(v,unit){
+  if(typeof v!=='number') return v;
+  const maxFrac=(Number.isInteger(v)?0:Math.min(6,Math.max(2, String(v).split('.')[1]?.length||2)));
+  return new Intl.NumberFormat('es-ES',{maximumFractionDigits:maxFrac,useGrouping:true}).format(v);
+}
+function fmtTick(v){
+  const a=Math.abs(v);
+  if(a>=1e9) return `${trimNumber(v/1e9)}B`;
+  if(a>=1e6) return `${trimNumber(v/1e6)}M`;
+  if(a>=1e3) return `${trimNumber(v/1e3)}K`;
+  if(Math.abs(v)<1 && v!==0) return Number(v).toFixed(2);
+  return new Intl.NumberFormat('es-ES',{maximumFractionDigits:0,useGrouping:false}).format(v);
+}
+function trimNumber(v){
+  return new Intl.NumberFormat('es-ES',{maximumFractionDigits:v<10?1:0,useGrouping:false}).format(v).replace(',0','');
+}
+function valueLabel(v,unit=''){
+  // La cifra que está estimando el jugador siempre se muestra exacta. K/M se reservan para las marcas de escala.
+  return fmt(v,unit);
+}
+function norm(item,value){
+  const min=item.min,max=item.max;if(item.log){const lo=Math.max(min,1e-40),hi=Math.max(max,lo*1.0001),v=Math.max(value,lo);return (Math.log(v)-Math.log(lo))/(Math.log(hi)-Math.log(lo));}
+  return (value-min)/(max-min);
+}
+function denorm(item,t){
+  const min=item.min,max=item.max;t=Math.min(1,Math.max(0,t));
+  if(item.log){const lo=Math.max(min,1e-40),hi=Math.max(max,lo*1.0001);return Math.exp(Math.log(lo)+t*(Math.log(hi)-Math.log(lo)));}
+  return min+t*(max-min);
+}
+function roundStep(v,step){return Math.round(v/step)*step;}
+function currentScaleMax(){return state.scaleMax ?? state.current?.max ?? Math.max(100,state.current?.answer*1.25||100);}
+function compactExact(v){
+  v=Math.max(0,Math.round(v));
+  if(v===0)return '0';
+  if(v>=1e9 && v%1e9===0)return `${v/1e9}B`;
+  if(v>=1e6 && v%1e6===0)return `${v/1e6}M`;
+  if(v>=1e3 && v%1e3===0)return `${v/1e3}K`;
+  // Fuera de esos hitos se conserva el entero exacto: 1001, 1002, 1003...
+  return String(v);
+}
+function visualPct(v){
+  if(v<=0)return 0;
+  // Escala visual continua: conserva sensibilidad en cifras pequeñas y sigue creciendo
+  // suavemente cuando entramos en miles, millones y más.
+  const mag=Math.max(100, Math.pow(10,Math.ceil(Math.log10(Math.max(1,v)))));
+  const t=Math.log10(v+1)/Math.log10(mag+1);
+  return Math.max(1.5,Math.min(96,6+90*t));
+}
+function displayUnit(unit){
+  const map={
+    'goles/partido':'g/p',
+    'latidos/min':'lpm',
+    'batidos/s':'bat/s',
+    'zancadas/s':'zanc/s',
+    'huevos/día':'huevos/día',
+    'km²':'km²'
+  };
+  return map[unit]||unit||'unidades';
+}
+function fmtValue(v,item){
+  if(item?.year)return String(Math.round(v));
+  if(item?.dec)return new Intl.NumberFormat('es-ES',{maximumFractionDigits:item.dec,useGrouping:true}).format(v);
+  return fmt(v);
+}
+// ───────── Regla deslizante estilo Circa ─────────
+// La cifra se elige arrastrando una regla horizontal bajo un marcador fijo central.
+// La zona a la izquierda del marcador se rellena con el color del jugador.
+// Tocar la cifra grande permite escribirla a mano si se quiere un valor exacto.
+const PLAYER_COLORS=['#2e8cff','#2ad276','#a066ff','#ff8a2a','#ff4f8b'];
+const TICK_SPACING=11; // px entre marcas
+const YEAR_MIN=1000, YEAR_MAX=2026, YEAR_START=1950;
+const ruler={vals:[],unit:1,pos:0,vel:0,raf:0,dragging:false,lastX:0,samples:[],lastIdx:-1,lastBuzz:0,color:PLAYER_COLORS[0],typed:null};
+
+function niceStepDown(x){
+  if(x<=1)return 1;
+  const p=Math.pow(10,Math.floor(Math.log10(x)));
+  const m=x/p;
+  return (m>=5?5:m>=2?2:1)*p;
+}
+function buildRulerValues(item){
+  // Todas las cifras se manejan como enteros de «unidad mínima» para evitar errores de coma flotante.
+  if(item.year){
+    ruler.unit=1;
+    const vals=[];for(let v=YEAR_MIN;v<=YEAR_MAX;v++)vals.push(v);
+    return vals;
+  }
+  const unit=Math.pow(10,-(item.dec||0));
+  ruler.unit=unit;
+  const maxValue=Math.max(item.dec?1000:1e7,item.answer*10);
+  const maxU=Math.round(maxValue/unit);
+  const vals=[];let v=0;
+  while(v<=maxU){
+    vals.push(v);
+    const step=niceStepDown(v*0.05);
+    v=Math.floor(v/step)*step+step;
+  }
+  return vals;
+}
+function rulerValueAt(idx){return ruler.vals[Math.max(0,Math.min(ruler.vals.length-1,idx))]*ruler.unit;}
+function rulerNearestIndex(value){
+  const target=value/ruler.unit;let lo=0,hi=ruler.vals.length-1;
+  while(lo<hi){const mid=(lo+hi)>>1;if(ruler.vals[mid]<target)lo=mid+1;else hi=mid;}
+  if(lo>0&&Math.abs(ruler.vals[lo-1]-target)<=Math.abs(ruler.vals[lo]-target))lo--;
+  return lo;
+}
+function isMajorTick(idx){
+  if(state.current?.year)return ruler.vals[idx]%10===0;
+  const v=ruler.vals[idx];if(v===0)return true;
+  const step=niceStepDown(v*0.05);
+  return v%(step*10)===0;
+}
+function isMidTick(idx){
+  if(state.current?.year)return ruler.vals[idx]%5===0;
+  const v=ruler.vals[idx];const step=niceStepDown(v*0.05);
+  return v%(step*5)===0;
+}
+function hexToRgba(hex,a){const n=parseInt(hex.slice(1),16);return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;}
+
+function drawRuler(){
+  const canvas=el('tapeCanvas');if(!canvas)return;
+  const rect=canvas.getBoundingClientRect();
+  const w=rect.width,h=rect.height;if(!w||!h)return;
+  const dpr=window.devicePixelRatio||1;
+  if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);}
+  const ctx=canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,w,h);
+  const cx=w/2;
+  const zeroX=cx-ruler.pos*TICK_SPACING;
+  // Relleno a la izquierda del marcador (desde el inicio de la regla).
+  const fillStart=Math.max(0,zeroX);
+  if(cx>fillStart){ctx.fillStyle=hexToRgba(ruler.color,.30);ctx.fillRect(fillStart,0,cx-fillStart,h);}
+  // Marcas
+  const first=Math.max(0,Math.floor(ruler.pos-cx/TICK_SPACING)-1);
+  const last=Math.min(ruler.vals.length-1,Math.ceil(ruler.pos+cx/TICK_SPACING)+1);
+  const base=h-4;
+  for(let i=first;i<=last;i++){
+    const x=Math.round(zeroX+i*TICK_SPACING)+.5;
+    const major=isMajorTick(i),mid=!major&&isMidTick(i);
+    const th=major?h*.62:mid?h*.42:h*.30;
+    ctx.strokeStyle=x<cx?'rgba(255,255,255,.85)':'rgba(255,255,255,.42)';
+    ctx.lineWidth=major?2.5:2;
+    ctx.beginPath();ctx.moveTo(x,base);ctx.lineTo(x,base-th);ctx.stroke();
+  }
+  // Marcador central
+  ctx.fillStyle=ruler.color;
+  ctx.fillRect(cx-1.5,0,3,h);
+}
+function updateAnswerDisplay(){
+  const item=state.current;if(!item)return;
+  const value=ruler.typed!=null?ruler.typed:rulerValueAt(Math.round(ruler.pos));
+  state.estimate=value;
+  el('answerValue').textContent=fmtValue(value,item);
+  const tape=el('tape');if(tape){tape.setAttribute('aria-valuenow',String(value));tape.setAttribute('aria-valuetext',fmtValue(value,item));}
+}
+function rulerTick(){
+  const idx=Math.round(ruler.pos);
+  if(idx!==ruler.lastIdx){
+    ruler.lastIdx=idx;
+    const now=performance.now();
+    if(now-ruler.lastBuzz>45){ruler.lastBuzz=now;try{navigator.vibrate?.(3);}catch(_e){}}
+  }
+  updateAnswerDisplay();drawRuler();
+}
+function clampRulerPos(){
+  const max=ruler.vals.length-1;
+  if(ruler.pos<0){ruler.pos=0;ruler.vel=0;}
+  if(ruler.pos>max){ruler.pos=max;ruler.vel=0;}
+}
+function stopRulerAnimation(){if(ruler.raf){cancelAnimationFrame(ruler.raf);ruler.raf=0;}}
+function animateRuler(){
+  stopRulerAnimation();
+  let last=performance.now();
+  const stepFn=now=>{
+    const dt=Math.min(40,now-last);last=now;
+    if(Math.abs(ruler.vel)>0.002){
+      ruler.pos+=ruler.vel*dt;
+      ruler.vel*=Math.pow(0.94,dt/16);
+      clampRulerPos();rulerTick();
+      ruler.raf=requestAnimationFrame(stepFn);return;
+    }
+    // Encaje suave en la marca más cercana
+    const target=Math.round(ruler.pos);const d=target-ruler.pos;
+    if(Math.abs(d)>0.01){ruler.pos+=d*Math.min(1,dt/60);rulerTick();ruler.raf=requestAnimationFrame(stepFn);return;}
+    ruler.pos=target;ruler.raf=0;rulerTick();
+  };
+  ruler.raf=requestAnimationFrame(stepFn);
+}
+function setRulerFromValue(value){ruler.pos=rulerNearestIndex(value);ruler.lastIdx=Math.round(ruler.pos);}
+function resetRuler(){
+  const item=state.current;if(!item)return;
+  stopRulerAnimation();
+  ruler.vals=buildRulerValues(item);
+  ruler.vel=0;ruler.typed=null;ruler.dragging=false;
+  ruler.color=PLAYER_COLORS[state.turn%PLAYER_COLORS.length];
+  setRulerFromValue(item.year?YEAR_START:0);
+  closeTypedEntry(false);
+  el('answerUnit').textContent=item.year?'año':displayUnit(item.unit);
+  document.documentElement.style.setProperty('--player-color',ruler.color);
+  updateAnswerDisplay();
+  requestAnimationFrame(drawRuler);
+}
+function bindRuler(){
+  const tape=el('tape');if(!tape)return;
+  tape.addEventListener('pointerdown',e=>{
+    if(!state.current)return;
+    closeTypedEntry(true);
+    stopRulerAnimation();ruler.dragging=true;ruler.vel=0;ruler.typed=null;
+    ruler.lastX=e.clientX;ruler.samples=[{x:e.clientX,t:performance.now()}];
+    tape.setPointerCapture?.(e.pointerId);e.preventDefault();
+  });
+  tape.addEventListener('pointermove',e=>{
+    if(!ruler.dragging)return;
+    const dx=e.clientX-ruler.lastX;ruler.lastX=e.clientX;
+    ruler.pos-=dx/TICK_SPACING;clampRulerPos();
+    const now=performance.now();ruler.samples.push({x:e.clientX,t:now});
+    while(ruler.samples.length>2&&now-ruler.samples[0].t>90)ruler.samples.shift();
+    rulerTick();
+  });
+  const end=e=>{
+    if(!ruler.dragging)return;ruler.dragging=false;
+    const s=ruler.samples;const a=s[0],b=s[s.length-1];
+    const dt=b&&a?b.t-a.t:0;
+    ruler.vel=dt>0&&performance.now()-b.t<80?-((b.x-a.x)/dt)/TICK_SPACING:0;
+    animateRuler();
+  };
+  tape.addEventListener('pointerup',end);tape.addEventListener('pointercancel',end);
+  tape.addEventListener('wheel',e=>{
+    if(!state.current)return;e.preventDefault();closeTypedEntry(true);ruler.typed=null;
+    stopRulerAnimation();ruler.pos+=(Math.abs(e.deltaX)>Math.abs(e.deltaY)?e.deltaX:e.deltaY)/TICK_SPACING;clampRulerPos();rulerTick();animateRuler();
+  },{passive:false});
+  tape.addEventListener('keydown',e=>{
+    const k={ArrowRight:1,ArrowUp:1,ArrowLeft:-1,ArrowDown:-1,PageUp:10,PageDown:-10}[e.key];
+    if(!k)return;e.preventDefault();ruler.typed=null;stopRulerAnimation();
+    ruler.pos=Math.round(ruler.pos)+k;clampRulerPos();rulerTick();
+  });
+  window.addEventListener('resize',drawRuler);
+  // Escribir la cifra a mano
+  el('answerValue')?.addEventListener('click',openTypedEntry);
+  const input=el('answerInput');
+  input?.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();closeTypedEntry(true);}if(e.key==='Escape'){e.preventDefault();closeTypedEntry(false);}});
+  input?.addEventListener('blur',()=>closeTypedEntry(true));
+}
+function parseTypedNumber(raw){
+  let s=String(raw||'').replace(/\s/g,'');
+  if(!s)return null;
+  // Formato español: punto = miles, coma = decimales.
+  s=s.replace(/\./g,'').replace(',','.');
+  if(!/^\d+(?:\.\d+)?$/.test(s))return null;
+  const v=Number(s);
+  return Number.isFinite(v)&&v>=0&&v<=Number.MAX_SAFE_INTEGER?v:null;
+}
+function openTypedEntry(){
+  const item=state.current;if(!item)return;
+  const input=el('answerInput'),big=el('answerValue');
+  stopRulerAnimation();
+  input.value=item.year?String(Math.round(state.estimate)):'';
+  input.placeholder=fmtValue(state.estimate,item);
+  big.hidden=true;input.hidden=false;input.focus();
+}
+function closeTypedEntry(apply){
+  const input=el('answerInput'),big=el('answerValue');
+  if(!input||input.hidden)return;
+  if(apply){
+    const v=parseTypedNumber(input.value);
+    if(v!==null){
+      const item=state.current;
+      const value=item?.dec?Number(v.toFixed(item.dec)):Math.round(v);
+      ruler.typed=value;setRulerFromValue(value);
+    }
+  }
+  input.hidden=true;big.hidden=false;
+  updateAnswerDisplay();drawRuler();
+}
+
+const USED_QUESTIONS_KEY='cifra-used-questions-v44';
+function loadUsedQuestionIds(){
+  try{const raw=localStorage.getItem(USED_QUESTIONS_KEY);const arr=JSON.parse(raw||'[]');return new Set(Array.isArray(arr)?arr.map(Number).filter(Number.isFinite):[]);}catch(_e){return new Set();}
+}
+function saveUsedQuestionIds(set){
+  try{localStorage.setItem(USED_QUESTIONS_KEY,JSON.stringify([...set]));}catch(_e){}
+}
+function pickDeck(){
+  // El mazo de una partida se construye pregunta a pregunta. Así, si el ciclo
+  // de 1.000 preguntas termina en mitad de una partida, el siguiente turno
+  // puede reiniciar automáticamente el banco y continuar sin bloquear la partida.
+  state.deck=[];
+}
+function pickNextQuestion(){
+  const pool=bank.filter(x=>state.category==='Todas'||x.category===state.category);
+  if(!pool.length) throw new Error('No hay preguntas disponibles para esta categoría.');
+
+  let used=loadUsedQuestionIds();
+  // Limpiamos del historial cualquier ID que ya no pertenezca al banco actual.
+  const validIds=new Set(pool.map(x=>x.id));
+  used=new Set([...used].filter(id=>validIds.has(id)));
+
+  let available=pool.filter(x=>!used.has(x.id));
+
+  // CICLO AGOTADO: justo cuando se necesita la siguiente pregunta,
+  // se vacía el historial y se vuelve a barajar todo el banco.
+  if(!available.length){
+    used.clear();
+    saveUsedQuestionIds(used);
+    available=pool.slice();
+  }
+
+  // Elegimos una pregunta aleatoria del conjunto todavía no utilizado.
+  const index=Math.floor(Math.random()*available.length);
+  const item=available[index];
+  used.add(item.id);
+  saveUsedQuestionIds(used);
+  return item;
+}
+function resetEstimate(){
+  const item=state.current;
+  if(!item) throw new Error('No hay una pregunta disponible para esta ronda.');
+  state.estimate=0;
+}
+function startRound(){
+  if(!state.deck[state.idx]) state.deck[state.idx]=pickNextQuestion();
+  if(!state.deck[state.idx]) throw new Error('No hay una pregunta disponible para esta ronda.');
+  state.turn=0;
+  state.answers=Array(state.players.length).fill(null);
+  state.current=state.deck[state.idx];
+  resetEstimate();updateTurnUI();el('confirmBtn').disabled=false;show('turn');resetRuler();
+}
+function startNextPlayerTurn(){
+  if(!state.current || state.answers[state.turn-1]===null) throw new Error('La respuesta del jugador anterior no está fijada.');
+  resetEstimate();updateTurnUI();el('confirmBtn').disabled=false;show('turn');resetRuler();
+}
+function updateTurnUI(){
+  const item=state.current;
+  el('turnRound').textContent=`Ronda ${state.idx+1}/${state.rounds}`;
+  el('turnCategory').textContent=item.category;
+  el('turnQuestion').innerHTML=renderQuestion(item.text);
+  el('turnPlayer').textContent=state.players[state.turn]||`Jugador ${state.turn+1}`;
+  document.documentElement.style.setProperty('--player-color',PLAYER_COLORS[state.turn%PLAYER_COLORS.length]);
+  const confirm=el('confirmBtn');
+  if(confirm)confirm.disabled=false;
+}
+function confirmAnswer(){
+  if(actionBusy)return;
+  const btn=el('confirmBtn');
+  if(btn?.disabled)return;
+  actionBusy=true;
+  try{
+    closeTypedEntry(true);stopRulerAnimation();
+    if(!ruler.typed&&ruler.typed!==0)ruler.pos=Math.round(ruler.pos);
+    updateAnswerDisplay();
+    const value=state.estimate;
+    if(!Number.isFinite(value)||value<0)return;
+    if(!state.current || state.turn<0 || state.turn>=state.players.length) throw new Error('El turno actual no es válido.');
+    state.estimate=value;
+    state.answers[state.turn]=value;
+    try{navigator.vibrate?.(35);}catch(_e){}
+    if(btn)btn.disabled=true;
+    if(state.turn < state.players.length-1){
+      const currentName=state.players[state.turn];
+      state.turn++;
+      const nextName=state.players[state.turn];
+      el('passTitle').textContent='Pasa el móvil';
+      el('passText').textContent=`Ahora le toca a ${nextName}. La respuesta de ${currentName} queda guardada.`;
+      el('passBtn').textContent=`Continuar con ${nextName}`;
+      el('passIcon').textContent='↔';
+      show('pass');
+    }else{
+      showReveal();
+    }
+  }catch(err){
+    console.error('Error al confirmar cifra:',err);
+    alert(`No se ha podido confirmar la cifra.\n\n${err?.message||'Error desconocido'}`);
+  }finally{
+    actionBusy=false;
+    if(document.getElementById('turn')?.classList.contains('active')){const c=el('confirmBtn');if(c)c.disabled=false;}
+    else if(document.getElementById('pass')?.classList.contains('active')){const b=el('passBtn');if(b)b.disabled=false;}
+    else if(document.getElementById('reveal')?.classList.contains('active')){const n=el('nextBtn');if(n)n.disabled=false;}
+  }
+}
+
+function signedDiffLabel(estimate,target,item){
+  const d=estimate-target;
+  if(Math.abs(d)<1e-9)return '¡Clavado!';
+  return `${d>0?'+':'−'}${fmtValue(Math.abs(d),item.year?null:item)}`;
+}
+function resultColorClass(index){return `result-c${index%5}`;}
+function showReveal(){
+  const item=state.current;
+  const target=item.answer;
+  const diffs=state.players.map((_,i)=>Math.abs(state.answers[i]-target));
+  const minDiff=Math.min(...diffs);
+  const winners=diffs.map((d,i)=>d===minDiff?i:-1).filter(i=>i>=0);
+  if(winners.length===1)state.scores[winners[0]]++;
+
+  el('revealRound').textContent=`Ronda ${state.idx+1} de ${state.rounds}`;
+  el('targetValue').textContent=`${item.approx?'≈ ':''}${fmtValue(target,item)}${item.year?'':' '+displayUnit(item.unit)}`;
+  el('targetLabel').textContent=item.text;
+
+  const count=state.players.length;
+  const labels=el('resultLabels');
+  const columns=el('resultColumns');
+  const diffsEl=el('resultDiffs');
+  const scale=el('revealScale');
+  if(!labels||!columns||!diffsEl||!scale)throw new Error('No se ha podido construir el gráfico de resultados.');
+  [labels,columns,diffsEl].forEach(node=>node.style.setProperty('--result-count',String(count)));
+  scale.style.setProperty('--result-count',String(count));
+  labels.innerHTML='';columns.innerHTML='';diffsEl.innerHTML='';
+  const maxVal=Math.max(1,target,...state.answers);
+  state.players.forEach((name,i)=>{
+    const label=document.createElement('div');label.className='result-label';
+    label.innerHTML=`<span class="result-player-name">${escapeHtml(name)}</span><span class="result-estimate">${escapeHtml(fmtValue(state.answers[i],item))}</span>`;
+    labels.appendChild(label);
+
+    const col=document.createElement('div');col.className='result-column';
+    const bar=document.createElement('div');bar.className=`result-bar ${resultColorClass(i)}`;
+    bar.style.height=`${Math.max(4,(state.answers[i]/maxVal)*100)}%`;
+    const nm=document.createElement('div');nm.className='result-name';nm.textContent=name;
+    col.appendChild(bar);col.appendChild(nm);columns.appendChild(col);
+
+    const diff=document.createElement('div');diff.className='diff';
+    const diffName=document.createElement('span');diffName.textContent=name;
+    const diffValue=document.createElement('strong');diffValue.textContent=signedDiffLabel(state.answers[i],target,item);
+    diff.appendChild(diffName);diff.appendChild(diffValue);diffsEl.appendChild(diff);
+  });
+
+  if(winners.length===1){
+    const nm=state.players[winners[0]];
+    el('winnerTitle').textContent=`${nm} se lleva la ronda`;
+    el('winnerText').textContent=minDiff<1e-9?'¡Ha clavado el dato exacto!':`Su estimación quedó a ${fmtValue(minDiff,item.year?null:item)}${item.year?(minDiff===1?' año':' años'):' '+displayUnit(item.unit)} del dato correcto.`;
+  }else{
+    const names=winners.map(i=>state.players[i]);
+    el('winnerTitle').textContent='Empate en la ronda';
+    el('winnerText').textContent=`${names.join(' y ')} quedaron a la misma distancia del dato correcto.`;
+  }
+  const source=SOURCES[item.source]||{name:'Fuente de datos',url:'#'};
+  el('sourceLink').textContent=source.name;el('sourceLink').href=source.url;
+  el('sourceDate').textContent=item.note||(item.approx?'Cifra redondeada según la fuente.':'');
+  el('nextBtn').textContent=state.idx+1>=state.rounds?'Continuar':'Siguiente ronda';el('nextBtn').disabled=false;show('reveal');
+}
+
+let finishing=false;
+function next(){
+  if(finishing||actionBusy)return;
+  const btn=el('nextBtn');
+  finishing=true;
+  actionBusy=true;
+  if(btn)btn.disabled=true;
+  try{
+    if(state.idx+1>=state.rounds){
+      showFinal();
+    }else{
+      state.idx++;
+      startRound();
+    }
+    window.scrollTo?.(0,0);
+  }catch(err){
+    console.error('Error al continuar:',err);
+    alert(`No se ha podido continuar la partida.\n\n${err?.message||'Error desconocido'}`);
+    // Recuperación dura: si algo falla, dejamos la partida en un estado jugable.
+    if(document.getElementById('reveal')?.classList.contains('active')){
+      if(btn)btn.disabled=false;
+    }
+  }finally{
+    actionBusy=false;
+    finishing=false;
+    if(btn && document.getElementById('reveal')?.classList.contains('active'))btn.disabled=false;
+  }
+}
+
+function launchConfetti(){
+  const layer=el('confettiLayer');
+  if(!layer)return;
+  layer.innerHTML='';
+  const pieces=90;
+  const shapes=['#49a2ff','#55e99a','#ffd166','#ff6b8a','#b18cff','#ffffff'];
+  for(let i=0;i<pieces;i++){
+    const piece=document.createElement('span');
+    piece.className='confetti-piece';
+    piece.style.left=`${Math.random()*100}%`;
+    piece.style.background=shapes[i%shapes.length];
+    piece.style.width=`${6+Math.random()*7}px`;
+    piece.style.height=`${8+Math.random()*9}px`;
+    piece.style.setProperty('--dur',`${2.8+Math.random()*2.2}s`);
+    piece.style.setProperty('--delay',`${Math.random()*0.45}s`);
+    piece.style.setProperty('--drift',`${-140+Math.random()*280}px`);
+    piece.style.setProperty('--rot',`${360+Math.random()*900}deg`);
+    layer.appendChild(piece);
+  }
+  setTimeout(()=>{if(layer)layer.innerHTML='';},6000);
+}
+function showFinal(){
+  const scoreboard=el('finalScoreboard');
+  if(!scoreboard)throw new Error('No se ha encontrado el marcador final.');
+  scoreboard.innerHTML='';
+  scoreboard.style.setProperty('--player-count',String(state.players.length));
+  state.players.forEach((name,i)=>{
+    const card=document.createElement('div');card.className=`score ${resultColorClass(i).replace('result-','score-')}`;
+    card.innerHTML=`<span class="name">${escapeHtml(name)}</span><b>${state.scores[i]}</b><span class="muted">rondas ganadas</span>`;
+    scoreboard.appendChild(card);
+  });
+  el('statQuestions').textContent=`${bank.length} preguntas`;
+  el('statRounds').textContent=`${state.rounds} rondas`;
+  const top=Math.max(...state.scores);
+  const leaders=state.players.map((name,i)=>i).filter(i=>state.scores[i]===top);
+  let title='Empate total',sub='Nadie ha terminado por encima del otro.',win='Partida igualada';
+  if(leaders.length===1){
+    const i=leaders[0];title='Partida terminada';win=state.players[i];sub=`${state.players[i]} gana ${state.scores[i]}-${state.scores.filter((s,j)=>j!==i? s: -Infinity).sort((a,b)=>b-a)[0]??0}.`;
+    if(state.scores[i]===state.rounds)sub+=' Partida perfecta.';
+  }else{
+    win=leaders.map(i=>state.players[i]).join(' · ');
+    sub=`Empate a ${top} rondas ganadas.`;
+  }
+  el('finalTitle').textContent=title;
+  el('finalWinner').textContent=win;
+  el('finalSub').textContent=sub;
+  show('final');
+  launchConfetti();
+}
+
+function syncHomePlayersUI(){
+  const list=el('playersList');if(!list)return;
+  list.innerHTML='';
+  state.players.forEach((name,i)=>{
+    const row=document.createElement('div');row.className='player-row';row.dataset.playerRow=String(i);
+    const badge=document.createElement('span');badge.className='player-badge';badge.textContent=String(i+1);
+    const field=document.createElement('div');field.className='field';
+    const label=document.createElement('label');label.textContent=`Jugador ${i+1}`;
+    const input=document.createElement('input');input.id=`p${i+1}Input`;input.maxLength=18;input.value=name;
+    field.appendChild(label);field.appendChild(input);row.appendChild(badge);row.appendChild(field);
+    if(i>=2){
+      const remove=document.createElement('button');remove.type='button';remove.className='player-remove';remove.textContent='×';remove.setAttribute('aria-label',`Eliminar jugador ${i+1}`);
+      remove.addEventListener('click',()=>{state.players=readHomePlayers();state.players.splice(i,1);syncHomePlayersUI();});
+      row.appendChild(remove);
+    }
+    list.appendChild(row);
+  });
+  const count=el('playerCountPill');if(count)count.textContent=`${state.players.length} jugadores`;
+  const add=el('addPlayerBtn');if(add){add.disabled=state.players.length>=5;add.textContent=state.players.length>=5?'Máximo de 5 jugadores':'＋ Añadir jugador';}
+}
+function readHomePlayers(){
+  return state.players.map((fallback,i)=>{
+    const input=el(`p${i+1}Input`);
+    return (input?.value||fallback||`Jugador ${i+1}`).trim()||`Jugador ${i+1}`;
+  });
+}
+function bindGameControls(){
+  syncHomePlayersUI();
+  const add=el('addPlayerBtn');
+  add?.addEventListener('click',()=>{
+    if(state.players.length>=5)return;
+    state.players=readHomePlayers();
+    state.players.push(`Jugador ${state.players.length+1}`);
+    syncHomePlayersUI();
+    el(`p${state.players.length}Input`)?.focus();
+  });
+  const start=()=>{
+    try{
+      state.players=readHomePlayers();
+      state.rounds=parseInt(el('rounds').value,10)||10;
+      state.category='Todas';
+      state.idx=0;state.scores=Array(state.players.length).fill(0);state.turn=0;state.current=null;state.answers=[];state.estimate=0;
+      pickDeck();startRound();
+    }catch(err){console.error('Error al comenzar la partida:',err);alert(`No se ha podido iniciar la partida.\n\n${err?.message||'Error desconocido'}`);}
+  };
+  const bind=(id,fn)=>{const node=el(id);if(!node)return;node.addEventListener('click',e=>{e.preventDefault();fn(e);});};
+  bind('startBtn',start);
+  bind('confirmBtn',confirmAnswer);
+  bindRuler();
+  bind('passBtn',()=>{
+    if(actionBusy)return;const b=el('passBtn');if(b?.disabled)return;actionBusy=true;if(b)b.disabled=true;
+    try{startNextPlayerTurn();}catch(err){console.error(err);alert(`No se ha podido continuar con el siguiente jugador.\n\n${err?.message||'Error desconocido'}`);}
+    finally{actionBusy=false;if(document.getElementById('pass')?.classList.contains('active')){if(b)b.disabled=false;}else if(document.getElementById('turn')?.classList.contains('active')){const c=el('confirmBtn');if(c)c.disabled=false;}}
+  });
+  bind('nextBtn',next);
+  bind('againBtn',()=>{
+    try{
+      finishing=false;actionBusy=false;state.category='Todas';state.idx=0;state.turn=0;state.scores=Array(state.players.length).fill(0);state.current=null;state.answers=[];state.estimate=0;
+      const confirm=el('confirmBtn');if(confirm)confirm.disabled=false;
+      pickDeck();startRound();window.scrollTo?.(0,0);
+    }catch(err){console.error(err);alert(`No se ha podido iniciar la nueva partida.\n\n${err?.message||'Error desconocido'}`);}
+  });
+  bind('homeBtn',()=>{
+    finishing=false;actionBusy=false;state.current=null;state.answers=[];
+    const confirm=el('confirmBtn');if(confirm)confirm.disabled=false;
+    syncHomePlayersUI();show('home');window.scrollTo?.(0,0);
+  });
+  bind('howBtn',()=>alert('En cada ronda aparece una pregunta. Los jugadores se van pasando el móvil y cada uno elige su cifra por turnos arrastrando la regla (o tocando la cifra para escribirla). Cuando todos han respondido, se revela el dato real y se muestra el gráfico con todas las estimaciones. Gana la ronda quien esté más cerca.'));
+};
+
+function recoverUIFromUnexpectedError(){
+  actionBusy=false;
+  finishing=false;
+  try{
+    if(document.getElementById('turn')?.classList.contains('active')){
+      const c=el('confirmBtn'); if(c)c.disabled=false;
+    }else if(document.getElementById('pass')?.classList.contains('active')){
+      const b=el('passBtn'); if(b)b.disabled=false;
+    }else if(document.getElementById('reveal')?.classList.contains('active')){
+      const n=el('nextBtn'); if(n)n.disabled=false;
+    }
+  }catch(_e){}
+}
+window.addEventListener('error',recoverUIFromUnexpectedError);
+window.addEventListener('unhandledrejection',recoverUIFromUnexpectedError);
+
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bindGameControls); else bindGameControls();
+
+let deferredInstallPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();
+  deferredInstallPrompt=e;
+  const btn=el('installBtn');
+  if(btn) btn.hidden=false;
+});
+window.addEventListener('appinstalled',()=>{
+  deferredInstallPrompt=null;
+  const btn=el('installBtn');
+  if(btn) btn.hidden=true;
+});
+el('installBtn')?.addEventListener('click',async()=>{
+  if(!deferredInstallPrompt)return;
+  deferredInstallPrompt.prompt();
+  try{await deferredInstallPrompt.userChoice;}catch(_e){}
+  deferredInstallPrompt=null;
+  const btn=el('installBtn');
+  if(btn) btn.hidden=true;
+});
+
+if('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+</script>
+</body>
+</html>
