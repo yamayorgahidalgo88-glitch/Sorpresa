@@ -864,7 +864,18 @@
 
   // ---------- AI ----------
   // Rival 1 is gentle; each rival moves faster, misjudges less and spikes more.
-  function aiSpeed(p) { return Math.min(1.05, 0.56 + p.level * 0.06); }
+  // Effective skill of a computer rival. Tournament round N / Spike Career use level N; the top of the
+  // curve is softened so late rounds are hard but beatable (they were close to flawless before).
+  const AI_CURVE = [[1, 1], [6, 6], [7, 6.9], [8, 7.85], [9.5, 9]];
+  function aiSkill(level) {
+    if (level <= AI_CURVE[0][0]) return level;
+    for (let i = 1; i < AI_CURVE.length; i++) {
+      const [x0, y0] = AI_CURVE[i - 1], [x1, y1] = AI_CURVE[i];
+      if (level <= x1) return y0 + (y1 - y0) * (level - x0) / (x1 - x0);
+    }
+    return AI_CURVE[AI_CURVE.length - 1][1];
+  }
+  function aiSpeed(p) { return Math.min(1.05, 0.56 + aiSkill(p.level) * 0.06); }
 
   function predictLanding(src, hitY) {
     const b = { x: src.x, y: src.y, vx: src.vx, vy: src.vy };
@@ -889,7 +900,7 @@
   }
 
   function updateAI(p, inp, dt) {
-    const ai = p.ai;
+    const ai = p.ai, lv = aiSkill(p.level);
     const towards = p.side === 0 ? 1 : -1;
     const home = p.side === 0 ? 240 : 720;
     const ownSide = x => (x - NET_X) * towards < 0;
@@ -899,17 +910,17 @@
     // how long the ball has been on our side: after a while even easy rivals stop tapping it
     // around (or against their own wall) and jump to send it over
     ai.own = ownSide(ball.x) ? (ai.own || 0) + dt : 0;
-    const pass = ai.pass = ai.own > Math.max(0.9, 2.4 - p.level * 0.15);
+    const pass = ai.pass = ai.own > Math.max(0.9, 2.4 - lv * 0.15);
     ai.think -= dt;
     if (ai.think <= 0) {
-      ai.think = Math.max(0.03, 0.24 - p.level * 0.025);
+      ai.think = Math.max(0.03, 0.24 - lv * 0.025);
       const coming = ownSide(tracked.x) || tracked.vx * towards < 0;
       if (coming) {
         const land = predictLanding(tracked, GROUND - p.r - 10);
         const ghost = (ball.super === 'ghost' && ball.superOwner !== p.side) || p.fx.ink > 0;
-        if (Math.random() < 0.15 || ghost) ai.err = (Math.random() - 0.5) * Math.max(8, 90 - p.level * 10) * (ghost ? 2 : 1);
+        if (Math.random() < 0.15 || ghost) ai.err = (Math.random() - 0.5) * Math.max(8, 90 - lv * 10) * (ghost ? 2 : 1);
         // stand slightly behind the ball so the touch sends it towards the net
-        ai.target = ownSide(land) ? land - towards * (16 + (8 - p.level) * 2) + ai.err : home;
+        ai.target = ownSide(land) ? land - towards * (16 + (8 - lv) * 2) + ai.err : home;
         if (pass && !ai.follow) {
           // stand under the point where the ball comes down to spiking height, slightly behind it
           const yHit = GROUND - 190, a = B_GRAV / 2, bq = tracked.vy, c = tracked.y - yHit;
@@ -934,7 +945,7 @@
       inp.jump = true;                 // jump and spike it over (any distance from the net)
     } else if (p.onGround && near && height > 150 && height < 300 && ball.vy > -120) {
       // with the super ready even easy rivals go for the spike now and then
-      const chance = p.power >= 1 ? Math.max(0.45, 0.3 + p.level * 0.08) : 0.18 + p.level * 0.1;
+      const chance = p.power >= 1 ? Math.max(0.45, 0.3 + lv * 0.08) : 0.18 + lv * 0.1;
       if (ai.jumpPlan === null) ai.jumpPlan = Math.random() < chance;
       if (ai.jumpPlan && Math.abs(p.x - NET_X) < (p.power >= 1 ? 340 : 280)) inp.jump = true;
     }
