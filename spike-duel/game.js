@@ -696,23 +696,27 @@
 
   function startSuper(p, s) {
     p.power = 0; shake = 0.35; Sound.superSpike();
+    superSeq++;
     ball.super = s.id; ball.superOwner = p.side; ball.superTime = 3; ball.zig = 0;
     ball.crossed = false; ball.flight = 0; ball.teleported = false; ball.turned = false; ball.returned = false;
     ball.st = 0; ball.tph = 0; ball.hold = 0; ball.struck = false; ball.bt = 0; ball.bax = 0; ball.bay = 0; ball.deflated = false; ball.mhide = 0; ball.mdone = false; ball.tdrift = false;
     burst(ball.x, ball.y, 26, [s.color, s.glow, '#ffffff']);
     fakes = [];
     if (s.id === 'clones') {
-      for (const a of [-0.16, 0.13]) {
-        const c = dcos(a), sn = dsin(a);
-        fakes.push({ x: ball.x, y: ball.y, vx: ball.vx * c - ball.vy * sn, vy: ball.vx * sn + ball.vy * c,
-          angle: 0, spin: ball.spin, fake: true });
-      }
+      // three balls fan out; which of the three is the real one is random
+      const real = Math.min(2, Math.floor(simRand() * 3)), vx0 = ball.vx, vy0 = ball.vy;
+      [-0.17, 0, 0.17].forEach((a, i) => {
+        const c = dcos(a), sn = dsin(a), nvx = vx0 * c - vy0 * sn, nvy = vx0 * sn + vy0 * c;
+        if (i === real) { ball.vx = nvx; ball.vy = nvy; }
+        else fakes.push({ x: ball.x, y: ball.y, vx: nvx, vy: nvy, angle: 0, spin: ball.spin, fake: true, owner: p.side, age: 0 });
+      });
       // weaker AIs often chase a fake
       for (const q of players) {
         if (q.isAI && q.side !== p.side && Math.random() < 0.6 - q.level * 0.06) q.ai.follow = fakes[Math.random() < 0.5 ? 0 : 1];
       }
     }
   }
+  let superSeq = 0;
   function endSuper() { ball.super = null; ball.superOwner = -1; ball.superTime = 0; }
 
   function collideNet(b) {
@@ -844,8 +848,10 @@
       }
       if (!ball.deflated) { ball.deflated = true; ball.vx *= 0.35; ball.vy = Math.max(ball.vy * 0.5, 260); }
       return 2;
-    } else if (ball.super === 'magnet' && past && rec) {
+    } else if (ball.super === 'magnet' && ball.crossed && ball.flight > 0.05 && rec) {
+      // starts once it is over the rival's half: it slips away from the receiver, but never back over the net
       ball.vx += Math.sign(ball.x - rec.x || towards) * 1500 * dt;
+      if (ball.vx * towards < 90) ball.vx = towards * 90;
     } else if (ball.super === 'teleport' && ball.crossed && ball.flight > 0.12 && !ball.teleported) {
       ball.teleported = true;
       burst(ball.x, ball.y, 16, ['#00f5d4', '#ffffff']);
@@ -875,7 +881,7 @@
     }
     return AI_CURVE[AI_CURVE.length - 1][1];
   }
-  function aiSpeed(p) { return Math.min(1.05, 0.56 + aiSkill(p.level) * 0.06); }
+  function aiSpeed(p) { return Math.min(1.05, 0.56 + aiSkill(p.level) * 0.06) * (p.ai.hard ? 0.9 : 1); }
 
   function predictLanding(src, hitY) {
     const b = { x: src.x, y: src.y, vx: src.vx, vy: src.vy };
@@ -910,15 +916,25 @@
     // how long the ball has been on our side: after a while even easy rivals stop tapping it
     // around (or against their own wall) and jump to send it over
     ai.own = ownSide(ball.x) ? (ai.own || 0) + dt : 0;
+    // Tournament: a super thrown at the rival (and the nasty effects that stay on it) make it fumble more
+    const fxBad = p.fx.sticky || p.fx.shrink || p.fx.slow || p.fx.confused || p.fx.balloon || p.fx.ink > 0 || p.fx.wind > 0;
+    const hard = kind === 'tour' && ((ball.super && ball.superOwner !== p.side) || fxBad);
+    if (ball.super && ball.superOwner !== p.side && ai.seq !== superSeq) {
+      ai.seq = superSeq;
+      ai.blunder = kind === 'tour' && Math.random() < 0.3;             // misreads this super completely
+      ai.bErr = (Math.random() < 0.5 ? -1 : 1) * (55 + Math.random() * 55);
+    }
+    ai.hard = hard;
     const pass = ai.pass = ai.own > Math.max(0.9, 2.4 - lv * 0.15);
     ai.think -= dt;
     if (ai.think <= 0) {
-      ai.think = Math.max(0.03, 0.24 - lv * 0.025);
+      ai.think = Math.max(0.03, 0.24 - lv * 0.025) * (hard ? 1.35 : 1);
       const coming = ownSide(tracked.x) || tracked.vx * towards < 0;
       if (coming) {
         const land = predictLanding(tracked, GROUND - p.r - 10);
         const ghost = (ball.super === 'ghost' && ball.superOwner !== p.side) || p.fx.ink > 0;
-        if (Math.random() < 0.15 || ghost) ai.err = (Math.random() - 0.5) * Math.max(8, 90 - lv * 10) * (ghost ? 2 : 1);
+        if (Math.random() < 0.15 || ghost || hard) ai.err = (Math.random() - 0.5) * Math.max(8, 90 - lv * 10) * ((ghost ? 2 : 1) * (hard ? 1.8 : 1));
+        if (hard && ai.blunder && ball.super && ball.superOwner !== p.side) ai.err = ai.bErr;
         // stand slightly behind the ball so the touch sends it towards the net
         ai.target = ownSide(land) ? land - towards * (16 + (8 - lv) * 2) + ai.err : home;
         if (pass && !ai.follow) {
@@ -1032,7 +1048,9 @@
       stepBall(f, dt, false);
       f.angle += f.spin * dt;
       collideNet(f);
-      for (const p of players) if (hyp(f.x - p.x, f.y - p.y) < p.r + BR) f.dead = true;
+      f.age = (f.age || 0) + dt;
+      // the player who threw them cannot pop them in the first moments (they used to vanish at once)
+      for (const p of players) if (!(p.side === f.owner && f.age < 0.35) && hyp(f.x - p.x, f.y - p.y) < p.r + BR) f.dead = true;
       if (f.y + BR >= GROUND) f.dead = true;
       if (f.dead) burst(f.x, f.y, 10, ['#a2d2ff', '#ffffff']);
     }
