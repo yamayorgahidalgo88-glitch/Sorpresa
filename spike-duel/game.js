@@ -61,7 +61,7 @@
       s_ghost: 'Ghost', s_ghost_d: 'Turns invisible past the net',
       s_clones: 'Clones', s_clones_d: 'Splits into 3 balls; only one is real',
       s_confusion: 'Confusion', s_confusion_d: 'Whoever stops it gets reversed controls this point',
-      e_sticky: 'Stuck!', e_shrink: 'Tiny!', e_heavy: 'Too heavy!', e_ice: 'Frozen!', e_zerog: 'Floating!',
+      e_sticky: 'Stuck!', e_shrink: 'Tiny!', e_heavy: 'Too heavy!', e_ice: 'Frozen!', e_zerog: 'Floating!', e_torment: 'Blinded!',
       e_lightning: 'Zapped!', e_confusion: 'Confused!',
       s_tornado: 'Tornado', s_tornado_d: 'Once over the net it spins in fast circles',
       s_magnet: 'Magnet', s_magnet_d: 'Bends away from whoever tries to stop it',
@@ -69,7 +69,7 @@
       s_bomb: 'Bomb', s_bomb_d: 'Explodes on touch and blasts the rival back',
       s_snail: 'Snail', s_snail_d: 'Whoever stops it moves at half speed this point',
       s_ink: 'Ink', s_ink_d: 'Splats ink over the rival\'s side for 3 seconds',
-      s_boomerang: 'Boomerang', s_boomerang_d: 'Flies deep, then swings back towards the net',
+      s_torment: 'Torment', s_torment_d: 'Whoever touches it after the strike can barely see for 1.5 s',
       s_wind: 'Gale', s_wind_d: 'Whoever stops it is blown back this point',
       s_balloon: 'Balloon', s_balloon_d: 'Flies off like a deflating balloon on the rival side',
       s_quake: 'Earthquake', s_quake_d: 'Launches whoever stops it into the air, out of control',
@@ -101,7 +101,7 @@
       s_ghost: 'Fantasma', s_ghost_d: 'Se vuelve invisible al pasar la red',
       s_clones: 'Clones', s_clones_d: 'Se divide en 3 balones; solo uno es real',
       s_confusion: 'Confusión', s_confusion_d: 'Quien la para tiene los controles al revés en este punto',
-      e_sticky: '¡Pegado!', e_shrink: '¡Mini!', e_heavy: '¡Pesa mucho!', e_ice: '¡Congelado!', e_zerog: '¡Flotando!',
+      e_sticky: '¡Pegado!', e_shrink: '¡Mini!', e_heavy: '¡Pesa mucho!', e_ice: '¡Congelado!', e_zerog: '¡Flotando!', e_torment: '¡Cegado!',
       e_lightning: '¡Electrocutado!', e_confusion: '¡Confundido!',
       s_tornado: 'Tornado', s_tornado_d: 'Al cruzar la red gira en círculos muy rápido',
       s_magnet: 'Imán', s_magnet_d: 'Se aparta de quien intenta pararla',
@@ -109,7 +109,7 @@
       s_bomb: 'Bomba', s_bomb_d: 'Explota al tocarla y lanza al rival hacia atrás',
       s_snail: 'Caracol', s_snail_d: 'Quien la para va a media velocidad en este punto',
       s_ink: 'Tinta', s_ink_d: 'Mancha de tinta el campo rival durante 3 segundos',
-      s_boomerang: 'Bumerán', s_boomerang_d: 'Va al fondo y vuelve de golpe hacia la red',
+      s_torment: 'Tormento', s_torment_d: 'Quien la toca después del golpe apenas ve nada durante 1,5 s',
       s_wind: 'Vendaval', s_wind_d: 'Quien la para sale empujado por el viento en este punto',
       s_balloon: 'Globo', s_balloon_d: 'En el campo rival sale disparado como un globo que se deshincha',
       s_quake: 'Terremoto', s_quake_d: 'Lanza por los aires a quien la para, sin control',
@@ -183,7 +183,7 @@
     { id: 'ink', price: 700, color: '#212529', glow: '#6c757d', speed: 1040 },
     { id: 'wind', price: 760, color: '#4dd0e1', glow: '#e0f7fa', speed: 1040 },
     { id: 'balloon', price: 820, color: '#ff8fab', glow: '#ffe5ec', speed: 1040 },
-    { id: 'boomerang', price: 880, color: '#f4a261', glow: '#ffe8d6', speed: 1060 },
+    { id: 'torment', price: 880, color: '#5a189a', glow: '#c77dff', speed: 1060 },   // (slot of the old Boomerang)
     { id: 'teleport', price: 940, color: '#00f5d4', glow: '#c8fff4', speed: 1040 },
     { id: 'bomb', price: 1000, color: '#343a40', glow: '#ff6b35', speed: 1040 },
     { id: 'quake', price: 1100, color: '#7f5539', glow: '#ddb892', speed: 1040 },
@@ -461,7 +461,7 @@
 
   function freshFx() {
     return { confused: false, frozen: 0, stunned: 0, float: false, shrink: false, sticky: false,
-      slow: false, ink: 0, wind: false, balloon: false, knock: 0 };
+      slow: false, ink: 0, wind: false, balloon: false, knock: 0, dark: 0 };
   }
 
   function makePlayer(side, charIdx, isAI, level, superIdx) {
@@ -542,6 +542,7 @@
     fx.frozen = Math.max(0, fx.frozen - dt);
     fx.stunned = Math.max(0, fx.stunned - dt);
     fx.ink = Math.max(0, fx.ink - dt);
+    fx.dark = Math.max(0, (fx.dark || 0) - dt);
     const locked = fx.frozen > 0 || fx.stunned > 0;
     let dir = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
     if (fx.confused) dir = -dir;
@@ -616,6 +617,7 @@
     else if (id === 'ice') { fx.frozen = 2; key = 'e_ice'; burst(p.x, p.y - 20, 18, ['#caf0f8', '#48cae4', '#ffffff']); }
     else if (id === 'lightning') { fx.stunned = 0.5; key = 'e_lightning'; burst(p.x, p.y - 20, 16, ['#ffd60a', '#ffffff']); }
     else if (id === 'zerog') { fx.float = 2; key = 'e_zerog'; }
+    else if (id === 'torment') { fx.dark = 1.5; key = 'e_torment'; burst(p.x, p.y - 30, 14, ['#5a189a', '#c77dff', '#111']); }
     else if (id === 'shrink') { fx.shrink = true; key = 'e_shrink'; }
     else if (id === 'sticky') { fx.sticky = true; key = 'e_sticky'; }
     else if (id === 'snail') { fx.slow = true; key = 'e_snail'; }
@@ -872,11 +874,6 @@
       const far = rec && Math.abs(rec.x - NET_X) > 240 ? NET_X + towards * 110 : NET_X + towards * 380;
       ball.x = far; ball.y = Math.min(ball.y, 220); ball.vx = towards * 120; ball.vy = 150;
       burst(ball.x, ball.y, 16, ['#00f5d4', '#ffffff']);
-    } else if (ball.super === 'boomerang' && ball.crossed && !ball.turned && (ball.flight > 0.35 || Math.abs(ball.x - NET_X) > 360)) {
-      ball.turned = true;
-      ball.vx = -towards * Math.max(360, Math.abs(ball.vx) * 0.8);
-      ball.vy = Math.min(ball.vy, 100);
-      burst(ball.x, ball.y, 10, ['#f4a261', '#ffe8d6']);
     }
     if (ball.super === 'heavy') return ball.mdone ? 2.4 : 1;
     return 1;
@@ -886,10 +883,11 @@
   // Rival 1 is gentle; each rival moves faster, misjudges less and spikes more.
   // Effective skill of a computer rival. Tournament round N / Spike Career use level N; the top of the
   // curve is softened so late rounds are hard but beatable (they were close to flawless before).
+  // Tournament rounds 1-8 (round 8 is the reference; the rest climb towards it). Nominal levels were 1..8.
+  const TOUR_SKILL = { 1: 2.5, 2: 3.2, 3: 3.8, 4: 4.6, 5: 5.5, 6: 6.3, 7: 7.1, 8: 7.85 };
   const AI_CURVE = [[1, 1], [6, 6], [7, 6.9], [8, 7.85], [9.5, 9]];
   function aiSkill(level) {
-    if (kind === 'tour' && level <= 1) return 2.1;   // tournament round 1: still easy, but not a free win
-    if (kind === 'tour' && level === 2) return 2.65;
+    if (kind === 'tour' && TOUR_SKILL[Math.round(level)] && Math.abs(level - Math.round(level)) < 0.01) return TOUR_SKILL[Math.round(level)];
     if (level <= AI_CURVE[0][0]) return level;
     for (let i = 1; i < AI_CURVE.length; i++) {
       const [x0, y0] = AI_CURVE[i - 1], [x1, y1] = AI_CURVE[i];
@@ -933,7 +931,7 @@
     // around (or against their own wall) and jump to send it over
     ai.own = ownSide(ball.x) ? (ai.own || 0) + dt : 0;
     // Tournament: a super thrown at the rival (and the nasty effects that stay on it) make it fumble more
-    const fxBad = p.fx.sticky || p.fx.shrink || p.fx.slow || p.fx.confused || p.fx.balloon || p.fx.ink > 0 || p.fx.wind > 0;
+    const fxBad = p.fx.sticky || p.fx.shrink || p.fx.slow || p.fx.confused || p.fx.balloon || p.fx.ink > 0 || p.fx.wind > 0 || p.fx.dark > 0;
     const hard = kind === 'tour' && ((ball.super && ball.superOwner !== p.side) || fxBad);
     if (ball.super && ball.superOwner !== p.side && ai.seq !== superSeq) {
       ai.seq = superSeq;
@@ -951,6 +949,7 @@
         const ghost = (ball.super === 'ghost' && ball.superOwner !== p.side) || p.fx.ink > 0;
         if (Math.random() < 0.15 || ghost || hard) ai.err = (Math.random() - 0.5) * Math.max(8, 90 - lv * 10) * ((ghost ? 2 : 1) * (hard ? 1.8 : 1));
         if (hard && ai.blunder && ball.super && ball.superOwner !== p.side) ai.err = ai.bErr;
+        if (p.fx.dark > 0) ai.err = (ai.bErr || 80) * (Math.random() < 0.5 ? -1 : 1);   // blinded: it is guessing
         // stand slightly behind the ball so the touch sends it towards the net
         ai.target = ownSide(land) ? land - towards * (16 + (8 - lv) * 2) + ai.err : home;
         if (pass && !ai.follow) {
@@ -2719,9 +2718,11 @@
     } else if (id === 'balloon') {
       c.ellipse(0, -3 * k, 7 * k, 9 * k, 0, 0, Math.PI * 2); c.fill();
       c.beginPath(); c.moveTo(0, 6 * k); c.quadraticCurveTo(-4 * k, 10 * k, 1 * k, 14 * k); c.stroke();
-    } else if (id === 'boomerang') {
-      c.lineWidth = R * 0.26;
-      c.moveTo(-10 * k, 8 * k); c.lineTo(0, -8 * k); c.lineTo(10 * k, 8 * k); c.stroke();
+    } else if (id === 'torment') {
+      c.lineWidth = R * 0.2;                                   // an eye that is being closed
+      c.ellipse(0, 0, 11 * k, 6.5 * k, 0, 0, Math.PI * 2); c.stroke();
+      c.beginPath(); c.arc(0, 0, 3.6 * k, 0, Math.PI * 2); c.fill();
+      c.beginPath(); c.moveTo(-12 * k, 9 * k); c.lineTo(12 * k, -9 * k); c.stroke();
     } else if (id === 'teleport') {
       c.arc(0, 0, 9 * k, 0, Math.PI * 1.5); c.stroke();
       c.beginPath(); c.arc(0, 0, 4 * k, Math.PI, Math.PI * 2.5); c.stroke();
@@ -2787,6 +2788,17 @@
       circle(cx, cy, r);
       for (let k = 0; k < 6; k++) { const a = k * 1.05 + bx * 5; circle(cx + Math.cos(a) * r * 1.05, cy + Math.sin(a) * r * 1.05, r * 0.28); }
     }
+    ctx.restore();
+  }
+
+  // Torment: the screen goes dark except for a small circle around the blinded player
+  function drawDark(p) {
+    const a = Math.min(1, p.fx.dark / 0.25, (1.5 - p.fx.dark) / 0.12 + 0.001);
+    const cx = p.x, cy = p.y - 30, g = ctx.createRadialGradient(cx, cy, 40, cx, cy, 150);
+    g.addColorStop(0, 'rgba(8,4,16,0)'); g.addColorStop(1, 'rgba(8,4,16,0.97)');
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, a);
+    ctx.fillStyle = g; ctx.fillRect(-2000, -2000, 6000, 6000);
     ctx.restore();
   }
 
@@ -2931,6 +2943,7 @@
       for (const pt of particles) { ctx.globalAlpha = Math.max(0, pt.life / pt.max); ctx.fillStyle = pt.color; circle(pt.x, pt.y, pt.r); }
       ctx.globalAlpha = 1;
       for (const p of players) if (p.fx.ink > 0) drawInk(p);
+      for (const p of players) if (p.fx.dark > 0 && !p.isAI && (mode === 'duo' || p.side === 0)) drawDark(p);
       ctx.translate(0, sy);
       if (state === 'playing' || state === 'point' || state === 'paused' || state === 'countdown' || state === 'editing') drawHUD();
       if (state === 'countdown') drawCountdown();
