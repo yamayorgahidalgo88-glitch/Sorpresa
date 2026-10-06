@@ -158,8 +158,20 @@
   .wait-ticker span{flex:0 0 auto;font-size:44px;font-weight:950;color:var(--c);font-variant-numeric:tabular-nums;animation:tick-in .3s ease-out;text-shadow:0 0 18px var(--c)}
   @keyframes tick-in{from{opacity:0;transform:translateY(16px) scale(.6)}to{opacity:1;transform:none}}
   .wait-info{color:var(--muted);margin:0;font-size:14px}
+  .lobby-kick{margin-left:auto;padding:7px 10px;border-radius:10px;background:rgba(255,79,94,.12);border:1px solid rgba(255,79,94,.35);color:#ff9ca6;font-size:12px;font-weight:800;cursor:pointer}
+  .lobby-tag+.lobby-kick,.lobby-name+.lobby-kick{margin-left:6px}
+  .turn-timer{display:flex;align-items:center;gap:10px;margin:-4px 2px 0}
+  .turn-timer[hidden],.wait-timer[hidden]{display:none}
+  .turn-timer span{font-weight:950;font-size:18px;font-variant-numeric:tabular-nums;min-width:52px;color:var(--text)}
+  .turn-timer-track{flex:1;height:8px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
+  .turn-timer-track i{display:block;height:100%;background:var(--player-color,#2e8cff);transform-origin:left;transition:transform .5s linear}
+  .turn-timer.urgent span{color:var(--red);animation:pulse .8s ease-in-out infinite}
+  .turn-timer.urgent .turn-timer-track i{background:var(--red)}
+  .wait-timer{margin:0;font-size:16px;font-weight:800;color:var(--muted);font-variant-numeric:tabular-nums}
+  .wait-timer.urgent{color:#ff9ca6}
   .online-toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);background:#14243a;border:1px solid rgba(255,255,255,.16);color:var(--text);padding:12px 16px;border-radius:14px;font-size:14px;opacity:0;pointer-events:none;transition:.25s;z-index:200;max-width:calc(100% - 32px);text-align:center}
   .online-toast.show{opacity:1;transform:translate(-50%,0)}
+  .entity-link{display:inline;white-space:normal;text-align:inherit;line-height:inherit;letter-spacing:inherit;font-weight:inherit;font-size:inherit}
   .question-tip{text-align:center;font-size:12px;color:var(--muted);margin-top:-6px}
   @media (max-width:380px){.hero h2{font-size:36px}.question{font-size:23px}.scale{min-height:330px}.thumb{width:68px;height:68px}.target{font-size:31px}}
   .confetti-layer{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:50}
@@ -214,12 +226,13 @@
     <button type="button" class="primary" id="startBtn">Empezar partida</button>
     <button type="button" class="install-btn" id="installBtn" hidden>Instalar CIFRA en el móvil</button>
     <button type="button" class="ghost" id="howBtn">¿Cómo se juega?</button>
-    <div style="text-align:center;font-size:10px;color:rgba(255,255,255,.25);letter-spacing:.1em">VERSIÓN 50 · ONLINE</div>
+    <div style="text-align:center;font-size:10px;color:rgba(255,255,255,.25);letter-spacing:.1em">VERSIÓN 51 · ONLINE</div>
   </section>
 
   <section id="turn" class="screen">
     <div class="topbar"><div class="round-label" id="turnRound">Ronda 1/10</div><div class="pill" id="turnCategory">Categoría</div></div>
     <div class="turn-player"><span id="turnDot" class="turn-dot"></span><span id="turnPlayer">Jugador 1</span></div>
+    <div class="turn-timer" id="turnTimer" hidden><span id="turnTimerText">1:00</span><div class="turn-timer-track"><i id="turnTimerBar"></i></div></div>
     <div class="circa-card"><div class="question" id="turnQuestion">Pregunta</div></div>
     <div class="question-tip">Toca lo subrayado para ver qué es</div>
     <div class="circa-answer">
@@ -306,6 +319,7 @@
     <div class="wait-box fade">
       <p class="wait-title"><b id="waitName">Jugador</b> está jugando</p>
       <div class="wait-ticker" id="waitTicker" aria-hidden="true"></div>
+      <p class="wait-timer" id="waitTimer" hidden></p>
       <p class="wait-info" id="waitInfo"></p>
     </div>
     <div class="spacer"></div>
@@ -2546,6 +2560,8 @@ function renderQuestion(text){
 
   let out='',pos=0;
   for(const h of kept){
+    // Si el nombre va entre comillas, las comillas van con él para que no queden sueltas al partir la línea.
+    if(text[h.idx-1]==='«'&&text[h.end]==='»'&&h.idx-1>=pos){h.idx--;h.end++;}
     out+=escapeHtml(text.slice(pos,h.idx));
     const shown=text.slice(h.idx,h.end);
     out+=`<button type="button" class="entity-link" data-entity="${escapeHtml(h.name)}">${escapeHtml(shown)}</button>`;
