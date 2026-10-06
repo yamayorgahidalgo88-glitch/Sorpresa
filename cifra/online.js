@@ -139,8 +139,8 @@ async function joinRoom(){
       const active=Object.values(cur.players||{}).filter(p=>p.connected!==false);
       if(active.length>=MAX_PLAYERS){reason='La sala está llena (máximo 5 jugadores).';return undefined;}
       cur.players=cur.players||{};
-      // Los jugadores desconectados en la sala de espera dejan su hueco libre.
-      for(const [id,p] of Object.entries(cur.players))if(p.connected===false)delete cur.players[id];
+      // Los desconectados no ocupan hueco, pero no se borran: una conexión que se
+      // corta un momento (por ejemplo, la del anfitrión) no debe sacar a nadie de la sala.
       // El orden de la lista es el orden de llegada a la sala.
       const seq=cur.seq||(Object.keys(cur.players).length+1);
       cur.players[pid]={name:online.name,joinedAt:seq,connected:true};
