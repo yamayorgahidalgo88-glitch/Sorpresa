@@ -1125,7 +1125,7 @@ function startMatch(live){
   render();if(live)runTimer();
 }
 const SPEEDS=[500,220,70];
-function runTimer(){clearInterval(timer);const m=UI.match;if(!m)return;timer=setInterval(()=>{if(!UI.match||m.paused||m.ended){if(m.ended){clearInterval(timer);if(!m.fx.played)finalizeMatch(m);renderMatch();}return;}stepMinute(m);if(m.ended)finalizeMatch(m);renderMatch();if(m.manage&&!m.ended){const why=m.manage;m.manage=null;m.paused=true;renderMatch();manageModal(why);}},SPEEDS[m.speed]);}
+function runTimer(){clearInterval(timer);const m=UI.match;if(!m)return;timer=setInterval(()=>{if(!UI.match||m.paused||m.ended){if(m.ended){clearInterval(timer);if(!m.fx.played)finalizeMatch(m);renderMatch();}return;}stepMinute(m);if(m.ended)finalizeMatch(m);renderMatch();if(m.manage&&!m.ended){const why=m.manage;m.manage=null;m.paused=true;renderMatch();UI.pend={};UI.mSel=null;manageModal(why);}},SPEEDS[m.speed]);}
 function renderMatch(){
   const m=UI.match;let el=document.getElementById('matchView');if(!el){el=document.createElement('div');el.id='matchView';el.className='match';document.body.appendChild(el);}
   const h=S.clubs[m.home.cid],a=S.clubs[m.away.cid];const user=m.home.isUser?m.home:m.away;
@@ -1162,35 +1162,52 @@ function patchSections(el,parts){
   parts.forEach((h,i)=>{const sec=inner.children[i];if(sec._h!==h){sec._h=h;sec.innerHTML=h;}});
 }
 function userSide(m){return m.home.isUser?m.home:m.away;}
+// Los cambios hechos en "Gestionar plantilla" quedan pendientes (se pueden deshacer) hasta volver al partido.
+// Al volver se hacen efectivos y los que salieron quedan apagados: ya no pueden volver a entrar.
+function pendList(){return Object.entries(UI.pend||{}).map(([i,v])=>({i:+i,...v}));}
 function manageModal(msg){
-  const m=UI.match;const s=userSide(m);m.paused=true;renderMatch();const sel=UI.mSel;
+  const m=UI.match;const s=userSide(m);m.paused=true;renderMatch();const sel=UI.mSel;UI.pend=UI.pend||{};
   if(msg!==undefined)UI.mMsg=msg;
+  const pend=UI.pend;const pl=pendList();const used=s.subs+pl.length;
   const slots=FORMATIONS[s.form||me().formation];
-  const pitch=s.slots.map((pos,i)=>{const id=s.xi[i];const p=id?P(id):null;const off=id&&s.red.has(id);const inj=off&&(s.injured||[]).includes(id);const f=id?Math.round(s.fit[id]??p.fitness):0;const xy=slots[i]||[pos,50,50];
-    return `<div class="slot ${sel&&sel.t==='xi'&&sel.i===i?'sel':''}" style="left:${xy[1]}%;top:${xy[2]}%" data-mslot="${i}"><div class="chip ${off?'bad':p&&posPen(p,pos)>1?'oop':''}" style="${off?'opacity:.45':''}">${p?face(p,48):''}<span class="chip-ovr">${p?p.ovr-posPen(p,pos):'–'}</span></div>
-     <div class="nm">${p?esc(p.name.split(' ').slice(-1)[0]):'Vacío'}${inj?' 🚑':off?' 🟥':s.yellows[id]?' 🟨':''}</div>${p&&!off?`<div class="fbar"><i style="width:${f}%;background:${fitCol(f)}"></i></div>`:''}<div class="sp">${pos}</div></div>`;}).join('');
-  const benchRows=s.bench.map(id=>{const p=P(id);return `<tr class="click${sel&&sel.t==='b'&&sel.id===id?' sel':''}" data-mbench="${id}"><td>${posTag(p.pos)}</td><td><span class="row" style="gap:8px;flex-wrap:nowrap">${face(p,28)}${esc(p.name)}</span></td><td>${ovrTag(p.ovr)}</td><td class="num" style="color:${fitCol(p.fitness)}">${p.fitness}%</td></tr>`;}).join('')||'<tr><td colspan="4" class="muted">No quedan suplentes.</td></tr>';
-  modal(`<div class="row between" style="margin-bottom:8px"><h2 style="margin:0">Gestionar plantilla</h2><span class="pill ${s.subs>=5?'bad':'info'}">Cambios ${s.subs}/5</span></div>
+  const pitch=s.slots.map((pos,i)=>{const id=pend[i]?pend[i].in:s.xi[i];const p=id?P(id):null;const off=!pend[i]&&id&&s.red.has(id);const inj=off&&(s.injured||[]).includes(id);
+    const f=id?Math.round(pend[i]?p.fitness:(s.fit[id]??p.fitness)):0;const xy=slots[i]||[pos,50,50];
+    return `<div class="slot ${sel&&sel.t==='xi'&&sel.i===i?'sel':''}" style="left:${xy[1]}%;top:${xy[2]}%" data-mslot="${i}"><div class="chip ${off?'bad':p&&posPen(p,pos)>1?'oop':''}" style="${off?'opacity:.45':''}${pend[i]?';border-color:var(--good)':''}">${p?face(p,48):''}<span class="chip-ovr">${p?p.ovr-posPen(p,pos):'–'}</span></div>
+     <div class="nm">${pend[i]?'⇄ ':''}${p?esc(p.name.split(' ').slice(-1)[0]):'Vacío'}${inj?' 🚑':off?' 🟥':s.yellows[id]?' 🟨':''}</div>${p&&!off?`<div class="fbar"><i style="width:${f}%;background:${fitCol(f)}"></i></div>`:''}<div class="sp">${pos}</div></div>`;}).join('');
+  const ins=new Set(pl.map(x=>x.in));
+  const row=(p,attr,cls,extra)=>`<tr class="${cls}" ${attr}><td>${posTag(p.pos)}</td><td><span class="row" style="gap:8px;flex-wrap:nowrap">${face(p,28)}${esc(p.name)} ${extra||''}</span></td><td>${ovrTag(p.ovr)}</td><td class="num" style="color:${fitCol(p.fitness)}">${p.fitness}%</td></tr>`;
+  const benchRows=s.bench.filter(id=>!ins.has(id)).map(id=>row(P(id),`data-mbench="${id}"`,`click${sel&&sel.t==='b'&&sel.id===id?' sel':''}`)).join('')
+    +pl.map(x=>row(P(x.out),`data-mbench="${x.out}"`,`click${sel&&sel.t==='b'&&sel.id===x.out?' sel':''}`,'<span class="pill warn" title="Toca para deshacer el cambio">Sale ↺</span>')).join('')
+    ||'<tr><td colspan="4" class="muted">No quedan suplentes.</td></tr>';
+  const gone=(s.outs||[]).map(id=>row(P(id),'','dimrow','<span class="pill">Sustituido</span>')).join('');
+  modal(`<div class="row between" style="margin-bottom:8px"><h2 style="margin:0">Gestionar plantilla</h2><span class="pill ${used>=5?'bad':'info'}">Cambios ${used}/5${pl.length?` · ${pl.length} sin confirmar`:''}</span></div>
    ${UI.mMsg?`<p style="color:var(--warn);margin:0 0 8px">${esc(UI.mMsg)}</p>`:''}
-   <p class="small muted" style="margin:0 0 10px">Toca un jugador del campo y luego un suplente para hacer el cambio, o dos del campo para intercambiar sus posiciones. El físico es el del partido.</p>
+   <p class="small muted" style="margin:0 0 10px">Toca un jugador del campo y luego un suplente para hacer el cambio, o dos del campo para intercambiar sus posiciones. Hasta que vuelvas al partido puedes deshacer un cambio tocando al que sale. El físico es el del partido.</p>
    <div class="grid g2"><div><div class="row" style="margin-bottom:8px"><label class="label" for="mForm">Formación</label><select id="mForm" data-change="mForm">${Object.keys(FORMATIONS).map(f=>`<option ${f===(s.form||me().formation)?'selected':''}>${f}</option>`).join('')}</select>
      <label class="label" for="mMent">Mentalidad</label><select id="mMent" data-change="liveMent">${MENT.map((x,i)=>`<option value="${i}" ${i===s.ment?'selected':''}>${x}</option>`).join('')}</select></div>
      <div class="pitch"><div class="circle"></div>${pitch}</div></div>
-    <div><h3 style="margin:0 0 6px">Suplentes</h3><div class="tbl-wrap"><table><thead><tr><th>Pos</th><th>Nombre</th><th>Med</th><th>Físico</th></tr></thead><tbody>${benchRows}</tbody></table></div></div></div>
+    <div><h3 style="margin:0 0 6px">Suplentes</h3><div class="tbl-wrap"><table><thead><tr><th>Pos</th><th>Nombre</th><th>Med</th><th>Físico</th></tr></thead><tbody>${benchRows}${gone}</tbody></table></div></div></div>
    <div class="row" style="margin-top:12px"><button class="btn primary" data-act="mDone" style="margin-left:auto">Volver al partido</button></div>`,'wide');
 }
-function mTap(kind,v){const m=UI.match;const s=userSide(m);const sel=UI.mSel;UI.mMsg='';
+function mTap(kind,v){const m=UI.match;const s=userSide(m);const sel=UI.mSel;const pend=UI.pend=UI.pend||{};UI.mMsg='';
   if(kind==='xi'){
-    if(sel&&sel.t==='xi'&&sel.i!==v){[s.xi[sel.i],s.xi[v]]=[s.xi[v],s.xi[sel.i]];UI.mSel=null;}       // intercambio de posiciones
-    else if(sel&&sel.t==='b')trySub(s,s.xi[v],sel.id);
+    if(sel&&sel.t==='xi'&&sel.i!==v){const a=sel.i;[s.xi[a],s.xi[v]]=[s.xi[v],s.xi[a]];[pend[a],pend[v]]=[pend[v],pend[a]];if(!pend[a])delete pend[a];if(!pend[v])delete pend[v];UI.mSel=null;}   // intercambio de posiciones
+    else if(sel&&sel.t==='b')trySub(s,v,sel.id);
     else UI.mSel=sel&&sel.t==='xi'&&sel.i===v?null:{t:'xi',i:v};}
-  else{ if(sel&&sel.t==='xi')trySub(s,s.xi[sel.i],v);else UI.mSel=sel&&sel.t==='b'&&sel.id===v?null:{t:'b',id:v};}
+  else{ if(sel&&sel.t==='xi')trySub(s,sel.i,v);
+    else{const undo=pendList().find(x=>x.out===v);if(undo){delete pend[undo.i];UI.mSel=null;}else UI.mSel=sel&&sel.t==='b'&&sel.id===v?null:{t:'b',id:v};}}
   manageModal();}
-function trySub(s,outId,inId){const m=UI.match;UI.mSel=null;
-  if(!outId)return;
-  if(s.subs>=5){UI.mMsg='Ya has hecho los 5 cambios.';return;}
+function trySub(s,i,inId){const pend=UI.pend;UI.mSel=null;
+  const undo=pendList().find(x=>x.out===inId);
+  if(undo){if(undo.i===i)delete pend[i];else UI.mMsg='Ese jugador ya sale en otro cambio: toca su nombre para deshacerlo.';return;}
+  if(pend[i]){pend[i].in=inId;return;}            // cambiar quién entra en un cambio aún sin confirmar
+  const outId=s.xi[i];if(!outId)return;
+  if(s.subs+pendList().length>=5){UI.mMsg='Ya has hecho los 5 cambios.';return;}
   if(s.red.has(outId)&&!(s.injured||[]).includes(outId)){UI.mMsg='No puedes sustituir a un expulsado.';return;}
-  doSub(m,s,outId,inId);}
+  pend[i]={out:outId,in:inId};}
+function commitPend(){const m=UI.match;if(!m||!UI.pend)return;const s=userSide(m);
+  pendList().forEach(x=>{if(s.xi[x.i]===x.out){doSub(m,s,x.out,x.in);s.outs=(s.outs||[]).concat(x.out);}});UI.pend={};UI.mSel=null;}
+function dismissModal(){if(UI.match&&UI.pend&&Object.keys(UI.pend).length){commitPend();closeModal();renderMatch();return;}closeModal();}
 function finishUserMatch(){
   const m=UI.match;clearInterval(timer);
   if(!m.fx.played)finalizeMatch(m);
@@ -1222,7 +1239,7 @@ function previewMatch(live){
 
 /* ---------- modal ---------- */
 function modal(html,cls){if(SIM.on){clearTimeout(SIM.timer);SIM.on=false;updateTop();}closeModal();const bg=document.createElement('div');bg.className='modal-bg';bg.id='modal';bg.innerHTML=`<div class="modal ${cls||''}" role="dialog" aria-modal="true">${html}</div>`;document.body.appendChild(bg);
-  bg.addEventListener('click',e=>{if(e.target===bg)closeModal();});}
+  bg.addEventListener('click',e=>{if(e.target===bg)dismissModal();});}
 function closeModal(){const m=document.getElementById('modal');if(m)m.remove();}
 
 /* ================= eventos ================= */
@@ -1230,7 +1247,7 @@ document.addEventListener('click',e=>{
   const t=e.target.closest('[data-go],[data-act],[data-player],[data-slot],[data-benchp],[data-benchslot],[data-mslot],[data-mbench],[data-sort],[data-ltab],[data-round],[data-msg],[data-pick],[data-sdiv],[data-close],[data-page],[data-setfee],[data-setask],[data-subout],[data-subin],[data-job],[data-sqmode]');
   if(!t)return;const d=t.dataset;
   if(S)invalidate();
-  if(d.close!==undefined){closeModal();UI.pendingSubOut=null;return;}
+  if(d.close!==undefined){dismissModal();return;}
   if(d.go){UI.view=d.go;UI.selSlot=null;UI.selBench=null;closeModal();render();window.scrollTo(0,0);return;}
   if(d.sdiv){UI.startDiv=+d.sdiv;const v=document.getElementById('mgr')?.value;renderStart();if(v)document.getElementById('mgr').value=v;return;}
   if(d.pick){UI.newClub=+d.pick;const v=document.getElementById('mgr')?.value;renderStart();if(v)document.getElementById('mgr').value=v;return;}
@@ -1265,7 +1282,7 @@ document.addEventListener('click',e=>{
   if(d.mbench){mTap('b',+d.mbench);return;}
   if(d.act)act(d.act,t);
 });
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.getElementById('modal')){closeModal();UI.pendingSubOut=null;}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.getElementById('modal')){dismissModal();}
   if((e.key==='Enter'||e.key===' ')&&e.target.matches&&e.target.matches('.fut[data-player]')){e.preventDefault();playerModal(+e.target.dataset.player);}});
 // cifras: se escriben con puntos de miles mientras tecleas (46000000 → 46.000.000)
 document.addEventListener('input',e=>{const t=e.target;if(!t.classList||!t.classList.contains('num-in'))return;
@@ -1303,8 +1320,8 @@ function act(a,t){
   case 'toEnd':busy(t,'Simulando…',()=>{let n=0;while(!S.seasonDone&&n++<400)processDay();save();});break;
   case 'pause':{const m=UI.match;m.paused=!m.paused;renderMatch();if(!m.paused)runTimer();break;}
   case 'speed':{const m=UI.match;m.speed=(m.speed+1)%3;runTimer();renderMatch();break;}
-  case 'subs':UI.mSel=null;UI.mMsg='';manageModal();break;
-  case 'mDone':UI.mSel=null;UI.mMsg='';closeModal();renderMatch();break;
+  case 'subs':UI.mSel=null;UI.mMsg='';UI.pend={};manageModal();break;
+  case 'mDone':UI.mSel=null;UI.mMsg='';commitPend();closeModal();renderMatch();break;
   case 'simEnd':{const m=UI.match;m.live=false;simToEnd(m);finalizeMatch(m);clearInterval(timer);renderMatch();break;}
   case 'finishMatch':finishUserMatch();break;
   case 'toRes':{const bn=userBench();const k=bn.indexOf(id);if(k>=0)bn.splice(k,1);UI.selBench=null;save();render();break;}
