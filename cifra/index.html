@@ -118,10 +118,6 @@
     .danger{color:#ff9ca6}.muted{color:var(--muted)}
     .entity-link{padding:0;margin:0;border:0;background:transparent;font:inherit;color:inherit;text-decoration:underline;text-decoration-color:rgba(255,255,255,.65);text-decoration-thickness:1.5px;text-underline-offset:3px;cursor:pointer;border-radius:4px;transition:background .15s,color .15s}.entity-link:hover,.entity-link:focus{background:rgba(255,255,255,.09);outline:none}.entity-link:active{background:rgba(255,255,255,.14)}
   .entity-modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:24px;z-index:100;background:rgba(2,7,15,.72);backdrop-filter:blur(8px)}.entity-modal.open{display:flex}.entity-modal-card{width:min(100%,390px);background:linear-gradient(180deg,#15263c,#0d1a2b);border:1px solid rgba(255,255,255,.14);border-radius:24px;box-shadow:0 24px 70px rgba(0,0,0,.55);padding:22px;animation:entityPop .2s ease}.entity-modal-kicker{font-size:10px;text-transform:uppercase;letter-spacing:.15em;color:#74b5ff;font-weight:850;margin-bottom:7px}.entity-modal-title{font-size:25px;font-weight:900;letter-spacing:-.03em;margin:0 0 9px}.entity-modal-text{font-size:14px;line-height:1.55;color:#b9c5d7;margin:0}.entity-modal-close{width:100%;margin-top:18px;padding:13px;border-radius:14px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.10);color:#fff;font-weight:800;cursor:pointer}.entity-modal-source{font-size:10px;color:#718199;margin-top:10px;line-height:1.4}@keyframes entityPop{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
-  .entity-modal-hint{margin-top:14px;padding:12px 14px;border-radius:16px;background:rgba(255,214,107,.10);border:1px solid rgba(255,214,107,.28)}
-  .entity-modal-hint span{display:block;font-size:11px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:4px}
-  .entity-modal-hint p{margin:0;font-size:15px;line-height:1.45;color:var(--text)}
-  .entity-modal-hint[hidden]{display:none}
   .question-tip{text-align:center;font-size:12px;color:var(--muted);margin-top:-6px}
   @media (max-width:380px){.hero h2{font-size:36px}.question{font-size:23px}.scale{min-height:330px}.thumb{width:68px;height:68px}.target{font-size:31px}}
   .confetti-layer{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:50}
@@ -172,14 +168,14 @@
     <button type="button" class="primary" id="startBtn">Empezar partida</button>
     <button type="button" class="install-btn" id="installBtn" hidden>Instalar CIFRA en el móvil</button>
     <button type="button" class="ghost" id="howBtn">¿Cómo se juega?</button>
-    <div style="text-align:center;font-size:10px;color:rgba(255,255,255,.25);letter-spacing:.1em">VERSIÓN 46 · 1.050 PREGUNTAS</div>
+    <div style="text-align:center;font-size:10px;color:rgba(255,255,255,.25);letter-spacing:.1em">VERSIÓN 47 · 1.050 PREGUNTAS</div>
   </section>
 
   <section id="turn" class="screen">
     <div class="topbar"><div class="round-label" id="turnRound">Ronda 1/10</div><div class="pill" id="turnCategory">Categoría</div></div>
     <div class="turn-player"><span id="turnDot" class="turn-dot"></span><span id="turnPlayer">Jugador 1</span></div>
     <div class="circa-card"><div class="question" id="turnQuestion">Pregunta</div></div>
-    <div class="question-tip">Toca lo subrayado para ver qué es y una pista</div>
+    <div class="question-tip">Toca lo subrayado para ver qué es</div>
     <div class="circa-answer">
       <div class="your-answer">Tu respuesta</div>
       <button type="button" id="answerValue" class="answer-value" aria-label="Toca para escribir la cifra">0</button>
@@ -223,7 +219,6 @@
     <div class="entity-modal-kicker">¿Qué es?</div>
     <h3 id="entityModalTitle" class="entity-modal-title">—</h3>
     <p id="entityModalText" class="entity-modal-text">—</p>
-    <div id="entityModalHint" class="entity-modal-hint"><span>💡 Pista</span><p id="entityModalHintText">—</p></div>
     <div id="entityModalSource" class="entity-modal-source"></div>
     <button type="button" id="entityModalClose" class="entity-modal-close">Cerrar</button>
   </div>
@@ -2467,10 +2462,7 @@ function openEntityModal(name){
   const modal=el('entityModal'); if(!modal)return;
   el('entityModalTitle').textContent=name;
   el('entityModalText').textContent=info.text;
-  const hint=state.current?.hint||'';
-  el('entityModalHintText').textContent=hint;
-  el('entityModalHint').hidden=!hint;
-  el('entityModalSource').textContent='Sin cifras: solo te orienta.';
+  el('entityModalSource').textContent='Información contextual · no revela la respuesta';
   modal.classList.add('open'); modal.setAttribute('aria-hidden','false');
   el('entityModalClose')?.focus();
 }
@@ -3086,7 +3078,7 @@ function bindGameControls(){
     const confirm=el('confirmBtn');if(confirm)confirm.disabled=false;
     syncHomePlayersUI();show('home');window.scrollTo?.(0,0);
   });
-  bind('howBtn',()=>alert('En cada ronda aparece una pregunta. Los jugadores se van pasando el móvil y cada uno elige su cifra por turnos arrastrando la regla (o tocando la cifra para escribirla). Si no conoces algo de la pregunta, toca lo subrayado: verás qué es y una pista sin cifras. Cuando todos han respondido, se revela el dato real y se muestra el gráfico con todas las estimaciones. Gana la ronda quien esté más cerca.'));
+  bind('howBtn',()=>alert('En cada ronda aparece una pregunta. Los jugadores se van pasando el móvil y cada uno elige su cifra por turnos arrastrando la regla (o tocando la cifra para escribirla). Si no conoces algo de la pregunta, toca lo subrayado para ver qué es. Cuando todos han respondido, se revela el dato real y se muestra el gráfico con todas las estimaciones. Gana la ronda quien esté más cerca.'));
 };
 
 function recoverUIFromUnexpectedError(){

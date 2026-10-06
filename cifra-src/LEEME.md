@@ -16,6 +16,7 @@ N('¿Pregunta de cifra?', respuesta, 'unidad', 'Pista sin cifras', {s:'fuente', 
 Y('¿En qué año…?', año, 'Pista sin cifras', {s:'fuente'})
 ```
 
+- La pista (4.º campo de N, 3.º de Y) se guarda pero ahora mismo el juego no la muestra.
 - `s`: clave de `SOURCES` (en `00-base.js`). Si se omite, se usa la del bloque `add(...)`.
 - `ap`: la cifra es aproximada (se muestra «≈»).
 - `d`: número de decimales de la respuesta.
