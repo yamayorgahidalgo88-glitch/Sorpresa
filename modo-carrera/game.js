@@ -533,8 +533,8 @@ function aiOffers(){
   squad(S.user.clubId).forEach(p=>{
     if(p.noOffers||S.news.some(n=>n.type==='offer'&&!n.done&&n.data.pid===p.id))return;
     const chance=p.listed?0.35:(p.ovr>=lvl+2?0.05:0.012);
-    if(R()<chance){const b=buyerClubFor(p);if(!b)return;const fee=roundMoney(valueOf(p)*(p.listed?0.75+R()*0.3:1.05+R()*0.35));
-      addNews(`Oferta de ${esc(b.name)} por ${esc(p.name)}`,`${esc(b.name)} ofrece <b>${money(fee)}</b> por ${esc(p.name)} (${p.pos}, ${p.ovr}). Valor de mercado: ${money(valueOf(p))}. La oferta caduca el ${fmtDate(addDays(S.date,7))}.`,'offer',{pid:p.id,cid:b.id,fee,exp:addDays(S.date,7)});}
+    if(R()<chance){const b=buyerClubFor(p);if(!b)return;const young=p.age<=23&&p.pot-p.ovr>=5?1.1:1;const fee=roundMoney(valueOf(p)*young*(p.listed?0.7+(R()+R())*0.2:0.95+(R()+R())*0.3));const maxPay=roundMoney(fee*(1.03+R()*0.3));
+      addNews(`Oferta de ${esc(b.name)} por ${esc(p.name)}`,`${esc(b.name)} ofrece <b>${money(fee)}</b> por ${esc(p.name)} (${p.pos}, ${p.ovr}). Valor de mercado: ${money(valueOf(p))}. La oferta caduca el ${fmtDate(addDays(S.date,7))}.`,'offer',{pid:p.id,cid:b.id,fee,maxPay,exp:addDays(S.date,7)});}
   });
 }
 function expireOffers(){S.news.forEach(n=>{if(n.type==='offer'&&!n.done&&n.data.exp&&n.data.exp<S.date)n.done='Caducada';});}
@@ -1015,15 +1015,15 @@ function openMsg(id){const n=S.news.find(x=>x.id===id);if(!n)return;n.read=true;
 
 function counterModal(id,msg,final){
   const n=S.news.find(x=>x.id===id);if(!n)return;const p=P(n.data.pid);const b=S.clubs[n.data.cid];const left=3-(n.data.tries||0);
-  const cur=final?n.data.lastOffer:n.data.fee;
-  const sug=[1,1.15,1.3,1.5].map(x=>roundMoney(n.data.fee*x));
-  modal(`<div class="row" style="gap:12px;flex-wrap:nowrap;align-items:center">${face(p,56)}<div><h2 style="margin:0">Contraoferta por ${esc(p.name)}</h2><div class="small muted">${esc(b.name)} ofrece ${money(n.data.fee)} · Valor de mercado ${money(valueOf(p))}</div></div></div>
-   <p>Fija tú el precio que pides. Intentos restantes: <b>${left}</b>. Presupuesto del comprador: <b>${money(b.budget)}</b>.</p>
+  const cur=n.data.lastOffer||n.data.fee;
+  const sug=[1.05,1.15,1.3,1.5].map(x=>roundMoney(cur*x));
+  modal(`<div class="row" style="gap:12px;flex-wrap:nowrap;align-items:center">${face(p,56)}<div><h2 style="margin:0">Contraoferta por ${esc(p.name)}</h2><div class="small muted">Oferta actual de ${esc(b.name)}: <b>${money(cur)}</b> · Valor de mercado ${money(valueOf(p))}</div></div></div>
+   ${left>0?`<p>Fija tú el precio que pides. Intentos restantes: <b>${left}</b>.</p>`:`<p>${esc(b.name)} no va a negociar más.</p>`}
    ${msg?`<p style="color:var(--warn)">${esc(msg)}</p>`:''}
-   <label class="label" for="ask">Precio que pides (€)</label>
-   <div class="row" style="margin:6px 0 10px"><input type="number" id="ask" value="${roundMoney(cur*1.25)}" step="100000" min="0" style="flex:1"></div>
-   <div class="row" style="margin-bottom:14px">${sug.map(s=>`<button class="btn sm" data-setask="${s}">${money(s)}</button>`).join('')}</div>
-   <div class="row"><button class="btn primary" data-act="sendCounter" data-id="${n.id}">Enviar contraoferta</button>${final?`<button class="btn" data-act="acceptLast" data-id="${n.id}">Aceptar ${money(n.data.lastOffer)}</button>`:''}<button class="btn" data-close style="margin-left:auto">Cancelar</button></div>`);
+   ${left>0?`<label class="label" for="ask">Precio que pides (€)</label>
+   <div class="row" style="margin:6px 0 10px"><input type="number" id="ask" value="${roundMoney(cur*1.1)}" step="100000" min="0" style="flex:1"></div>
+   <div class="row" style="margin-bottom:14px">${sug.map(s=>`<button class="btn sm" data-setask="${s}">${money(s)}</button>`).join('')}</div>`:''}
+   <div class="row">${left>0?`<button class="btn primary" data-act="sendCounter" data-id="${n.id}">Enviar contraoferta</button>`:''}<button class="btn ${left>0?'':'primary'}" data-act="acceptLast" data-id="${n.id}">Aceptar ${money(cur)}</button><button class="btn" data-close style="margin-left:auto">Cancelar</button></div>`);
 }
 
 /* ---------- club ---------- */
@@ -1259,14 +1259,17 @@ function act(a,t){
   case 'acceptOffer':{const n=S.news.find(x=>x.id===id);const p=P(n.data.pid);sellPlayer(p,n.data.cid,n.data.fee);n.done='Aceptada · '+money(n.data.fee);save();closeModal();render();break;}
   case 'rejectOffer':{const n=S.news.find(x=>x.id===id);n.done='Rechazada';const p=P(n.data.pid);if(p)p.morale=clamp(p.morale-(p.listed?0:4),0,100);save();closeModal();render();break;}
   case 'counterOffer':counterModal(id);break;
-  case 'acceptLast':{const n=S.news.find(x=>x.id===id);const p=P(n.data.pid);sellPlayer(p,n.data.cid,n.data.lastOffer);n.done='Venta cerrada · '+money(n.data.lastOffer);save();closeModal();render();break;}
+  case 'acceptLast':{const n=S.news.find(x=>x.id===id);const p=P(n.data.pid);const fee=n.data.lastOffer||n.data.fee;sellPlayer(p,n.data.cid,fee);n.done='Venta cerrada · '+money(fee);save();closeModal();render();break;}
   case 'sendCounter':{const n=S.news.find(x=>x.id===id);const p=P(n.data.pid);const b=S.clubs[n.data.cid];const ask=Math.max(0,Math.round(+document.getElementById('ask').value||0));
     if(!p||p.clubId!==S.user.clubId){closeModal();break;}
-    if(!n.data.maxPay)n.data.maxPay=Math.min(b.budget,roundMoney(Math.max(n.data.fee,valueOf(p)*(1.15+R()*0.45))));
+    if(!n.data.maxPay)n.data.maxPay=roundMoney(Math.max(n.data.fee,n.data.fee*(1.03+R()*0.3)));   // tope oculto: nunca por debajo de lo que ya ofrecen
+    const cur=n.data.lastOffer||n.data.fee;
     n.data.tries=(n.data.tries||0)+1;
-    if(ask<=n.data.maxPay){sellPlayer(p,n.data.cid,ask);n.done='Venta cerrada · '+money(ask);closeModal();toast(`${esc(b.name)} acepta pagar ${money(ask)}`);save();render();break;}
-    if(n.data.tries>=3||ask>n.data.maxPay*1.35){n.done='El club comprador se retira';closeModal();toast(`${esc(b.name)} se retira de la negociación`);save();render();break;}
-    n.data.lastOffer=n.data.maxPay;save();counterModal(id,`${b.name} considera excesivo ese precio. Su última oferta es ${money(n.data.maxPay)}.`,true);break;}
+    if(ask<=n.data.maxPay){sellPlayer(p,n.data.cid,Math.max(ask,cur));n.done='Venta cerrada · '+money(Math.max(ask,cur));closeModal();toast(`${esc(b.name)} acepta pagar ${money(Math.max(ask,cur))}`);save();render();break;}
+    // piden más de lo que pagarían: nunca bajan su oferta; suben una parte del camino hacia su tope (todo en el último intento)
+    const gap=n.data.maxPay-cur;const next=n.data.tries>=3?n.data.maxPay:Math.max(cur,roundMoney(cur+gap*(0.4+R()*0.4)));
+    n.data.lastOffer=next;save();
+    counterModal(id,next>cur?`${b.name} sube su oferta a ${money(next)}.`:`${b.name} no está dispuesto a subir más: mantiene su oferta de ${money(cur)}.`);break;}
   case 'export':{packSave().then(txt=>{const box=document.getElementById('exportBox');if(box){box.hidden=false;box.value=txt;box.select();}
     try{const blob=new Blob([txt],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='modo-carrera-'+seasonLabel().replace('/','-')+'.txt';a.click();}catch(e){}
     try{navigator.clipboard.writeText(txt).then(()=>toast('Partida copiada al portapapeles'),()=>{});}catch(e){}});break;}
