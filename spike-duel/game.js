@@ -414,6 +414,19 @@
     b.addEventListener('touchend', end, { passive: true });
     b.addEventListener('touchcancel', end, { passive: true });
   });
+  // Safety nets so a button can never stay "pressed": release everything whenever the browser
+  // says no finger is on the screen, a touch is cancelled, or the page loses focus.
+  function releaseTouch() {
+    touchHeld.clear(); touchHeldT.clear();
+    document.querySelectorAll('#touch button.on, #touch button.charging').forEach(b => b.classList.remove('on', 'charging'));
+  }
+  const noFingers = e => { if (!e.touches || e.touches.length === 0) releaseTouch(); };
+  document.addEventListener('touchend', noFingers, { passive: true, capture: true });
+  document.addEventListener('touchcancel', releaseTouch, { passive: true, capture: true });
+  document.addEventListener('pointercancel', e => { if (e.pointerType === 'touch') { touchHeld.delete(e.pointerId); } }, true);
+  window.addEventListener('pagehide', releaseTouch);
+  window.addEventListener('blur', releaseTouch);
+  document.addEventListener('visibilitychange', releaseTouch);
   function readInput() {
     if (kind === 'online') return;                 // set per frame by onlineStep
     for (const i of input) i.left = i.right = i.jump = false;
@@ -475,6 +488,7 @@
   }
 
   function startMatch(newKind, level) {
+    releaseTouch();
     careerOpen = false;
     kind = newKind;
     mode = kind === 'duo' ? 'duo' : 'solo';
@@ -874,6 +888,8 @@
   // curve is softened so late rounds are hard but beatable (they were close to flawless before).
   const AI_CURVE = [[1, 1], [6, 6], [7, 6.9], [8, 7.85], [9.5, 9]];
   function aiSkill(level) {
+    if (kind === 'tour' && level <= 1) return 2.1;   // tournament round 1: still easy, but not a free win
+    if (kind === 'tour' && level === 2) return 2.65;
     if (level <= AI_CURVE[0][0]) return level;
     for (let i = 1; i < AI_CURVE.length; i++) {
       const [x0, y0] = AI_CURVE[i - 1], [x1, y1] = AI_CURVE[i];
@@ -1320,6 +1336,7 @@
   // ---------- Pause ----------
   let pausedFrom = 'playing';
   function pauseGame() {
+    releaseTouch();
     if (kind === 'online') { if (state !== 'result') showScreen('pause'); return; }
     if (state !== 'playing' && state !== 'point' && state !== 'countdown') return;
     pausedFrom = state === 'countdown' ? countdownTo : state;
@@ -3754,7 +3771,6 @@
     Platform.loadingStop();
     goMenu();
     requestAnimationFrame(frame);
-    if (!onCrazy) setTimeout(() => loadPeer().catch(() => {}), 1500);   // ready before anyone taps "Create room"
   }
 
   // Exposed for automated tests only.
