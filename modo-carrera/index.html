@@ -77,6 +77,7 @@ th.sort{cursor:pointer}
 td{padding:7px 6px;border-bottom:1px solid color-mix(in srgb,var(--line) 60%,transparent);white-space:nowrap}
 tr.click{cursor:pointer}
 tr.click:hover td{background:var(--panel2)}
+tr.click.sel td{background:color-mix(in srgb,var(--accent) 18%,transparent)}
 tr.me td{background:color-mix(in srgb,var(--accent) 12%,transparent)}
 .badge{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;font:700 11px/1 var(--display);flex:none;border:2px solid}
 .crest{display:inline-grid;place-items:center;border-radius:20% 20% 46% 46%;font-family:var(--display);font-weight:800;line-height:1;flex:none;border:2px solid rgba(255,255,255,.25)}
@@ -258,6 +259,8 @@ main{flex:1;min-width:0;padding-inline:24px;padding-block:20px 40px;max-width:12
 @media (prefers-reduced-motion:no-preference){.ev.new{animation:in .35s ease}@keyframes in{from{opacity:.2;transform:translateY(-4px)}}}
 .slot .fbar{width:34px;height:4px;border-radius:2px;background:rgba(0,0,0,.45);margin:2px auto 0;overflow:hidden}.slot .fbar i{display:block;height:100%}
 .simbtns{display:flex;gap:8px;flex-wrap:nowrap}.simbtns .simbtn{min-width:0;white-space:nowrap}
+.flag{display:inline-block;flex:none;vertical-align:-2px;background-image:url(assets/flags.webp);background-repeat:no-repeat;border-radius:2px;box-shadow:0 0 0 1px rgba(0,0,0,.28)}
+.fut-flag .flag{display:block;margin:0 auto}
 </style>
 </head>
 <body>

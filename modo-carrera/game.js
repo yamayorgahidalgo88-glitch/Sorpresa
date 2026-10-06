@@ -25,7 +25,7 @@ const DB=window.DB;
 const POS=['POR','LD','DFC','LI','MCD','MC','MCO','ED','EI','DC'];
 const GROUP={POR:'POR',LD:'DEF',DFC:'DEF',LI:'DEF',MCD:'MED',MC:'MED',MCO:'MED',ED:'DEL',EI:'DEL',DC:'DEL'};
 const NEAR={LD:['LI','DFC','ED'],LI:['LD','DFC','EI'],DFC:['MCD','LD','LI'],MCD:['MC','DFC'],MC:['MCD','MCO'],MCO:['MC','DC','ED','EI'],ED:['EI','MCO','DC'],EI:['ED','MCO','DC'],DC:['MCO','ED','EI']};
-function posPen(p,slot){if(p.pos===slot)return 0;if(p.alt&&p.alt.includes(slot))return 1;if(p.pos==='POR'||slot==='POR')return 35;return (NEAR[p.pos]||[]).includes(slot)?4:10;}
+function posPen(p,slot){if(p.pos===slot)return 0;if(p.alt&&p.alt.includes(slot))return 0;if(p.pos==='POR'||slot==='POR')return 35;return (NEAR[p.pos]||[]).includes(slot)?4:10;}
 const STAT_LBL={field:['RIT','TIR','PAS','REG','DEF','FÍS'],POR:['EST','PAR','SAQ','REF','VEL','COL']};
 const PROFILE={POR:[0,0,-8,2,-10,0],DC:[2,5,-6,1,-38,2],ED:[8,0,-2,6,-40,-8],EI:[8,0,-2,6,-40,-8],MCO:[0,2,4,6,-30,-10],MC:[-6,-4,5,2,-10,0],MCD:[-8,-12,2,-4,3,5],DFC:[-10,-35,-15,-20,4,6],LD:[5,-25,-4,-6,0,-2],LI:[5,-25,-4,-6,0,-2]};
 const FORMATIONS={
@@ -44,13 +44,17 @@ const FORMATIONS={
 const MENT=['Muy defensiva','Defensiva','Equilibrada','Ofensiva','Muy ofensiva'];
 const MENT_OWN=[0.72,0.86,1,1.14,1.28],MENT_OPP=[0.74,0.87,1,1.12,1.25];
 
-const NATION={'Spain':['ES','España'],'France':['FR','Francia'],'Germany':['DE','Alemania'],'Italy':['IT','Italia'],'England':['ENG','Inglaterra'],'Scotland':['SCT','Escocia'],'Wales':['WLS','Gales'],'Northern Ireland':['','Irlanda del Norte'],'Republic of Ireland':['IE','Irlanda'],
+const NATION={'Spain':['ES','España'],'France':['FR','Francia'],'Germany':['DE','Alemania'],'Italy':['IT','Italia'],'England':['ENG','Inglaterra'],'Scotland':['SCT','Escocia'],'Wales':['WLS','Gales'],'Northern Ireland':['NIR','Irlanda del Norte'],'Republic of Ireland':['IE','Irlanda'],
  'Portugal':['PT','Portugal'],'Netherlands':['NL','Países Bajos'],'Belgium':['BE','Bélgica'],'Brazil':['BR','Brasil'],'Argentina':['AR','Argentina'],'Uruguay':['UY','Uruguay'],'Colombia':['CO','Colombia'],'Ecuador':['EC','Ecuador'],'Chile':['CL','Chile'],'Paraguay':['PY','Paraguay'],'Peru':['PE','Perú'],'Venezuela':['VE','Venezuela'],'Mexico':['MX','México'],'United States':['US','Estados Unidos'],'Canada':['CA','Canadá'],'Jamaica':['JM','Jamaica'],'Panama':['PA','Panamá'],'Costa Rica':['CR','Costa Rica'],'Honduras':['HN','Honduras'],
  'Morocco':['MA','Marruecos'],'Algeria':['DZ','Argelia'],'Tunisia':['TN','Túnez'],'Egypt':['EG','Egipto'],'Senegal':['SN','Senegal'],"Côte d'Ivoire":['CI','Costa de Marfil'],'Ghana':['GH','Ghana'],'Nigeria':['NG','Nigeria'],'Cameroon':['CM','Camerún'],'Mali':['ML','Malí'],'Guinea':['GN','Guinea'],'Congo DR':['CD','R. D. del Congo'],'Burkina Faso':['BF','Burkina Faso'],'Gambia':['GM','Gambia'],'Gabon':['GA','Gabón'],'Angola':['AO','Angola'],'Togo':['TG','Togo'],'Cabo Verde':['CV','Cabo Verde'],'Equatorial Guinea':['GQ','Guinea Ecuatorial'],'South Africa':['ZA','Sudáfrica'],'Guinea-Bissau':['GW','Guinea-Bisáu'],'Benin':['BJ','Benín'],'Zambia':['ZM','Zambia'],'Zimbabwe':['ZW','Zimbabue'],'Comoros':['KM','Comoras'],'Mauritania':['MR','Mauritania'],'Sierra Leone':['SL','Sierra Leona'],'Central African Republic':['CF','R. Centroafricana'],'Congo':['CG','Congo'],
  'Denmark':['DK','Dinamarca'],'Sweden':['SE','Suecia'],'Norway':['NO','Noruega'],'Finland':['FI','Finlandia'],'Iceland':['IS','Islandia'],'Switzerland':['CH','Suiza'],'Austria':['AT','Austria'],'Poland':['PL','Polonia'],'Czechia':['CZ','Chequia'],'Slovakia':['SK','Eslovaquia'],'Hungary':['HU','Hungría'],'Croatia':['HR','Croacia'],'Serbia':['RS','Serbia'],'Slovenia':['SI','Eslovenia'],'Bosnia and Herzegovina':['BA','Bosnia'],'Montenegro':['ME','Montenegro'],'North Macedonia':['MK','Macedonia del Norte'],'Albania':['AL','Albania'],'Kosovo':['XK','Kosovo'],'Greece':['GR','Grecia'],'Cyprus':['CY','Chipre'],'Türkiye':['TR','Turquía'],'Romania':['RO','Rumanía'],'Bulgaria':['BG','Bulgaria'],'Ukraine':['UA','Ucrania'],'Russia':['RU','Rusia'],'Georgia':['GE','Georgia'],'Armenia':['AM','Armenia'],'Azerbaijan':['AZ','Azerbaiyán'],'Kazakhstan':['KZ','Kazajistán'],'Israel':['IL','Israel'],'Lithuania':['LT','Lituania'],'Latvia':['LV','Letonia'],'Luxembourg':['LU','Luxemburgo'],'Gibraltar':['GI','Gibraltar'],'Andorra':['AD','Andorra'],
- 'Japan':['JP','Japón'],'Korea Republic':['KR','Corea del Sur'],'Australia':['AU','Australia'],'New Zealand':['NZ','Nueva Zelanda'],'Saudi Arabia':['SA','Arabia Saudí'],'Iran':['IR','Irán'],'China PR':['CN','China'],'Indonesia':['ID','Indonesia'],'Haiti':['HT','Haití'],'Suriname':['SR','Surinam'],'Dominican Republic':['DO','R. Dominicana'],'Curaçao':['CW','Curazao']};
+ 'Japan':['JP','Japón'],'Korea Republic':['KR','Corea del Sur'],'Australia':['AU','Australia'],'New Zealand':['NZ','Nueva Zelanda'],'Saudi Arabia':['SA','Arabia Saudí'],'Iran':['IR','Irán'],'China PR':['CN','China'],'Indonesia':['ID','Indonesia'],'Haiti':['HT','Haití'],'Suriname':['SR','Surinam'],'Dominican Republic':['DO','R. Dominicana'],'Curaçao':['CW','Curazao'],'Kenya':['KE','Kenia'],'Malaysia':['MY','Malasia'],'Curacao':['CW','Curazao'],'Qatar':['QA','Catar'],'Philippines':['PH','Filipinas'],'United Arab Emirates':['AE','Emiratos Árabes'],'Uzbekistan':['UZ','Uzbekistán'],'Mozambique':['MZ','Mozambique'],'Bangladesh':['BD','Bangladés'],'Afghanistan':['AF','Afganistán'],'Trinidad and Tobago':['TT','Trinidad y Tobago'],'Namibia':['NA','Namibia'],'Estonia':['EE','Estonia'],'Saint Kitts and Nevis':['KN','San Cristóbal y Nieves'],'Saint Lucia':['LC','Santa Lucía'],'Barbados':['BB','Barbados'],'Niger':['NE','Níger'],'Faroe Islands':['FO','Islas Feroe'],'Guadeloupe':['GP','Guadalupe'],'Chad':['TD','Chad'],'Moldova':['MD','Moldavia'],'Thailand':['TH','Tailandia'],'Palestine':['PS','Palestina'],'Syria':['SY','Siria'],'Madagascar':['MG','Madagascar'],'Malawi':['MW','Malaui'],'Lebanon':['LB','Líbano'],'Uganda':['UG','Uganda'],'Jordan':['JO','Jordania'],'Burundi':['BI','Burundi'],'Tanzania':['TZ','Tanzania'],'Martinique':['MQ','Martinica'],'Rwanda':['RW','Ruanda'],'Libya':['LY','Libia'],'Belarus':['BY','Bielorrusia'],'Liberia':['LR','Liberia'],'Iraq':['IQ','Irak'],'Pakistan':['PK','Pakistán'],'Puerto Rico':['PR','Puerto Rico'],'Bolivia':['BO','Bolivia'],'Grenada':['GD','Granada'],'Guyana':['GY','Guyana'],'Malta':['MT','Malta'],'Liechtenstein':['LI','Liechtenstein'],'Eritrea':['ER','Eritrea'],'Sao Tome and Principe':['ST','Santo Tomé y Príncipe'],'Kyrgyzstan':['KG','Kirguistán'],'Botswana':['BW','Botsuana'],'Mauritius':['MU','Mauricio'],'Tajikistan':['TJ','Tayikistán'],'Chinese Taipei':['TW','Taiwán']};
 const SUBFLAG={ENG:'\u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}',SCT:'\u{1F3F4}\u{E0067}\u{E0062}\u{E0073}\u{E0063}\u{E0074}\u{E007F}',WLS:'\u{1F3F4}\u{E0067}\u{E0062}\u{E0077}\u{E006C}\u{E0073}\u{E007F}'};
-function flag(n){const x=NATION[n];if(!x||!x[0])return '';const c=x[0];if(SUBFLAG[c])return SUBFLAG[c];if(c.length!==2)return '';return String.fromCodePoint(...[...c].map(ch=>127397+ch.charCodeAt(0)));}
+// banderas como imagen (assets/flags.webp, generada por tools/build_flags.py): los emojis de bandera no se ven en Windows
+const FLAG_CODES=[...new Set(Object.values(NATION).map(x=>x[0]).filter(Boolean))].sort();
+const FLAG_IDX=Object.fromEntries(FLAG_CODES.map((c,i)=>[c,i]));
+function flag(n,h){h=h||14;const x=NATION[n];if(!x||FLAG_IDX[x[0]]==null)return '';const i=FLAG_IDX[x[0]],w=Math.round(h*1.5);
+  return `<span class="flag" role="img" aria-label="${x[1]}" title="${x[1]}" style="width:${w}px;height:${h}px;background-size:${16*w}px auto;background-position:${-(i%16)*w}px ${-Math.floor(i/16)*h}px"></span>`;}
 function natName(n){return NATION[n]?NATION[n][1]:n;}
 
 const NAMES={
@@ -676,7 +680,7 @@ function card(p,opts){opts=opts||{};const st=stats6(p);const lbl=p.pos==='POR'?S
   const club=p.clubId!=null?S.clubs[p.clubId]:null;const short=p.name.includes('. ')?p.name.split('. ').slice(1).join(' '):p.name;
   return `<div class="fut ${tier}${p.pot-p.ovr>=8&&p.age<=21?' wonder':''}${opts.small?' sm':''}" ${opts.click?`data-player="${p.id}" role="button" tabindex="0" aria-label="${esc(p.name)}"`:''}>
    <div class="fut-ovr">${p.ovr}</div><div class="fut-pos">${p.pos}</div>
-   <div class="fut-flag">${flag(p.nat)}</div><div class="fut-club">${club?crest(club,opts.small?18:24):''}</div>
+   <div class="fut-flag">${flag(p.nat,opts.small?12:16)}</div><div class="fut-club">${club?crest(club,opts.small?18:24):''}</div>
    <div class="fut-face">${face(p,opts.small?80:112,true)}</div>
    <div class="fut-name">${esc(short)}</div>
    <div class="fut-stats">${st.map((v,i)=>`<span><b>${v}</b> ${lbl[i]}</span>`).join('')}</div>
@@ -864,12 +868,12 @@ function vTactics(){
     <div class="row" style="margin-bottom:12px"><label class="label" for="formation">Formación</label><select id="formation" data-change="formation">${Object.keys(FORMATIONS).map(f=>`<option ${f===c.formation?'selected':''}>${f}</option>`).join('')}</select>
      <label class="label" for="ment">Mentalidad</label><select id="ment" data-change="ment">${MENT.map((m,i)=>`<option value="${i}" ${i===c.ment?'selected':''}>${m}</option>`).join('')}</select></div>
     <div class="pitch"><div class="circle"></div>${pitch}</div>
-    <div class="row" style="margin-top:12px"><button class="btn primary" data-act="autoXI">Mejor once automático</button><span class="small muted">${sel!=null?'Elige un suplente o toca otra posición del campo para intercambiar.':'Toca una posición para cambiar al jugador; doble toque para ver su carta y su físico.'}</span></div>
-    <p class="small muted" style="margin-top:8px">Borde naranja: fuera de posición (penaliza la media). Borde rojo: lesionado o sancionado. Con partidos entre semana, rota a los cansados.</p>
+    <div class="row" style="margin-top:12px"><button class="btn primary" data-act="autoXI">Mejor once automático</button><span class="small muted">${UI.selBench!=null?'Ahora toca la posición del campo donde quieres meter a '+esc(P(UI.selBench).name)+'.':sel!=null?'Elige un suplente o toca otra posición del campo para intercambiar.':'Toca un jugador (del campo o del banquillo) para cambiarlo; doble toque para ver su carta y su físico.'}</span></div>
+    <p class="small muted" style="margin-top:8px">Borde naranja: fuera de sus posiciones (penaliza la media). Borde rojo: lesionado o sancionado. Con partidos entre semana, rota a los cansados.</p>
    </div>
    <div class="card"><h3>Suplentes y reservas</h3>
     <div class="tbl-wrap"><table><thead><tr><th>Pos</th><th>Nombre</th><th>Med</th><th>Forma</th><th></th></tr></thead><tbody>
-    ${benchList.map(p=>`<tr class="click" data-benchp="${p.id}"><td>${posTag(p.pos)}</td><td><span class="row" style="gap:8px;flex-wrap:nowrap">${face(p,28)}${esc(p.name)} ${status(p)}</span></td><td>${ovrTag(p.ovr)}</td><td class="num">${p.fitness}%</td><td>${sel!=null?`<span class="pill info">Meter</span>`:''}</td></tr>`).join('')}
+    ${benchList.map(p=>`<tr class="click${UI.selBench===p.id?' sel':''}" data-benchp="${p.id}"><td>${posTag(p.pos)}</td><td><span class="row" style="gap:8px;flex-wrap:nowrap">${face(p,28)}${esc(p.name)} ${status(p)}</span></td><td>${ovrTag(p.ovr)}</td><td class="num">${p.fitness}%</td><td>${sel!=null?`<span class="pill info">Meter</span>`:UI.selBench===p.id?`<span class="pill good">Elegido</span>`:''}</td></tr>`).join('')}
     </tbody></table></div></div>
   </div>`;
 }
@@ -1164,7 +1168,7 @@ document.addEventListener('click',e=>{
   if(!t)return;const d=t.dataset;
   if(S)invalidate();
   if(d.close!==undefined){closeModal();UI.pendingSubOut=null;return;}
-  if(d.go){UI.view=d.go;UI.selSlot=null;closeModal();render();window.scrollTo(0,0);return;}
+  if(d.go){UI.view=d.go;UI.selSlot=null;UI.selBench=null;closeModal();render();window.scrollTo(0,0);return;}
   if(d.sdiv){UI.startDiv=+d.sdiv;const v=document.getElementById('mgr')?.value;renderStart();if(v)document.getElementById('mgr').value=v;return;}
   if(d.pick){UI.newClub=+d.pick;const v=document.getElementById('mgr')?.value;renderStart();if(v)document.getElementById('mgr').value=v;return;}
   if(d.job){takeJob(+d.job);UI.view='home';render();return;}
@@ -1178,11 +1182,16 @@ document.addEventListener('click',e=>{
   if(d.setask){const f=document.getElementById('ask');if(f)f.value=d.setask;return;}
   if(d.setfee){const f=document.getElementById('fee');if(f)f.value=d.setfee;return;}
   if(d.slot!==undefined){const i=+d.slot;const xi=userLineup();
+    if(UI.selBench!=null){xi[i]=UI.selBench;UI.selBench=null;UI.selSlot=null;UI.lastSlot=null;save();render();return;}
     const now=Date.now();if(UI.lastSlot===i&&now-(UI.lastSlotT||0)<400&&xi[i]){UI.lastSlot=null;UI.selSlot=null;render();playerModal(xi[i]);return;}
     UI.lastSlot=i;UI.lastSlotT=now;
     if(UI.selSlot==null)UI.selSlot=i;else if(UI.selSlot===i)UI.selSlot=null;else{[xi[UI.selSlot],xi[i]]=[xi[i],xi[UI.selSlot]];UI.selSlot=null;save();}
     render();return;}
-  if(d.benchp){const id=+d.benchp;if(UI.selSlot==null){playerModal(id);return;}const xi=userLineup();xi[UI.selSlot]=id;UI.selSlot=null;save();render();return;}
+  if(d.benchp){const id=+d.benchp;const now=Date.now();
+    if(UI.lastBench===id&&now-(UI.lastBenchT||0)<400){UI.lastBench=null;UI.selBench=null;render();playerModal(id);return;}   // doble toque: carta en grande
+    UI.lastBench=id;UI.lastBenchT=now;
+    if(UI.selSlot!=null){const xi=userLineup();xi[UI.selSlot]=id;UI.selSlot=null;UI.selBench=null;save();render();return;}
+    UI.selBench=UI.selBench===id?null:id;render();return;}
   if(d.subout){UI.pendingSubOut=+d.subout;subsModal();return;}
   if(d.subin){const m=UI.match;const s=m.home.isUser?m.home:m.away;if(UI.pendingSubOut&&s.subs<5)doSub(m,s,UI.pendingSubOut,+d.subin);UI.pendingSubOut=null;subsModal();return;}
   if(d.act)act(d.act,t);
@@ -1223,7 +1232,7 @@ function act(a,t){
   case 'subs':UI.pendingSubOut=null;subsModal();break;
   case 'simEnd':{const m=UI.match;m.live=false;simToEnd(m);finalizeMatch(m);clearInterval(timer);renderMatch();break;}
   case 'finishMatch':finishUserMatch();break;
-  case 'autoXI':{const c=me();c.lineup=bestXI(c.id,c.formation);UI.selSlot=null;save();render();break;}
+  case 'autoXI':{const c=me();c.lineup=bestXI(c.id,c.formation);UI.selSlot=null;UI.selBench=null;save();render();break;}
   case 'endSeason':endSeason();save();render();break;
   case 'nextSeason':busy(t,'Preparando la temporada…',()=>beginNextSeason());break;
   case 'toFired':fired(S.lastSummary.reason);render();break;
