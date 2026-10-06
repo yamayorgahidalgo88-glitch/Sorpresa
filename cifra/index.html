@@ -168,7 +168,7 @@
     <button type="button" class="primary" id="startBtn">Empezar partida</button>
     <button type="button" class="install-btn" id="installBtn" hidden>Instalar CIFRA en el móvil</button>
     <button type="button" class="ghost" id="howBtn">¿Cómo se juega?</button>
-    <div style="text-align:center;font-size:10px;color:rgba(255,255,255,.25);letter-spacing:.1em">VERSIÓN 47 · 1.050 PREGUNTAS</div>
+    <div style="text-align:center;font-size:10px;color:rgba(255,255,255,.25);letter-spacing:.1em">VERSIÓN 48 · 1.050 PREGUNTAS</div>
   </section>
 
   <section id="turn" class="screen">
@@ -2553,7 +2553,7 @@ function fmtValue(v,item){
 // Tocar la cifra grande permite escribirla a mano si se quiere un valor exacto.
 const PLAYER_COLORS=['#2e8cff','#2ad276','#a066ff','#ff8a2a','#ff4f8b'];
 const TICK_SPACING=11; // px entre marcas
-const YEAR_MAX=2100, YEAR_START=1950;
+const YEAR_MAX=2100, YEAR_START=0;
 const ruler={vals:[],unit:1,pos:0,vel:0,raf:0,dragging:false,lastX:0,samples:[],lastIdx:-1,lastBuzz:0,color:PLAYER_COLORS[0],typed:null};
 
 function niceStepDown(x){
