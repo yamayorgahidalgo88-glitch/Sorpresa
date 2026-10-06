@@ -167,6 +167,7 @@
     <button type="button" class="primary" id="startBtn">Empezar partida</button>
     <button type="button" class="install-btn" id="installBtn" hidden>Instalar CIFRA en el móvil</button>
     <button type="button" class="ghost" id="howBtn">¿Cómo se juega?</button>
+    <div style="text-align:center;font-size:10px;color:rgba(255,255,255,.25);letter-spacing:.1em">VERSIÓN 45 · REGLA CIRCA</div>
   </section>
 
   <section id="turn" class="screen">
@@ -1273,7 +1274,13 @@ el('installBtn')?.addEventListener('click',async()=>{
   if(btn) btn.hidden=true;
 });
 
-if('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+if('serviceWorker' in navigator){
+  // Si había una versión antigua instalada, en cuanto el nuevo service worker toma el control se recarga una vez.
+  let reloadedForUpdate=false;
+  const hadController=!!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!hadController||reloadedForUpdate)return;reloadedForUpdate=true;location.reload();});
+  window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>r.update()).catch(()=>{}));
+}
 </script>
 </body>
 </html>
