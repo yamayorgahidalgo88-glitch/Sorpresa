@@ -118,6 +118,48 @@
     .danger{color:#ff9ca6}.muted{color:var(--muted)}
     .entity-link{padding:0;margin:0;border:0;background:transparent;font:inherit;color:inherit;text-decoration:underline;text-decoration-color:rgba(255,255,255,.65);text-decoration-thickness:1.5px;text-underline-offset:3px;cursor:pointer;border-radius:4px;transition:background .15s,color .15s}.entity-link:hover,.entity-link:focus{background:rgba(255,255,255,.09);outline:none}.entity-link:active{background:rgba(255,255,255,.14)}
   .entity-modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:24px;z-index:100;background:rgba(2,7,15,.72);backdrop-filter:blur(8px)}.entity-modal.open{display:flex}.entity-modal-card{width:min(100%,390px);background:linear-gradient(180deg,#15263c,#0d1a2b);border:1px solid rgba(255,255,255,.14);border-radius:24px;box-shadow:0 24px 70px rgba(0,0,0,.55);padding:22px;animation:entityPop .2s ease}.entity-modal-kicker{font-size:10px;text-transform:uppercase;letter-spacing:.15em;color:#74b5ff;font-weight:850;margin-bottom:7px}.entity-modal-title{font-size:25px;font-weight:900;letter-spacing:-.03em;margin:0 0 9px}.entity-modal-text{font-size:14px;line-height:1.55;color:#b9c5d7;margin:0}.entity-modal-close{width:100%;margin-top:18px;padding:13px;border-radius:14px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.10);color:#fff;font-weight:800;cursor:pointer}.entity-modal-source{font-size:10px;color:#718199;margin-top:10px;line-height:1.4}@keyframes entityPop{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+  .online-card{margin-top:12px;padding:14px}
+  .online-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+  .online-head b{font-size:15px}.online-head span:last-child{font-size:12px;color:var(--muted)}
+  .online-dot{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);animation:pulse 1.6s ease-in-out infinite}
+  .online-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .online-actions .secondary{padding:13px 10px}
+  .online-box{display:flex;flex-direction:column;gap:14px}
+  .online-box h3{margin:0;font-size:26px;letter-spacing:-.02em}
+  .online-error{min-height:18px;margin:-4px 0 0;color:#ff9ca6;font-size:13px}
+  .code-input{width:100%;background:#0a1626;border:2px solid var(--line);border-radius:18px;color:var(--text);font-size:46px;font-weight:950;letter-spacing:.3em;text-align:center;padding:14px 0 14px .3em;outline:none;text-transform:uppercase;font-variant-numeric:tabular-nums}
+  .code-input:focus{border-color:var(--blue)}
+  .lobby-code-card{display:flex;flex-direction:column;align-items:center;gap:6px;padding:18px;border-radius:22px;background:linear-gradient(180deg,rgba(46,140,255,.16),rgba(46,140,255,.05));border:1px solid rgba(87,165,255,.3)}
+  .lobby-code-card span{font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);font-weight:800}
+  .lobby-code{background:transparent;color:var(--text);cursor:pointer;padding:0}
+  .lobby-code b{font-size:54px;letter-spacing:.22em;font-weight:950;padding-left:.22em}
+  .lobby-code-card small{font-size:12px;color:var(--muted)}
+  .lobby-list{display:grid;gap:9px}
+  .lobby-slot{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:16px;border:1px dashed rgba(255,255,255,.14);background:rgba(255,255,255,.02);min-height:54px}
+  .lobby-slot.filled{border-style:solid;border-color:rgba(255,255,255,.12);background:rgba(255,255,255,.05);animation:fade .3s ease}
+  .lobby-slot.me{box-shadow:inset 0 0 0 2px var(--slot-color)}
+  .lobby-num{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;font-weight:950;font-size:13px;background:rgba(255,255,255,.06);color:var(--muted)}
+  .lobby-slot.filled .lobby-num{background:var(--slot-color);color:#fff}
+  .lobby-name{font-weight:850;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lobby-tag{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;padding:4px 7px;border-radius:999px;background:rgba(255,214,107,.15);color:var(--gold)}
+  .lobby-tag.you{background:rgba(46,140,255,.16);color:#8fc4ff}
+  .lobby-empty{color:rgba(255,255,255,.3);font-size:14px;animation:pulse 1.8s ease-in-out infinite}
+  .dots i{font-style:normal;animation:dot 1.2s infinite}.dots i:nth-child(2){animation-delay:.2s}.dots i:nth-child(3){animation-delay:.4s}
+  @keyframes dot{0%,60%,100%{opacity:.15}30%{opacity:1}}
+  @keyframes pulse{0%,100%{opacity:.45}50%{opacity:1}}
+  .lobby-waiting{display:flex;align-items:center;justify-content:center;gap:8px;color:var(--muted);font-size:14px;font-weight:700}
+  .lobby-spinner{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.15);border-top-color:var(--blue);animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .lobby-wait-host{text-align:center;color:var(--muted);font-size:14px;margin:0}
+  #lobbyRoundsWrap[hidden],#lobbyStart[hidden],#againBtn[hidden]{display:none}
+  .wait-box{text-align:center;display:flex;flex-direction:column;align-items:center;gap:26px}
+  .wait-title{font-size:24px;line-height:1.25;margin:0;padding:0 8px}.wait-title b{color:var(--player-color,#57a5ff)}
+  .wait-ticker{width:100%;height:76px;display:flex;align-items:center;justify-content:flex-end;gap:10px;overflow:hidden;-webkit-mask-image:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent);mask-image:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent)}
+  .wait-ticker span{flex:0 0 auto;font-size:44px;font-weight:950;color:var(--c);font-variant-numeric:tabular-nums;animation:tick-in .3s ease-out;text-shadow:0 0 18px var(--c)}
+  @keyframes tick-in{from{opacity:0;transform:translateY(16px) scale(.6)}to{opacity:1;transform:none}}
+  .wait-info{color:var(--muted);margin:0;font-size:14px}
+  .online-toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);background:#14243a;border:1px solid rgba(255,255,255,.16);color:var(--text);padding:12px 16px;border-radius:14px;font-size:14px;opacity:0;pointer-events:none;transition:.25s;z-index:200;max-width:calc(100% - 32px);text-align:center}
+  .online-toast.show{opacity:1;transform:translate(-50%,0)}
   .question-tip{text-align:center;font-size:12px;color:var(--muted);margin-top:-6px}
   @media (max-width:380px){.hero h2{font-size:36px}.question{font-size:23px}.scale{min-height:330px}.thumb{width:68px;height:68px}.target{font-size:31px}}
   .confetti-layer{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:50}
@@ -164,11 +206,15 @@
       </div>
     </div>
     <div class="rules"><div class="mini"><b>01</b><span>Pregunta real y curiosa</span></div><div class="mini"><b>02</b><span>Desliza tu cifra</span></div><div class="mini"><b>03</b><span>Gana quien más se acerque</span></div></div>
+    <div class="card pad online-card">
+      <div class="online-head"><span class="online-dot"></span><b>Jugar online</b><span>cada uno con su móvil · máx. 5</span></div>
+      <div class="online-actions"><button type="button" class="secondary" id="createRoomBtn">Crear sala</button><button type="button" class="secondary" id="joinRoomBtn">Unirse a sala</button></div>
+    </div>
     <div class="spacer"></div>
     <button type="button" class="primary" id="startBtn">Empezar partida</button>
     <button type="button" class="install-btn" id="installBtn" hidden>Instalar CIFRA en el móvil</button>
     <button type="button" class="ghost" id="howBtn">¿Cómo se juega?</button>
-    <div style="text-align:center;font-size:10px;color:rgba(255,255,255,.25);letter-spacing:.1em">VERSIÓN 48 · 1.050 PREGUNTAS</div>
+    <div style="text-align:center;font-size:10px;color:rgba(255,255,255,.25);letter-spacing:.1em">VERSIÓN 49 · ONLINE</div>
   </section>
 
   <section id="turn" class="screen">
@@ -212,6 +258,57 @@
     <div class="spacer"></div>
     <div class="card final-card fade"><div class="eyebrow">partida terminada</div><h2 id="finalTitle">🏆</h2><div class="winner-name" id="finalWinner">—</div><p id="finalSub">—</p><div class="scoreboard" id="finalScoreboard"></div><div class="statline"><span id="statQuestions">200 preguntas</span><span id="statRounds">10 rondas</span><span id="statSource">datos oficiales</span></div></div>
     <div class="spacer"></div><div class="final-actions"><button type="button" class="primary" id="againBtn">Volver a jugar</button><button type="button" class="ghost" id="homeBtn">Volver al inicio</button></div>
+  </section>
+  <section id="onlineName" class="screen">
+    <div class="topbar"><button type="button" class="ghost" id="onlineNameBack">← Volver</button></div>
+    <div class="spacer"></div>
+    <div class="card pad online-box fade">
+      <div class="eyebrow">partida online</div>
+      <h3 id="onlineNameTitle">Crear sala</h3>
+      <div class="field"><label for="onlineNameInput">Tu nombre</label><input id="onlineNameInput" maxlength="18" autocomplete="nickname" enterkeyhint="done" placeholder="Escribe tu nombre"></div>
+      <p class="online-error" id="onlineNameError"></p>
+      <button type="button" class="primary" id="onlineNameConfirm">Confirmar</button>
+    </div>
+    <div class="spacer"></div>
+  </section>
+
+  <section id="onlineCode" class="screen">
+    <div class="topbar"><button type="button" class="ghost" id="onlineCodeBack">← Volver</button></div>
+    <div class="spacer"></div>
+    <div class="card pad online-box fade">
+      <div class="eyebrow">unirse a una sala</div>
+      <h3>Código de la sala</h3>
+      <input id="onlineCodeInput" class="code-input" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="go" placeholder="····" aria-label="Código de la sala">
+      <p class="online-error" id="onlineCodeError"></p>
+      <button type="button" class="primary" id="onlineCodeConfirm">Entrar</button>
+    </div>
+    <div class="spacer"></div>
+  </section>
+
+  <section id="lobby" class="screen">
+    <div class="topbar"><button type="button" class="ghost" id="lobbyLeave">← Salir</button><div class="pill" id="lobbyCount">1/5 jugadores</div></div>
+    <div class="lobby-code-card">
+      <span>Código de la sala</span>
+      <button type="button" id="lobbyCodeBtn" class="lobby-code" aria-label="Copiar código"><b id="lobbyCode">····</b></button>
+      <small>Compártelo para que se unan · toca para copiar</small>
+    </div>
+    <div class="lobby-list" id="lobbyList"></div>
+    <div class="lobby-waiting"><span class="lobby-spinner"></span>Esperando jugadores<span class="dots"><i>.</i><i>.</i><i>.</i></span></div>
+    <div class="spacer"></div>
+    <div class="field" id="lobbyRoundsWrap"><label for="lobbyRounds">Rondas</label><select id="lobbyRounds"><option value="5">5</option><option value="10" selected>10</option><option value="15">15</option><option value="20">20</option></select></div>
+    <button type="button" class="primary" id="lobbyStart">Comenzar</button>
+    <p class="lobby-wait-host" id="lobbyWaitHost" hidden>El anfitrión empezará la partida cuando estéis todos.</p>
+  </section>
+
+  <section id="onlineWait" class="screen">
+    <div class="topbar"><div class="round-label" id="waitRound">Ronda 1/10</div><button type="button" class="ghost" id="waitLeave">Salir</button></div>
+    <div class="spacer"></div>
+    <div class="wait-box fade">
+      <p class="wait-title"><b id="waitName">Jugador</b> está jugando</p>
+      <div class="wait-ticker" id="waitTicker" aria-hidden="true"></div>
+      <p class="wait-info" id="waitInfo"></p>
+    </div>
+    <div class="spacer"></div>
   </section>
 </main></div>
 <div id="entityModal" class="entity-modal" role="dialog" aria-modal="true" aria-hidden="true">
@@ -2844,6 +2941,7 @@ function confirmAnswer(){
     updateAnswerDisplay();
     const value=state.estimate;
     if(!Number.isFinite(value)||value<0)return;
+    if(window.CifraOnline?.active){window.CifraOnline.submitAnswer(value);return;}
     if(!state.current || state.turn<0 || state.turn>=state.players.length) throw new Error('El turno actual no es válido.');
     state.estimate=value;
     state.answers[state.turn]=value;
@@ -2934,6 +3032,7 @@ function showReveal(){
 
 let finishing=false;
 function next(){
+  if(window.CifraOnline?.active){window.CifraOnline.next();return;}
   if(finishing||actionBusy)return;
   const btn=el('nextBtn');
   finishing=true;
@@ -2998,7 +3097,7 @@ function showFinal(){
   const leaders=state.players.map((name,i)=>i).filter(i=>state.scores[i]===top);
   let title='Empate total',sub='Nadie ha terminado por encima del otro.',win='Partida igualada';
   if(leaders.length===1){
-    const i=leaders[0];title='Partida terminada';win=state.players[i];sub=`${state.players[i]} gana ${state.scores[i]}-${state.scores.filter((s,j)=>j!==i? s: -Infinity).sort((a,b)=>b-a)[0]??0}.`;
+    const i=leaders[0];title='Partida terminada';win=state.players[i];sub=`${state.players[i]} gana ${state.scores[i]}-${Math.max(0,...state.scores.filter((_,j)=>j!==i))}.`;
     if(state.scores[i]===state.rounds)sub+=' Partida perfecta.';
   }else{
     win=leaders.map(i=>state.players[i]).join(' · ');
@@ -3067,6 +3166,7 @@ function bindGameControls(){
   });
   bind('nextBtn',next);
   bind('againBtn',()=>{
+    if(window.CifraOnline?.active){window.CifraOnline.again();return;}
     try{
       finishing=false;actionBusy=false;state.category='Todas';state.idx=0;state.turn=0;state.scores=Array(state.players.length).fill(0);state.current=null;state.answers=[];state.estimate=0;
       const confirm=el('confirmBtn');if(confirm)confirm.disabled=false;
@@ -3074,6 +3174,7 @@ function bindGameControls(){
     }catch(err){console.error(err);alert(`No se ha podido iniciar la nueva partida.\n\n${err?.message||'Error desconocido'}`);}
   });
   bind('homeBtn',()=>{
+    if(window.CifraOnline?.active){window.CifraOnline.leave();return;}
     finishing=false;actionBusy=false;state.current=null;state.answers=[];
     const confirm=el('confirmBtn');if(confirm)confirm.disabled=false;
     syncHomePlayersUI();show('home');window.scrollTo?.(0,0);
@@ -3128,5 +3229,7 @@ if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>r.update()).catch(()=>{}));
 }
 </script>
+<script src="firebase-config.js"></script>
+<script src="online.js"></script>
 </body>
 </html>
