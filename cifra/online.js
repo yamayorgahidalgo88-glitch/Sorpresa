@@ -241,15 +241,12 @@ async function kickPlayer(pid,name){
 }
 
 // ── Reglas de la partida (se aplican dentro de transacciones) ──
-// Pasa al siguiente jugador que siga en la partida o, si no queda nadie, a los resultados.
-function moveToNextTurn(room,now){
-  const g=room.game;let t=g.turn+1;
-  while(t<g.order.length&&!isActive(room,g.order[t]))t++;
-  if(t>=g.order.length){
-    g.phase='reveal';
-    if(!room.history||Array.isArray(room.history))room.history=Object.assign({},room.history||{});
-    room.history[g.idx]={qid:g.qid,answers:g.answers||{}};
-  }else{g.turn=t;g.turnStartedAt=now;}
+// En cada ronda contestan todos a la vez. «pending» son los que siguen en la partida y aún no han contestado.
+function pendingIds(room){const g=room.game;return (g.order||[]).filter(id=>isActive(room,id)&&typeof g.answers?.[id]!=='number');}
+function finishRound(room){
+  const g=room.game;g.phase='reveal';
+  if(!room.history||Array.isArray(room.history))room.history=Object.assign({},room.history||{});
+  room.history[g.idx]={qid:g.qid,answers:g.answers||{}};
 }
 // Si solo queda un jugador, la partida termina y gana él.
 function checkSolo(room){
@@ -259,19 +256,21 @@ function checkSolo(room){
   room.game.phase='final';room.game.solo=true;room.game.winner=left[0]?.id||null;room.game.finishedAt=Date.now();
   return true;
 }
-// Corrige el turno si el jugador al que le toca se ha ido o se le ha acabado el tiempo.
+// Cierra la ronda cuando han contestado todos, o cuando se acaba el minuto:
+// los que no han contestado suman un fallo y a los dos seguidos quedan fuera.
 function enforceRules(room,now){
   if(!room||room.status!=='playing'||!room.game)return false;
   if(checkSolo(room))return true;
   const g=room.game;if(g.phase!=='turn')return false;
-  const pid=g.order[g.turn];
-  if(!isActive(room,pid)){moveToNextTurn(room,now);checkSolo(room);return true;}
+  const pending=pendingIds(room);
+  if(!pending.length){finishRound(room);return true;}
   if(now>(g.turnStartedAt||now)+TURN_MS+GRACE_MS){
-    const p=room.players[pid];
-    p.strikes=(p.strikes||0)+1;
-    if(p.strikes>=MAX_STRIKES){p.kicked=true;p.kickReason='timeout';}
-    g.timeouts=g.timeouts||{};g.timeouts[pid]=true;
-    moveToNextTurn(room,now);checkSolo(room);
+    for(const pid of pending){
+      const p=room.players[pid];
+      p.strikes=(p.strikes||0)+1;
+      if(p.strikes>=MAX_STRIKES){p.kicked=true;p.kickReason='timeout';}
+    }
+    if(!checkSolo(room))finishRound(room);
     return true;
   }
   return false;
@@ -309,7 +308,7 @@ async function startGame(){
     state.deck=[];
     const q=pickNextQuestion();
     const patch={status:'playing',rounds,history:null,
-      game:{idx:0,rounds,order:players.map(p=>p.id),turn:0,phase:'turn',qid:q.id,answers:null,turnStartedAt:netNow()}};
+      game:{idx:0,rounds,order:players.map(p=>p.id),phase:'turn',qid:q.id,answers:null,turnStartedAt:netNow()}};
     for(const [id,p] of Object.entries(room.players||{})){
       if(p.connected===false||p.left||p.kicked)patch['players/'+id]=null;
       else patch[`players/${id}/strikes`]=null;
@@ -347,33 +346,35 @@ function renderGame(room){
   const g=room.game;if(!g)return;
   const order=loadRoundIntoState(room,g);
   if(!state.current){toast('Esta sala usa otra versión de las preguntas. Recarga la app.');return;}
-  const key=`${g.idx}|${g.phase}|${g.turn}`;
   if(g.phase==='turn'){
-    const pid=order[g.turn];
-    if(key===online.renderKey)return;
-    online.renderKey=key;online.turnKey=key;online.warned10=false;
-    if(pid===online.pid){
-      stopTicker();
-      state.turn=g.turn;state.answers=Array(order.length).fill(null);
-      updateTurnUI();el('confirmBtn').disabled=false;show('turn');resetRuler();window.scrollTo?.(0,0);
-      try{navigator.vibrate?.([60,40,60]);}catch(_e){}
-    }else{
-      el('waitName').textContent=playerName(room,pid);
-      el('waitName').style.color=PLAYER_COLORS[g.turn%PLAYER_COLORS.length];
-      el('waitRound').textContent=`Ronda ${g.idx+1}/${state.rounds}`;
-      const pos=order.indexOf(online.pid);
-      const ahead=order.slice(g.turn+1,pos).filter(id=>isActive(room,id)).length;
-      el('waitInfo').textContent=pos>g.turn?(ahead===0?'Tú vas después.':`Te toca dentro de ${ahead+1} turnos.`):'Tú ya has jugado esta ronda.';
-      show('onlineWait');startTicker();window.scrollTo?.(0,0);
+    const answered=typeof g.answers?.[online.pid]==='number';
+    const key=`${g.idx}|turn|${answered}`;
+    if(key!==online.renderKey){
+      online.renderKey=key;
+      if(!answered){
+        online.warned10=false;stopTicker();
+        state.turn=Math.max(0,order.indexOf(online.pid));state.answers=Array(order.length).fill(null);
+        updateTurnUI();el('confirmBtn').disabled=false;show('turn');resetRuler();window.scrollTo?.(0,0);
+        try{navigator.vibrate?.([60,40,60]);}catch(_e){}
+      }else{
+        el('waitRound').textContent=`Ronda ${g.idx+1}/${state.rounds}`;
+        show('onlineWait');startTicker();window.scrollTo?.(0,0);
+      }
+    }
+    if(answered){
+      const missing=pendingIds(room).map(id=>playerName(room,id));
+      el('waitInfo').textContent=missing.length?`Falta${missing.length>1?'n':''}: ${missing.join(', ').replace(/, ([^,]*)$/,' y $1')}`:'';
     }
     updateClock();
   }else if(g.phase==='reveal'){
+    const key=`${g.idx}|reveal`;
     if(key===online.renderKey)return;
     online.renderKey=key;stopTicker();
     const ans=room.history?.[g.idx]?.answers||g.answers||{};
     state.answers=order.map(id=>typeof ans[id]==='number'?ans[id]:null);
     renderReveal(order);
   }else if(g.phase==='final'){
+    const key=`${g.idx}|final`;
     if(key===online.renderKey)return;
     online.renderKey=key;stopTicker();
     renderFinal(room,g);
@@ -421,7 +422,7 @@ function renderFinal(room,g){
   el('homeBtn').textContent='Salir de la sala';
 }
 
-// ── Cuenta atrás de cada turno ──
+// ── Cuenta atrás de cada ronda ──
 function updateClock(){
   const room=online.room;const g=room?.game;
   const timer=el('turnTimer'),wt=el('waitTimer');
@@ -430,7 +431,7 @@ function updateClock(){
   const secs=Math.ceil(left/1000);
   const label=`0:${String(Math.min(59,secs)).padStart(2,'0')}`.replace('0:60','1:00');
   const txt=secs>=60?'1:00':label;
-  const mine=g.order[g.turn]===online.pid;
+  const mine=isActive(room,online.pid)&&typeof g.answers?.[online.pid]!=='number';
   timer.hidden=!mine;wt.hidden=mine;
   if(mine){
     el('turnTimerText').textContent=left>0?txt:'¡Tiempo!';
@@ -439,7 +440,7 @@ function updateClock(){
     if(secs<=10&&secs>0&&!online.warned10){online.warned10=true;try{navigator.vibrate?.(200);}catch(_e){}}
     if(left<=0){el('confirmBtn').disabled=true;}
   }else{
-    wt.textContent=left>0?`Le quedan ${txt}`:'Se le ha acabado el tiempo';
+    wt.textContent=left>0?`Quedan ${txt}`:'Se ha acabado el tiempo';
     wt.classList.toggle('urgent',secs<=10);
   }
 }
@@ -453,21 +454,22 @@ function stopClock(){clearInterval(online.clockTimer);online.clockTimer=null;con
 online.submitAnswer=async function(value){
   const room=online.room;if(!room?.game)return;
   const g=room.game;
-  if(g.phase!=='turn'||g.order[g.turn]!==online.pid)return;
-  const key=`${g.idx}|${g.turn}`;
+  if(g.phase!=='turn'||typeof g.answers?.[online.pid]==='number')return;
+  const key=`${g.idx}`;
   if(online.sentKey===key)return;
   online.sentKey=key;
   el('confirmBtn').disabled=true;
-  const pid=online.pid,idx=g.idx,turn=g.turn;
+  const pid=online.pid,idx=g.idx;
   try{
     const res=await online.net.transaction('rooms/'+online.code,cur=>{
       if(!cur)return cur;
       const gg=cur.game;
-      if(!gg||gg.phase!=='turn'||gg.idx!==idx||gg.turn!==turn||gg.order[gg.turn]!==pid)return undefined;
+      if(!gg||gg.phase!=='turn'||gg.idx!==idx||!isActive(cur,pid))return undefined;
+      if(typeof gg.answers?.[pid]==='number')return undefined;
       if(netNow()>(gg.turnStartedAt||0)+TURN_MS+GRACE_MS)return undefined;
       gg.answers=gg.answers||{};gg.answers[pid]=value;
       if(cur.players[pid])cur.players[pid].strikes=0;
-      moveToNextTurn(cur,netNow());checkSolo(cur);
+      if(!pendingIds(cur).length)finishRound(cur);
       return clean(cur);
     });
     if(!res.committed){toast('Se te ha acabado el tiempo.');}
@@ -482,9 +484,9 @@ online.next=async function(){
   try{
     if(g.idx+1>=g.rounds){await online.net.update('rooms/'+online.code,{'game/phase':'final'});return;}
     const q=pickOnlineQuestion(room);
-    // Los que se han ido o han sido expulsados ya no tienen turno.
+    // Los que se han ido o han sido expulsados ya no juegan.
     const order=gamePlayers(room).map(p=>p.id);
-    await online.net.update('rooms/'+online.code,{game:{idx:g.idx+1,rounds:g.rounds,order,turn:0,phase:'turn',qid:q.id,answers:null,turnStartedAt:netNow()}});
+    await online.net.update('rooms/'+online.code,{game:{idx:g.idx+1,rounds:g.rounds,order,phase:'turn',qid:q.id,answers:null,turnStartedAt:netNow()}});
   }catch(e){console.error(e);toast('No se ha podido continuar.');el('nextBtn').disabled=false;}
 };
 online.again=async function(){
