@@ -480,7 +480,7 @@
     fakes = [];
     for (const p of players) {
       p.x = p.side === 0 ? 200 : 760; p.y = GROUND; p.vx = p.vy = 0; p.onGround = true; p.hitCooldown = 0;
-      p.ai.jumpPlan = null; p.ai.err = 0; p.ai.follow = null;
+      p.ai.jumpPlan = null; p.ai.err = 0; p.ai.follow = null; p.ai.react = 0; p.ai.evt = '';
       p.fx = freshFx(); p.r = p.baseR;
     }
     if (players[server].isAI) players[server].x += 10; // AI serves with a slight forward push
@@ -884,7 +884,7 @@
   // Effective skill of a computer rival. Tournament round N / Spike Career use level N; the top of the
   // curve is softened so late rounds are hard but beatable (they were close to flawless before).
   // Tournament rounds 1-8 (round 8 is the reference; the rest climb towards it). Nominal levels were 1..8.
-  const TOUR_SKILL = { 1: 2.5, 2: 3.2, 3: 3.8, 4: 4.6, 5: 5.5, 6: 6.3, 7: 7.1, 8: 7.85 };
+  const TOUR_SKILL = { 1: 2.5, 2: 3.2, 3: 3.8, 4: 4.5, 5: 5.2, 6: 5.8, 7: 6.3, 8: 6.9 };
   const AI_CURVE = [[1, 1], [6, 6], [7, 6.9], [8, 7.85], [9.5, 9]];
   function aiSkill(level) {
     if (kind === 'tour' && TOUR_SKILL[Math.round(level)] && Math.abs(level - Math.round(level)) < 0.01) return TOUR_SKILL[Math.round(level)];
@@ -939,10 +939,23 @@
       ai.bErr = (Math.random() < 0.5 ? -1 : 1) * (55 + Math.random() * 55);
     }
     ai.hard = hard;
+    // Human-like reaction (tournament): the computer cannot know in advance what a super will do.
+    // A new super, the meteor coming back down, a lightning strike or a teleport freeze its decisions
+    // for a moment (a person needs roughly 0.2-0.4 s to notice and react), and erratic flights
+    // (balloon, tornado) are only re-read every ~0.16 s.
+    const incoming = ball.super && ball.superOwner !== p.side;
+    const evt = incoming ? superSeq + ':' + (ball.mdone ? 1 : 0) + (ball.struck ? 1 : 0) + (ball.teleported ? 1 : 0) : '';
+    if (kind === 'tour' && evt && evt !== ai.evt) {
+      const fresh = evt.endsWith(':000');
+      ai.react = fresh ? 0.22 - lv * 0.012 + Math.random() * 0.08 : 0.3 + Math.random() * 0.1;
+    }
+    ai.evt = evt;
+    const erratic = kind === 'tour' && incoming && ((ball.super === 'balloon' && ball.crossed) || (ball.super === 'tornado' && ball.crossed) || ball.super === 'lightning' || ball.super === 'teleport');
+    if (ai.react > 0) { ai.react -= dt; inp.jump = false; }
     const pass = ai.pass = ai.own > Math.max(0.9, 2.4 - lv * 0.15);
     ai.think -= dt;
-    if (ai.think <= 0) {
-      ai.think = Math.max(0.03, 0.24 - lv * 0.025) * (hard ? 1.35 : 1);
+    if (ai.think <= 0 && !(ai.react > 0)) {
+      ai.think = Math.max(erratic ? 0.16 : 0, Math.max(0.03, 0.24 - lv * 0.025) * (hard ? 1.35 : 1));
       const coming = ownSide(tracked.x) || tracked.vx * towards < 0;
       if (coming) {
         const land = predictLanding(tracked, GROUND - p.r - 10);
@@ -981,6 +994,7 @@
       if (ai.jumpPlan && Math.abs(p.x - NET_X) < (p.power >= 1 ? 340 : 280)) inp.jump = true;
     }
     if (!ownSide(ball.x)) ai.jumpPlan = null;
+    if (ai.react > 0) inp.jump = false;
   }
 
   // ---------- Effects ----------
