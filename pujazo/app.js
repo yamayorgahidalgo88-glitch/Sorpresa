@@ -7,7 +7,8 @@
   const AVATAR_COLORS = ['#ffc21a', '#22e1ff', '#ff6b9d', '#2ee59d', '#c86bff'];
   const SESSION_KEY = 'pujazo:session';
 
-  const socket = io();
+  const net = window.PujazoNet;
+  const act = (action, data, cb) => net.send(action, data).then(r => cb && cb(r));
   let state = null;
   let me = null;
   let clockOffset = 0;
@@ -35,17 +36,6 @@
   const now = () => Date.now() + clockOffset;
   const colorFor = id => AVATAR_COLORS[state ? Math.max(0, state.players.findIndex(p => p.id === id)) % 5 : 0];
   const avatar = p => `<span class="avatar" style="background:${colorFor(p.id)}">${esc(p.name[0].toUpperCase())}</span>`;
-
-  // Imágenes generadas con IA: el servidor las genera (Pollinations), las cachea y las sirve.
-  const itemImgUrl = item => `/img/item/${encodeURIComponent(item.id)}`;
-  const sceneImgUrl = (items, cat) => `/img/scene/${cat.key}/${items.map(i => encodeURIComponent(i.id)).sort().join(',')}`;
-  const preloaded = new Set();
-  function preload(url) {
-    if (preloaded.has(url)) return;
-    preloaded.add(url);
-    const img = new Image();
-    img.src = url;
-  }
 
   /* ---------- Sonido (WebAudio) ---------- */
   let actx = null;
@@ -98,10 +88,8 @@
   /* ---------- Navegación inicial ---------- */
   $$('[data-go]').forEach(b => b.onclick = () => show(b.dataset.go));
 
-  fetch('/api/categories').then(r => r.json()).then(d => {
-    categories = d.categories;
-    renderCatGrid($('#catGrid'), createCat, k => { createCat = k; });
-  });
+  categories = Object.values(window.PujazoData.CATALOG).map(c => ({ key: c.key, name: c.name, emoji: c.emoji }));
+  renderCatGrid($('#catGrid'), createCat, k => { createCat = k; });
 
   function renderCatGrid(el, selected, onPick) {
     const opts = [{ key: 'random', name: 'Categoría aleatoria', emoji: '🎲' }, ...categories];
@@ -120,7 +108,7 @@
     const name = $('#createName').value.trim();
     if (!name) return toast('Escribe tu nombre', true);
     localStorage.setItem('pujazo:name', name);
-    socket.emit('create', { name, category: createCat }, r => { if (!r.ok) toast(r.error, true); });
+    busy($('#createBtn'), 'Creando sala…', net.createRoom(name, createCat));
   };
   $('#createName').onkeydown = e => { if (e.key === 'Enter') $('#createBtn').click(); };
 
@@ -140,28 +128,51 @@
   $('#joinBtn').onclick = () => {
     const code = $('#joinCode').value.trim();
     if (code.length !== 4) return toast('El código tiene 4 caracteres', true);
-    socket.emit('join', { name: joinName, code }, r => { if (!r.ok) toast(r.error, true); });
+    busy($('#joinBtn'), 'Conectando…', net.joinRoom(joinName, code));
   };
 
   /* ---------- Conexión ---------- */
-  socket.on('connect', () => {
-    const s = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
-    if (s) socket.emit('resume', s, r => { if (!r.ok) { localStorage.removeItem(SESSION_KEY); show('home'); } });
-  });
-  socket.on('disconnect', () => toast('Conexión perdida, reconectando…', true));
-  socket.on('joined', d => {
+  function busy(btn, label, promise) {
+    const old = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = label;
+    promise.then(r => { if (!r.ok) toast(r.error, true); }).finally(() => { btn.disabled = false; btn.textContent = old; });
+  }
+  net.on('joined', d => {
     me = d.playerId;
-    localStorage.setItem(SESSION_KEY, JSON.stringify({ code: d.code, token: d.token }));
+    if (d.host) localStorage.removeItem(SESSION_KEY);
+    else localStorage.setItem(SESSION_KEY, JSON.stringify({ code: d.code, token: d.token }));
   });
-  socket.on('state', s => {
+  net.on('state', s => {
     clockOffset = s.serverNow - Date.now();
     state = s;
     render();
   });
+  net.on('closed', () => {
+    toast('Se ha perdido la conexión con el anfitrión', true);
+    resetToHome();
+  });
+  // Si un invitado recarga la página, vuelve a entrar en su sala.
+  const saved = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
+  if (saved) {
+    net.joinRoom(null, saved.code, saved.token).then(r => {
+      if (!r.ok) localStorage.removeItem(SESSION_KEY);
+    });
+  }
+  // El anfitrión aloja la sala: si cierra la página, la partida se acaba para todos.
+  window.addEventListener('beforeunload', e => {
+    if (net.isHost() && state && state.phase !== 'lobby') { e.preventDefault(); e.returnValue = ''; }
+  });
 
   function leave() {
-    socket.emit('leave');
+    if (net.isHost() && state && state.players.length > 1 && !confirm('Eres el anfitrión: si sales, la sala se cierra para todos. ¿Salir?')) return;
+    net.leave();
+    resetToHome();
+  }
+  function resetToHome() {
     localStorage.removeItem(SESSION_KEY);
+    $('#catOverlay').hidden = true;
+    $('#soldOverlay').hidden = true;
     state = null; me = null;
     prev = { phase: null, histLen: 0, itemId: null, soldKey: null };
     $('#joinStep1').hidden = false; $('#joinStep2').hidden = true; $('#joinCode').value = '';
@@ -185,7 +196,6 @@
     if (phase === 'results') { renderResults(); show('results'); }
     if (phase !== 'voting') { voteBuiltFor = null; sentVotes = false; }
     if (phase !== 'results') resultsBuiltFor = null;
-    if (s.nextItem && s.category) preload(itemImgUrl(s.nextItem));
     prev.phase = phase;
   }
 
@@ -198,7 +208,7 @@
     if (isHost) $('#changeCat').onclick = () => {
       const picker = $('#lobbyCatPicker');
       picker.hidden = !picker.hidden;
-      if (!picker.hidden) renderCatGrid(picker, s.categoryChoice, k => { socket.emit('setCategory', { category: k }); picker.hidden = true; });
+      if (!picker.hidden) renderCatGrid(picker, s.categoryChoice, k => { act('setCategory', { category: k }); picker.hidden = true; });
     };
     if (!isHost) $('#lobbyCatPicker').hidden = true;
     $('#lobbyCount').textContent = `(${s.players.length}/5)`;
@@ -221,7 +231,7 @@
     if (!txt) return;
     (navigator.clipboard?.writeText(txt) || Promise.reject()).then(() => toast('¡Código copiado!'), () => toast(txt));
   };
-  $('#startBtn').onclick = () => socket.emit('start', null, r => { if (!r.ok) toast(r.error, true); });
+  $('#startBtn').onclick = () => act('start', null, r => { if (!r.ok) toast(r.error, true); });
 
   /* ---------- Revelación de categoría ---------- */
   function categoryReveal() {
@@ -291,11 +301,6 @@
       $('#itemTier').textContent = TIER_LABEL[a.item.tier];
       $('#itemEmoji').textContent = a.item.emoji;
       $('#itemName').textContent = a.item.name;
-      const img = $('#itemImg');
-      img.classList.remove('loaded');
-      img.onload = () => img.classList.add('loaded');
-      img.onerror = () => img.removeAttribute('src');
-      img.src = itemImgUrl(a.item);
       $('#customBid').value = '';
       sfx.reveal();
     }
@@ -373,7 +378,7 @@
   requestAnimationFrame(frame);
 
   function sendBid(amount) {
-    socket.emit('bid', { amount }, r => { if (!r.ok) toast(r.error, true); });
+    act('bid', { amount }, r => { if (!r.ok) toast(r.error, true); });
   }
   $('#quickBid').onclick = () => state?.auction && sendBid(state.auction.bid + 1);
   $('#customBidBtn').onclick = () => {
@@ -383,7 +388,7 @@
     $('#customBid').value = '';
   };
   $('#customBid').onkeydown = e => { if (e.key === 'Enter') $('#customBidBtn').click(); };
-  $('#passBtn').onclick = () => socket.emit('pass', null, r => { if (!r.ok) toast(r.error, true); });
+  $('#passBtn').onclick = () => act('pass', null, r => { if (!r.ok) toast(r.error, true); });
 
   /* ---------- Animación de VENDIDO ---------- */
   function buildCracks(svg) {
@@ -469,31 +474,19 @@
 
   /* ---------- Tarjetas finales ---------- */
   function finalCard(p, extra = '') {
-    const cat = state.category;
     const spent = p.items.reduce((t, i) => t + i.price, 0);
     const list = p.items.map(i => `<li><span class="e">${i.emoji}</span><span class="n">${esc(i.name)} <span class="tier ${i.tier}">${TIER_LABEL[i.tier]}</span></span><span class="p">${i.price} 🪙</span></li>`).join('');
     return `<article class="fcard" data-id="${p.id}">
       <h3>${avatar(p)}${esc(p.name)}${p.id === me ? '<span class="me-tag">TÚ</span>' : ''}</h3>
-      <div class="final-img">
-        <div class="collage">${p.items.map(i => `<span>${i.emoji}</span>`).join('')}</div>
-        <div class="loading">🎨 Generando imagen con IA…</div>
-        <img alt="${esc(cat.name)} de ${esc(p.name)}" data-src="${sceneImgUrl(p.items, cat)}">
+      <div class="final-img tier-mix">
+        <div class="collage">${p.items.map((i, k) => `<span class="ci ${i.tier}" style="animation-delay:${k * .12}s">${i.emoji}</span>`).join('')}</div>
+        <div class="final-cat">${state.category.emoji} ${esc(state.category.name.replace(/^(El|La) /, ''))} de ${esc(p.name)}</div>
       </div>
       <ul class="final-list">${list}</ul>
       <div class="final-left">Gastado: ${spent} 🪙 · Le sobran: ${p.coins} 🪙</div>
       ${extra}
     </article>`;
   }
-  function loadFinalImages(container) {
-    container.querySelectorAll('img[data-src]').forEach(img => {
-      const loading = img.parentElement.querySelector('.loading');
-      img.onload = () => { img.classList.add('loaded'); loading?.remove(); };
-      img.onerror = () => { if (loading) loading.textContent = 'No se pudo generar la imagen'; };
-      img.src = img.dataset.src;
-      img.removeAttribute('data-src');
-    });
-  }
-
   /* ---------- Votación ---------- */
   function renderVoting() {
     const s = state;
@@ -509,7 +502,6 @@
         if (v > 10) inp.value = 10;
         if (v < 0) inp.value = 0;
       });
-      loadFinalImages($('#voteCards'));
     }
     const voted = s.players.filter(p => p.voted).length;
     const meVoted = myPlayer()?.voted;
@@ -526,9 +518,9 @@
       if (!Number.isFinite(v) || v < 0 || v > 10) { inp.focus(); return toast('Pon una nota del 0 al 10 a todos', true); }
       scores[inp.dataset.target] = v;
     }
-    socket.emit('vote', { scores }, r => { if (!r.ok) toast(r.error, true); else toast('¡Votos enviados!'); });
+    act('vote', { scores }, r => { if (!r.ok) toast(r.error, true); else toast('¡Votos enviados!'); });
   };
-  $('#forceResults').onclick = () => socket.emit('forceResults');
+  $('#forceResults').onclick = () => act('forceResults');
 
   /* ---------- Resultados ---------- */
   function renderResults() {
@@ -544,12 +536,11 @@
         const detail = r.votes.length ? r.votes.map(v => `${esc(v.from)}: ${v.score}`).join(' · ') : 'Sin votos';
         return finalCard(p, `<div class="vote-box"><label>Nota media</label><span class="score-big">${r.avg.toFixed(1)}</span></div><div class="votes-detail">${detail}</div>`);
       }).join('');
-      loadFinalImages($('#resultCards'));
       if (s.results[0]?.id === me) setTimeout(sfx.win, 800);
     }
     const isHost = s.hostId === me;
     $('#againBtn').hidden = !isHost;
     $('#againWait').textContent = isHost ? '' : 'El anfitrión puede empezar otra partida';
   }
-  $('#againBtn').onclick = () => socket.emit('again');
+  $('#againBtn').onclick = () => act('again');
 })();

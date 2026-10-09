@@ -6,7 +6,7 @@
 <title>PUJAZO · Puja por lo ideal</title>
 <meta name="description" content="Juego online de pujas en tiempo real para hasta 5 personas. Puja, gana y monta tu jardín, casa, pizza o viaje ideal.">
 <meta name="theme-color" content="#1a0b3d">
-<link rel="icon" href="logo.svg" type="image/svg+xml">
+<link rel="icon" href="/logo.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@500;700;800;900&display=swap" rel="stylesheet">
@@ -112,7 +112,6 @@
       <div id="itemTier" class="tier"></div>
       <div class="item-img-wrap">
         <div id="itemEmoji" class="item-emoji"></div>
-        <img id="itemImg" class="item-img" alt="">
       </div>
       <h2 id="itemName" class="item-name"></h2>
     </div>
@@ -208,7 +207,10 @@
   </defs>
 </svg>
 
-<script src="/socket.io/socket.io.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
+<script src="categories.js"></script>
+<script src="engine.js"></script>
+<script src="net.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

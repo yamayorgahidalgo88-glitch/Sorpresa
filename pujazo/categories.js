@@ -14,8 +14,6 @@ const CATEGORIES = {
   jardin: {
     name: 'El jardín ideal',
     emoji: '🌳',
-    itemPrompt: 'in the backyard garden of a house, vibrant 3D cartoon render, soft daylight, centered, no text',
-    scenePrompt: 'wide high angle view of the same green backyard garden behind a white two-story house with a wooden fence, sunny day, vibrant 3D cartoon render, no text.',
     items: {
       terrible: [
         '🪳 Plaga de cucarachas gigantes', '💩 Jardín lleno de cacas de perro', '🐀 Familia de ratas viviendo bajo el césped',
@@ -73,8 +71,6 @@ const CATEGORIES = {
   casa: {
     name: 'La casa ideal',
     emoji: '🏠',
-    itemPrompt: 'inside a modern house, vibrant 3D cartoon render, cozy lighting, centered, no text',
-    scenePrompt: 'cutaway dollhouse cross-section view of the same modern two-story house showing all its rooms, vibrant 3D cartoon render, no text.',
     items: {
       terrible: [
         '🐀 Ratas dentro de las paredes', '👻 Fantasma que mueve los muebles de noche', '💧 Gotera justo encima de la cama',
@@ -132,8 +128,6 @@ const CATEGORIES = {
   parque: {
     name: 'El parque de atracciones ideal',
     emoji: '🎢',
-    itemPrompt: 'in an amusement park, vibrant 3D cartoon render, colorful, centered, no text',
-    scenePrompt: 'aerial view of the same small amusement park with an entrance arch and paths, sunny day, vibrant 3D cartoon render, no text.',
     items: {
       terrible: [
         '⏳ Colas de 4 horas en cada atracción', '🤮 Montaña rusa que te hace vomitar siempre', '🔩 Atracción con tornillos sueltos',
@@ -191,8 +185,6 @@ const CATEGORIES = {
   pizza: {
     name: 'La pizza ideal',
     emoji: '🍕',
-    itemPrompt: 'as a pizza topping, food photography close-up, appetizing, vibrant, centered, no text',
-    scenePrompt: 'top-down view of the same large round pizza on a wooden board, food photography, vibrant, no text.',
     items: {
       terrible: [
         '🐟 Sardinas de lata con espinas', '🧦 Sabor a calcetín sudado', '🪳 ¿Una aceituna... o una cucaracha?',
@@ -250,8 +242,6 @@ const CATEGORIES = {
   viaje: {
     name: 'El viaje ideal',
     emoji: '✈️',
-    itemPrompt: 'travel vacation scene, vibrant 3D cartoon render, cinematic lighting, centered, no text',
-    scenePrompt: 'the same travel vacation collage postcard with a suitcase in the center, vibrant 3D cartoon render, no text.',
     items: {
       terrible: [
         '🛫 Vuelo cancelado y dormir en el aeropuerto', '🧳 Maleta perdida', '🤢 Gastroenteritis el primer día',
@@ -323,9 +313,11 @@ function buildCatalog() {
         });
       });
     }
-    catalog[key] = { key, name: cat.name, emoji: cat.emoji, itemPrompt: cat.itemPrompt, scenePrompt: cat.scenePrompt, items: list };
+    catalog[key] = { key, name: cat.name, emoji: cat.emoji, items: list };
   }
   return catalog;
 }
 
-module.exports = { TIERS, CATALOG: buildCatalog() };
+const PujazoData = { TIERS, CATALOG: buildCatalog() };
+if (typeof module === 'object' && module.exports) module.exports = PujazoData;
+else window.PujazoData = PujazoData;
