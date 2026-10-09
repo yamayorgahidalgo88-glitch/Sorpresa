@@ -52,13 +52,13 @@
       controlsBtn: 'Buttons', helpBtn: 'Controls', helpTitle: 'Controls', gotIt: 'Got it!', hMove: 'Move', hJump: 'Jump', hSpike: 'Spike', hSpikeD: 'Jump and hit the ball from above', hSuper: 'Super', hSuperD: 'Fill the bar, then spike', hPause: 'Pause', h2p: '2 players (same keyboard)', hP1: 'Player 1', hP2: 'Player 2', hOr: 'or', hSpace: 'Space', practiceHint: 'Practice · hold a button for 2.5 s to edit it', ctlJump: 'Jump button',
       ctlDir: 'Direction buttons', ctlSize: 'Size', ctlPos: 'Position', ctlGap: 'Spacing', done: 'Done', reset: 'Reset', free: 'Free', rotate: 'Turn your phone sideways to play',
       s_fire: 'Fire', s_fire_d: 'A blazing fast spike',
-      s_sticky: 'Bubblegum', s_sticky_d: 'Whoever stops it can\'t jump this point',
+      s_sticky: 'Bubblegum', s_sticky_d: 'Whoever stops it can\'t jump for 6.5 s',
       s_shrink: 'Shrink', s_shrink_d: 'Whoever stops it shrinks this point',
       s_heavy: 'Meteor', s_heavy_d: 'Vanishes at the net and crashes down from the sky',
       s_ice: 'Ice', s_ice_d: 'Whoever stops it freezes for 2 seconds',
       s_zerog: 'Zero Gravity', s_zerog_d: 'Whoever stops it floats for 2 seconds',
       s_lightning: 'Lightning', s_lightning_d: 'Hovers over the net, strikes a random spot and zaps for a moment',
-      s_ghost: 'Ghost', s_ghost_d: 'Turns invisible past the net',
+      s_ghost: 'Ghost', s_ghost_d: 'Past the net it flickers: invisible for half a second, ghostly for half a second',
       s_clones: 'Clones', s_clones_d: 'Splits into 3 balls; only one is real',
       s_confusion: 'Confusion', s_confusion_d: 'Whoever stops it gets reversed controls this point',
       e_sticky: 'Stuck!', e_shrink: 'Tiny!', e_heavy: 'Too heavy!', e_ice: 'Frozen!', e_zerog: 'Floating!', e_torment: 'Cursed!',
@@ -92,13 +92,13 @@
       controlsBtn: 'Botones', helpBtn: 'Controles', helpTitle: 'Controles', gotIt: '¡Entendido!', hMove: 'Moverse', hJump: 'Saltar', hSpike: 'Rematar', hSpikeD: 'Salta y golpea la pelota desde arriba', hSuper: 'Súper', hSuperD: 'Llena la barra y remata', hPause: 'Pausa', h2p: '2 jugadores (mismo teclado)', hP1: 'Jugador 1', hP2: 'Jugador 2', hOr: 'o', hSpace: 'Espacio', practiceHint: 'Práctica · mantén pulsado un botón 2,5 s para editarlo', ctlJump: 'Botón de salto',
       ctlDir: 'Botones de dirección', ctlSize: 'Tamaño', ctlPos: 'Posición', ctlGap: 'Separación', done: 'Listo', reset: 'Restablecer', free: 'Gratis', rotate: 'Gira el móvil en horizontal para jugar',
       s_fire: 'Fuego', s_fire_d: 'Un remate rapidísimo',
-      s_sticky: 'Chicle', s_sticky_d: 'Quien la para no puede saltar en este punto',
+      s_sticky: 'Chicle', s_sticky_d: 'Quien la para no puede saltar durante 6,5 s',
       s_shrink: 'Encoger', s_shrink_d: 'Quien la para se encoge en este punto',
       s_heavy: 'Meteorito', s_heavy_d: 'Desaparece en la red y cae del cielo como un meteorito',
       s_ice: 'Hielo', s_ice_d: 'Quien la para se congela 2 segundos',
       s_zerog: 'Gravedad cero', s_zerog_d: 'Quien la para flota 2 segundos',
       s_lightning: 'Rayo', s_lightning_d: 'Se queda sobre la red y sale disparado a un punto al azar',
-      s_ghost: 'Fantasma', s_ghost_d: 'Se vuelve invisible al pasar la red',
+      s_ghost: 'Fantasma', s_ghost_d: 'Al pasar la red parpadea: medio segundo invisible, medio segundo fantasmal',
       s_clones: 'Clones', s_clones_d: 'Se divide en 3 balones; solo uno es real',
       s_confusion: 'Confusión', s_confusion_d: 'Quien la para tiene los controles al revés en este punto',
       e_sticky: '¡Pegado!', e_shrink: '¡Mini!', e_heavy: '¡Pesa mucho!', e_ice: '¡Congelado!', e_zerog: '¡Flotando!', e_torment: '¡Maldito!',
@@ -460,7 +460,7 @@
   let lastResult = null;
 
   function freshFx() {
-    return { confused: false, frozen: 0, stunned: 0, float: false, shrink: false, sticky: false,
+    return { confused: false, frozen: 0, stunned: 0, float: false, shrink: false, sticky: 0,
       slow: false, ink: 0, wind: false, balloon: false, knock: 0, dark: 0 };
   }
 
@@ -481,7 +481,7 @@
     for (const p of players) {
       p.x = p.side === 0 ? 200 : 760; p.y = GROUND; p.vx = p.vy = 0; p.onGround = true; p.hitCooldown = 0;
       p.ai.jumpPlan = null; p.ai.err = 0; p.ai.follow = null; p.ai.react = 0; p.ai.evt = '';
-      p.fx = freshFx(); p.r = p.baseR;
+      const gum = p.fx.sticky; p.fx = freshFx(); p.fx.sticky = gum || 0; p.r = p.baseR;   // bubblegum outlasts the point (6.5 s)
     }
     if (players[server].isAI) players[server].x += 10; // AI serves with a slight forward push
     showBanner(t('serve'), 0.8);
@@ -542,6 +542,7 @@
     fx.frozen = Math.max(0, fx.frozen - dt);
     fx.stunned = Math.max(0, fx.stunned - dt);
     fx.ink = Math.max(0, fx.ink - dt);
+    fx.sticky = Math.max(0, (fx.sticky || 0) - dt);
     fx.dark = Math.max(0, (fx.dark || 0) - dt);
     const locked = fx.frozen > 0 || fx.stunned > 0;
     let dir = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
@@ -619,7 +620,7 @@
     else if (id === 'zerog') { fx.float = 2; key = 'e_zerog'; }
     else if (id === 'torment') { fx.dark = 1.5; key = 'e_torment'; burst(p.x, p.y - 30, 14, ['#5a189a', '#c77dff', '#111']); }
     else if (id === 'shrink') { fx.shrink = true; key = 'e_shrink'; }
-    else if (id === 'sticky') { fx.sticky = true; key = 'e_sticky'; }
+    else if (id === 'sticky') { fx.sticky = 6.5; key = 'e_sticky'; }
     else if (id === 'snail') { fx.slow = true; key = 'e_snail'; }
     else if (id === 'ink') { fx.ink = 3; key = 'e_ink'; burst(p.x, p.y - 30, 20, ['#212529', '#343a40']); }
     else if (id === 'wind') { fx.wind = 2.5; key = 'e_wind'; }
@@ -2766,8 +2767,10 @@
   function drawSuperBall(b) {
     const s = SUPER(b.super);
     let alpha = 1;
-    if (b.super === 'ghost' && (b.x - NET_X) * (b.superOwner === 0 ? 1 : -1) > 0) {
-      alpha = (time % 0.6) < 0.08 ? 0.7 : 0.04; // blinks now and then once past the net
+    if (b.super === 'ghost' && b.crossed && !b.returned) {
+      // past the net: 0.5 s completely invisible, 0.5 s as a blurry white ghost, and so on
+      alpha = Math.floor((b.flight || 0) / 0.5) % 2 === 0 ? 0 : 0.6;
+      if (alpha === 0) return;
     }
     ctx.save();
     ctx.globalAlpha = alpha;
