@@ -667,7 +667,9 @@
         ball.vx = d.x * s.speed; ball.vy = d.y * s.speed;
         startSuper(p, s); hitInfo.kind = 'super';
       } else {
-        ball.vx = d.x * 820; ball.vy = d.y * 820;
+        // tournament rivals spike softer in the early rounds (a person has to be able to return it)
+        const spikeV = p.isAI && kind === 'tour' ? 600 + Math.min(220, aiSkill(p.level) * 32) : 820;
+        ball.vx = d.x * spikeV; ball.vy = d.y * spikeV;
         if (ball.serveLock !== p.side) p.power = Math.min(1, p.power + 0.06 * p.powerMul);
         shake = 0.12; Sound.spike(); hitInfo.kind = 'spike';
         burst(ball.x, ball.y, 12, ['#ffffff', '#ffd23f']);
@@ -884,7 +886,7 @@
   // Effective skill of a computer rival. Tournament round N / Spike Career use level N; the top of the
   // curve is softened so late rounds are hard but beatable (they were close to flawless before).
   // Tournament rounds 1-8 (round 8 is the reference; the rest climb towards it). Nominal levels were 1..8.
-  const TOUR_SKILL = { 1: 2.5, 2: 3.2, 3: 3.8, 4: 4.5, 5: 5.2, 6: 5.8, 7: 6.3, 8: 6.9 };
+  const TOUR_SKILL = { 1: 1.6, 2: 2.4, 3: 3.1, 4: 3.9, 5: 4.6, 6: 5.2, 7: 5.8, 8: 6.4 };
   const AI_CURVE = [[1, 1], [6, 6], [7, 6.9], [8, 7.85], [9.5, 9]];
   function aiSkill(level) {
     if (kind === 'tour' && TOUR_SKILL[Math.round(level)] && Math.abs(level - Math.round(level)) < 0.01) return TOUR_SKILL[Math.round(level)];
@@ -989,7 +991,7 @@
       inp.jump = true;                 // jump and spike it over (any distance from the net)
     } else if (p.onGround && near && height > 150 && height < 300 && ball.vy > -120) {
       // with the super ready even easy rivals go for the spike now and then
-      const chance = p.power >= 1 ? Math.max(0.45, 0.3 + lv * 0.08) : 0.18 + lv * 0.1;
+      const chance = p.power >= 1 ? Math.max(0.45, 0.3 + lv * 0.08) : kind === 'tour' ? 0.1 + lv * 0.09 : 0.18 + lv * 0.1;
       if (ai.jumpPlan === null) ai.jumpPlan = Math.random() < chance;
       if (ai.jumpPlan && Math.abs(p.x - NET_X) < (p.power >= 1 ? 340 : 280)) inp.jump = true;
     }
