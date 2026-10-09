@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>PUJAZO · Puja por lo ideal</title>
+<meta name="description" content="Juego online de pujas en tiempo real para hasta 5 personas. Puja, gana y monta tu jardín, casa, pizza o viaje ideal.">
+<meta name="theme-color" content="#1a0b3d">
+<link rel="icon" href="logo.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@500;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="bg"></div>
+<button id="muteBtn" class="icon-btn" title="Sonido">🔊</button>
+
+<!-- INICIO -->
+<section id="home" class="screen active">
+  <div class="brand">
+    <img src="logo.svg" class="logo" alt="Logo de PUJAZO">
+    <h1 class="wordmark">PUJ<span>A</span>ZO</h1>
+    <p class="tagline">Puja, gana y monta lo <b>ideal</b>… o un desastre.</p>
+  </div>
+  <div class="menu">
+    <button class="btn btn-primary btn-xl" data-go="create">Crear sala</button>
+    <button class="btn btn-secondary btn-xl" data-go="join">Unirse a sala</button>
+    <button class="btn btn-ghost" data-go="howto">¿Cómo se juega?</button>
+  </div>
+</section>
+
+<!-- CÓMO SE JUEGA -->
+<section id="howto" class="screen">
+  <div class="panel">
+    <h2>¿Cómo se juega?</h2>
+    <ol class="rules">
+      <li>Salas de <b>2 a 5 personas</b>. Todos empezáis con <b>20 🪙</b>.</li>
+      <li>Van saliendo cosas al azar: <span class="tier terrible">muy malas</span> <span class="tier malo">malas</span> <span class="tier normal">normales</span> <span class="tier bueno">buenas</span> y <span class="tier brutal">muy buenas</span>.</li>
+      <li>Cada puja dura <b>10 s</b>. En cuanto alguien puja, el reloj vuelve a <b>5 s</b>.</li>
+      <li>Si todos los demás pulsan <b>Dejar de pujar</b>, se lo lleva el que más ha pujado al momento.</li>
+      <li>Si nadie puja, se lo come gratis alguien sin dinero (o el que menos tenga).</li>
+      <li>Cada jugador acaba con <b>4 cosas</b> exactas. Después os puntuáis del 0 al 10.</li>
+    </ol>
+    <button class="btn btn-primary" data-go="home">¡Entendido!</button>
+  </div>
+</section>
+
+<!-- CREAR -->
+<section id="create" class="screen">
+  <div class="panel">
+    <h2>Crear sala</h2>
+    <label class="field"><span>Tu nombre</span><input id="createName" maxlength="16" placeholder="Ej: Yago" autocomplete="off"></label>
+    <span class="field-label">Elige la categoría</span>
+    <div id="catGrid" class="cat-grid"></div>
+    <div class="row">
+      <button class="btn btn-ghost" data-go="home">Volver</button>
+      <button id="createBtn" class="btn btn-primary">Confirmar</button>
+    </div>
+  </div>
+</section>
+
+<!-- UNIRSE -->
+<section id="join" class="screen">
+  <div class="panel">
+    <h2>Unirse a sala</h2>
+    <div id="joinStep1">
+      <label class="field"><span>Tu nombre</span><input id="joinName" maxlength="16" placeholder="Ej: Lucía" autocomplete="off"></label>
+      <div class="row">
+        <button class="btn btn-ghost" data-go="home">Volver</button>
+        <button id="joinNameBtn" class="btn btn-primary">Confirmar</button>
+      </div>
+    </div>
+    <div id="joinStep2" hidden>
+      <p class="hello">¡Hola, <b id="joinHello"></b>! Escribe el código de la sala:</p>
+      <input id="joinCode" class="code-input" maxlength="4" placeholder="ABCD" autocomplete="off" autocapitalize="characters" spellcheck="false">
+      <div class="row">
+        <button id="joinBack" class="btn btn-ghost">Atrás</button>
+        <button id="joinBtn" class="btn btn-primary">Entrar</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SALA DE ESPERA -->
+<section id="lobby" class="screen">
+  <div class="panel lobby">
+    <span class="field-label">Código de la sala</span>
+    <button id="codeBox" class="code-box" title="Copiar"></button>
+    <p class="muted small">Pásaselo a tus amigos · toca para copiar</p>
+    <div id="lobbyCat" class="lobby-cat"></div>
+    <div id="lobbyCatPicker" class="cat-grid small" hidden></div>
+    <h3>Jugadores <span id="lobbyCount"></span></h3>
+    <ul id="lobbyPlayers" class="lobby-players"></ul>
+    <div class="row">
+      <button id="leaveBtn" class="btn btn-ghost">Salir</button>
+      <button id="startBtn" class="btn btn-primary">¡Comenzar!</button>
+    </div>
+    <p id="lobbyWait" class="muted"></p>
+  </div>
+</section>
+
+<!-- PARTIDA -->
+<section id="game" class="screen">
+  <header class="game-top">
+    <div id="gameCat" class="game-cat"></div>
+    <div id="gameCounter" class="game-counter"></div>
+  </header>
+  <div id="playersBar" class="players-bar"></div>
+  <main class="stage">
+    <div id="itemCard" class="item-card">
+      <div id="itemTier" class="tier"></div>
+      <div class="item-img-wrap">
+        <div id="itemEmoji" class="item-emoji"></div>
+        <img id="itemImg" class="item-img" alt="">
+      </div>
+      <h2 id="itemName" class="item-name"></h2>
+    </div>
+    <div class="bid-zone">
+      <div class="bid-top">
+      <div class="timer">
+        <svg viewBox="0 0 120 120"><circle class="timer-bg" cx="60" cy="60" r="52"/><circle id="timerRing" class="timer-ring" cx="60" cy="60" r="52"/></svg>
+        <div id="timerText" class="timer-text">10</div>
+      </div>
+      <div class="current-bid">
+        <span class="muted small">Puja actual</span>
+        <div id="bidAmount" class="bid-amount">—</div>
+        <div id="bidLeader" class="bid-leader">Nadie ha pujado</div>
+      </div>
+      </div>
+      <div id="controls" class="controls">
+        <button id="quickBid" class="btn btn-gold btn-xl">PUJAR 1</button>
+        <div class="custom-bid">
+          <input id="customBid" type="number" inputmode="numeric" min="1" max="20" placeholder="¿Cuánto?">
+          <button id="customBidBtn" class="btn btn-secondary">Pujar</button>
+        </div>
+        <button id="passBtn" class="btn btn-danger">✋ Dejar de pujar</button>
+      </div>
+      <div id="myStatus" class="my-status"></div>
+      <ul id="bidFeed" class="bid-feed"></ul>
+    </div>
+  </main>
+</section>
+
+<!-- VOTACIÓN -->
+<section id="voting" class="screen">
+  <div class="screen-head">
+    <h2 id="votingTitle">¡A votar!</h2>
+    <p class="muted">Puntúa del 0 al 10 lo que ha montado cada uno.</p>
+  </div>
+  <div id="voteCards" class="final-cards"></div>
+  <div class="sticky-actions">
+    <span id="voteProgress" class="muted"></span>
+    <button id="sendVotes" class="btn btn-primary">Enviar votos</button>
+    <button id="forceResults" class="btn btn-ghost" hidden>Ver resultados ya</button>
+  </div>
+</section>
+
+<!-- RESULTADOS -->
+<section id="results" class="screen">
+  <div class="screen-head">
+    <img src="logo.svg" class="logo small" alt="">
+    <h2>Resultados</h2>
+  </div>
+  <ol id="podium" class="podium"></ol>
+  <div id="resultCards" class="final-cards"></div>
+  <div class="sticky-actions">
+    <button id="exitBtn" class="btn btn-ghost">Salir</button>
+    <button id="againBtn" class="btn btn-primary">Jugar otra vez</button>
+    <span id="againWait" class="muted"></span>
+  </div>
+</section>
+
+<!-- OVERLAY CATEGORÍA -->
+<div id="catOverlay" class="overlay" hidden>
+  <div class="cat-reveal">
+    <p class="muted">La categoría es…</p>
+    <div id="catSlot" class="cat-slot"></div>
+  </div>
+</div>
+
+<!-- OVERLAY VENDIDO -->
+<div id="soldOverlay" class="overlay sold-overlay" hidden>
+  <svg id="cracks" class="cracks" preserveAspectRatio="none"></svg>
+  <div id="gavel" class="gavel">
+    <svg viewBox="0 0 200 200"><use href="#gavelShape"/></svg>
+  </div>
+  <div id="soldStamp" class="sold-stamp">
+    <div id="soldWord" class="sold-word">¡VENDIDO!</div>
+    <div id="soldWho" class="sold-who"></div>
+    <div id="soldWhat" class="sold-what"></div>
+  </div>
+</div>
+<div id="flash" class="flash"></div>
+<div id="toast" class="toast"></div>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <linearGradient id="gWood" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#C47437"/><stop offset="1" stop-color="#6E3412"/></linearGradient>
+    <linearGradient id="gBand" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFE9A0"/><stop offset="1" stop-color="#D99100"/></linearGradient>
+    <g id="gavelShape">
+      <rect x="92" y="70" width="16" height="124" rx="7" fill="url(#gWood)" stroke="#3B1A06" stroke-width="5"/>
+      <rect x="40" y="20" width="120" height="54" rx="16" fill="url(#gWood)" stroke="#3B1A06" stroke-width="5"/>
+      <rect x="52" y="20" width="14" height="54" fill="url(#gBand)" stroke="#3B1A06" stroke-width="3"/>
+      <rect x="134" y="20" width="14" height="54" fill="url(#gBand)" stroke="#3B1A06" stroke-width="3"/>
+      <rect x="48" y="27" width="104" height="9" rx="4" fill="#fff" opacity=".25"/>
+    </g>
+  </defs>
+</svg>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
