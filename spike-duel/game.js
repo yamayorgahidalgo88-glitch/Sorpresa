@@ -324,6 +324,10 @@
   // Wider screens (e.g. 20:9 phones) get extra scenery at the sides instead of black bars.
   // courtExt: how far the court walls reach past the 960 court on each side (phones only,
   // a bit inside the screen edge so the court is not too wide to cover).
+  // Adaptive resolution: if a device cannot hold ~25 fps the canvas is rendered at a lower
+  // resolution (one way, for the rest of the session). 0 = full, 1 = 70 %, 2 = 50 %.
+  const QUALITY = [1, 0.7, 0.5];
+  let qualityLevel = 0, perfEma = 1 / 60, perfN = 0;
   let viewW = W, offX = 0, courtExt = 0;
   const WALL_INSET = 70;
   function fit() {
@@ -338,7 +342,7 @@
     stage.style.left = Math.round((vw - cw) / 2) + 'px';
     stage.style.top = Math.round((vh - ch) / 2) + 'px';
     stage.style.setProperty('--u', scale + 'px');
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2) * QUALITY[qualityLevel];
     canvas.width = Math.round(cw * dpr);
     canvas.height = Math.round(ch * dpr);
     ctx.setTransform(canvas.width / viewW, 0, 0, canvas.height / H, 0, 0);
@@ -553,7 +557,7 @@
     if (fx.slow) speed *= 0.5;
     if (fx.balloon) speed *= 0.75;
     p.vx = dir * speed;
-    if (fx.wind) { p.vx += (p.side === 0 ? -1 : 1) * 170; fx.wind = Math.max(0, fx.wind - dt); }   // blown towards the back wall for 2.5 s
+    if (fx.wind) { p.vx += (p.side === 0 ? -1 : 1) * 300; fx.wind = Math.max(0, fx.wind - dt); }   // blown towards the back wall for 2.5 s
     if (fx.knock) { p.vx += fx.knock; fx.knock *= dt === STEP ? KNOCK_DECAY_STEP : Math.pow(0.02, dt); if (Math.abs(fx.knock) < 20) fx.knock = 0; }
     const canJump = !locked && !fx.sticky;
     if (inp.jump && p.onGround && canJump) {
@@ -1369,6 +1373,26 @@
   }
 
   // ---------- Drawing ----------
+  // The whole scenery is drawn into one offscreen canvas and only refreshed ~10 times a second
+  // (clouds and waves drift slowly), so a phone blits a single image per frame instead of redrawing
+  // every gradient and wave. Only the current venue's big layers are kept in memory.
+  const BG_S = 1.5;
+  let bgCv = null, bgVenue = '', bgAt = -1e9;
+  function dropLayers() { for (const k in layerCache) { layerCache[k].width = 0; delete layerCache[k]; } }
+  function bgBlit() {
+    const now = performance.now();
+    if (!bgCv || bgVenue !== venue || now - bgAt > 100) {
+      if (!bgCv) { bgCv = document.createElement('canvas'); bgCv.width = Math.round(W * BG_S); bgCv.height = Math.round(H * BG_S); }
+      if (bgVenue !== venue) dropLayers();
+      const c2 = bgCv.getContext('2d');
+      c2.setTransform(BG_S, 0, 0, BG_S, 0, 0); c2.clearRect(0, 0, W, H);
+      const main = ctx; ctx = c2;
+      try { drawBackground(); } finally { ctx = main; }
+      bgAt = now; bgVenue = venue;
+    }
+    ctx.drawImage(bgCv, 0, 0, W, H);
+  }
+
   function drawBackground() {
     let g;
     if (venue === 'beach') {
@@ -2796,14 +2820,14 @@
     ctx.restore();
   }
 
-  const INK_BLOTS = [[0.25, 0.3, 70], [0.6, 0.5, 90], [0.4, 0.75, 60], [0.8, 0.25, 55], [0.15, 0.65, 50], [0.7, 0.8, 45]];
+  const INK_BLOTS = [[0.25, 0.3, 70], [0.6, 0.5, 90], [0.4, 0.75, 60], [0.8, 0.25, 55], [0.15, 0.65, 50], [0.7, 0.8, 45], [0.5, 0.2, 50], [0.9, 0.55, 50], [0.1, 0.9, 40]];
   function drawInk(p) {
     const x0 = p.side === 0 ? 0 : NET_X, w = NET_X;
     ctx.save();
-    ctx.globalAlpha = Math.min(1, p.fx.ink) * 0.92;
+    ctx.globalAlpha = Math.min(1, p.fx.ink * 3);          // fully opaque, only fading out in the last 0.33 s
     ctx.fillStyle = '#111014';
-    for (const [bx, by, r] of INK_BLOTS) {
-      const cx = x0 + bx * w, cy = 40 + by * (GROUND - 60);
+    for (const [bx, by, r0] of INK_BLOTS) {
+      const r = r0 * 1.45, cx = x0 + bx * w, cy = 40 + by * (GROUND - 60);
       circle(cx, cy, r);
       for (let k = 0; k < 6; k++) { const a = k * 1.05 + bx * 5; circle(cx + Math.cos(a) * r * 1.05, cy + Math.sin(a) * r * 1.05, r * 0.28); }
     }
@@ -2937,7 +2961,7 @@
     ctx.save();
     if (shake > 0) ctx.translate((Math.random() - 0.5) * shake * 30, (Math.random() - 0.5) * shake * 30);
     ctx.save(); ctx.scale(viewW / W, 1);
-    ctx.save(); ctx.translate(0, -sy); drawBackground(); ctx.restore();
+    ctx.save(); ctx.translate(0, -sy); bgBlit(); ctx.restore();
     if (sy) drawControlDeck(sy);
     ctx.restore();
     ctx.translate(offX, -sy);
@@ -3765,12 +3789,21 @@
   }
 
   // ---------- Loop ----------
-  let last = 0, acc = 0;
+  let last = 0, acc = 0, frameEma = 1 / 60, skipFlag = false;
   function frame(ts) {
     const raw = Math.max(0, (ts - last) / 1000 || 0);
     const dt = Math.min(0.05, raw);
     last = ts;
     if (state === 'menu') time += dt;
+    // 120/144 Hz screens draw every second frame (60/72 images a second, an even rhythm): same
+    // smoothness, half the heat and effort. 60-100 Hz screens draw every frame.
+    frameEma += (Math.min(raw, 0.05) - frameEma) * 0.05;
+    skipFlag = frameEma < 0.0097 ? !skipFlag : false;
+    const draw = !skipFlag;
+    if (state === 'playing' || state === 'countdown') {
+      perfEma += (Math.min(raw, 0.2) - perfEma) * 0.04;
+      if (++perfN > 150 && qualityLevel < 2 && perfEma > (qualityLevel ? 0.055 : 0.04)) { qualityLevel++; perfN = 0; perfEma = 1 / 60; fit(); }
+    }
     if (kind === 'online' && net && players.length && state !== 'result') {
       // Online: never throw time away (a hiccup on one phone would slow both down).
       // The device that is ahead runs at most 4% slower, the one behind 4% faster, until they match.
@@ -3783,11 +3816,11 @@
         onlineStep(); acc -= STEP; n++;
       }
       if (acc > 0.3) acc = 0.3;
-      withGlide(() => (mySide() === 1 ? renderOnlineMirrored() : render()));
+      if (draw) withGlide(() => (mySide() === 1 ? renderOnlineMirrored() : render()));
     } else {
       acc += dt;
       while (acc >= STEP) { update(STEP); acc -= STEP; }
-      render();
+      if (draw) render();
     }
     if (careerOpen) drawCareerMap();
     requestAnimationFrame(frame);
