@@ -6,11 +6,11 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
 <style>
-/* Layout: one-screen god-sim — top status bar, full-bleed world canvas, chronicle panel on the right, power dock along the bottom. Deliberately dark-only: a night-sky console around a lit world. */
+/* Layout: one-screen god-sim built for landscape — slim status bar, full-bleed world canvas, chronicle/kingdom panel on the right, power dock along the bottom. Deliberately dark-only: a night-sky console around a lit world. */
 :root{
   --bg:#0b1014; --panel:#121a21; --panel2:#18232c; --line:#26343f;
   --fg:#e7ece9; --muted:#8c9ba3; --gold:#e8b64c; --gold-dim:#7a6230;
-  --danger:#e0584b; --ok:#62bd6c; --mod:#9b7fe0;
+  --danger:#e0584b; --ok:#62bd6c; --mod:#9b7fe0; --info:#5aa6d6;
   --f-display:"Pixelify Sans", "Courier New", monospace;
   --f-body:"Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
   --f-mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
@@ -24,64 +24,81 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 #app{display:grid;grid-template-rows:auto 1fr auto;grid-template-columns:minmax(0,1fr);height:100%}
 
 /* top bar */
-#top{display:flex;align-items:center;gap:12px;padding:6px 12px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
+#top{display:flex;align-items:center;gap:12px;padding:6px 12px;background:var(--panel);border-bottom:1px solid var(--line);min-width:0}
 #brand{font-family:var(--f-display);font-weight:700;font-size:20px;letter-spacing:.02em;color:var(--gold);white-space:nowrap}
 #brand small{font-size:11px;color:var(--mod);margin-left:6px;letter-spacing:.08em;text-transform:uppercase;vertical-align:middle}
-#stats{display:flex;gap:14px;flex-wrap:wrap;font-family:var(--f-mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+#stats{display:flex;gap:14px;font-family:var(--f-mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;overflow-x:auto;white-space:nowrap;scrollbar-width:none;min-width:0;flex:1}
 #stats b{color:var(--fg);font-weight:500}
-#speed{display:flex;gap:2px;margin-left:auto;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:2px}
+#speed{display:flex;gap:2px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:2px;flex:0 0 auto}
 #speed button{border:0;background:transparent;padding:4px 8px;border-radius:4px;cursor:pointer;font-family:var(--f-mono);font-size:12px;color:var(--muted)}
 #speed button.on{background:var(--gold);color:#1a1405}
-.tbtn{border:1px solid var(--line);background:var(--panel2);padding:5px 10px;border-radius:6px;cursor:pointer;font-size:13px}
+#speed button.play{color:var(--ok);font-size:13px}
+.tbtn{border:1px solid var(--line);background:var(--panel2);padding:5px 10px;border-radius:6px;cursor:pointer;font-size:13px;white-space:nowrap}
 .tbtn:hover{border-color:var(--gold-dim)}
 
 /* stage */
 #stage{position:relative;overflow:hidden;min-height:0;background:#06090c}
-#view{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:crosshair;image-rendering:pixelated}
+#view{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:crosshair}
 #zoom{position:absolute;left:10px;top:10px;display:flex;flex-direction:column;gap:4px}
 #zoom button{width:32px;height:32px;border-radius:6px;border:1px solid var(--line);background:rgba(18,26,33,.9);cursor:pointer;font-size:18px;line-height:1}
-#hint{position:absolute;left:50px;top:12px;font-size:12px;color:var(--muted);background:rgba(11,16,20,.75);padding:4px 8px;border-radius:5px;pointer-events:none;max-width:60%}
-#toast{position:absolute;left:50%;top:14px;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--gold-dim);padding:6px 12px;border-radius:6px;font-size:13px;pointer-events:none;opacity:0;transition:opacity .25s}
+#hint{position:absolute;left:50px;bottom:10px;font-size:12px;color:var(--muted);background:rgba(11,16,20,.8);padding:4px 8px;border-radius:5px;pointer-events:none;max-width:55%}
+#toast{position:absolute;left:50%;top:58px;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--gold-dim);padding:6px 12px;border-radius:6px;font-size:13px;pointer-events:none;opacity:0;transition:opacity .25s;max-width:80%;text-align:center}
 #toast.show{opacity:1}
+#creation{position:absolute;left:50%;top:10px;transform:translateX(-50%);display:flex;align-items:center;gap:12px;background:rgba(18,26,33,.95);border:1px solid var(--gold-dim);border-radius:8px;padding:6px 8px 6px 14px;max-width:calc(100% - 120px)}
+#creation span{font-size:13px;line-height:1.3}
+#creation b{font-family:var(--f-display);color:var(--gold);font-weight:500}
+.primary{background:var(--gold);color:#1a1405;border:0;border-radius:6px;padding:7px 14px;font-weight:600;cursor:pointer;white-space:nowrap}
 
 /* side panel */
-#side{position:absolute;right:10px;top:10px;bottom:10px;width:300px;display:flex;flex-direction:column;background:rgba(18,26,33,.94);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+#side{position:absolute;right:10px;top:10px;bottom:10px;width:310px;display:flex;flex-direction:column;background:rgba(18,26,33,.95);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+#side.closed{display:none}
 #sideTabs{display:flex;border-bottom:1px solid var(--line)}
 #sideTabs button{flex:1;border:0;background:transparent;padding:8px 4px;cursor:pointer;color:var(--muted);font-family:var(--f-display);font-size:14px}
 #sideTabs button.on{color:var(--gold);box-shadow:inset 0 -2px 0 var(--gold)}
-#sideTabs .x{flex:0 0 36px}
+#sideTabs .x{flex:0 0 34px}
 #sideBody{flex:1;overflow-y:auto;padding:10px;min-height:0}
 .log{display:flex;flex-direction:column;gap:6px}
 .log div{font-size:13px;line-height:1.35;padding-left:8px;border-left:3px solid var(--line)}
 .log div i{font-style:normal;font-family:var(--f-mono);font-size:11px;color:var(--muted);margin-right:4px}
-.log .war{border-color:var(--danger)} .log .peace{border-color:var(--ok)} .log .hero{border-color:var(--gold)} .log .found{border-color:#5aa6d6} .log .doom{border-color:var(--mod)}
-.krow{display:grid;grid-template-columns:14px 1fr auto;gap:8px;align-items:start;padding:8px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.log .war{border-color:var(--danger)} .log .peace{border-color:var(--ok)} .log .hero{border-color:var(--gold)} .log .found{border-color:var(--info)} .log .doom{border-color:var(--mod)} .log .tech{border-color:#c98a3c}
+.krow{display:grid;grid-template-columns:14px minmax(0,1fr) auto;gap:8px;align-items:start;padding:8px 0;border-bottom:1px solid var(--line);cursor:pointer}
 .krow:hover .kn{color:var(--gold)}
 .sw{width:14px;height:14px;border-radius:3px;margin-top:2px}
 .kn{font-weight:600}
 .kmeta{font-size:12px;color:var(--muted);line-height:1.4}
 .kpop{font-family:var(--f-mono);font-size:12px;font-variant-numeric:tabular-nums}
 .ins h3{font-family:var(--f-display);font-size:18px;margin:0 0 2px;color:var(--gold);text-wrap:balance}
-.ins .sub{color:var(--muted);font-size:12px;margin-bottom:10px}
+.ins h4{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:12px 0 6px;font-weight:600}
+.ins .sub{color:var(--muted);font-size:12px;margin-bottom:10px;line-height:1.4}
 .ins dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0 0 10px;font-size:13px}
 .ins dt{color:var(--muted)} .ins dd{margin:0;font-family:var(--f-mono);font-size:12px;font-variant-numeric:tabular-nums}
-.chips{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}
+.res{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 8px;font-size:12px}
+.res span{display:flex;align-items:center;gap:5px;white-space:nowrap;overflow:hidden}
+.res i{width:9px;height:9px;border-radius:2px;flex:0 0 9px}
+.res b{font-family:var(--f-mono);font-weight:500;margin-left:auto;font-variant-numeric:tabular-nums}
+.res .zero{opacity:.4}
+.chips{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
 .chip{font-size:11px;padding:2px 7px;border-radius:10px;background:var(--panel2);border:1px solid var(--line)}
-.chip.g{border-color:var(--gold-dim);color:var(--gold)} .chip.r{border-color:#6b2c26;color:#f08a80} .chip.m{border-color:#4b3d73;color:#c2b0f5}
-.acts{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.chip.g{border-color:var(--gold-dim);color:var(--gold)} .chip.r{border-color:#6b2c26;color:#f08a80} .chip.m{border-color:#4b3d73;color:#c2b0f5} .chip.ok{border-color:#2f5a33;color:#8ed596}
+.next{border:1px solid var(--line);border-radius:6px;padding:7px 9px;font-size:12.5px;margin-bottom:6px;background:var(--panel2)}
+.bar{height:5px;background:var(--bg);border-radius:3px;margin-top:5px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--gold)}
+.miss{color:#f08a80;font-size:12px;margin-top:4px}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
 .acts button{border:1px solid var(--line);background:var(--panel2);border-radius:6px;padding:6px;cursor:pointer;font-size:12px}
 .acts button:hover{border-color:var(--gold-dim)}
 .acts button.bad{color:#f08a80}
 .empty{color:var(--muted);font-size:13px;line-height:1.5}
-#sideToggle{display:none}
+.back{border:0;background:none;color:var(--muted);cursor:pointer;padding:0 0 8px;font-size:12px}
+#sideToggle{position:absolute;right:10px;top:10px}
 
 /* dock */
-#dock{background:var(--panel);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+#dock{background:var(--panel);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);min-width:0}
 #tabs{display:flex;gap:2px;padding:6px 10px 0;overflow-x:auto;scrollbar-width:none}
-#tabs button{border:1px solid transparent;border-bottom:0;background:transparent;padding:6px 12px;border-radius:6px 6px 0 0;cursor:pointer;color:var(--muted);font-family:var(--f-display);font-size:15px;white-space:nowrap}
+#tabs button{border:1px solid transparent;border-bottom:0;background:transparent;padding:6px 11px;border-radius:6px 6px 0 0;cursor:pointer;color:var(--muted);font-family:var(--f-display);font-size:15px;white-space:nowrap}
 #tabs button.on{background:var(--panel2);color:var(--fg);border-color:var(--line)}
 #tabs button.mod::after{content:"MOD";font-family:var(--f-mono);font-size:9px;color:var(--mod);margin-left:5px;vertical-align:top}
-#toolsRow{display:flex;gap:10px;align-items:center;background:var(--panel2);border-top:1px solid var(--line);padding:8px 10px}
+#toolsRow{display:flex;gap:10px;align-items:center;background:var(--panel2);border-top:1px solid var(--line);padding:8px 10px;min-width:0}
 #tools{display:flex;gap:6px;overflow-x:auto;flex:1;min-width:0;padding-bottom:2px;scrollbar-width:thin}
 .tool{flex:0 0 auto;width:64px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px 4px;border:1px solid var(--line);background:var(--panel);border-radius:7px;cursor:pointer;position:relative}
 .tool:hover{border-color:var(--gold-dim)}
@@ -90,12 +107,13 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .tool span{font-size:10.5px;line-height:1.1;text-align:center;color:var(--fg);max-width:60px}
 .tool .m{position:absolute;top:2px;right:3px;width:6px;height:6px;border-radius:50%;background:var(--mod)}
 .tool.act{border-style:dashed}
+.tool.sep{width:auto;padding:6px 10px;justify-content:center;background:var(--bg)}
+.tool.sep span{max-width:90px;font-size:11px}
 #brush{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:var(--muted);flex:0 0 auto}
 #brush input{width:96px;accent-color:var(--gold)}
 
-/* mods/laws lists inside the tools row */
 .plist{display:flex;gap:8px;overflow-x:auto;flex:1;min-width:0;padding-bottom:2px}
-.pcard{flex:0 0 230px;border:1px solid var(--line);background:var(--panel);border-radius:7px;padding:8px 10px;display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+.pcard{flex:0 0 230px;border:1px solid var(--line);background:var(--panel);border-radius:7px;padding:8px 10px;display:flex;gap:10px;align-items:flex-start;cursor:pointer;text-align:left}
 .pcard.off{opacity:.5}
 .pcard b{display:block;font-size:13px;margin-bottom:2px}
 .pcard p{margin:0;font-size:11.5px;color:var(--muted);line-height:1.35}
@@ -104,31 +122,48 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .pcard:not(.off) .sw2{background:var(--gold-dim)} .pcard:not(.off) .sw2::after{left:16px;background:var(--gold)}
 
 /* modal */
-#modal{position:fixed;inset:0;background:rgba(4,7,9,.7);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
-#modalBox{background:var(--panel);border:1px solid var(--line);border-radius:10px;max-width:520px;width:100%;max-height:100%;overflow-y:auto;padding:18px 20px}
-#modalBox h2{font-family:var(--f-display);color:var(--gold);margin:0 0 4px;font-size:24px}
-#modalBox p{color:var(--muted);line-height:1.5;margin:0 0 12px;max-width:65ch}
-.frow{display:grid;grid-template-columns:120px 1fr;gap:8px;align-items:center;margin-bottom:10px}
+.overlay{position:fixed;inset:0;background:rgba(4,7,9,.75);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:10px;max-width:540px;width:100%;max-height:100%;overflow-y:auto;padding:18px 20px}
+.box h2{font-family:var(--f-display);color:var(--gold);margin:0 0 4px;font-size:24px}
+.box p{color:var(--muted);line-height:1.5;margin:0 0 12px;max-width:65ch}
+.frow{display:grid;grid-template-columns:120px minmax(0,1fr);gap:8px;align-items:center;margin-bottom:10px}
 .frow label{color:var(--muted);font-size:13px}
 .frow select{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:6px;color:var(--fg)}
 .mrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
-.primary{background:var(--gold);color:#1a1405;border:0;border-radius:6px;padding:8px 16px;font-weight:600;cursor:pointer}
 .keys{font-size:12.5px;color:var(--muted);line-height:1.7;margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
 .keys kbd{font-family:var(--f-mono);font-size:11px;background:var(--panel2);border:1px solid var(--line);border-radius:3px;padding:0 4px;color:var(--fg)}
+.rot{font-size:56px;line-height:1;margin-bottom:8px;display:inline-block;animation:rot 2.4s ease-in-out infinite}
+@keyframes rot{0%,30%{transform:rotate(0)}60%,100%{transform:rotate(-90deg)}}
 
-@media (max-width:760px){
-  #side{left:10px;right:10px;width:auto;top:auto;height:46%;}
-  #side.closed{display:none}
-  #sideToggle{display:block;position:absolute;right:10px;top:10px}
+/* phones in landscape: compact everything */
+@media (orientation:landscape) and (max-height:520px){
+  #top{padding:3px 8px;gap:8px}
+  #brand{font-size:15px} #brand small{display:none}
+  #stats{font-size:10.5px;gap:10px}
+  #speed button{padding:2px 6px;font-size:11px}
+  .tbtn{padding:3px 8px;font-size:12px}
+  #tabs{padding:3px 6px 0}
+  #tabs button{font-size:12.5px;padding:3px 8px}
+  #toolsRow{padding:4px 6px;gap:6px}
+  .tool{width:50px;padding:3px 1px 2px;gap:1px}
+  .tool canvas{width:20px;height:20px}
+  .tool span{font-size:9px;max-width:48px}
+  #brush input{width:70px}
+  .pcard{flex-basis:200px;padding:5px 8px}
+  .pcard p{font-size:10.5px}
+  #side{width:270px;top:6px;bottom:6px;right:6px}
+  #sideToggle{top:6px;right:6px}
+  #zoom{top:6px;left:6px} #zoom button{width:28px;height:28px}
+  #creation{top:6px;padding:4px 6px 4px 10px} #creation span{font-size:11.5px}
   #hint{display:none}
-  #top{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 8px}
-  #brand{font-size:17px}
-  #speed{grid-column:1/-1;margin-left:0;justify-content:space-between}
-  #speed button{flex:1}
-  #stats{grid-column:1/-1;min-width:0;gap:10px;font-size:11px;flex-wrap:nowrap;overflow-x:auto;white-space:nowrap;scrollbar-width:none}
-  #menuBtn{grid-row:1;grid-column:2}
 }
-@media (prefers-reduced-motion:reduce){#toast{transition:none}}
+@media (max-width:760px) and (orientation:portrait){
+  #top{flex-wrap:wrap} #stats{order:3;flex-basis:100%}
+  #creation{left:52px;right:96px;transform:none;max-width:none;flex-direction:column;align-items:stretch;gap:6px;padding:6px 8px} #creation span{font-size:11.5px}
+  #side{left:10px;right:10px;width:auto;top:auto;height:46%}
+  #hint{display:none}
+}
+@media (prefers-reduced-motion:reduce){#toast{transition:none}.rot{animation:none}}
 </style>
 
 <div id="app">
@@ -136,8 +171,8 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
     <div id="brand">Caja de Dioses<small>+ mods</small></div>
     <div id="stats"></div>
     <div id="speed" role="group" aria-label="Velocidad">
-      <button data-s="0" title="Pausa (P)">❚❚</button>
-      <button data-s="1" class="on">x1</button>
+      <button data-s="0" id="playBtn" title="Pausa / reanudar (espacio)">▶</button>
+      <button data-s="1">x1</button>
       <button data-s="2">x2</button>
       <button data-s="5">x5</button>
       <button data-s="10" data-mod="trucos">x10</button>
@@ -149,14 +184,16 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
   <main id="stage">
     <canvas id="view"></canvas>
     <div id="zoom"><button id="zin" aria-label="Acercar">+</button><button id="zout" aria-label="Alejar">−</button></div>
+    <div id="creation"><span><b>Tiempo detenido.</b> Pon pueblos, rasgos, materiales y fronteras. Nada se mueve hasta que empieces.</span><button class="primary" id="startBtn">▶ Empezar</button></div>
     <div id="hint"></div>
     <div id="toast"></div>
     <button class="tbtn" id="sideToggle">Crónica</button>
     <aside id="side" class="closed">
       <div id="sideTabs">
         <button data-p="log" class="on">Crónica</button>
-        <button data-p="kingdoms">Reinos</button>
+        <button data-p="kingdoms">Pueblos</button>
         <button data-p="ins">Inspector</button>
+        <button class="x" id="sideClose" aria-label="Cerrar panel">✕</button>
       </div>
       <div id="sideBody"></div>
     </aside>
@@ -171,16 +208,18 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
   </footer>
 </div>
 
-<div id="modal" hidden>
-  <div id="modalBox">
+<div id="modal" class="overlay" hidden>
+  <div class="box">
     <h2>Nuevo mundo</h2>
-    <p>Genera un mundo, siembra la vida y observa cómo nacen reinos, héroes y guerras. Todos los mods vienen incluidos y se activan o desactivan en la pestaña Mods.</p>
+    <p>Crea un mundo desde cero. El tiempo empieza parado para que coloques lo que quieras. Cuando pulses Empezar, cada pueblo evolucionará según sus rasgos, sus materiales y su tierra.</p>
     <div class="frow"><label for="mSize">Tamaño</label>
-      <select id="mSize"><option value="128x88">Pequeño (128×88)</option><option value="192x128" selected>Mediano (192×128)</option><option value="288x192">Grande (288×192)</option><option value="384x256">Gigante (384×256)</option></select></div>
+      <select id="mSize"><option value="128x80">Pequeño (128×80)</option><option value="192x112" selected>Mediano (192×112)</option><option value="288x168">Grande (288×168)</option><option value="384x224">Gigante (384×224)</option></select></div>
     <div class="frow"><label for="mType">Forma</label>
-      <select id="mType"><option value="cont">Continentes</option><option value="arch">Archipiélago</option><option value="pang">Pangea</option><option value="empty">Océano vacío</option></select></div>
+      <select id="mType"><option value="cont">Continentes</option><option value="pang">Pangea</option><option value="arch">Archipiélago</option><option value="flat">Llanura verde (lienzo en blanco)</option><option value="empty">Océano vacío</option></select></div>
+    <div class="frow"><label for="mOre">Minerales</label>
+      <select id="mOre"><option value="none">Ninguno: los pongo yo</option><option value="few" selected>Pocos y repartidos</option><option value="many">Muchos</option></select></div>
     <div class="frow"><label for="mLife">Vida inicial</label>
-      <select id="mLife"><option value="civ" selected>Cuatro civilizaciones + animales</option><option value="all">Todas las razas (con mods)</option><option value="animals">Solo animales</option><option value="none">Nada</option></select></div>
+      <select id="mLife"><option value="none" selected>Nada: empiezo de cero</option><option value="animals">Solo animales</option><option value="civ">Cuatro pueblos de ejemplo</option></select></div>
     <div class="mrow">
       <button class="primary" id="mGen">Crear mundo</button>
       <button class="tbtn" id="mSave">Guardar partida</button>
@@ -188,8 +227,20 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
       <button class="tbtn" id="mClose">Cerrar</button>
     </div>
     <div class="keys">
-      <b>Controles.</b> Clic o dedo: usar el poder elegido. Rueda o pellizco: zoom. Clic derecho, dos dedos o la herramienta <i>Mover</i>: desplazar el mapa.<br>
-      <kbd>WASD</kbd>/<kbd>flechas</kbd> mover · <kbd>+</kbd><kbd>−</kbd> zoom · <kbd>P</kbd> pausa · <kbd>1</kbd>–<kbd>5</kbd> velocidad · <kbd>I</kbd> inspeccionar · <kbd>[</kbd><kbd>]</kbd> pincel
+      <b>Cómo se juega.</b> Pestaña <i>Vida</i>: funda pueblos. <i>Rasgos</i>: toca a la gente para darle rasgos (los hijos los heredan). <i>Materiales</i>: pon hierro, oro, obsidiana… para que puedan forjar. <i>Fronteras</i>: dibuja líneas que separan pueblos; bórralas para que se encuentren. Abre <i>Pueblos</i> en el panel para ver su tecnología.<br>
+      <kbd>espacio</kbd> pausa · <kbd>1</kbd>–<kbd>5</kbd> velocidad · <kbd>WASD</kbd> mover · <kbd>+</kbd><kbd>−</kbd> zoom · <kbd>I</kbd> inspeccionar · <kbd>[</kbd><kbd>]</kbd> pincel · clic derecho o dos dedos: desplazar
+    </div>
+  </div>
+</div>
+
+<div id="rotate" class="overlay" hidden>
+  <div class="box" style="text-align:center">
+    <div class="rot" aria-hidden="true">📱</div>
+    <h2>Gira el móvil</h2>
+    <p style="margin-inline:auto">Caja de Dioses se juega en horizontal. Gira el teléfono o pulsa el botón para ponerlo en pantalla completa.</p>
+    <div class="mrow" style="justify-content:center">
+      <button class="primary" id="rotFull">Pantalla completa</button>
+      <button class="tbtn" id="rotSkip">Seguir en vertical</button>
     </div>
   </div>
 </div>
@@ -197,7 +248,8 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 <script>
 "use strict";
 /* =========================================================
-   CAJA DE DIOSES — simulador de dios con mods integrados
+   CAJA DE DIOSES — crea un mundo, dale rasgos a su gente,
+   reparte materiales y mira cómo evolucionan sus pueblos.
    ========================================================= */
 
 // ---------- utilidades ----------
@@ -212,8 +264,7 @@ function hsl(h, s, l) {
   const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1));
   return [Math.round(f(0) * 255), Math.round(f(8) * 255), Math.round(f(4) * 255)];
 }
-const css = c => `rgb(${c[0]},${c[1]},${c[2]})`;
-const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+const css = c => `rgb(${c[0] | 0},${c[1] | 0},${c[2] | 0})`;
 function hash(x, y, s) {
   let h = (Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(s, 982451653)) | 0;
   h = Math.imul(h ^ (h >>> 13), 1274126177);
@@ -226,82 +277,151 @@ function vnoise(x, y, s) {
   return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
 }
 function fbm(x, y, s) { let t = 0, a = .5, f = 1; for (let i = 0; i < 5; i++) { t += a * vnoise(x * f, y * f, s + i * 31); f *= 2; a *= .5; } return t / .97; }
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 
-// ---------- mods ----------
+// ---------- mods y leyes ----------
 const MODS = {
+  tecnologia: { n: 'Tecnología y forja', d: 'Los pueblos investigan, minan y forjan armas, armaduras y edificios cada vez mejores, siguiendo la historia.', on: true },
   razas:      { n: 'Razas Extra', d: 'No-muertos que alzan a los caídos, demonios inmunes al fuego y hombres lagarto que nadan.', on: true },
   bestiario:  { n: 'Bestiario', d: 'Dragones que escupen fuego, serpientes marinas y gusanos de arena gigantes.', on: true },
   apocalipsis:{ n: 'Apocalipsis', d: 'Bomba nuclear, agujero negro, tornados, lluvia ácida, plagas y zombis contagiosos.', on: true },
-  eras:       { n: 'Eras y Tecnología', d: 'Los reinos avanzan de la Edad de Piedra a la Era Moderna. Llegan la pólvora y los rifles.', on: true },
-  heroes:     { n: 'Héroes y Leyendas', d: 'Las unidades suben de nivel, ganan rangos de cultivo, armas legendarias y nombre propio.', on: true },
-  rasgos:     { n: 'Rasgos+', d: 'Más de una docena de rasgos: gigante, inmortal, veloz, sanguinario, afortunado…', on: true },
-  diplomacia: { n: 'Diplomacia', d: 'Alianzas, tratados de paz, rebeliones de ciudades y reyes con sucesión.', on: true },
-  magia:      { n: 'Magia', d: 'Piromantes, sanadores y nigromantes. Hadas que curan. Biomas de cristal y setas.', on: true },
-  masalla:    { n: 'Más Allá', d: 'Los héroes y reyes que mueren vuelven como fantasmas para luchar por su reino.', on: true },
+  heroes:     { n: 'Héroes y Leyendas', d: 'Las unidades suben de nivel, ganan rangos y armas legendarias con nombre propio.', on: true },
+  diplomacia: { n: 'Diplomacia', d: 'Alianzas, tratados de paz, rebeliones y pueblos que crecen a reinos e imperios.', on: true },
+  magia:      { n: 'Magia', d: 'Rasgos de piromante, sanador y nigromante. Hadas que curan. Mithril y adamantita.', on: true },
+  masalla:    { n: 'Más Allá', d: 'Los héroes y reyes que mueren vuelven como fantasmas para luchar por su pueblo.', on: true },
   alien:      { n: 'Invasión Alien', d: 'OVNIs que abducen aldeanos y disparan láseres.', on: true },
-  clima:      { n: 'Clima y Estaciones', d: 'Ciclo de día y noche con luces en las ciudades, inviernos nevados y lluvia.', on: true },
-  trucos:     { n: 'Modo Dios', d: 'Velocidad x10 y x25, editar unidades, mapas gigantes y botones de caos global.', on: true },
+  clima:      { n: 'Clima y Estaciones', d: 'Día y noche con luces en las ciudades, e inviernos nevados.', on: true },
+  trucos:     { n: 'Modo Dios', d: 'Velocidad x10 y x25, editar unidades y pueblos, mapas gigantes y botones de caos.', on: true },
 };
 const modOn = id => !id || MODS[id].on;
-
 const LAWS = {
-  guerras:   { n: 'Guerras', d: 'Los reinos pueden declararse la guerra.', on: true },
+  guerras:   { n: 'Guerras automáticas', d: 'Los pueblos que se tocan pueden declararse la guerra solos. Si la apagas, solo hay guerra cuando tú la declaras.', on: true },
+  mutacion:  { n: 'Mutaciones', d: 'Algunos bebés nacen con un rasgo nuevo al azar.', on: true },
+  herencia:  { n: 'Herencia', d: 'Los hijos heredan los rasgos de sus padres.', on: true },
   rebelion:  { n: 'Rebeliones', d: 'Las ciudades lejanas pueden independizarse.', on: true },
+  hambre:    { n: 'Hambre', d: 'Los pueblos necesitan comida para crecer.', on: true },
   fuego:     { n: 'El fuego se propaga', d: 'Bosques y casas arden y extienden las llamas.', on: true },
-  salvaje:   { n: 'Vida salvaje', d: 'Aparecen ovejas y lobos de forma natural.', on: true },
-  bosques:   { n: 'Crecen los bosques', d: 'La pradera se convierte en bosque y la ceniza vuelve a ser hierba.', on: true },
-  desastres: { n: 'Desastres naturales', d: 'De vez en cuando caen rayos y meteoritos solos.', on: false },
-  hambre:    { n: 'Hambre', d: 'Las ciudades necesitan cultivos para crecer.', on: true },
+  salvaje:   { n: 'Vida salvaje', d: 'Aparecen ovejas y lobos solos.', on: true },
+  bosques:   { n: 'Crecen los bosques', d: 'La pradera se vuelve bosque y la ceniza vuelve a ser hierba.', on: true },
+  desastres: { n: 'Desastres naturales', d: 'De vez en cuando caen rayos y meteoritos.', on: false },
 };
 
 // ---------- terreno ----------
-const T = { DEEP: 0, WATER: 1, SAND: 2, GRASS: 3, FOREST: 4, HILL: 5, MOUNT: 6, SNOW: 7, LAVA: 8, SWAMP: 9, DESERT: 10, ICE: 11, ASH: 12, CORRUPT: 13, FIELD: 14, CRYSTAL: 15, SHROOM: 16 };
+const T = { DEEP: 0, WATER: 1, SAND: 2, GRASS: 3, FOREST: 4, HILL: 5, MOUNT: 6, SNOW: 7, LAVA: 8, SWAMP: 9, DESERT: 10, ICE: 11, ASH: 12, CORRUPT: 13, FIELD: 14, CRYSTAL: 15, SHROOM: 16, JUNGLE: 17, SAVANNA: 18, TUNDRA: 19, ROCK: 20, FERTILE: 21, ACID: 22, BASALT: 23, MESA: 24 };
 const TILE = [
   { n: 'Océano', c: [24, 58, 112], water: 1 },
   { n: 'Agua', c: [44, 100, 172], water: 1 },
-  { n: 'Arena', c: [218, 202, 140], build: 1 },
-  { n: 'Pradera', c: [98, 164, 64], build: 1, burn: 1 },
-  { n: 'Bosque', c: [44, 112, 50], burn: 1 },
-  { n: 'Colinas', c: [128, 138, 82], build: 1 },
-  { n: 'Montaña', c: [118, 110, 106] },
-  { n: 'Nieve', c: [232, 238, 244], build: 1 },
-  { n: 'Lava', c: [236, 92, 24] },
-  { n: 'Pantano', c: [74, 104, 76], build: 1 },
-  { n: 'Desierto', c: [212, 168, 96], build: 1 },
+  { n: 'Arena', c: [218, 202, 140], build: 1, food: .15 },
+  { n: 'Pradera', c: [98, 164, 64], build: 1, burn: 1, food: .6, farm: 1 },
+  { n: 'Bosque', c: [44, 112, 50], burn: 1, food: .25, wood: 1 },
+  { n: 'Colinas', c: [128, 138, 82], build: 1, food: .2, stone: 1 },
+  { n: 'Montaña', c: [118, 110, 106], stone: 1 },
+  { n: 'Nieve', c: [232, 238, 244], build: 1, food: .05 },
+  { n: 'Lava', c: [236, 92, 24], liquid: 1 },
+  { n: 'Pantano', c: [74, 104, 76], build: 1, food: .35 },
+  { n: 'Desierto', c: [212, 168, 96], build: 1, food: .05 },
   { n: 'Hielo', c: [178, 218, 238] },
   { n: 'Ceniza', c: [72, 68, 66], build: 1 },
-  { n: 'Corrupción', c: [108, 52, 128], mod: 'apocalipsis' },
-  { n: 'Cultivo', c: [206, 182, 72], build: 1, burn: 1 },
-  { n: 'Cristal', c: [118, 214, 226], build: 1, mod: 'magia' },
-  { n: 'Setas', c: [158, 92, 124], build: 1, burn: 1, mod: 'magia' },
+  { n: 'Corrupción', c: [108, 52, 128] },
+  { n: 'Cultivo', c: [206, 182, 72], build: 1, burn: 1, food: 2.2 },
+  { n: 'Cristal', c: [118, 214, 226], build: 1, food: .2 },
+  { n: 'Setas', c: [158, 92, 124], build: 1, burn: 1, food: .8 },
+  { n: 'Jungla', c: [26, 126, 64], burn: 1, food: .5, wood: 1 },
+  { n: 'Sabana', c: [178, 168, 84], build: 1, burn: 1, food: .4, farm: 1 },
+  { n: 'Tundra', c: [146, 158, 140], build: 1, food: .15 },
+  { n: 'Roca', c: [134, 130, 126], build: 1, stone: 1 },
+  { n: 'Tierra fértil', c: [86, 128, 46], build: 1, burn: 1, food: 1.3, farm: 1 },
+  { n: 'Ácido', c: [150, 222, 44], liquid: 1 },
+  { n: 'Basalto', c: [58, 58, 66], build: 1, stone: 1 },
+  { n: 'Arcilla roja', c: [192, 106, 64], build: 1, stone: 1, food: .1 },
 ];
 const ELEV = [T.DEEP, T.WATER, T.SAND, T.GRASS, T.HILL, T.MOUNT, T.SNOW];
 const isWater = t => t === T.DEEP || t === T.WATER;
 
+// ---------- materiales ----------
+const MAT = [null,
+  { id: 'cobre', n: 'Cobre', c: [216, 122, 62] },
+  { id: 'estano', n: 'Estaño', c: [196, 202, 206] },
+  { id: 'hierro', n: 'Hierro', c: [160, 84, 62] },
+  { id: 'carbon', n: 'Carbón', c: [28, 28, 30] },
+  { id: 'salitre', n: 'Salitre', c: [244, 242, 214] },
+  { id: 'oro', n: 'Oro', c: [252, 212, 58] },
+  { id: 'plata', n: 'Plata', c: [226, 232, 244] },
+  { id: 'obsidiana', n: 'Obsidiana', c: [66, 30, 92] },
+  { id: 'diamante', n: 'Diamante', c: [170, 250, 255] },
+  { id: 'mithril', n: 'Mithril', c: [96, 220, 255], mod: 'magia' },
+  { id: 'adamantita', n: 'Adamantita', c: [206, 38, 92], mod: 'magia' },
+];
+const MATID = {}; MAT.forEach((m, i) => { if (m) MATID[m.id] = i; });
+const RESLIST = [['madera', 'Madera', [150, 104, 60]], ['piedra', 'Piedra', [140, 136, 132]], ...MAT.slice(1).map(m => [m.id, m.n, m.c])];
+const RESNAME = Object.fromEntries(RESLIST.map(r => [r[0], r[1]]));
+
+// ---------- tecnología (línea temporal) ----------
+const ERAS = ['Edad de Piedra', 'Edad del Cobre', 'Edad del Bronce', 'Edad del Hierro', 'Edad Media', 'Era de la Pólvora', 'Era Industrial', 'Era Moderna'];
+const WEAPONS = [['Puños', 0, null], ['Lanza de madera', 2, [150, 105, 60]], ['Hacha de cobre', 4, [216, 122, 62]], ['Espada de bronce', 6, [205, 150, 70]], ['Espada de hierro', 9, [168, 168, 174]], ['Espada de acero', 12, [218, 222, 232]], ['Hoja de mithril', 16, [110, 230, 255]], ['Mosquete', 18, [96, 72, 50]], ['Rifle', 24, [74, 74, 74]], ['Ametralladora', 30, [46, 46, 50]]];
+const ARMORS = [['Sin armadura', 0, null], ['Pieles', .1, [140, 100, 60]], ['Armadura de bronce', .2, [205, 150, 70]], ['Cota de malla', .3, [168, 168, 174]], ['Placas de acero', .4, [218, 222, 232]], ['Cota de mithril', .5, [110, 230, 255]], ['Armadura de diamante', .56, [170, 250, 255]], ['Blindaje moderno', .6, [92, 104, 78]], ['Armadura de adamantita', .68, [206, 38, 92]]];
+const HOUSES = [['Tiendas de piel', [172, 136, 96]], ['Chozas', [150, 106, 62]], ['Casas de piedra', [156, 154, 150]], ['Castillos', [118, 118, 130]], ['Fábricas', [158, 72, 52]], ['Rascacielos', [124, 176, 214]]];
+const TECH = [
+  { id: 'fuego', n: 'Dominio del fuego', era: 0, cost: 3, need: { madera: 4 }, fx: { food: 1.15 } },
+  { id: 'piedra', core: 1, n: 'Herramientas de piedra', era: 0, cost: 5, need: { piedra: 6 }, fx: { work: 1.2 } },
+  { id: 'lanza', n: 'Lanzas de madera', era: 0, cost: 6, need: { madera: 10 }, weapon: 1 },
+  { id: 'pieles', n: 'Ropa de pieles', era: 0, cost: 6, req: ['piedra'], armor: 1 },
+  { id: 'chozas', n: 'Chozas', era: 0, cost: 8, need: { madera: 15 }, house: 1 },
+  { id: 'agri', n: 'Agricultura', era: 0, cost: 10, req: ['piedra'], fx: { food: 1.35 } },
+  { id: 'obsid', n: 'Hojas de obsidiana', era: 0, cost: 14, need: { obsidiana: 8 }, req: ['piedra'], weapon: 3, wn: 'Macuahuitl de obsidiana', wc: [92, 48, 130] },
+  { id: 'cobre', core: 1, n: 'Metalurgia del cobre', era: 1, cost: 20, need: { cobre: 12 }, req: ['piedra', 'fuego'], weapon: 2 },
+  { id: 'arco', n: 'Arco y flechas', era: 1, cost: 18, need: { madera: 20 }, req: ['lanza'], ranged: 4 },
+  { id: 'rueda', n: 'La rueda', era: 1, cost: 18, need: { madera: 15 }, req: ['piedra'], fx: { speed: 1.15, work: 1.1 } },
+  { id: 'escritura', n: 'Escritura', era: 1, cost: 26, req: ['agri'], fx: { research: 1.3 } },
+  { id: 'bronce', core: 1, n: 'Aleación de bronce', era: 2, cost: 38, need: { cobre: 15, estano: 10 }, req: ['cobre'], weapon: 3, armor: 2 },
+  { id: 'casasp', n: 'Casas de piedra', era: 2, cost: 34, need: { piedra: 40 }, req: ['chozas'], house: 2 },
+  { id: 'comercio', n: 'Comercio y moneda', era: 2, cost: 40, need: { oro: 10 }, req: ['escritura'], fx: { research: 1.2, birth: 1.25 } },
+  { id: 'joyas', n: 'Orfebrería', era: 2, cost: 36, need: { plata: 8, oro: 4 }, req: ['escritura'], fx: { birth: 1.1, research: 1.1 } },
+  { id: 'hierro', core: 1, n: 'Forja de hierro', era: 3, cost: 66, need: { hierro: 20 }, req: ['cobre', 'escritura'], weapon: 4, armor: 3 },
+  { id: 'murallas', n: 'Murallas', era: 3, cost: 58, need: { piedra: 80 }, req: ['casasp'], walls: 1 },
+  { id: 'plata', n: 'Armas de plata', era: 3, cost: 50, need: { plata: 12 }, req: ['hierro'], silver: 1 },
+  { id: 'acero', core: 1, n: 'Acero', era: 4, cost: 105, need: { hierro: 30, carbon: 20 }, req: ['hierro'], weapon: 5, armor: 4 },
+  { id: 'ballesta', n: 'Ballestas', era: 4, cost: 90, need: { hierro: 15, madera: 25 }, req: ['arco', 'hierro'], ranged: 5 },
+  { id: 'castillos', n: 'Castillos', era: 4, cost: 115, need: { piedra: 150 }, req: ['murallas'], house: 3, walls: 2 },
+  { id: 'mithril', n: 'Forja de mithril', era: 4, cost: 135, need: { mithril: 15 }, req: ['acero'], weapon: 6, armor: 5, mod: 'magia' },
+  { id: 'polvora', core: 1, n: 'Pólvora', era: 5, cost: 190, need: { carbon: 25, salitre: 20 }, req: ['acero', 'escritura'], weapon: 7, ranged: 6, gun: 1 },
+  { id: 'imprenta', n: 'Imprenta', era: 5, cost: 170, req: ['acero'], fx: { research: 1.4 } },
+  { id: 'canones', n: 'Cañones', era: 5, cost: 210, need: { hierro: 50, carbon: 20 }, req: ['polvora'], siege: 1 },
+  { id: 'diamante', n: 'Armadura de diamante', era: 5, cost: 200, need: { diamante: 15 }, req: ['acero'], armor: 6 },
+  { id: 'vapor', core: 1, n: 'Máquina de vapor', era: 6, cost: 300, need: { carbon: 60, hierro: 60 }, req: ['imprenta'], fx: { work: 1.6, food: 1.3 }, house: 4 },
+  { id: 'rifles', n: 'Rifles', era: 6, cost: 360, need: { hierro: 40 }, req: ['polvora', 'vapor'], weapon: 8, ranged: 7, gun: 1 },
+  { id: 'medicina', n: 'Medicina', era: 6, cost: 290, req: ['imprenta'], fx: { birth: 1.3, age: 1.4 } },
+  { id: 'electricidad', core: 1, n: 'Electricidad', era: 7, cost: 500, need: { cobre: 60 }, req: ['vapor'], fx: { research: 1.5 }, house: 5 },
+  { id: 'ametra', n: 'Ametralladoras', era: 7, cost: 580, need: { hierro: 80 }, req: ['rifles', 'electricidad'], weapon: 9, ranged: 7, gun: 1, rof: 2 },
+  { id: 'blindaje', n: 'Blindaje moderno', era: 7, cost: 580, need: { hierro: 80, carbon: 40 }, req: ['electricidad'], armor: 7 },
+  { id: 'adamant', n: 'Armadura de adamantita', era: 5, cost: 260, need: { adamantita: 15 }, req: ['mithril'], armor: 8, mod: 'magia' },
+];
+const TECHID = Object.fromEntries(TECH.map(t => [t.id, t]));
+
 // ---------- especies ----------
 const SP = {
-  human:   { n: 'Humanos', civ: 1, skin: [232, 190, 150], hp: 30, atk: 4, spd: .55, age: [55, 80], spr: 'man', home: [T.GRASS, T.FOREST, T.SAND, T.FIELD, T.HILL] },
-  elf:     { n: 'Elfos', civ: 1, skin: [242, 222, 184], hp: 26, atk: 4, spd: .65, age: [250, 400], range: 4, spr: 'man', home: [T.FOREST, T.GRASS, T.CRYSTAL] },
-  dwarf:   { n: 'Enanos', civ: 1, skin: [222, 170, 128], hp: 44, atk: 5, spd: .45, age: [150, 250], mount: 1, spr: 'dwarf', home: [T.HILL, T.MOUNT, T.SNOW, T.GRASS] },
-  orc:     { n: 'Orcos', civ: 1, skin: [96, 152, 72], hp: 40, atk: 6, spd: .55, age: [40, 60], war: 2, spr: 'man', home: [T.DESERT, T.GRASS, T.SAND, T.ASH, T.HILL] },
-  undead:  { n: 'No-muertos', mod: 'razas', civ: 1, skin: [176, 204, 176], hp: 34, atk: 5, spd: .45, age: [9999, 9999], noFood: 1, raise: .35, spr: 'man', home: [T.ASH, T.CORRUPT, T.SWAMP, T.GRASS] },
-  demon:   { n: 'Demonios', mod: 'razas', civ: 1, skin: [204, 56, 44], hp: 46, atk: 7, spd: .55, age: [300, 500], fireproof: 1, war: 2, spr: 'horn', home: [T.ASH, T.DESERT, T.HILL, T.GRASS] },
-  lizard:  { n: 'Hombres lagarto', mod: 'razas', civ: 1, skin: [82, 172, 112], hp: 32, atk: 5, spd: .6, age: [60, 90], swim: 1, spr: 'man', home: [T.SWAMP, T.FOREST, T.SAND, T.GRASS] },
+  human:   { n: 'Humanos', civ: 1, skin: [232, 190, 150], hp: 30, atk: 4, spd: .55, age: [55, 80], spr: 'man' },
+  elf:     { n: 'Elfos', civ: 1, skin: [242, 222, 184], hp: 26, atk: 4, spd: .65, age: [250, 400], spr: 'man', bonus: { research: 1.15 } },
+  dwarf:   { n: 'Enanos', civ: 1, skin: [222, 170, 128], hp: 44, atk: 5, spd: .45, age: [150, 250], mount: 1, spr: 'dwarf', bonus: { mine: 1.6 } },
+  orc:     { n: 'Orcos', civ: 1, skin: [96, 152, 72], hp: 40, atk: 6, spd: .55, age: [40, 60], war: 2, spr: 'man', bonus: { research: .8 } },
+  undead:  { n: 'No-muertos', mod: 'razas', civ: 1, skin: [176, 204, 176], hp: 34, atk: 5, spd: .45, age: [9999, 9999], noFood: 1, raise: .35, spr: 'man', bonus: { research: .7 } },
+  demon:   { n: 'Demonios', mod: 'razas', civ: 1, skin: [204, 56, 44], hp: 46, atk: 7, spd: .55, age: [300, 500], fireproof: 1, war: 2, spr: 'horn' },
+  lizard:  { n: 'Hombres lagarto', mod: 'razas', civ: 1, skin: [82, 172, 112], hp: 32, atk: 5, spd: .6, age: [60, 90], swim: 1, spr: 'man' },
   sheep:   { n: 'Ovejas', skin: [240, 240, 232], hp: 10, atk: 0, spd: .35, age: [12, 18], passive: 1, spr: 'quad' },
   wolf:    { n: 'Lobos', skin: [122, 122, 134], hp: 20, atk: 4, spd: .7, age: [12, 18], hunter: 1, spr: 'quad' },
-  zombie:  { n: 'Zombis', mod: 'apocalipsis', skin: [122, 172, 102], hp: 22, atk: 4, spd: .35, age: [60, 90], hostile: 1, infect: 1, spr: 'man' },
+  zombie:  { n: 'Zombis', mod: 'apocalipsis', skin: [122, 172, 102], hp: 22, atk: 4, spd: .35, age: [60, 90], hostile: 1, infect: 1, spr: 'man', unholy: 1 },
   dragon:  { n: 'Dragón', mod: 'bestiario', skin: [186, 44, 40], hp: 520, atk: 28, spd: .6, age: [900, 999], fly: 1, hostile: 1, breath: 1, fireproof: 1, spr: 'dragon', size: 2.6 },
   serpent: { n: 'Serpiente marina', mod: 'bestiario', skin: [40, 142, 124], hp: 300, atk: 20, spd: .5, age: [400, 600], waterOnly: 1, hostile: 1, spr: 'serpent', size: 2.1 },
   worm:    { n: 'Gusano de arena', mod: 'bestiario', skin: [192, 150, 100], hp: 360, atk: 24, spd: .5, age: [400, 600], sandOnly: 1, hostile: 1, spr: 'worm', size: 2.1 },
   ufo:     { n: 'OVNI', mod: 'alien', skin: [176, 186, 206], hp: 180, atk: 7, spd: .8, age: [60, 80], fly: 1, hostile: 1, abduct: 1, range: 5, spr: 'ufo', size: 1.9 },
-  ghost:   { n: 'Fantasma', mod: 'masalla', skin: [214, 226, 255], hp: 28, atk: 4, spd: .5, age: [3, 5], fly: 1, fireproof: 1, spr: 'ghost' },
+  ghost:   { n: 'Fantasma', mod: 'masalla', skin: [214, 226, 255], hp: 28, atk: 4, spd: .5, age: [3, 5], fly: 1, fireproof: 1, spr: 'ghost', unholy: 1 },
   fairy:   { n: 'Hadas', mod: 'magia', skin: [255, 176, 238], hp: 12, atk: 0, spd: .7, age: [100, 200], fly: 1, healer: 1, spr: 'fairy' },
 };
+SP.undead.unholy = 1; SP.demon.unholy = 1;
 const CIV = Object.keys(SP).filter(k => SP[k].civ);
-
 const SPR = {
-  man:    [".sss.", ".sss.", "bbbbb", ".bbb.", ".b.b.", ".d.d."],
-  dwarf:  [".....", ".sss.", ".rrr.", "bbbbb", ".bbb.", ".d.d."],
+  man:    [".hhh.", ".sss.", "bbbbb", ".bbb.", ".b.b.", ".d.d."],
+  dwarf:  [".hhh.", ".sss.", ".rrr.", "bbbbb", ".bbb.", ".d.d."],
   horn:   ["d...d", ".sss.", ".sss.", "bbbbb", ".bbb.", ".d.d."],
   quad:   [".....", "....s", ".ssss", ".ssss", ".d..d", "....."],
   ghost:  [".sss.", "seses", "sssss", "sssss", "sssss", "s.s.s"],
@@ -312,28 +432,44 @@ const SPR = {
   worm:   [".ssss.", "ssssss", "sddddS", "ssssss", ".ssss."],
 };
 
+// ---------- rasgos y habilidades ----------
 const TRAITS = {
-  fuerte:      { n: 'Fuerte', atk: 1.3 },
-  robusto:     { n: 'Robusto', hp: 1.4 },
-  veloz:       { n: 'Veloz', spd: 1.4 },
-  longevo:     { n: 'Longevo', age: 1.6 },
-  sabio:       { n: 'Sabio', xp: 1.6 },
-  sanguinario: { n: 'Sanguinario', atk: 1.2, mod: 'rasgos' },
-  cobarde:     { n: 'Cobarde', atk: .7, mod: 'rasgos', bad: 1 },
-  gigante:     { n: 'Gigante', hp: 1.8, atk: 1.3, spd: .85, size: 1.35, mod: 'rasgos' },
-  enano:       { n: 'Diminuto', hp: .7, spd: 1.2, size: .75, mod: 'rasgos', bad: 1 },
-  afortunado:  { n: 'Afortunado', dodge: .3, mod: 'rasgos' },
-  fragil:      { n: 'Frágil', hp: .6, mod: 'rasgos', bad: 1 },
-  regenera:    { n: 'Regeneración', regen: 1, mod: 'rasgos' },
-  inmortal:    { n: 'Inmortal', immortal: 1, rare: 1, mod: 'rasgos' },
-  piromante:   { n: 'Piromante', spell: 'fire', mod: 'magia', magic: 1 },
-  sanador:     { n: 'Sanador', spell: 'heal', mod: 'magia', magic: 1 },
-  nigromante:  { n: 'Nigromante', spell: 'raise', mod: 'magia', magic: 1 },
+  inteligente: { n: 'Inteligente', cat: 'Mente', g: '🧠', research: 1.7, d: 'Investiga mucho más rápido.' },
+  genio:       { n: 'Genio', cat: 'Mente', g: '💡', research: 3.5, inh: .25, d: 'Vale por tres investigadores.' },
+  tonto:       { n: 'Tonto', cat: 'Mente', g: '🤪', research: .25, work: .85, bad: 1, d: 'Apenas aporta a la ciencia.' },
+  curioso:     { n: 'Curioso', cat: 'Mente', g: '🧭', research: 1.2, explore: 2.5, d: 'Investiga y funda colonias lejanas.' },
+  sabio:       { n: 'Sabio', cat: 'Mente', g: '📜', research: 1.3, xp: 1.8, d: 'Aprende rápido de la experiencia.' },
+  trabajador:  { n: 'Trabajador', cat: 'Carácter', g: '🔨', work: 1.8, d: 'Mina, tala, cultiva y construye más.' },
+  vago:        { n: 'Vago', cat: 'Carácter', g: '💤', work: .35, bad: 1, d: 'Trabaja poco.' },
+  agresivo:    { n: 'Agresivo', cat: 'Carácter', g: '😠', aggr: 1, atk: 1.15, d: 'Empuja a su pueblo a la guerra.' },
+  pacifico:    { n: 'Pacífico', cat: 'Carácter', g: '🕊', aggr: -1, d: 'Su pueblo evita las guerras.' },
+  valiente:    { n: 'Valiente', cat: 'Carácter', g: '🦁', atk: 1.1, hp: 1.1, d: 'Lucha mejor y aguanta más.' },
+  cobarde:     { n: 'Cobarde', cat: 'Carácter', g: '🐔', atk: .7, coward: 1, bad: 1, d: 'Huye del combate.' },
+  lider:       { n: 'Líder', cat: 'Carácter', g: '👑', lead: 1, d: 'Da moral al ejército y evita rebeliones.' },
+  fuerte:      { n: 'Fuerte', cat: 'Cuerpo', g: '💪', atk: 1.35, work: 1.1, d: 'Golpea más fuerte.' },
+  debil:       { n: 'Débil', cat: 'Cuerpo', g: '🥀', atk: .65, hp: .75, bad: 1, d: 'Poco útil en la guerra.' },
+  gigante:     { n: 'Gigante', cat: 'Cuerpo', g: '🗿', hp: 1.8, atk: 1.3, spd: .85, size: 1.35, d: 'Enorme y resistente.' },
+  diminuto:    { n: 'Diminuto', cat: 'Cuerpo', g: '🐭', hp: .7, spd: 1.2, size: .75, bad: 1, d: 'Pequeño y rápido.' },
+  veloz:       { n: 'Veloz', cat: 'Cuerpo', g: '💨', spd: 1.45, d: 'Se mueve mucho más rápido.' },
+  fertil:      { n: 'Fértil', cat: 'Cuerpo', g: '🍼', fert: 2.2, d: 'Su pueblo tiene más hijos.' },
+  esteril:     { n: 'Estéril', cat: 'Cuerpo', g: '🚫', fert: 0, bad: 1, d: 'No tiene hijos.' },
+  longevo:     { n: 'Longevo', cat: 'Cuerpo', g: '⏳', age: 1.7, d: 'Vive mucho más.' },
+  regenera:    { n: 'Regeneración', cat: 'Cuerpo', g: '💗', regen: 1, d: 'Se cura solo.' },
+  afortunado:  { n: 'Afortunado', cat: 'Cuerpo', g: '🍀', dodge: .3, d: 'Esquiva uno de cada tres golpes.' },
+  inmortal:    { n: 'Inmortal', cat: 'Cuerpo', g: '♾', immortal: 1, inh: 0, d: 'No envejece y casi no recibe daño.' },
+  minero:      { n: 'Minero', cat: 'Habilidad', g: '⛏', mine: 2.5, d: 'Saca mucho más mineral.' },
+  granjero:    { n: 'Granjero', cat: 'Habilidad', g: '🌾', farm: 2.5, d: 'Cultiva y produce más comida.' },
+  constructor: { n: 'Constructor', cat: 'Habilidad', g: '🧱', build: 2.5, d: 'Levanta casas muy rápido.' },
+  herrero:     { n: 'Herrero', cat: 'Habilidad', g: '⚒', smith: 1, d: 'Mejora las armas de todo su pueblo.' },
+  arquero:     { n: 'Arquero', cat: 'Habilidad', g: '🏹', archer: 1, d: 'Dispara de lejos aunque no conozcan el arco.' },
+  piromante:   { n: 'Piromante', cat: 'Habilidad', g: '🔥', spell: 'fire', mod: 'magia', magic: 1, d: 'Lanza bolas de fuego.' },
+  sanador:     { n: 'Sanador', cat: 'Habilidad', g: '✚', spell: 'heal', mod: 'magia', magic: 1, d: 'Cura a los suyos.' },
+  nigromante:  { n: 'Nigromante', cat: 'Habilidad', g: '💀', spell: 'raise', mod: 'magia', magic: 1, d: 'Levanta muertos que luchan por él.' },
 };
-const RANKS = [[1, 'Mortal'], [3, 'Iniciado'], [5, 'Adepto'], [8, 'Maestro'], [12, 'Gran Maestro'], [17, 'Semidiós'], [25, 'Inmortal Ascendido']];
+const OPPOSITE = { inteligente: 'tonto', tonto: 'inteligente', genio: 'tonto', trabajador: 'vago', vago: 'trabajador', agresivo: 'pacifico', pacifico: 'agresivo', valiente: 'cobarde', cobarde: 'valiente', fuerte: 'debil', debil: 'fuerte', gigante: 'diminuto', diminuto: 'gigante', fertil: 'esteril', esteril: 'fertil' };
+const RANKS = [[1, 'Recluta'], [3, 'Veterano'], [5, 'Campeón'], [8, 'Maestro de armas'], [12, 'Leyenda'], [17, 'Semidiós'], [25, 'Inmortal']];
 const rankOf = l => { let r = RANKS[0][1]; for (const [lv, n] of RANKS) if (l >= lv) r = n; return r; };
-const ITEMS = [['Espada de fuego', 8, 0], ['Hacha rúnica', 10, 0], ['Arco élfico', 7, 0], ['Martillo de guerra', 12, -5], ['Báculo arcano', 6, 20], ['Escudo de dragón', 2, 60], ['Lanza celeste', 9, 10], ['Corona maldita', 14, -10]];
-const ERAS = [['Edad de Piedra', 0], ['Edad de Bronce', 40], ['Edad de Hierro', 120], ['Era Medieval', 260], ['Era de la Pólvora', 480], ['Era Moderna', 820]];
+const ITEMS = [['Espada del Alba', 8, 0], ['Hacha rúnica', 10, 0], ['Arco de las Estrellas', 7, 0], ['Martillo del Trueno', 12, -5], ['Báculo arcano', 6, 20], ['Escudo del Dragón', 2, 60], ['Lanza celeste', 9, 10], ['Corona maldita', 14, -10]];
 
 const SYL = {
   human:  [['Al', 'Bel', 'Cor', 'Dar', 'Ed', 'Fer', 'Gal', 'Hal', 'Is', 'Mar', 'Nor', 'Ro', 'San', 'Tor', 'Val', 'Lu'], ['ia', 'gard', 'mont', 'burgo', 'ona', 'ar', 'en', 'villa', 'esta', 'ano']],
@@ -344,35 +480,51 @@ const SYL = {
   demon:  [['Baal', 'Az', 'Infer', 'Mal', 'Xar', 'Bel', 'Asmo', 'Vor'], ['oth', 'ius', 'gor', 'zeth', 'ax', 'deus']],
   lizard: [['Ss', 'Kre', 'Zal', 'Tss', 'Yix', 'Sar', 'Ksa'], ['ith', 'ash', 'ka', 'ssa', 'rix', 'zul']],
 };
-const KTITLE = { human: 'Reino de', elf: 'Reino élfico de', dwarf: 'Fortaleza de', orc: 'Horda de', undead: 'Dominio de', demon: 'Infierno de', lizard: 'Pantano de' };
-const KFEM = { dwarf: 1, orc: 1 };
+const KT = {
+  human: [['Pueblo de', 0], ['Reino de', 0], ['Imperio de', 0]],
+  elf: [['Clan élfico de', 0], ['Reino élfico de', 0], ['Imperio élfico de', 0]],
+  dwarf: [['Clan enano de', 0], ['Fortaleza de', 1], ['Imperio enano de', 0]],
+  orc: [['Tribu de', 1], ['Horda de', 1], ['Imperio orco de', 0]],
+  undead: [['Cripta de', 1], ['Dominio de', 0], ['Imperio de los muertos de', 0]],
+  demon: [['Culto de', 0], ['Infierno de', 0], ['Imperio infernal de', 0]],
+  lizard: [['Nido de', 0], ['Pantano de', 0], ['Imperio lagarto de', 0]],
+};
+const mkName = race => { const s = SYL[race] || SYL.human; return pick(s[0]) + (rnd() < .3 ? pick(s[0]).toLowerCase() : '') + pick(s[1]); };
 const el = k => (k.fem ? 'la ' : 'el ') + k.name;
 const del = k => (k.fem ? 'de la ' : 'del ') + k.name;
 const al = k => (k.fem ? 'a la ' : 'al ') + k.name;
 const El = k => (k.fem ? 'La ' : 'El ') + k.name;
-const mkName = race => { const s = SYL[race] || SYL.human; return pick(s[0]) + (rnd() < .3 ? pick(s[0]).toLowerCase() : '') + pick(s[1]); };
 
 // ---------- estado del mundo ----------
-let W, H, N, tile, owner, bld, fire, rad, jit;
+let W, H, N, tile, owner, bld, fire, rad, ore, oreAmt, wall, region, jit;
 let units = [], cities = [], kingdoms = [], projs = [], fx = [], parts = [], fires = [];
-let tickN = 0, uid = 1, logs = [];
+let tickN = 0, uid = 1, logs = [], regionDirty = true;
 const YEAR = 240;
-let paused = false, speed = 1, shake = 0, flash = 0;
+let paused = true, speed = 1, shake = 0, flash = 0;
 const cam = { x: 0, y: 0, z: 4 };
 const GC = 8; let GW, GH, grid;
+const countType = {};
+
+const view = document.getElementById('view');
+const vctx = view.getContext('2d');
+const off = document.createElement('canvas');
+const octx = off.getContext('2d');
+let img;
+let VW = 0, VH = 0, DPR = 1;
 
 function allocWorld(w, h) {
   W = w; H = h; N = W * H;
   tile = new Uint8Array(N); owner = new Uint16Array(N); bld = new Uint8Array(N);
-  fire = new Uint8Array(N); rad = new Uint8Array(N); jit = new Int8Array(N);
+  fire = new Uint8Array(N); rad = new Uint8Array(N); ore = new Uint8Array(N); oreAmt = new Uint8Array(N);
+  wall = new Uint8Array(N); region = new Int32Array(N); jit = new Int8Array(N);
   for (let i = 0; i < N; i++) jit[i] = Math.floor(hash(i % W, (i / W) | 0, 7) * 14) - 7;
   GW = Math.ceil(W / GC); GH = Math.ceil(H / GC); grid = Array.from({ length: GW * GH }, () => []);
   units = []; cities = []; kingdoms = []; projs = []; fx = []; parts = []; fires = []; logs = [];
-  tickN = 0;
+  tickN = 0; regionDirty = true;
   img = vctx.createImageData(W, H); off.width = W; off.height = H;
 }
 
-function genWorld(w, h, type) {
+function genWorld(w, h, type, ores) {
   allocWorld(w, h);
   const s = ri(1, 99999);
   const sc = type === 'arch' ? 22 : type === 'pang' ? 70 : 42;
@@ -382,6 +534,7 @@ function genWorld(w, h, type) {
     const nx = x / W - .5, ny = y / H - .5;
     const d = Math.sqrt(nx * nx * 1.1 + ny * ny * 1.4) * 2;
     let e = fbm(x / sc, y / sc, s);
+    if (type === 'flat') { const f = vnoise(x / 9, y / 9, s + 40), r = vnoise(x / 7, y / 7, s + 41); tile[i] = d > .92 ? (d > 1 ? T.DEEP : T.WATER) : d > .88 ? T.SAND : r > .8 ? T.ROCK : f > .7 ? T.FOREST : T.GRASS; continue; }
     if (type === 'pang') e = e * .75 + .42 - d * .55;
     else if (type === 'arch') e = e * 1.05 - d * .25 + .02;
     else e = e + .12 - d * .38;
@@ -390,97 +543,154 @@ function genWorld(w, h, type) {
     let t;
     if (e < .34) t = T.DEEP; else if (e < .41) t = T.WATER; else if (e < .435) t = T.SAND;
     else if (e < .63) {
-      if (temp < .18) t = rnd() < .2 ? T.ICE : T.SNOW;
-      else if (m < .36 && temp > .55) t = T.DESERT;
+      if (temp < .14) t = rnd() < .2 ? T.ICE : T.SNOW;
+      else if (temp < .26) t = T.TUNDRA;
+      else if (m < .33 && temp > .6) t = vnoise(x / 12, y / 12, s + 3) > .65 ? T.MESA : T.DESERT;
+      else if (m < .42 && temp > .62) t = T.SAVANNA;
       else if (m > .62 && e < .5 && temp > .4) t = T.SWAMP;
+      else if (m > .55 && temp > .7) t = T.JUNGLE;
       else if (m > .5) t = T.FOREST;
-      else t = T.GRASS;
+      else t = vnoise(x / 10, y / 10, s + 21) > .74 ? T.FERTILE : T.GRASS;
     }
-    else if (e < .7) t = T.HILL; else if (e < .78) t = T.MOUNT; else t = T.SNOW;
+    else if (e < .67) t = T.HILL; else if (e < .7) t = vnoise(x / 6, y / 6, s + 13) > .55 ? T.ROCK : T.HILL; else if (e < .78) t = T.MOUNT; else t = T.SNOW;
     if (temp < .1 && isWater(t) && e > .3) t = T.ICE;
-    if (t === T.FOREST || t === T.GRASS) {
-      const mg = vnoise(x / 9, y / 9, s + 77);
-      if (mg > .93) t = T.CRYSTAL; else if (mg < .05 && m > .5) t = T.SHROOM;
-    }
     tile[i] = t;
+  }
+  if (ores !== 'none') {
+    const nVein = Math.round(N / (ores === 'many' ? 450 : 1400));
+    const common = [1, 1, 2, 3, 3, 3, 4, 4, 5, 6, 7, 8], rare = [9, 10, 11];
+    for (let v = 0; v < nVein; v++) {
+      const p = randomTile(t => TILE[t].stone || t === T.HILL) || randomTile(t => TILE[t].build);
+      if (!p) break;
+      let m = rnd() < .07 ? pick(rare) : pick(common);
+      if (!modOn(MAT[m].mod)) m = 3;
+      placeVein(p[0], p[1], m, ri(3, 7));
+    }
   }
   centerCam();
 }
+function placeVein(x, y, m, n) {
+  for (let k = 0; k < n; k++) {
+    x += ri(-1, 1); y += ri(-1, 1);
+    if (x < 0 || y < 0 || x >= W || y >= H) continue;
+    const i = y * W + x; if (isWater(tile[i]) || TILE[tile[i]].liquid) continue;
+    ore[i] = m; oreAmt[i] = 40;
+  }
+}
 
-// ---------- canvas ----------
-const view = document.getElementById('view');
-const vctx = view.getContext('2d');
-const off = document.createElement('canvas');
-const octx = off.getContext('2d');
-let img;
-let VW = 0, VH = 0, DPR = 1;
 function resize() {
   const r = view.getBoundingClientRect(); DPR = Math.min(2, window.devicePixelRatio || 1);
-  VW = r.width; VH = r.height; view.width = Math.round(VW * DPR); view.height = Math.round(VH * DPR);
+  VW = r.width; VH = r.height; view.width = Math.max(1, Math.round(VW * DPR)); view.height = Math.max(1, Math.round(VH * DPR));
 }
 function centerCam() {
   resize();
-  cam.z = Math.max(2, VW < 700 ? VH / H * .9 : Math.min(VW / W, VH / H));
+  cam.z = Math.max(2, Math.min(VW / W, VH / H) * (VW < VH ? 1.6 : 1));
   cam.x = W / 2 - VW / cam.z / 2; cam.y = H / 2 - VH / cam.z / 2;
+}
+
+// ---------- regiones (fronteras) ----------
+function passable(i) { const t = tile[i]; return !wall[i] && !isWater(t) && !TILE[t].liquid; }
+function computeRegions() {
+  region.fill(0);
+  const q = new Int32Array(N);
+  let id = 0;
+  for (let s = 0; s < N; s++) {
+    if (region[s] || !passable(s)) continue;
+    id++; let h = 0, t = 0; q[t++] = s; region[s] = id;
+    while (h < t) {
+      const i = q[h++], x = i % W;
+      if (x > 0 && !region[i - 1] && passable(i - 1)) { region[i - 1] = id; q[t++] = i - 1; }
+      if (x < W - 1 && !region[i + 1] && passable(i + 1)) { region[i + 1] = id; q[t++] = i + 1; }
+      if (i >= W && !region[i - W] && passable(i - W)) { region[i - W] = id; q[t++] = i - W; }
+      if (i < N - W && !region[i + W] && passable(i + W)) { region[i + W] = id; q[t++] = i + W; }
+    }
+  }
+  regionDirty = false;
+}
+const regAt = (x, y) => region[(y | 0) * W + (x | 0)];
+function sameRegion(a, b) {
+  if (a.def.fly || b.def.fly) return true;
+  const ra = regAt(a.x, a.y), rb = regAt(b.x, b.y);
+  return !ra || !rb || ra === rb;
+}
+function kingdomsTouch(a, b) {
+  const ca = cities[a.capital], cb = cities[b.capital]; if (!ca || !cb) return false;
+  const ra = region[ca.y * W + ca.x], rb = region[cb.y * W + cb.x];
+  return ra && ra === rb;
 }
 
 // ---------- unidades ----------
 function canStand(def, x, y) {
   if (x < 0 || y < 0 || x >= W || y >= H) return false;
-  const t = tile[(y | 0) * W + (x | 0)];
+  const i = (y | 0) * W + (x | 0), t = tile[i];
   if (def.fly) return true;
+  if (wall[i]) return false;
   if (def.waterOnly) return isWater(t);
-  if (def.sandOnly) return t === T.SAND || t === T.DESERT;
+  if (def.sandOnly) return t === T.SAND || t === T.DESERT || t === T.MESA;
   if (isWater(t)) return !!def.swim;
   if (t === T.MOUNT) return !!def.mount;
   if (t === T.LAVA) return !!def.fireproof;
+  if (t === T.ACID) return false;
   return true;
 }
-function traitMul(u, key, def = 1) { let m = def; for (const t of u.traits) { const tr = TRAITS[t]; if (tr[key] !== undefined && modOn(tr.mod)) m *= tr[key]; } return m; }
+function tmul(u, key) { let m = 1; for (const t of u.traits) { const tr = TRAITS[t]; if (tr && tr[key] !== undefined && modOn(tr.mod)) m *= tr[key]; } return m; }
 function hasTrait(u, t) { return u.traits.includes(t) && modOn(TRAITS[t].mod); }
+function addTrait(u, t) {
+  if (u.traits.includes(t)) return false;
+  const o = OPPOSITE[t]; if (o) u.traits = u.traits.filter(x => x !== o);
+  if (t === 'genio') u.traits = u.traits.filter(x => x !== 'tonto');
+  u.traits.push(t);
+  const om = u.maxHp; u.maxHp = maxHpOf(u); u.hp = Math.max(1, u.hp + u.maxHp - om);
+  return true;
+}
 
-function spawn(type, x, y, k, city, age) {
+function spawn(type, x, y, k, city, opt = {}) {
   const def = SP[type];
   if (!def || !modOn(def.mod)) return null;
   if (!canStand(def, x, y)) {
     let ok = false;
     for (let r = 1; r < 4 && !ok; r++) for (let a = 0; a < 8 && !ok; a++) {
-      const nx = x + ri(-r, r), ny = y + ri(-r, r);
+      const nx = (x | 0) + ri(-r, r), ny = (y | 0) + ri(-r, r);
       if (canStand(def, nx, ny)) { x = nx + .5; y = ny + .5; ok = true; }
     }
     if (!ok) return null;
   }
   const u = {
-    id: uid++, type, def, x, y, k: k || null, city: city ?? -1, age: age ?? (def.civ ? ri(14, 22) : ri(1, 3)),
-    maxAge: ri(def.age[0], def.age[1]), level: 1, xp: 0, kills: 0, traits: [], name: null, hero: false, item: null,
-    tx: null, ty: null, think: ri(0, 30), cool: 0, spell: ri(60, 160), hitT: 0, plague: 0, job: null, army: false,
-    aggro: def.hunter ? rnd() < .3 : false, settler: null, dead: false, life: 0
+    id: uid++, type, def, x, y, k: k || null, city: city ?? -1, age: opt.age ?? (def.civ ? ri(16, 24) : ri(1, 3)),
+    maxAge: ri(def.age[0], def.age[1]), level: 1, xp: 0, kills: 0, traits: opt.traits ? [...opt.traits] : [], name: null, hero: false, item: null,
+    tx: null, ty: null, think: ri(0, 30), cool: 0, spell: ri(60, 160), hitT: 0, plague: 0, job: null, army: false, archer: rnd() < .4,
+    aggro: def.hunter ? rnd() < .3 : false, settler: null, dead: false, life: 0, target: null
   };
-  if (def.civ || type === 'wolf') {
-    const pool = Object.keys(TRAITS).filter(t => modOn(TRAITS[t].mod) && (!TRAITS[t].rare || rnd() < .03));
-    const nt = rnd() < .55 ? 1 : rnd() < .5 ? 2 : 0;
-    for (let i = 0; i < nt; i++) { const t = pick(pool); if (!u.traits.includes(t) && (!TRAITS[t].rare || rnd() < .15)) u.traits.push(t); }
-  }
-  u.maxAge *= traitMul(u, 'age');
-  u.maxHp = def.hp * traitMul(u, 'hp'); u.hp = u.maxHp;
+  u.maxAge *= tmul(u, 'age');
+  u.maxHp = maxHpOf(u); u.hp = u.maxHp;
   units.push(u);
   return u;
 }
-function eraOf(u) { return u.k && modOn('eras') ? u.k.era : 0; }
+function kmul(k, key) { return k && modOn('tecnologia') ? (k.mul[key] || 1) : 1; }
 function atkOf(u) {
-  let a = u.def.atk * traitMul(u, 'atk') * (1 + (u.level - 1) * .15) * (1 + eraOf(u) * .22);
+  let a = u.def.atk;
+  const k = u.k;
+  if (k && u.def.civ && modOn('tecnologia')) a += WEAPONS[k.weapon.tier][1];
+  a *= tmul(u, 'atk') * (1 + (u.level - 1) * .12);
+  if (k && u.def.civ) a *= 1 + Math.min(.3, (k.smiths || 0) * .03) + Math.min(.25, (k.leaders || 0) * .05) + (k.siege && u.army ? .15 : 0);
   if (u.item && modOn('heroes')) a += u.item[1];
   return a;
 }
 function maxHpOf(u) {
-  let h = u.def.hp * traitMul(u, 'hp') * (1 + (u.level - 1) * .12) * (1 + eraOf(u) * .15);
+  let h = u.def.hp * tmul(u, 'hp') * (1 + (u.level - 1) * .1);
   if (u.item && modOn('heroes')) h += u.item[2];
   return Math.max(5, h);
 }
+function armorOf(u) { return u.k && u.def.civ && modOn('tecnologia') ? ARMORS[u.k.armor.tier][1] : 0; }
 function rangeOf(u) {
-  const e = eraOf(u);
-  if (u.def.civ && e >= 5) return 7; if (u.def.civ && e >= 4) return 5;
-  return u.def.range || 1.25;
+  if (!u.def.civ) return u.def.range || 1.25;
+  const k = u.k;
+  if (k && modOn('tecnologia')) {
+    if (k.gun) return k.ranged;
+    if (k.ranged && (u.archer || hasTrait(u, 'arquero'))) return k.ranged;
+  }
+  if (hasTrait(u, 'arquero')) return 4;
+  return 1.25;
 }
 function displayName(u) { return u.name || u.def.n.replace(/s$/, ''); }
 
@@ -488,10 +698,10 @@ function isEnemy(a, b) {
   if (a === b || b.dead) return false;
   const da = a.def, db = b.def;
   if (da.hostile) return !db.hostile || (a.type !== b.type && !(da.infect && db.infect));
-  if (db.hostile) return da.civ || (a.type === 'ghost' && a.k);
+  if (db.hostile) return da.civ || (a.type === 'ghost' && !!a.k);
   if (da.hunter) return b.type === 'sheep' || (db.civ && a.aggro);
   if (db.hunter) return !!da.civ && !!b.aggro;
-  if (a.k && b.k && a.k !== b.k) return a.k.wars.has(b.k.id);
+  if (a.k && b.k && a.k !== b.k) return a.k.wars.has(b.k.id) && sameRegion(a, b);
   if (a.type === 'ghost' && !a.k) return !!db.civ;
   return false;
 }
@@ -528,16 +738,19 @@ function damage(u, d, src) {
   if (u.dead) return;
   if (hasTrait(u, 'afortunado') && rnd() < .3) return;
   if (hasTrait(u, 'inmortal')) d *= .08;
+  d *= 1 - armorOf(u);
+  if (u.k && u.k.walls && owner[(u.y | 0) * W + (u.x | 0)] && cities[owner[(u.y | 0) * W + (u.x | 0)] - 1]?.k === u.k) d *= 1 - u.k.walls * .12;
+  if (src && src.k && src.k.silver && u.def.unholy) d *= 2;
   u.hp -= d; u.hitT = 6;
   if (u.hp <= 0) kill(u, src);
 }
 function gainXp(u, n) {
   if (!modOn('heroes')) return;
-  u.xp += n * traitMul(u, 'xp');
+  u.xp += n * tmul(u, 'xp');
   while (u.xp >= u.level * 2) {
     u.xp -= u.level * 2; u.level++;
     const oldMax = u.maxHp; u.maxHp = maxHpOf(u); u.hp += u.maxHp - oldMax;
-    if (u.level === 4 && u.def.civ && !u.hero) makeHero(u);
+    if (u.level === 5 && u.def.civ && !u.hero) makeHero(u);
     else if (u.hero && [8, 12, 17, 25].includes(u.level)) addLog(`${u.name} alcanza el rango de ${rankOf(u.level)}.`, 'hero');
   }
 }
@@ -546,7 +759,7 @@ function makeHero(u) {
   if (!u.name) u.name = mkName(u.type);
   u.item = pick(ITEMS);
   u.maxHp = maxHpOf(u); u.hp = u.maxHp;
-  addLog(`${u.name} (${u.def.n.toLowerCase()}) se convierte en héroe y empuña ${u.item[0]}.`, 'hero');
+  addLog(`${u.name}${u.k ? ' ' + del(u.k) : ''} se convierte en héroe y empuña ${u.item[0]}.`, 'hero');
 }
 function kill(u, src, cause) {
   if (u.dead) return;
@@ -554,15 +767,12 @@ function kill(u, src, cause) {
   burst(u.x, u.y, [150, 20, 20], 5, .6);
   if (src && !src.dead) { src.kills++; gainXp(src, 1 + u.level * .5 + (u.hero ? 4 : 0)); }
   const wasKing = u.k && u.k.king === u;
-  if (wasKing) { addLog(`Ha muerto ${u.name}, soberano ${del(u.k)}.`, 'war'); u.k.king = null; }
+  if (wasKing) { addLog(`Ha muerto ${u.name}, soberano ${del(u.k)}${cause ? ' (' + cause + ')' : ''}.`, 'war'); u.k.king = null; }
   else if (u.hero) addLog(`El héroe ${u.name} ha caído${src ? ' a manos de ' + (src.name || src.def.n.toLowerCase()) : cause ? ' (' + cause + ')' : ''}.`, 'hero');
-  // contagio zombi
   if (src && src.def.infect && u.def.civ && u.type !== 'undead' && rnd() < .6) { spawn('zombie', u.x, u.y); return; }
-  // los no-muertos alzan a los caídos
   if (src && src.type === 'undead' && src.k && u.def.civ && u.type !== 'undead' && rnd() < SP.undead.raise) {
     const z = spawn('undead', u.x, u.y, src.k, src.city); if (z) burst(u.x, u.y, [120, 230, 140], 6, .5); return;
   }
-  // el más allá
   if (modOn('masalla') && u.def.civ && (u.hero || wasKing || rnd() < .02)) {
     const g = spawn('ghost', u.x, u.y, (u.hero || wasKing) && u.k && u.k.alive ? u.k : null, -1);
     if (g) { g.name = u.name ? 'Espíritu de ' + u.name : null; g.level = Math.max(1, u.level >> 1); g.maxHp = maxHpOf(g); g.hp = g.maxHp; }
@@ -572,14 +782,16 @@ function kill(u, src, cause) {
 function moveToward(u, tx, ty, mul = 1) {
   const dx = tx - u.x, dy = ty - u.y, d = Math.hypot(dx, dy);
   if (d < .05) return true;
-  let sp = u.def.spd * traitMul(u, 'spd') * .055 * mul;
-  if (u.def.civ && eraOf(u) >= 5) sp *= 1.25;
+  let sp = u.def.spd * tmul(u, 'spd') * .055 * mul * (u.def.civ ? kmul(u.k, 'speed') : 1);
   const st = Math.min(sp, d);
   const nx = u.x + dx / d * st, ny = u.y + dy / d * st;
   if (canStand(u.def, nx, ny)) { u.x = nx; u.y = ny; }
   else if (canStand(u.def, nx, u.y)) u.x = nx;
   else if (canStand(u.def, u.x, ny)) u.y = ny;
-  else { u.tx = null; u.job = null; return true; }
+  else {
+    if (u.job && d < 1.9) { u.tx = null; arrive(u); return true; }
+    u.tx = null; u.job = null; return true;
+  }
   return d < .3;
 }
 function wander(u, cx, cy, r) {
@@ -591,24 +803,22 @@ function wander(u, cx, cy, r) {
 
 function attack(u, t) {
   if (u.cool > 0) return;
-  u.cool = u.def.civ ? 28 : 34;
+  u.cool = u.def.civ ? (u.k && u.k.rof ? 14 : 28) : 34;
   const rg = rangeOf(u);
   const dmg = atkOf(u) * (.7 + rnd() * .6);
   if (rg > 2) {
-    const e = eraOf(u);
-    const kind = u.type === 'ufo' ? 'laser' : (u.def.civ && e >= 4) ? 'bullet' : 'arrow';
+    const kind = u.type === 'ufo' ? 'laser' : (u.def.civ && u.k && u.k.gun) ? 'bullet' : 'arrow';
     projs.push({ x: u.x, y: u.y, t, src: u, dmg, kind, spd: kind === 'arrow' ? .35 : .7 });
   } else {
     damage(t, dmg, u);
     if (u.type === 'demon' && rnd() < .08) ignite((t.x | 0), (t.y | 0));
   }
 }
-
 function castSpell(u) {
   u.spell = ri(110, 200);
   if (hasTrait(u, 'piromante')) {
     const e = nearest(u.x, u.y, 7, o => isEnemy(u, o));
-    if (e) { projs.push({ x: u.x, y: u.y, t: e, src: u, dmg: atkOf(u) * 1.5, kind: 'fireball', spd: .3 }); return; }
+    if (e) { projs.push({ x: u.x, y: u.y, t: e, src: u, dmg: atkOf(u) * 1.5 + 6, kind: 'fireball', spd: .3 }); return; }
   }
   if (hasTrait(u, 'sanador')) {
     let healed = 0;
@@ -625,30 +835,28 @@ function updateUnit(u) {
   const def = u.def;
   u.age += 1 / YEAR;
   if (u.cool > 0) u.cool--; if (u.hitT > 0) u.hitT--;
-  if (u.age > u.maxAge && !hasTrait(u, 'inmortal')) { kill(u, null, 'vejez'); return; }
+  if (u.age > u.maxAge * kmul(u.k, 'age') && !hasTrait(u, 'inmortal')) { kill(u, null, 'vejez'); return; }
   const ti = (u.y | 0) * W + (u.x | 0), tt = tile[ti];
   if (!def.fly) {
     if (tt === T.LAVA && !def.fireproof) { kill(u, null, 'lava'); return; }
+    if (tt === T.ACID) { kill(u, null, 'ácido'); return; }
     if (isWater(tt) && !def.swim && !def.waterOnly) { if (rnd() < .02) { kill(u, null, 'ahogado'); return; } wander(u, u.x, u.y, 3); }
   }
   if (fire[ti] && !def.fireproof) damage(u, .5, null);
   if (rad[ti]) damage(u, .15, null);
-  if (tt === T.CORRUPT && u.type !== 'undead' && u.type !== 'zombie' && def.civ) damage(u, .03, null);
+  if (tt === T.CORRUPT && def.civ && !def.unholy) damage(u, .03, null);
   if (u.plague) { u.plague--; damage(u, .06, null); if (rnd() < .02) around(u.x, u.y, 1.6, o => { if (o.def.civ && !o.plague && rnd() < .5) o.plague = 600; }); }
   if (hasTrait(u, 'regenera') && u.hp < u.maxHp) u.hp += .04;
   if (u.dead) return;
-  if (u.type === 'ghost') { u.life++; }
+  if (u.type === 'ghost') u.life++;
 
-  // magia
-  if (modOn('magia') && u.def.civ && --u.spell <= 0 && u.traits.some(t => TRAITS[t].magic)) castSpell(u);
+  if (modOn('magia') && def.civ && --u.spell <= 0 && u.traits.some(t => TRAITS[t].magic)) castSpell(u);
   if (def.healer && --u.spell <= 0) {
     u.spell = 80;
     around(u.x, u.y, 4, o => { if (o.def.civ && o.hp < o.maxHp) o.hp = Math.min(o.maxHp, o.hp + 10); if (o.plague) o.plague = 0; });
     const i = (u.y | 0) * W + (u.x | 0); if (tile[i] === T.ASH || tile[i] === T.CORRUPT) tile[i] = T.GRASS;
     burst(u.x, u.y, [255, 190, 240], 4, .4);
   }
-
-  // dragon: aliento de fuego
   if (def.breath && --u.spell <= 0) {
     const e = nearest(u.x, u.y, 6, o => isEnemy(u, o));
     if (e) {
@@ -664,14 +872,13 @@ function updateUnit(u) {
 
   if (--u.think <= 0) think(u);
 
-  // perseguir / atacar objetivo
   if (u.target) {
     const t = u.target;
-    if (t.dead || dist2(u.x, u.y, t.x, t.y) > 200) { u.target = null; }
+    if (t.dead || dist2(u.x, u.y, t.x, t.y) > 200) u.target = null;
     else {
       const rg = rangeOf(u), d2 = dist2(u.x, u.y, t.x, t.y);
       if (d2 <= rg * rg) {
-        if (def.abduct && def.civ !== 1 && d2 < 2.5 && t.def.civ && rnd() < .02) {
+        if (def.abduct && d2 < 2.5 && t.def.civ && rnd() < .02) {
           fx.push({ k: 'beam', x: t.x, y: t.y, life: 30 }); kill(t, u, 'abducido'); u.target = null;
         } else if (def.atk > 0) attack(u, t);
         if (rg > 2 && d2 < (rg * .5) ** 2 && def.civ) moveToward(u, u.x + (u.x - t.x), u.y + (u.y - t.y));
@@ -682,136 +889,203 @@ function updateUnit(u) {
   if (u.tx !== null) { if (moveToward(u, u.tx, u.ty)) { u.tx = null; arrive(u); } }
 }
 
+function workOf(u, key) { return tmul(u, 'work') * (key ? tmul(u, key) : 1) * kmul(u.k, 'work') * (u.def.bonus?.[key] || 1); }
 function arrive(u) {
   const j = u.job; if (!j) return;
   u.job = null;
   const i = (j.y | 0) * W + (j.x | 0);
-  const c = cities[u.city];
-  if (j.type === 'build' && c && owner[i] === c.id + 1 && !bld[i] && TILE[tile[i]].build && !fire[i]) {
-    bld[i] = (u.k && u.k.era >= 3 && modOn('eras') && rnd() < .12) ? 3 : 1;
-  } else if (j.type === 'farm' && c && owner[i] === c.id + 1 && tile[i] === T.GRASS && !bld[i]) {
+  const c = cities[u.city], k = u.k;
+  if (j.type === 'settle') {
+    if (!(j.follow || u.settler?.follow) && foundCity(u)) return;
+    u.settler = null;
+    const near = cities.find(cc => cc && cc.alive && cc.k === u.k && dist2(cc.x, cc.y, u.x, u.y) < 64);
+    if (near) u.city = near.id; else if (!u.city || u.city < 0) foundCity(u);
+    return;
+  }
+  if (!c || !k || dist2(u.x, u.y, j.x + .5, j.y + .5) > 4) return;
+  if (j.type === 'build' && owner[i] === c.id + 1 && !bld[i] && TILE[tile[i]].build && !fire[i] && !ore[i]) {
+    const ht = modOn('tecnologia') ? k.house : 0;
+    const cost = ht >= 2 ? ['piedra', 2] : ['madera', 1];
+    if (ht === 0 || k.res[cost[0]] - cost[1] >= (k.reserve?.[cost[0]] || 0)) {
+      if (ht > 0) k.res[cost[0]] -= cost[1];
+      bld[i] = 1;
+      if (tmul(u, 'build') > 1) { // los constructores levantan una casa extra al lado
+        const n = i + pick([1, -1, W, -W]);
+        if (n >= 0 && n < N && owner[n] === c.id + 1 && !bld[n] && TILE[tile[n]].build && !ore[n]) bld[n] = 1;
+      }
+    }
+  } else if (j.type === 'farm' && owner[i] === c.id + 1 && TILE[tile[i]].farm && !bld[i]) {
     tile[i] = T.FIELD;
-  } else if (j.type === 'settle') {
-    foundCity(u);
+    c.food += 1 * workOf(u, 'farm');
+  } else if (j.type === 'wood' && TILE[tile[i]].wood) {
+    k.res.madera += 1.5 * workOf(u);
+    if (rnd() < .12) tile[i] = T.GRASS;
+  } else if (j.type === 'stone' && TILE[tile[i]].stone) {
+    k.res.piedra += 1.5 * workOf(u, 'mine');
+  } else if (j.type === 'mine' && ore[i]) {
+    const m = MAT[ore[i]];
+    const amt = workOf(u, 'mine');
+    k.res[m.id] = (k.res[m.id] || 0) + amt;
+    if (!k.found[m.id]) { k.found[m.id] = 1; if (modOn('tecnologia')) addLog(`${El(k)} descubre ${m.n.toLowerCase()} y empieza a extraerlo.`, 'tech'); }
+    oreAmt[i] = Math.max(0, oreAmt[i] - Math.max(1, Math.round(amt)));
+    if (!oreAmt[i]) ore[i] = 0;
   }
 }
 
+function pickTile(cx, cy, r, fn, tries = 14) {
+  for (let a = 0; a < tries; a++) {
+    const x = (cx + (rnd() * 2 - 1) * r) | 0, y = (cy + (rnd() * 2 - 1) * r) | 0;
+    if (x < 0 || y < 0 || x >= W || y >= H) continue;
+    const i = y * W + x; if (fn(i)) return [x, y];
+  }
+  return null;
+}
 function think(u) {
   const def = u.def;
   u.think = ri(15, 35);
   if (def.civ && u.age > 14 && rnd() < .01) gainXp(u, .5);
-  // buscar enemigos
   let sight = def.hostile ? 9 : def.civ ? (u.army ? 9 : 3.5) : def.hunter ? 7 : 4;
   if (u.type === 'ghost') sight = 8;
   if (def.atk > 0 && !hasTrait(u, 'cobarde')) {
     const e = nearest(u.x, u.y, sight, o => isEnemy(u, o));
     if (e) { u.target = e; return; }
+  } else if (hasTrait(u, 'cobarde')) {
+    const e = nearest(u.x, u.y, 4, o => isEnemy(o, u));
+    if (e) { u.tx = clamp(u.x + (u.x - e.x) * 2, 0, W - 1); u.ty = clamp(u.y + (u.y - e.y) * 2, 0, H - 1); return; }
   }
   if (def.passive) {
-    // huir de lobos
     const p = nearest(u.x, u.y, 3, o => o.def.hunter || o.def.hostile);
     if (p) { u.tx = clamp(u.x + (u.x - p.x) * 2, 0, W - 1); u.ty = clamp(u.y + (u.y - p.y) * 2, 0, H - 1); return; }
-    if (u.type === 'sheep' && rnd() < .025 && (countType.sheep || 0) < 400) spawn('sheep', u.x, u.y);
+    if (u.type === 'sheep' && rnd() < .025 && (countType.sheep || 0) < 300) spawn('sheep', u.x, u.y);
   }
-  if (u.type === 'wolf' && rnd() < .006 && (countType.wolf || 0) < 90) spawn('wolf', u.x, u.y);
+  if (u.type === 'wolf' && rnd() < .006 && (countType.wolf || 0) < 80) spawn('wolf', u.x, u.y);
   if (u.type === 'ghost' && u.life > YEAR * 3) { kill(u, null, 'se desvanece'); return; }
-  if (u.type === 'ghost' && u.k) {
-    const tgt = enemyCityFor(u.k, u.x, u.y); if (tgt) { u.tx = tgt.x + .5; u.ty = tgt.y + .5; return; }
-  }
-
+  if (u.type === 'ghost' && u.k) { const tgt = enemyCityFor(u.k, u); if (tgt) { u.tx = tgt.x + .5; u.ty = tgt.y + .5; return; } }
   if (!def.civ) { wander(u, u.x, u.y, def.hostile ? 10 : 6); return; }
 
-  // civilización
   const c = cities[u.city];
-  if (u.settler) { u.tx = u.settler.x + .5; u.ty = u.settler.y + .5; u.job = { type: 'settle', x: u.settler.x, y: u.settler.y }; return; }
-  if (!c) {
-    if (!u.k || !u.k.alive) u.k = null;
-    // fundar ciudad si la tierra es buena
+  if (u.settler) { u.tx = u.settler.x + .5; u.ty = u.settler.y + .5; u.job = { type: 'settle', x: u.settler.x, y: u.settler.y, follow: u.settler.follow }; if (++u.settler.t > 40) u.settler = null; return; }
+  if (!c || !c.alive) {
+    u.city = -1;
+    if (u.k && !u.k.alive) u.k = null;
     const i = (u.y | 0) * W + (u.x | 0);
-    if (u.age > 12 && !owner[i] && TILE[tile[i]].build && !nearCity(u.x, u.y, 11) && rnd() < .35) { foundCity(u); return; }
-    // unirse a una ciudad de su reino o raza cercana
-    const jc = cities.find(cc => cc && cc.alive && cc.k && (cc.k === u.k || (!u.k && cc.k.race === u.type)) && dist2(cc.x, cc.y, u.x, u.y) < 400);
+    if (u.age > 12 && !owner[i] && TILE[tile[i]].build && !nearCity(u.x, u.y, 10) && rnd() < .3) { foundCity(u); return; }
+    const jc = cities.find(cc => cc && cc.alive && (cc.k === u.k || (!u.k && cc.k.race === u.type)) && dist2(cc.x, cc.y, u.x, u.y) < 600 && region[cc.y * W + cc.x] === regAt(u.x, u.y));
     if (jc) { u.city = jc.id; u.k = jc.k; return; }
     wander(u, u.x, u.y, 8); return;
   }
-  // ejercito
-  if (u.army && u.k && u.k.wars.size) {
-    const tgt = enemyCityFor(u.k, c.x, c.y);
+  const k = u.k;
+  if (u.job && u.tx !== null && !u.army && tickN - (u.jobT || 0) < 500) return; // sigue con su tarea
+  // ejército
+  if (u.army && k && k.wars.size) {
+    const tgt = enemyCityFor(k, u);
     if (tgt) {
       u.tx = tgt.x + .5 + (rnd() - .5) * 2; u.ty = tgt.y + .5 + (rnd() - .5) * 2;
-      if (dist2(u.x, u.y, tgt.x, tgt.y) < 4) tryCapture(u, tgt);
+      if (tgt.reach && dist2(u.x, u.y, tgt.x, tgt.y) < 4) tryCapture(u, tgt);
       return;
     }
   }
   // trabajos
-  const r = c.radius;
-  if (rnd() < .3 && c.pop + 3 > c.cap) {
-    for (let a = 0; a < 6; a++) {
-      const x = (c.x + (rnd() * 2 - 1) * r * .75) | 0, y = (c.y + (rnd() * 2 - 1) * r * .75) | 0;
-      if (x < 0 || y < 0 || x >= W || y >= H) continue;
-      const i = y * W + x;
-      if (owner[i] === c.id + 1 && !bld[i] && TILE[tile[i]].build && tile[i] !== T.FIELD && canStand(def, x, y)) { u.job = { type: 'build', x, y }; u.tx = x + .5; u.ty = y + .5; return; }
-    }
-  }
-  if (!def.noFood && rnd() < .25 && LAWS.hambre.on && c.fields < c.pop * .6) {
-    for (let a = 0; a < 6; a++) {
-      const x = (c.x + (rnd() * 2 - 1) * r) | 0, y = (c.y + (rnd() * 2 - 1) * r) | 0;
-      if (x < 0 || y < 0 || x >= W || y >= H) continue;
-      const i = y * W + x;
-      if (owner[i] === c.id + 1 && tile[i] === T.GRASS && !bld[i]) { u.job = { type: 'farm', x, y }; u.tx = x + .5; u.ty = y + .5; return; }
-    }
-  }
+  const r = c.radius, id1 = c.id + 1;
+  const opts = [];
+  if (c.pop + 2 > c.cap) opts.push(['build', 3 * tmul(u, 'build')]);
+  if (!def.noFood && LAWS.hambre.on && c.fields < c.pop * .5) opts.push(['farm', 2 * tmul(u, 'farm')]);
+  if (c.ores.length) opts.push(['mine', 2.2 * tmul(u, 'mine') * (def.bonus?.mine || 1)]);
+  if (k.res.madera < 40 + c.pop * 2) opts.push(['wood', 1.6]);
+  if (k.res.piedra < 60 + c.pop * 3) opts.push(['stone', 1.1 * tmul(u, 'mine')]);
+  opts.push(['idle', 1.2 / Math.max(.3, tmul(u, 'work'))]);
+  let tot = opts.reduce((s, o) => s + o[1], 0), roll = rnd() * tot, job = 'idle';
+  for (const o of opts) { roll -= o[1]; if (roll <= 0) { job = o[0]; break; } }
+  let p = null;
+  if (job === 'build') p = pickTile(c.x, c.y, r * .8, i => owner[i] === id1 && !bld[i] && TILE[tile[i]].build && tile[i] !== T.FIELD && !ore[i] && !wall[i]);
+  else if (job === 'farm') p = pickTile(c.x, c.y, r, i => owner[i] === id1 && TILE[tile[i]].farm && !bld[i] && !ore[i]);
+  else if (job === 'mine') { const i = pick(c.ores); if (ore[i]) p = [i % W, (i / W) | 0]; }
+  else if (job === 'wood') p = pickTile(c.x, c.y, r + 3, i => TILE[tile[i]].wood && (!owner[i] || owner[i] === id1));
+  else if (job === 'stone') p = pickTile(c.x, c.y, r + 4, i => TILE[tile[i]].stone && !ore[i] && (!owner[i] || owner[i] === id1));
+  if (p) { u.job = { type: job, x: p[0], y: p[1] }; u.jobT = tickN; u.tx = p[0] + .5; u.ty = p[1] + .5; return; }
   wander(u, c.x + .5, c.y + .5, Math.max(2, r * .7));
 }
 
 function nearCity(x, y, r) { return cities.some(c => c && c.alive && dist2(c.x, c.y, x, y) < r * r); }
-function enemyCityFor(k, x, y) {
-  let best = null, bd = 1e9;
-  for (const c of cities) if (c && c.alive && c.k && k.wars.has(c.k.id)) { const d = dist2(c.x, c.y, x, y); if (d < bd) { bd = d; best = c; } }
-  return best;
+function enemyCityFor(k, u) {
+  let best = null, bd = 1e9, bestR = null, bdR = 1e9;
+  const ru = regAt(u.x, u.y);
+  for (const c of cities) if (c && c.alive && c.k && k.wars.has(c.k.id)) {
+    const d = dist2(c.x, c.y, u.x, u.y);
+    if (u.def.fly || region[c.y * W + c.x] === ru) { if (d < bdR) { bdR = d; bestR = c; } }
+    else if (d < bd) { bd = d; best = c; }
+  }
+  if (bestR) { bestR.reach = true; return bestR; }
+  if (best) best.reach = false;
+  return best; // separados por frontera: se agolpan en la línea
 }
 
-// ---------- reinos y ciudades ----------
+// ---------- pueblos (reinos) y ciudades ----------
 function newKingdom(race, founder) {
   const used = kingdoms.filter(k => k.alive).map(k => k.hue);
   let hue = ri(0, 359);
-  for (let a = 0; a < 20; a++) { if (used.every(h => Math.min(Math.abs(h - hue), 360 - Math.abs(h - hue)) > 28)) break; hue = ri(0, 359); }
+  for (let a = 0; a < 25; a++) { if (used.every(h => Math.min(Math.abs(h - hue), 360 - Math.abs(h - hue)) > 26)) break; hue = ri(0, 359); }
   const k = {
-    id: kingdoms.length, name: KTITLE[race] + ' ' + mkName(race), fem: !!KFEM[race], race, hue, color: hsl(hue, 70, 52),
-    wars: new Set(), allies: new Set(), warYears: {}, tech: 0, era: 0, alive: true, king: null, capital: -1, born: year()
+    id: kingdoms.length, base: mkName(race), rank: 0, race, hue, color: hsl(hue, 72, 52),
+    wars: new Set(), allies: new Set(), warYears: {}, alive: true, king: null, capital: -1, born: year(),
+    res: Object.fromEntries(RESLIST.map(r => [r[0], 0])), found: {}, tech: new Set(), rp: 0,
+    weapon: { tier: 0, n: WEAPONS[0][0], c: null }, armor: { tier: 0, n: ARMORS[0][0] }, house: 0, walls: 0, ranged: 0, gun: 0, silver: 0, siege: 0, rof: 0, era: 0,
+    mul: { work: 1, food: 1, research: 1, birth: 1, speed: 1, age: 1 }, pop: 0, blocked: {}, culture: {}
   };
+  k.res.madera = 12; k.res.piedra = 6;
+  nameKingdom(k);
   kingdoms.push(k);
   if (founder) { founder.name = founder.name || mkName(race); k.king = founder; }
   return k;
 }
-function foundCity(u) {
+function nameKingdom(k) {
+  if (k.custom) { k.name = k.custom; k.fem = k.customFem; return; }
+  const t = KT[k.race][k.rank]; k.name = t[0] + ' ' + k.base; k.fem = !!t[1];
+}
+function foundCity(u, force) {
   u.settler = null;
-  let x = u.x | 0, y = u.y | 0;
-  const i = y * W + x;
-  if (owner[i] || !TILE[tile[i]].build || nearCity(x, y, 8)) { return; }
+  const x = u.x | 0, y = u.y | 0, i = y * W + x;
+  if (!force && (owner[i] || !TILE[tile[i]].build || nearCity(x, y, 8))) return null;
   let k = u.k && u.k.alive ? u.k : null;
   const isNew = !k;
   if (!k) k = newKingdom(u.type, u);
-  const c = { id: cities.length, name: mkName(u.type), x, y, k, alive: true, pop: 0, cap: 6, food: 6, fields: 0, houses: 0, radius: 3, empty: 0, loyal: 1, born: year() };
+  const c = { id: cities.length, name: mkName(u.type), x, y, k, alive: true, pop: 0, cap: 6, food: 8, fields: 0, houses: 0, radius: 3, empty: 0, born: year(), ores: [] };
   cities.push(c);
   if (k.capital < 0 || !cities[k.capital] || !cities[k.capital].alive) k.capital = c.id;
-  bld[i] = 2;
+  bld[i] = 2; ore[i] = 0;
   for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) claim(c, x + dx, y + dy);
   u.city = c.id; u.k = k;
-  // los vecinos sin ciudad se unen
-  around(u.x, u.y, 6, o => { if (o.def.civ && o.type === u.type && o.city < 0 && !o.settler) { o.city = c.id; o.k = k; } });
+  rebuildGrid();
+  around(u.x, u.y, 6, o => { if (o.def.civ && o.type === u.type && o.city < 0 && !o.settler && !o.k) { o.city = c.id; o.k = k; } });
   if (isNew) addLog(`Nace ${el(k)}, fundado por ${u.name}.`, 'found');
   else addLog(`${El(k)} funda la ciudad de ${c.name}.`, 'found');
+  regionDirty = true;
+  return c;
+}
+function foundVillage(race, x, y) {
+  const def = SP[race];
+  if (!canStand(def, x, y) || !TILE[tile[(y | 0) * W + (x | 0)]].build) { toast('Ponlo en tierra firme donde se pueda construir'); return; }
+  if (owner[(y | 0) * W + (x | 0)]) { toast('Ahí ya hay un pueblo'); return; }
+  const leader = spawn(race, (x | 0) + .5, (y | 0) + .5);
+  if (!leader) return;
+  const c = foundCity(leader, true);
+  if (!c) return;
+  for (let n = 0; n < 9; n++) { const u = spawn(race, c.x + .5 + ri(-2, 2), c.y + .5 + ri(-2, 2), c.k, c.id); if (u && n < 3) u.age = ri(3, 10); }
+  for (let n = 0; n < 4; n++) { const p = pickTile(c.x, c.y, 2, j => owner[j] === c.id + 1 && !bld[j] && TILE[tile[j]].build); if (p) bld[p[1] * W + p[0]] = 1; }
+  scanCity(c);
+  toast(`${c.k.name}: 10 habitantes. Dales rasgos en la pestaña Rasgos.`);
+  sideDirty = true;
+  return c;
 }
 function claim(c, x, y) {
   if (x < 0 || y < 0 || x >= W || y >= H) return false;
   const i = y * W + x;
-  if (owner[i] || isWater(tile[i]) || tile[i] === T.LAVA) return false;
+  if (owner[i] || wall[i] || isWater(tile[i]) || TILE[tile[i]].liquid) return false;
   owner[i] = c.id + 1; return true;
 }
 function destroyCity(c, why) {
   c.alive = false;
-  const r = 20;
+  const r = 22;
   for (let y = Math.max(0, c.y - r); y < Math.min(H, c.y + r); y++) for (let x = Math.max(0, c.x - r); x < Math.min(W, c.x + r); x++) {
     const i = y * W + x; if (owner[i] === c.id + 1) { owner[i] = 0; if (bld[i]) bld[i] = 4; }
   }
@@ -825,32 +1099,60 @@ function tryCapture(u, c) {
   const old = c.k;
   c.k = u.k;
   for (const o of units) if (o.city === c.id) { o.k = u.k; o.army = false; }
-  addLog(`${El(u.k)} conquista ${c.name}, arrebatada ${al(old)}.`, 'war');
+  for (const r in old.res) { const loot = Math.floor(old.res[r] * .3); old.res[r] -= loot; u.k.res[r] += loot; }
+  addLog(`${El(u.k)} conquista ${c.name}, arrebatada ${al(old)}, y saquea sus almacenes.`, 'war');
   if (old.capital === c.id) old.capital = -1;
+}
+function scanCity(c) {
+  let houses = 0, fields = 0, owned = 0, food = 0;
+  const r = Math.ceil(c.radius) + 4, id1 = c.id + 1;
+  c.ores = [];
+  for (let y = Math.max(0, c.y - r); y <= Math.min(H - 1, c.y + r); y++) for (let x = Math.max(0, c.x - r); x <= Math.min(W - 1, c.x + r); x++) {
+    const i = y * W + x;
+    if (ore[i] && (owner[i] === id1 || (!owner[i] && dist2(x, y, c.x, c.y) < (c.radius + 3) ** 2)) && region[i] !== -1) c.ores.push(i);
+    if (owner[i] !== id1) continue;
+    owned++; if (bld[i] === 1) houses++;
+    const t = tile[i]; if (t === T.FIELD) fields++;
+    food += TILE[t].food || 0;
+    if ((x > 0 && isWater(tile[i - 1])) || (x < W - 1 && isWater(tile[i + 1]))) food += .25;
+  }
+  c.houses = houses; c.fields = fields; c.owned = owned; c.foodYield = food;
+  const ht = modOn('tecnologia') ? c.k.house : 0;
+  c.cap = 5 + Math.floor(houses * (1.5 + ht * .5));
 }
 function cityUpdate(c) {
   if (!c.alive) return;
-  // recuento de la zona
-  let houses = 0, fields = 0, owned = 0;
-  const r = Math.ceil(c.radius) + 2;
-  const id1 = c.id + 1;
-  for (let y = Math.max(0, c.y - r); y <= Math.min(H - 1, c.y + r); y++) for (let x = Math.max(0, c.x - r); x <= Math.min(W - 1, c.x + r); x++) {
-    const i = y * W + x; if (owner[i] !== id1) continue;
-    owned++; if (bld[i] === 1 || bld[i] === 3) houses++; if (tile[i] === T.FIELD) fields++;
-  }
-  c.houses = houses; c.fields = fields; c.cap = 6 + houses * 3;
+  scanCity(c);
+  const id1 = c.id + 1, k = c.k, race = k.race, sp = SP[race];
   if (!bld[c.y * W + c.x] || bld[c.y * W + c.x] === 4) bld[c.y * W + c.x] = 2;
-  const race = c.k.race, sp = SP[race];
-  // comida
   if (!sp.noFood && LAWS.hambre.on) {
-    c.food += fields * .35 + owned * .01 - c.pop * .09;
+    c.food += c.foodYield * .16 * kmul(k, 'food') - c.pop * .09;
     if (c.food < 0) { c.food = 0; if (c.pop > 2 && rnd() < .25) { const v = units.find(o => o.city === c.id && !o.dead); if (v) kill(v, null, 'hambre'); } }
     c.food = Math.min(c.food, 60 + c.pop * 2);
   } else c.food = 20;
-  // nacimientos
-  const birth = sp.noFood ? .2 : .55;
-  if (c.pop > 0 && c.pop < c.cap && c.food > 1.5 && rnd() < birth) {
-    const b = spawn(race, c.x + .5, c.y + .5, c.k, c.id, 0);
+  // nacimientos con herencia
+  const members = units.filter(o => o.city === c.id && !o.dead && o.def.civ && o.age >= 14);
+  const fert = members.length ? members.reduce((s, o) => s + tmul(o, 'fert'), 0) / members.length : 0;
+  const birth = (sp.noFood ? .15 : .38) * fert * kmul(k, 'birth');
+  if (members.length >= 2 && c.pop < c.cap && c.food > 1.5 && rnd() < birth) {
+    const fertile = members.filter(o => tmul(o, 'fert') > 0);
+    const pa = pick(fertile.length ? fertile : members), pb = pick(members);
+    let traits = [];
+    if (LAWS.herencia.on) {
+      const pool = new Set([...pa.traits, ...pb.traits]);
+      for (const t of pool) {
+        const both = pa.traits.includes(t) && pb.traits.includes(t);
+        const inh = TRAITS[t].inh ?? 1;
+        if (rnd() < (both ? .8 : .45) * inh) traits.push(t);
+      }
+    }
+    if (LAWS.mutacion.on && rnd() < .06) {
+      const pool = Object.keys(TRAITS).filter(t => modOn(TRAITS[t].mod) && t !== 'inmortal');
+      const t = pick(pool); if (!traits.includes(t)) traits.push(t);
+    }
+    const clean = [];
+    for (const t of traits) { if (OPPOSITE[t] && clean.includes(OPPOSITE[t])) continue; if (!clean.includes(t)) clean.push(t); }
+    const b = spawn(race, c.x + .5, c.y + .5, k, c.id, { age: 0, traits: clean });
     if (b) c.food -= 1.5;
   }
   // territorio
@@ -858,64 +1160,117 @@ function cityUpdate(c) {
   for (let a = 0; a < 8; a++) {
     const ang = rnd() * Math.PI * 2, d = rnd() * c.radius;
     const x = Math.round(c.x + Math.cos(ang) * d), y = Math.round(c.y + Math.sin(ang) * d);
-    if (x < 0 || y < 0 || x >= W || y >= H) continue;
-    const i = y * W + x, n = [i - 1, i + 1, i - W, i + W];
-    if (n.some(j => j >= 0 && j < N && owner[j] === id1)) claim(c, x, y);
+    if (x < 1 || y < 1 || x >= W - 1 || y >= H - 1) continue;
+    const i = y * W + x;
+    if (owner[i - 1] === id1 || owner[i + 1] === id1 || owner[i - W] === id1 || owner[i + W] === id1) claim(c, x, y);
   }
   // colonos
-  if (c.pop >= 14 && rnd() < .12) {
-    const kc = cities.filter(o => o && o.alive && o.k === c.k).length;
-    if (kc < 16) {
-      const s = units.find(o => o.city === c.id && !o.dead && !o.army && !o.settler && o.age > 14 && o.k === c.k && o !== c.k.king);
+  const explore = members.length ? members.reduce((s, o) => s + tmul(o, 'explore'), 0) / members.length : 1;
+  if (c.pop >= 14 && rnd() < .1 * explore) {
+    const kc = cities.filter(o => o && o.alive && o.k === k).length;
+    if (kc < 10) {
+      const s = members.find(o => !o.army && !o.settler && o !== k.king);
+      const reg = region[c.y * W + c.x];
       if (s) for (let a = 0; a < 20; a++) {
-        const ang = rnd() * Math.PI * 2, d = 14 + rnd() * 18;
+        const ang = rnd() * Math.PI * 2, d = 13 + rnd() * (14 + explore * 6);
         const x = Math.round(c.x + Math.cos(ang) * d), y = Math.round(c.y + Math.sin(ang) * d);
         if (x < 2 || y < 2 || x >= W - 2 || y >= H - 2) continue;
         const i = y * W + x;
-        if (!owner[i] && TILE[tile[i]].build && canStand(sp, x, y) && !nearCity(x, y, 11)) {
-          s.settler = { x, y }; s.city = -1; s.tx = x + .5; s.ty = y + .5; s.job = { type: 'settle', x, y }; break;
+        if (!owner[i] && region[i] === reg && TILE[tile[i]].build && canStand(sp, x, y) && !nearCity(x, y, 11)) {
+          s.settler = { x, y, t: 0 }; s.city = -1; s.tx = x + .5; s.ty = y + .5; s.job = { type: 'settle', x, y };
+          let n = 0;
+          for (const o of members) { if (n >= 4) break; if (o === s || o.army || o.settler || o === k.king) continue; o.settler = { x: x + ri(-1, 1), y: y + ri(-1, 1), follow: 1, t: 0 }; o.city = -1; n++; }
+          break;
         }
       }
     }
   }
-  // ejercito
-  const atWar = c.k.wars.size > 0;
-  if (atWar) {
-    const share = .35 + (sp.war ? .2 : 0);
-    for (const o of units) if (o.city === c.id && !o.dead && o.age > 14 && !o.settler && o !== c.k.king) { if (!o.army && rnd() < share * .3) o.army = true; }
-  } else for (const o of units) if (o.city === c.id) o.army = false;
-  // abandono
+  // ejército
+  if (k.wars.size) {
+    const share = (.3 + (sp.war ? .15 : 0) + (k.aggr || 0) * .2);
+    for (const o of members) if (!o.settler && o !== k.king && !o.army && rnd() < share * .35 * (hasTrait(o, 'cobarde') ? .2 : 1)) o.army = true;
+  } else for (const o of members) o.army = false;
   if (c.pop === 0) { if (++c.empty > 10) destroyCity(c, 'queda abandonada'); } else c.empty = 0;
-  // rebelion
-  if (LAWS.rebelion.on && modOn('diplomacia') && c.k.capital !== c.id && c.pop > 10 && year() - c.k.born > 15) {
-    const cap = cities[c.k.capital];
+  // rebelión
+  if (LAWS.rebelion.on && modOn('diplomacia') && k.capital !== c.id && c.pop > 10 && year() - k.born > 15) {
+    const cap = cities[k.capital];
     const far = cap ? Math.sqrt(dist2(cap.x, cap.y, c.x, c.y)) : 50;
-    const kc = cities.filter(o => o && o.alive && o.k === c.k).length;
-    if (kc > 3 && rnd() < .0015 * (far / 25) * (1 + c.k.wars.size)) rebel(c);
+    const kc = cities.filter(o => o && o.alive && o.k === k).length;
+    if (kc > 4 && year() - k.born > 30 && rnd() < .0007 * (far / 25) * (1 + k.wars.size) / (1 + (k.leaders || 0) * .5)) rebel(c);
   }
 }
 function rebel(c) {
   const old = c.k;
   const leader = units.find(o => o.city === c.id && !o.dead && o.def.civ);
   const k = newKingdom(old.race, leader);
-  const rep = kingdoms.some(o => o.alive && o.name === 'República de ' + c.name);
-  k.name = (rep ? 'Rebeldes de ' : 'República de ') + c.name; k.fem = !rep;
-  c.k = k; k.capital = c.id; k.tech = old.tech; k.era = old.era;
+  const taken = kingdoms.some(o => o.alive && o !== k && o.custom === 'República de ' + c.name);
+  k.custom = (taken ? 'Rebeldes de ' : 'República de ') + c.name; k.customFem = !taken; nameKingdom(k);
+  c.k = k; k.capital = c.id;
+  for (const t of old.tech) applyTech(k, TECHID[t], true);
   for (const o of units) if (o.city === c.id) { o.k = k; o.army = false; }
   k.wars.add(old.id); old.wars.add(k.id);
   addLog(`¡Rebelión! ${c.name} se independiza ${del(old)} y le declara la guerra.`, 'war');
 }
-function declareWar(a, b) {
-  if (a.wars.has(b.id) || a.allies.has(b.id)) return;
+function declareWar(a, b, byGod) {
+  if (a === b || a.wars.has(b.id)) return;
+  a.allies.delete(b.id); b.allies.delete(a.id);
   a.wars.add(b.id); b.wars.add(a.id); a.warYears[b.id] = 0; b.warYears[a.id] = 0;
-  addLog(`${El(a)} declara la guerra ${al(b)}.`, 'war');
-  if (modOn('diplomacia')) for (const al of a.allies) { const k = kingdoms[al]; if (k && k.alive && !k.wars.has(b.id) && k !== b) { k.wars.add(b.id); b.wars.add(k.id); } }
+  const sep = !kingdomsTouch(a, b);
+  addLog(`${El(a)} declara la guerra ${al(b)}${byGod ? ' por voluntad divina' : ''}.${sep ? ' Una frontera los separa: sus ejércitos esperan en la línea.' : ''}`, 'war');
+  if (modOn('diplomacia')) for (const al_ of a.allies) { const k = kingdoms[al_]; if (k && k.alive && !k.wars.has(b.id) && k !== b) { k.wars.add(b.id); b.wars.add(k.id); } }
 }
 function makePeace(a, b) {
+  if (!a.wars.has(b.id)) return;
   a.wars.delete(b.id); b.wars.delete(a.id);
   addLog(`Paz firmada entre ${el(a)} y ${el(b)}.`, 'peace');
 }
+function applyTech(k, t, silent) {
+  if (k.tech.has(t.id)) return;
+  k.tech.add(t.id);
+  if (t.weapon && t.weapon > k.weapon.tier) k.weapon = { tier: t.weapon, n: t.wn || WEAPONS[t.weapon][0], c: t.wc || WEAPONS[t.weapon][2] };
+  if (t.armor && t.armor > k.armor.tier) k.armor = { tier: t.armor, n: ARMORS[t.armor][0] };
+  if (t.house) k.house = Math.max(k.house, t.house);
+  if (t.walls) k.walls = Math.max(k.walls, t.walls);
+  if (t.ranged) k.ranged = Math.max(k.ranged, t.ranged);
+  if (t.gun) k.gun = 1; if (t.silver) k.silver = 1; if (t.siege) k.siege = 1; if (t.rof) k.rof = 1;
+  if (t.fx) for (const f in t.fx) k.mul[f] = (k.mul[f] || 1) * t.fx[f];
+  const oldEra = k.era; if (t.core) k.era = Math.max(k.era, t.era);
+  if (!silent) {
+    addLog(`${El(k)} descubre: ${t.n}.`, 'tech');
+    if (k.era > oldEra) addLog(`${El(k)} entra en la ${ERAS[k.era]}.`, 'found');
+  }
+}
+function techAvailable(k, t) { return !k.tech.has(t.id) && modOn(t.mod) && (t.req || []).every(r => k.tech.has(r)); }
+function missingFor(k, t) { const m = []; for (const r in t.need || {}) if ((k.res[r] || 0) < t.need[r]) m.push([r, t.need[r] - Math.floor(k.res[r] || 0)]); return m; }
+function nextTech(k) { return TECH.find(t => techAvailable(k, t)) || null; }
+function research(k, members) {
+  if (!modOn('tecnologia')) return;
+  let pts = 0;
+  for (const u of members) pts += tmul(u, 'research') * (u.def.bonus?.research || 1);
+  k.rpRate = pts * .3 * k.mul.research;
+  k.rp += k.rpRate;
+  let guard = 0;
+  while (guard++ < 5) {
+    let done = false;
+    for (const t of TECH) {
+      if (!techAvailable(k, t) || k.rp < t.cost) continue;
+      const miss = missingFor(k, t);
+      if (miss.length) {
+        if (!k.blocked[t.id]) { k.blocked[t.id] = 1; addLog(`${El(k)} sabe cómo hacer ${t.n.toLowerCase()}, pero le falta ${miss.map(m => RESNAME[m[0]].toLowerCase()).join(' y ')}.`, 'tech'); }
+        continue;
+      }
+      for (const r in t.need || {}) k.res[r] -= t.need[r];
+      k.rp -= t.cost; applyTech(k, t); done = true; break;
+    }
+    if (!done) break;
+  }
+  k.reserve = {};
+  for (const t of TECH) if (techAvailable(k, t)) for (const r in t.need || {}) k.reserve[r] = Math.max(k.reserve[r] || 0, t.need[r]);
+  let maxCost = 40; for (const t of TECH) if (techAvailable(k, t)) maxCost = Math.max(maxCost, t.cost);
+  k.rp = Math.min(k.rp, maxCost * 1.5);
+}
 function kingdomUpdate() {
+  if (regionDirty) computeRegions();
   const alive = kingdoms.filter(k => k.alive);
   for (const k of alive) {
     const kc = cities.filter(c => c && c.alive && c.k === k);
@@ -923,39 +1278,45 @@ function kingdomUpdate() {
       k.alive = false;
       for (const o of kingdoms) { o.wars.delete(k.id); o.allies.delete(k.id); }
       for (const u of units) if (u.k === k) { u.k = null; u.army = false; }
-      addLog(`${El(k)} ha caído para siempre.`, 'doom');
+      addLog(`${El(k)} ha desaparecido para siempre.`, 'doom');
       continue;
     }
+    const members = units.filter(u => u.k === k && u.def.civ && !u.dead && u.age >= 12);
     k.pop = kc.reduce((s, c) => s + c.pop, 0);
-    if (k.capital < 0 || !cities[k.capital] || !cities[k.capital].alive || cities[k.capital].k !== k) k.capital = kc.sort((a, b) => b.pop - a.pop)[0].id;
-    if (modOn('eras')) {
-      k.tech += .4 + k.pop * .03 + kc.length * .2;
-      let e = 0; for (let i = 0; i < ERAS.length; i++) if (k.tech >= ERAS[i][1]) e = i;
-      if (e > k.era) { k.era = e; addLog(`${El(k)} entra en la ${ERAS[e][0]}.`, 'found'); for (const u of units) if (u.k === k) { const om = u.maxHp; u.maxHp = maxHpOf(u); u.hp += u.maxHp - om; } }
+    const cnt = Object.create(null); let ag = 0; k.smiths = 0; k.leaders = 0;
+    for (const u of members) for (const t of u.traits) { cnt[t] = (cnt[t] || 0) + 1; if (TRAITS[t].aggr) ag += TRAITS[t].aggr; if (t === 'herrero') k.smiths++; if (t === 'lider') k.leaders++; }
+    k.culture = cnt; k.aggr = members.length ? ag / members.length : 0;
+    research(k, members);
+    if (modOn('diplomacia')) {
+      const rank = kc.length >= 7 ? 2 : kc.length >= 3 ? 1 : 0;
+      if (rank > k.rank && !k.custom) { const old = k.name; k.rank = rank; nameKingdom(k); addLog(`${old} crece y se convierte en ${el(k)}.`, 'found'); }
     }
+    if (k.capital < 0 || !cities[k.capital] || !cities[k.capital].alive || cities[k.capital].k !== k) k.capital = kc.sort((a, b) => b.pop - a.pop)[0].id;
     if (!k.king || k.king.dead || k.king.k !== k) {
-      const cand = units.filter(u => u.k === k && u.def.civ && !u.dead && u.age > 15).sort((a, b) => (b.level + (b.hero ? 5 : 0)) - (a.level + (a.hero ? 5 : 0)))[0];
+      const score = u => u.level + (u.hero ? 5 : 0) + (hasTrait(u, 'lider') ? 6 : 0);
+      const cand = members.slice().sort((a, b) => score(b) - score(a))[0];
       if (cand) { k.king = cand; cand.name = cand.name || mkName(k.race); if (modOn('diplomacia')) addLog(`${cand.name} es coronado soberano ${del(k)}.`, 'peace'); }
     }
     for (const w of k.wars) k.warYears[w] = (k.warYears[w] || 0) + .5;
   }
-  if (!LAWS.guerras.on) { for (const a of alive) for (const w of [...a.wars]) { const b = kingdoms[w]; if (b) makePeace(a, b); } return; }
-  for (let i = 0; i < alive.length; i++) for (let j = i + 1; j < alive.length; j++) {
-    const a = alive[i], b = alive[j]; if (!a.alive || !b.alive) continue;
+  const live = kingdoms.filter(k => k.alive);
+  for (let i = 0; i < live.length; i++) for (let j = i + 1; j < live.length; j++) {
+    const a = live[i], b = live[j];
     const ca = cities[a.capital], cb = cities[b.capital]; if (!ca || !cb) continue;
-    const d = Math.sqrt(dist2(ca.x, ca.y, cb.x, cb.y));
     if (a.wars.has(b.id)) {
-      if ((a.warYears[b.id] || 0) > 3 && rnd() < .06) makePeace(a, b);
-    } else if (d < 75) {
-      let p = .025 * ((SP[a.race].war || 1) + (SP[b.race].war || 1)) / 2;
-      if (a.race === b.race) p *= .6;
-      if (a.allies.has(b.id)) p = 0;
-      if (rnd() < p) declareWar(rnd() < .5 ? a : b, rnd() < .5 ? b : a);
-      else if (modOn('diplomacia') && !a.allies.has(b.id) && rnd() < .012 && a.wars.size + b.wars.size < 3) {
-        a.allies.add(b.id); b.allies.add(a.id); addLog(`Alianza entre ${el(a)} y ${el(b)}.`, 'peace');
-      } else if (a.allies.has(b.id) && rnd() < .01) {
-        a.allies.delete(b.id); b.allies.delete(a.id); addLog(`Se rompe la alianza entre ${el(a)} y ${el(b)}.`, 'war');
-      }
+      const peaceful = Math.max(0, -(a.aggr + b.aggr));
+      if (LAWS.guerras.on && (a.warYears[b.id] || 0) > 3 && rnd() < .05 * (1 + peaceful * 3)) makePeace(a, b);
+      continue;
+    }
+    if (!LAWS.guerras.on || !kingdomsTouch(a, b)) continue;
+    const d = Math.sqrt(dist2(ca.x, ca.y, cb.x, cb.y));
+    if (d > 80) continue;
+    let p = .022 * ((SP[a.race].war || 1) + (SP[b.race].war || 1)) / 2 * clamp(1 + (a.aggr + b.aggr) * 2, .05, 4);
+    if (a.race === b.race) p *= .6;
+    if (a.allies.has(b.id)) p *= .1;
+    if (rnd() < p) declareWar(rnd() < .5 ? a : b, rnd() < .5 ? b : a);
+    else if (modOn('diplomacia') && !a.allies.has(b.id) && rnd() < .012 && a.aggr + b.aggr < .3) {
+      a.allies.add(b.id); b.allies.add(a.id); addLog(`Alianza entre ${el(a)} y ${el(b)}.`, 'peace');
     }
   }
 }
@@ -964,8 +1325,8 @@ function kingdomUpdate() {
 function ignite(x, y) {
   if (x < 0 || y < 0 || x >= W || y >= H) return;
   const i = y * W + x;
-  if (fire[i] || isWater(tile[i]) || tile[i] === T.ICE) return;
-  if (!TILE[tile[i]].burn && !bld[i] && tile[i] !== T.LAVA) { fire[i] = 8; fires.push(i); return; }
+  if (fire[i] || isWater(tile[i]) || tile[i] === T.ICE || tile[i] === T.ACID) return;
+  if (!TILE[tile[i]].burn && !bld[i]) { fire[i] = 8; fires.push(i); return; }
   fire[i] = ri(18, 30); fires.push(i);
 }
 function updateFires() {
@@ -975,16 +1336,15 @@ function updateFires() {
     fire[i]--;
     if (fire[i] === 0) {
       if (TILE[tile[i]].burn) tile[i] = T.ASH;
-      if (bld[i] && bld[i] !== 4) { bld[i] = bld[i] === 2 ? 4 : 0; if (rnd() < .5) bld[i] = 4; }
+      if (bld[i] && bld[i] !== 4) bld[i] = rnd() < .5 ? 4 : 0;
       continue;
     }
     next.push(i);
     if (LAWS.fuego.on && (TILE[tile[i]].burn || bld[i]) && rnd() < .35) {
-      const x = i % W, y = (i / W) | 0;
-      const nx = x + ri(-1, 1), ny = y + ri(-1, 1);
+      const x = i % W, y = (i / W) | 0, nx = x + ri(-1, 1), ny = y + ri(-1, 1);
       if (nx >= 0 && ny >= 0 && nx < W && ny < H) {
         const j = ny * W + nx;
-        if (!fire[j] && (TILE[tile[j]].burn || bld[j]) && rnd() < (tile[j] === T.FOREST ? .7 : .35)) { fire[j] = ri(18, 30); next.push(j); }
+        if (!fire[j] && !wall[j] && (TILE[tile[j]].burn || bld[j]) && rnd() < (tile[j] === T.FOREST || tile[j] === T.JUNGLE ? .7 : .35)) { fire[j] = ri(18, 30); next.push(j); }
       }
     }
   }
@@ -1002,10 +1362,11 @@ function liveWorld() {
     else if (t === T.FIELD && !owner[i] && rnd() < .1) tile[i] = T.GRASS;
     else if (t === T.CORRUPT && rnd() < .3 && (tj === T.GRASS || tj === T.FOREST || tj === T.FIELD)) { tile[j] = T.CORRUPT; if (rnd() < .002 && (countType.zombie || 0) < 120) spawn('zombie', x + .5, y + .5); }
     else if (t === T.LAVA) {
-      if (isWater(tj)) { tile[i] = T.HILL; tile[j] = T.HILL; steam(x, y); }
+      if (isWater(tj)) { tile[i] = T.BASALT; tile[j] = T.BASALT; if (rnd() < .35) { ore[i] = MATID.obsidiana; oreAmt[i] = 30; } steam(x, y); regionDirty = true; }
       else if (TILE[tj].burn || bld[j]) ignite(j % W, (j / W) | 0);
-      else if (rnd() < .006) tile[i] = T.MOUNT;
+      else if (rnd() < .006) { tile[i] = T.BASALT; regionDirty = true; }
     }
+    else if (t === T.ACID) { if (bld[j] && rnd() < .2) bld[j] = 4; if (TILE[tj].burn && rnd() < .05) tile[j] = T.ASH; }
     else if (t === T.CRYSTAL && modOn('magia') && rnd() < .0008 && (countType.fairy || 0) < 30) spawn('fairy', x + .5, y + .5);
     if (bld[i] === 4 && !owner[i] && rnd() < .05) bld[i] = 0;
     if (bld[i] && !owner[i] && bld[i] !== 4) bld[i] = 4;
@@ -1013,19 +1374,17 @@ function liveWorld() {
 }
 function steam(x, y) { for (let k = 0; k < 4; k++) parts.push({ x: x + .5, y: y + .5, vx: (rnd() - .5) * .05, vy: -rnd() * .08, l: 30, c: [220, 230, 235], s: 1 }); }
 function burst(x, y, c, n, sp) { for (let k = 0; k < n; k++) parts.push({ x, y, vx: (rnd() - .5) * sp * .3, vy: (rnd() - .5) * sp * .3, l: 15 + rnd() * 15, c, s: .8 }); }
-
-const countType = {};
 function naturalSpawns() {
-  if (LAWS.salvaje.on) {
-    if ((countType.sheep || 0) < 25) for (let k = 0; k < 3; k++) { const p = randomTile(t => t === T.GRASS); if (p) spawn('sheep', p[0] + .5, p[1] + .5); }
-    if ((countType.wolf || 0) < 6 && rnd() < .3) { const p = randomTile(t => t === T.FOREST); if (p) spawn('wolf', p[0] + .5, p[1] + .5); }
+  if (LAWS.salvaje.on && units.length) {
+    if ((countType.sheep || 0) < 20) for (let k = 0; k < 2; k++) { const p = randomTile(t => t === T.GRASS); if (p) spawn('sheep', p[0] + .5, p[1] + .5); }
+    if ((countType.wolf || 0) < 5 && rnd() < .3) { const p = randomTile(t => t === T.FOREST); if (p) spawn('wolf', p[0] + .5, p[1] + .5); }
   }
   if (LAWS.desastres.on && rnd() < .15) {
     const p = randomTile(t => !isWater(t));
     if (p) { if (rnd() < .7) lightning(p[0], p[1]); else fx.push({ k: 'meteor', x: p[0] + .5, y: p[1] + .5, life: 40, r: 4 }); }
   }
 }
-function randomTile(fn) { for (let a = 0; a < 60; a++) { const x = ri(0, W - 1), y = ri(0, H - 1); if (fn(tile[y * W + x])) return [x, y]; } return null; }
+function randomTile(fn) { for (let a = 0; a < 80; a++) { const x = ri(0, W - 1), y = ri(0, H - 1); if (fn(tile[y * W + x])) return [x, y]; } return null; }
 const year = () => Math.floor(tickN / YEAR) + 1;
 
 // ---------- poderes ----------
@@ -1041,7 +1400,9 @@ function explode(cx, cy, r, o = {}) {
     if (o.crater && d < r * .45) { tile[i] = T.LAVA; bld[i] = 0; }
     else if (!isWater(tile[i])) { if (tile[i] !== T.MOUNT || d < r * .5) tile[i] = d < r * .8 ? T.ASH : tile[i]; if (bld[i]) bld[i] = 4; if (rnd() < (o.fire ?? .3)) ignite(x, y); }
     if (o.rad) rad[i] = Math.max(rad[i], 200);
+    if (d < r * .6) wall[i] = 0;
   });
+  regionDirty = true;
   rebuildGrid();
   around(cx, cy, r * 1.15, u => { const d = Math.hypot(u.x - cx, u.y - cy); damage(u, (o.dmg ?? 120) * (1 - d / (r * 1.2)), null); });
   for (let k = 0; k < r * 10; k++) { const a = rnd() * 6.28, s = rnd() * .25 * Math.sqrt(r); parts.push({ x: cx, y: cy, vx: Math.cos(a) * s, vy: Math.sin(a) * s, l: 20 + rnd() * 30, c: pick([[255, 200, 60], [255, 120, 30], [90, 80, 75], [255, 240, 180]]), s: 1.4 }); }
@@ -1064,14 +1425,24 @@ function nuke(x, y) {
 
 const TOOLS = [];
 function addTool(tab, id, n, kind, extra = {}) { TOOLS.push({ tab, id, n, kind, ...extra }); }
-// terreno
-[['t_deep', T.DEEP], ['t_water', T.WATER], ['t_sand', T.SAND], ['t_grass', T.GRASS], ['t_forest', T.FOREST], ['t_hill', T.HILL], ['t_mount', T.MOUNT], ['t_snow', T.SNOW], ['t_desert', T.DESERT], ['t_swamp', T.SWAMP], ['t_ice', T.ICE], ['t_lava', T.LAVA], ['t_crystal', T.CRYSTAL], ['t_shroom', T.SHROOM], ['t_corrupt', T.CORRUPT]]
-  .forEach(([id, t]) => addTool('terreno', id, TILE[t].n, 'tile', { tile: t, mod: TILE[t].mod }));
+[T.GRASS, T.FERTILE, T.FOREST, T.JUNGLE, T.SAVANNA, T.DESERT, T.MESA, T.SAND, T.SWAMP, T.TUNDRA, T.SNOW, T.ICE, T.HILL, T.ROCK, T.MOUNT, T.BASALT, T.WATER, T.DEEP, T.LAVA, T.ACID, T.ASH, T.CRYSTAL, T.SHROOM, T.CORRUPT]
+  .forEach(t => addTool('terreno', 't_' + t, TILE[t].n, 'tile', { tile: t, mod: t === T.CORRUPT ? 'apocalipsis' : (t === T.CRYSTAL || t === T.SHROOM) ? 'magia' : null }));
 addTool('terreno', 'raise', 'Elevar', 'raise', { glyph: '▲' });
 addTool('terreno', 'lower', 'Hundir', 'lower', { glyph: '▼' });
-// vida
+MAT.forEach((m, i) => { if (m) addTool('materiales', 'm_' + m.id, m.n, 'ore', { ore: i, mod: m.mod }); });
+addTool('materiales', 'm_none', 'Quitar mineral', 'unore', { glyph: '✕' });
+CIV.forEach(s => addTool('vida', 'v_' + s, 'Pueblo de ' + SP[s].n.toLowerCase(), 'village', { sp: s, mod: SP[s].mod, once: 1 }));
 Object.keys(SP).forEach(s => addTool('vida', 's_' + s, SP[s].n, 'spawn', { sp: s, mod: SP[s].mod, once: SP[s].size > 1.5 }));
-// destruccion
+addTool('rasgos', 'scope', 'Aplicar a', 'scope', { glyph: '◎' });
+addTool('rasgos', 'r_clear', 'Quitar rasgos', 'untrait', { glyph: '✕' });
+Object.keys(TRAITS).forEach(t => addTool('rasgos', 'r_' + t, TRAITS[t].n, 'trait', { trait: t, glyph: TRAITS[t].g, mod: TRAITS[t].mod }));
+addTool('fronteras', 'wall', 'Dibujar frontera', 'wall', { glyph: '┃' });
+addTool('fronteras', 'unwall', 'Borrar frontera', 'unwall', { glyph: '⌫' });
+addTool('fronteras', 'g_unwall', 'Quitar todas las fronteras', 'act', { glyph: '⛶', act: 'unwallall' });
+addTool('fronteras', 'declare', 'Declarar guerra', 'declare', { glyph: '⚔', once: 1 });
+addTool('fronteras', 'peace', 'Firmar paz', 'peace', { glyph: '🕊', once: 1 });
+addTool('fronteras', 'g_war', '¡Guerra total!', 'act', { glyph: '🔥', act: 'war' });
+addTool('fronteras', 'g_peace', 'Paz mundial', 'act', { glyph: '☮', act: 'peace' });
 addTool('caos', 'fire', 'Fuego', 'fire', { glyph: '🔥' });
 addTool('caos', 'bolt', 'Rayo', 'bolt', { glyph: '⚡', rate: 8 });
 addTool('caos', 'meteor', 'Meteorito', 'meteor', { glyph: '☄', once: 1 });
@@ -1084,20 +1455,17 @@ addTool('caos', 'tornado', 'Tornado', 'tornado', { glyph: '🌪', once: 1, mod: 
 addTool('caos', 'acid', 'Lluvia ácida', 'acid', { glyph: '☁', once: 1, mod: 'apocalipsis' });
 addTool('caos', 'bhole', 'Agujero negro', 'bhole', { glyph: '◉', once: 1, mod: 'apocalipsis' });
 addTool('caos', 'plague', 'Plaga', 'plague', { glyph: '☣', mod: 'apocalipsis' });
-// bendiciones
 addTool('bendicion', 'rain', 'Lluvia', 'rain', { glyph: '🌧', once: 1 });
 addTool('bendicion', 'bless', 'Bendición', 'bless', { glyph: '✦' });
 addTool('bendicion', 'seed', 'Fertilidad', 'seed', { glyph: '🌱' });
 addTool('bendicion', 'cure', 'Curar', 'cure', { glyph: '✚' });
-addTool('bendicion', 'erase', 'Borrar seres', 'erase', { glyph: '✕' });
 addTool('bendicion', 'extinguish', 'Apagar fuego', 'extinguish', { glyph: '💧' });
-// dios
+addTool('bendicion', 'erase', 'Borrar seres', 'erase', { glyph: '✕' });
 addTool('dios', 'inspect', 'Inspeccionar', 'inspect', { glyph: '🔍', once: 1 });
 addTool('dios', 'move', 'Mover mapa', 'move', { glyph: '✋' });
 addTool('dios', 'hero', 'Crear héroe', 'heroize', { glyph: '♛', once: 1, mod: 'heroes' });
-addTool('dios', 'g_peace', 'Paz mundial', 'act', { glyph: '☮', act: 'peace' });
-addTool('dios', 'g_war', 'Guerra mundial', 'act', { glyph: '⚔', act: 'war' });
-addTool('dios', 'g_era', 'Avanzar era', 'act', { glyph: '⚙', act: 'era', mod: 'eras' });
+addTool('dios', 'gift', 'Regalar recursos', 'gift', { glyph: '🎁', once: 1, mod: 'trucos' });
+addTool('dios', 'g_era', 'Avanzar una era', 'act', { glyph: '⚙', act: 'era', mod: 'tecnologia' });
 addTool('dios', 'g_meteor', 'Lluvia de meteoritos', 'act', { glyph: '☄', act: 'meteors', mod: 'trucos' });
 addTool('dios', 'g_alien', 'Invasión alien', 'act', { glyph: '🛸', act: 'aliens', mod: 'alien' });
 addTool('dios', 'g_zombie', 'Apocalipsis zombi', 'act', { glyph: '☠', act: 'zombies', mod: 'apocalipsis' });
@@ -1105,89 +1473,139 @@ addTool('dios', 'g_dragon', 'Despertar dragones', 'act', { glyph: '🐉', act: '
 addTool('dios', 'g_heal', 'Curar el mundo', 'act', { glyph: '✚', act: 'healall', mod: 'trucos' });
 addTool('dios', 'g_clear', 'Exterminar todo', 'act', { glyph: '✖', act: 'clear', mod: 'trucos' });
 
-let curTool = TOOLS.find(t => t.id === 's_human');
-let brush = 3;
+let curTool = TOOLS.find(t => t.id === 'v_human');
+let brush = 3, traitScope = 'brush', warPick = null;
 
+function kingdomAt(x, y) {
+  const xi = x | 0, yi = y | 0;
+  if (xi < 0 || yi < 0 || xi >= W || yi >= H) return null;
+  const o = owner[yi * W + xi]; if (o) { const c = cities[o - 1]; if (c && c.alive) return c.k; }
+  rebuildGrid();
+  const u = nearest(x, y, 3, v => !!v.k && v.k.alive);
+  return u ? u.k : null;
+}
 function applyTool(t, x, y, first) {
   const xi = x | 0, yi = y | 0;
   if (xi < 0 || yi < 0 || xi >= W || yi >= H) return;
   const b = brush;
   switch (t.kind) {
-    case 'tile': circle(x, y, b, (xx, yy, i) => { tile[i] = t.tile; if (isWater(t.tile) || t.tile === T.LAVA || t.tile === T.MOUNT) { if (bld[i]) bld[i] = 0; } fire[i] = t.tile === T.LAVA ? fire[i] : 0; }); break;
-    case 'raise': case 'lower': {
-      if (!first && tickN % 1) break;
+    case 'tile': circle(x, y, b, (xx, yy, i) => { tile[i] = t.tile; if (isWater(t.tile) || TILE[t.tile].liquid || t.tile === T.MOUNT) bld[i] = 0; if (isWater(t.tile) || TILE[t.tile].liquid) ore[i] = 0; fire[i] = 0; }); regionDirty = true; break;
+    case 'raise': case 'lower':
       circle(x, y, b, (xx, yy, i) => {
         if (rnd() > .35) return;
         let e = ELEV.indexOf(tile[i]); if (e < 0) e = 3;
         e = clamp(e + (t.kind === 'raise' ? 1 : -1), 0, ELEV.length - 1);
-        tile[i] = ELEV[e]; if (isWater(tile[i])) bld[i] = 0;
-      }); break;
-    }
+        tile[i] = ELEV[e]; if (isWater(tile[i])) { bld[i] = 0; ore[i] = 0; }
+      }); regionDirty = true; break;
+    case 'ore': circle(x, y, Math.max(.8, b * .6), (xx, yy, i) => { if (!isWater(tile[i]) && !TILE[tile[i]].liquid && !bld[i] && rnd() < .7) { ore[i] = t.ore; oreAmt[i] = 40; } }); break;
+    case 'unore': circle(x, y, b, (xx, yy, i) => { ore[i] = 0; }); break;
+    case 'village': foundVillage(t.sp, x, y); break;
     case 'spawn': {
       const def = SP[t.sp];
-      if (t.once) { const u = spawn(t.sp, x, y); if (u && def.civ) u.name = mkName(t.sp); if (u) toast(`Aparece: ${def.n}`); break; }
+      if (t.once) { const u = spawn(t.sp, x, y); if (u) toast(`Aparece: ${def.n}`); break; }
       const n = def.civ ? 1 : 1 + (b > 4 ? 1 : 0);
       for (let k = 0; k < n; k++) spawn(t.sp, x + (rnd() - .5) * b, y + (rnd() - .5) * b);
       break;
     }
-    case 'fire': circle(x, y, b * .7, (xx, yy, i) => { if (rnd() < .5) ignite(xx, yy); }); break;
+    case 'trait': case 'untrait': {
+      rebuildGrid();
+      let targets = [];
+      if (traitScope === 'village') {
+        const o = owner[yi * W + xi];
+        const cid = o ? o - 1 : (nearest(x, y, 3, v => v.def.civ && v.city >= 0)?.city ?? -1);
+        if (cid >= 0) targets = units.filter(u => u.city === cid && u.def.civ && !u.dead);
+      } else around(x, y, Math.max(1.2, b * .8), u => { if (u.def.civ) targets.push(u); });
+      if (!targets.length) { if (first) toast(traitScope === 'village' ? 'Toca dentro de un pueblo' : 'Pasa el pincel por encima de la gente'); break; }
+      let n = 0;
+      for (const u of targets) { if (t.kind === 'untrait') { if (u.traits.length) { u.traits = []; u.maxHp = maxHpOf(u); u.hp = Math.min(u.hp, u.maxHp); n++; } } else if (addTrait(u, t.trait)) { n++; burst(u.x, u.y, [255, 230, 120], 2, .3); } }
+      if (n && (first || traitScope === 'village')) toast(t.kind === 'untrait' ? `Rasgos quitados a ${n}` : `${TRAITS[t.trait].n}: ${n} persona${n === 1 ? '' : 's'}`);
+      sideDirty = true;
+      break;
+    }
+    case 'declare': case 'peace': {
+      const k = kingdomAt(x, y);
+      if (!k) { toast('Toca un pueblo'); break; }
+      if (!warPick || !warPick.alive) { warPick = k; toast(`${k.name} elegido. Ahora toca ${t.kind === 'declare' ? 'al enemigo' : 'el otro pueblo'}.`); break; }
+      if (warPick === k) { toast('Elige otro pueblo distinto'); break; }
+      if (t.kind === 'declare') { if (warPick.wars.has(k.id)) toast('Ya están en guerra'); else declareWar(warPick, k, true); }
+      else { if (warPick.wars.has(k.id)) makePeace(warPick, k); else toast('No estaban en guerra'); }
+      warPick = null; sideDirty = true; break;
+    }
+    case 'fire': circle(x, y, b * .7, (xx, yy) => { if (rnd() < .5) ignite(xx, yy); }); break;
     case 'bolt': lightning(xi, yi); break;
     case 'meteor': fx.push({ k: 'meteor', x, y, life: 40, r: 4 + b * .4 }); break;
     case 'bomb': explode(x, y, 3 + b * .5, { dmg: 150, fire: .4 }); break;
     case 'nuke': nuke(x, y); break;
     case 'quake': fx.push({ k: 'quake', x, y, life: 140, r: 8 + b }); addLog('Un terremoto sacude la tierra.', 'doom'); break;
-    case 'flood': circle(x, y, 6 + b, (xx, yy, i, d) => { const tt = tile[i]; if (tt === T.SAND || tt === T.GRASS || tt === T.FIELD || tt === T.SWAMP || tt === T.ASH || tt === T.DESERT || (d < 4 && tt !== T.MOUNT && tt !== T.SNOW)) { tile[i] = d < 4 ? T.DEEP : T.WATER; bld[i] = 0; fire[i] = 0; } }); break;
-    case 'volcano': {
-      circle(x, y, 5, (xx, yy, i, d) => { tile[i] = d < 1.6 ? T.LAVA : d < 3.5 ? T.MOUNT : T.HILL; bld[i] = 0; });
-      fx.push({ k: 'volcano', x, y, life: 900 }); break;
-    }
+    case 'flood': circle(x, y, 6 + b, (xx, yy, i, d) => { const tt = tile[i]; if ([T.SAND, T.GRASS, T.FIELD, T.SWAMP, T.ASH, T.DESERT, T.SAVANNA, T.FERTILE].includes(tt) || (d < 4 && tt !== T.MOUNT && tt !== T.SNOW)) { tile[i] = d < 4 ? T.DEEP : T.WATER; bld[i] = 0; fire[i] = 0; ore[i] = 0; } }); regionDirty = true; break;
+    case 'volcano': circle(x, y, 5, (xx, yy, i, d) => { tile[i] = d < 1.6 ? T.LAVA : d < 3.5 ? T.MOUNT : T.BASALT; bld[i] = 0; }); fx.push({ k: 'volcano', x, y, life: 900 }); regionDirty = true; break;
     case 'tornado': fx.push({ k: 'tornado', x, y, vx: (rnd() - .5) * .1, vy: (rnd() - .5) * .1, life: 700 }); break;
     case 'acid': fx.push({ k: 'cloud', acid: 1, x, y, vx: (rnd() - .5) * .04, vy: (rnd() - .5) * .02, life: 420 }); break;
     case 'rain': fx.push({ k: 'cloud', acid: 0, x, y, vx: (rnd() - .5) * .04, vy: (rnd() - .5) * .02, life: 420 }); break;
     case 'bhole': fx.push({ k: 'bhole', x, y, life: 520 }); addLog('Se abre un agujero negro en el mundo.', 'doom'); break;
     case 'plague': rebuildGrid(); around(x, y, b, u => { if (u.def.civ) u.plague = 900; }); break;
-    case 'bless': rebuildGrid(); around(x, y, b, u => { if (u.def.civ || u.def.passive) { u.hp = u.maxHp; u.plague = 0; if (first || rnd() < .05) gainXp(u, u.level * 3); burst(u.x, u.y, [255, 230, 120], 3, .5); } }); break;
-    case 'seed': circle(x, y, b, (xx, yy, i) => { const tt = tile[i]; if (tt === T.ASH || tt === T.DESERT || tt === T.CORRUPT || tt === T.SAND) tile[i] = T.GRASS; else if (tt === T.GRASS && !owner[i] && rnd() < .3) tile[i] = T.FOREST; rad[i] = 0; }); break;
+    case 'bless': rebuildGrid(); around(x, y, b, u => { if (u.def.civ || u.def.passive) { u.hp = u.maxHp; u.plague = 0; if (first || rnd() < .05) gainXp(u, u.level * 2); burst(u.x, u.y, [255, 230, 120], 3, .5); } }); break;
+    case 'seed': circle(x, y, b, (xx, yy, i) => { const tt = tile[i]; if (tt === T.ASH || tt === T.DESERT || tt === T.CORRUPT || tt === T.SAND || tt === T.TUNDRA) tile[i] = T.GRASS; else if (tt === T.GRASS && rnd() < .4) tile[i] = T.FERTILE; rad[i] = 0; }); break;
     case 'cure': rebuildGrid(); around(x, y, b, u => { u.plague = 0; u.hp = Math.min(u.maxHp, u.hp + 5); }); circle(x, y, b, (xx, yy, i) => { rad[i] = 0; if (tile[i] === T.CORRUPT) tile[i] = T.GRASS; }); break;
-    case 'erase': rebuildGrid(); around(x, y, b, u => { u.dead = true; if (u.k && u.k.king === u) u.k.king = null; }); break;
+    case 'erase': rebuildGrid(); around(x, y, b, u => { u.dead = true; if (u.k && u.k.king === u) u.k.king = null; }); units = units.filter(u => !u.dead); break;
     case 'extinguish': circle(x, y, b + 1, (xx, yy, i) => { fire[i] = 0; }); break;
-    case 'heroize': { rebuildGrid(); const u = nearest(x, y, 3, o => o.def.civ); if (u) { u.level = Math.max(u.level, 4); gainXp(u, 30); if (!u.hero) makeHero(u); select(u); } else toast('No hay nadie cerca'); break; }
+    case 'heroize': { rebuildGrid(); const u = nearest(x, y, 3, o => o.def.civ); if (u) { u.level = Math.max(u.level, 5); if (!u.hero) makeHero(u); select(u); } else toast('No hay nadie cerca'); break; }
+    case 'gift': { const k = kingdomAt(x, y); if (k) { for (const r in k.res) k.res[r] += 40; toast(`${k.name} recibe 40 de cada recurso`); sideDirty = true; } else toast('Toca un pueblo'); break; }
     case 'inspect': inspectAt(x, y); break;
   }
 }
+function wallLine(x0, y0, x1, y1, on) {
+  const r = on ? Math.max(.75, brush * .3) : Math.max(1, brush * .7);
+  const steps = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0) * 2));
+  for (let s = 0; s <= steps; s++) {
+    const x = x0 + (x1 - x0) * s / steps, y = y0 + (y1 - y0) * s / steps;
+    circle(x, y, r, (xx, yy, i) => { if (on) { if (!isWater(tile[i])) { wall[i] = 1; bld[i] = 0; } } else wall[i] = 0; });
+  }
+  if (on) for (const u of units) if (!u.def.fly && wall[(u.y | 0) * W + (u.x | 0)]) {
+    for (let a = 0; a < 12; a++) { const nx = u.x + (rnd() - .5) * 4, ny = u.y + (rnd() - .5) * 4; if (canStand(u.def, nx, ny)) { u.x = nx; u.y = ny; break; } }
+    u.tx = null;
+  }
+  regionDirty = true;
+}
 function globalAct(a) {
   const alive = kingdoms.filter(k => k.alive);
-  if (a === 'peace') { for (const k of alive) for (const w of [...k.wars]) if (kingdoms[w]) makePeace(k, kingdoms[w]); LAWS.guerras.on = false; toast('Paz mundial. Las guerras quedan prohibidas.'); renderTools(); }
-  if (a === 'war') { LAWS.guerras.on = true; for (let i = 0; i < alive.length; i++) for (let j = i + 1; j < alive.length; j++) { alive[i].allies.delete(alive[j].id); alive[j].allies.delete(alive[i].id); declareWar(alive[i], alive[j]); } toast('Todos contra todos'); }
-  if (a === 'era') { for (const k of alive) { k.tech = ERAS[Math.min(ERAS.length - 1, k.era + 1)][1]; } kingdomUpdate(); toast('Los reinos avanzan una era'); }
+  if (a === 'unwallall') { wall.fill(0); computeRegions(); addLog('Los dioses borran todas las fronteras. Los pueblos ya pueden encontrarse.', 'doom'); toast('Fronteras eliminadas'); }
+  if (a === 'peace') { for (const k of alive) for (const w of [...k.wars]) if (kingdoms[w]) makePeace(k, kingdoms[w]); LAWS.guerras.on = false; toast('Paz mundial. Guerras automáticas apagadas (puedes encenderlas en Leyes).'); }
+  if (a === 'war') { if (alive.length < 2) { toast('Hacen falta al menos dos pueblos'); return; } for (let i = 0; i < alive.length; i++) for (let j = i + 1; j < alive.length; j++) declareWar(alive[i], alive[j], true); toast('Todos contra todos'); }
+  if (a === 'era') {
+    if (!alive.length) toast('No hay pueblos');
+    for (const k of alive) { const te = Math.min(ERAS.length - 1, k.era + 1); for (const t of TECH) if (t.era <= te && modOn(t.mod) && !k.tech.has(t.id)) applyTech(k, t, true); addLog(`${El(k)} avanza a la ${ERAS[k.era]}.`, 'tech'); }
+  }
   if (a === 'meteors') { for (let k = 0; k < 14; k++) { const p = randomTile(() => true); fx.push({ k: 'meteor', x: p[0], y: p[1], life: 30 + k * 6, r: 4 }); } addLog('Una lluvia de meteoritos cae sobre el mundo.', 'doom'); }
   if (a === 'aliens') { for (let k = 0; k < 4; k++) { const p = randomTile(t => !isWater(t)); if (p) spawn('ufo', p[0], p[1]); } addLog('¡Llegan los OVNIs! Empiezan las abducciones.', 'doom'); }
   if (a === 'zombies') { let n = 0; for (const c of cities) if (c && c.alive) for (let k = 0; k < 3; k++) { if (spawn('zombie', c.x + ri(-6, 6), c.y + ri(-6, 6))) n++; } if (!n) for (let k = 0; k < 12; k++) { const p = randomTile(t => t === T.GRASS); if (p) spawn('zombie', p[0], p[1]); } addLog('Los muertos se levantan: comienza el apocalipsis zombi.', 'doom'); }
   if (a === 'dragons') { for (let k = 0; k < 3; k++) { const p = randomTile(t => t === T.MOUNT || t === T.HILL) || randomTile(() => true); spawn('dragon', p[0], p[1]); } addLog('Tres dragones despiertan en las montañas.', 'doom'); }
   if (a === 'healall') { for (const u of units) { u.hp = u.maxHp; u.plague = 0; } rad.fill(0); for (const i of fires) fire[i] = 0; toast('Mundo curado'); }
-  if (a === 'clear') { for (const u of units) u.dead = true; for (const k of kingdoms) k.king = null; toast('Todos los seres han desaparecido'); }
+  if (a === 'clear') { for (const u of units) u.dead = true; for (const k of kingdoms) k.king = null; units = []; toast('Todos los seres han desaparecido'); }
+  sideDirty = true;
 }
 
 // ---------- efectos ----------
 function updateFx() {
   for (const f of fx) {
     f.life--;
-    if (f.k === 'meteor' && f.life <= 0) { explode(f.x, f.y, f.r, { crater: 1, dmg: 200, fire: .5 }); }
+    if (f.k === 'meteor' && f.life <= 0) explode(f.x, f.y, f.r, { crater: 1, dmg: 200, fire: .5 });
     if (f.k === 'quake') {
       shake = Math.max(shake, 5);
       for (let k = 0; k < 6; k++) {
         const x = Math.round(f.x + (rnd() - .5) * f.r * 2), y = Math.round(f.y + (rnd() - .5) * f.r * 2);
         if (x < 0 || y < 0 || x >= W || y >= H) continue;
-        const i = y * W + x; if (bld[i]) bld[i] = 4;
-        if (rnd() < .3 && !isWater(tile[i])) tile[i] = pick([T.HILL, T.MOUNT, T.WATER, T.SAND]);
+        const i = y * W + x; if (bld[i]) bld[i] = 4; if (wall[i] && rnd() < .3) wall[i] = 0;
+        if (rnd() < .3 && !isWater(tile[i])) tile[i] = pick([T.HILL, T.ROCK, T.WATER, T.SAND]);
       }
+      regionDirty = true;
       if (tickN % 10 === 0) around(f.x, f.y, f.r, u => { if (!u.def.fly) damage(u, 3, null); });
     }
     if (f.k === 'tornado') {
-      f.vx += (rnd() - .5) * .02; f.vy += (rnd() - .5) * .02; f.vx = clamp(f.vx, -.15, .15); f.vy = clamp(f.vy, -.15, .15);
+      f.vx = clamp(f.vx + (rnd() - .5) * .02, -.15, .15); f.vy = clamp(f.vy + (rnd() - .5) * .02, -.15, .15);
       f.x = clamp(f.x + f.vx, 1, W - 2); f.y = clamp(f.y + f.vy, 1, H - 2);
-      circle(f.x, f.y, 1.8, (x, y, i) => { if (bld[i] && rnd() < .2) bld[i] = 0; if (tile[i] === T.FOREST && rnd() < .1) tile[i] = T.GRASS; if (fire[i]) fire[i] = 1; });
-      around(f.x, f.y, 2.5, u => { if (u.def.size > 1.5) return; const a = rnd() * 6.28; u.x = clamp(u.x + Math.cos(a) * .6, 0, W - 1); u.y = clamp(u.y + Math.sin(a) * .6, 0, H - 1); damage(u, .6, null); });
+      circle(f.x, f.y, 1.8, (x, y, i) => { if (bld[i] && rnd() < .2) bld[i] = 0; if ((tile[i] === T.FOREST || tile[i] === T.JUNGLE) && rnd() < .1) tile[i] = T.GRASS; if (fire[i]) fire[i] = 1; });
+      around(f.x, f.y, 2.5, u => { if (u.def.size > 1.5) return; const a = rnd() * 6.28, nx = clamp(u.x + Math.cos(a) * .6, 0, W - 1), ny = clamp(u.y + Math.sin(a) * .6, 0, H - 1); if (u.def.fly || !wall[(ny | 0) * W + (nx | 0)]) { u.x = nx; u.y = ny; } damage(u, .6, null); });
       if (tickN % 2 === 0) parts.push({ x: f.x + (rnd() - .5) * 2, y: f.y + (rnd() - .5), vx: (rnd() - .5) * .2, vy: -.1 - rnd() * .1, l: 18, c: [170, 170, 160], s: 1 });
     }
     if (f.k === 'cloud') {
@@ -1197,19 +1615,19 @@ function updateFx() {
         if (x < 0 || y < 0 || x >= W || y >= H) continue;
         const i = y * W + x;
         if (f.acid) { if (tile[i] === T.FOREST && rnd() < .2) tile[i] = T.ASH; else if (tile[i] === T.GRASS && rnd() < .05) tile[i] = T.SWAMP; if (bld[i] && rnd() < .02) bld[i] = 4; }
-        else { fire[i] = 0; if (tile[i] === T.ASH && rnd() < .5) tile[i] = T.GRASS; else if (tile[i] === T.GRASS && !owner[i] && rnd() < .04) tile[i] = T.FOREST; else if (tile[i] === T.DESERT && rnd() < .05) tile[i] = T.GRASS; else if (tile[i] === T.LAVA && rnd() < .3) tile[i] = T.HILL; }
+        else { fire[i] = 0; if (tile[i] === T.ASH && rnd() < .5) tile[i] = T.GRASS; else if (tile[i] === T.GRASS && !owner[i] && rnd() < .04) tile[i] = T.FOREST; else if (tile[i] === T.DESERT && rnd() < .05) tile[i] = T.SAVANNA; else if (tile[i] === T.LAVA && rnd() < .3) { tile[i] = T.BASALT; regionDirty = true; } }
       }
       if (f.acid && tickN % 8 === 0) around(f.x, f.y, 4.5, u => damage(u, 2, null));
     }
     if (f.k === 'bhole') {
-      const r = Math.min(14, 2 + (520 - f.life) / 30);
-      f.r = r;
+      const r = Math.min(14, 2 + (520 - f.life) / 30); f.r = r;
       for (let k = 0; k < 10; k++) {
         const a = rnd() * 6.28, d = rnd() * r;
         const x = Math.round(f.x + Math.cos(a) * d), y = Math.round(f.y + Math.sin(a) * d);
         if (x < 0 || y < 0 || x >= W || y >= H) continue;
-        const i = y * W + x; tile[i] = T.DEEP; bld[i] = 0; fire[i] = 0; owner[i] = 0;
+        const i = y * W + x; tile[i] = T.DEEP; bld[i] = 0; fire[i] = 0; owner[i] = 0; ore[i] = 0; wall[i] = 0;
       }
+      regionDirty = true;
       around(f.x, f.y, 26, u => { const dx = f.x - u.x, dy = f.y - u.y, d = Math.hypot(dx, dy) || 1; u.x += dx / d * Math.min(.5, 3 / d); u.y += dy / d * Math.min(.5, 3 / d); if (d < 1.5) kill(u, null, 'agujero negro'); });
       for (let k = 0; k < 2; k++) { const a = rnd() * 6.28, d = r + 4; parts.push({ x: f.x + Math.cos(a) * d, y: f.y + Math.sin(a) * d, vx: -Math.cos(a) * .25, vy: -Math.sin(a) * .25, l: 18, c: [170, 110, 255], s: 1 }); }
       if (f.life === 1) addLog('El agujero negro se cierra, dejando un mar sin fondo.', 'doom');
@@ -1217,19 +1635,18 @@ function updateFx() {
     if (f.k === 'volcano' && tickN % 14 === 0) {
       const a = rnd() * 6.28, d = 2 + rnd() * 6;
       const x = Math.round(f.x + Math.cos(a) * d), y = Math.round(f.y + Math.sin(a) * d);
-      if (x >= 0 && y >= 0 && x < W && y < H) { const i = y * W + x; if (!isWater(tile[i]) && rnd() < .4) tile[i] = T.LAVA; ignite(x, y); }
+      if (x >= 0 && y >= 0 && x < W && y < H) { const i = y * W + x; if (!isWater(tile[i]) && rnd() < .4) { tile[i] = T.LAVA; regionDirty = true; } ignite(x, y); }
       for (let k = 0; k < 5; k++) parts.push({ x: f.x, y: f.y, vx: (rnd() - .5) * .3, vy: -.2 - rnd() * .3, l: 30, c: [255, 120 + ri(0, 80), 20], s: 1.2, g: .015 });
-      const i0 = Math.round(f.y) * W + Math.round(f.x); tile[i0] = T.LAVA;
+      tile[clamp(Math.round(f.y), 0, H - 1) * W + clamp(Math.round(f.x), 0, W - 1)] = T.LAVA;
       if (rnd() < .05) shake = Math.max(shake, 3);
     }
-    if (f.k === 'mush') { if (f.life > 60) for (let k = 0; k < 3; k++) parts.push({ x: f.x + (rnd() - .5) * 3, y: f.y, vx: (rnd() - .5) * .08, vy: -.15 - rnd() * .1, l: 70, c: pick([[255, 170, 60], [140, 120, 110], [90, 85, 80]]), s: 2.4 }); }
+    if (f.k === 'mush' && f.life > 60) for (let k = 0; k < 3; k++) parts.push({ x: f.x + (rnd() - .5) * 3, y: f.y, vx: (rnd() - .5) * .08, vy: -.15 - rnd() * .1, l: 70, c: pick([[255, 170, 60], [140, 120, 110], [90, 85, 80]]), s: 2.4 });
   }
   fx = fx.filter(f => f.life > 0);
 }
 function updateProjs() {
   for (const p of projs) {
-    const t = p.t;
-    const tx = t.x, ty = t.y;
+    const t = p.t, tx = t.x, ty = t.y;
     const dx = tx - p.x, dy = ty - p.y, d = Math.hypot(dx, dy);
     if (d < p.spd || t.dead) {
       p.done = true;
@@ -1237,7 +1654,9 @@ function updateProjs() {
       if (p.kind === 'fireball') { ignite(tx | 0, ty | 0); burst(tx, ty, [255, 140, 30], 8, .6); around(tx, ty, 1.5, o => { if (o !== t && p.src && isEnemy(p.src, o)) damage(o, p.dmg * .5, p.src); }); }
       continue;
     }
-    p.x += dx / d * p.spd; p.y += dy / d * p.spd;
+    const nx = p.x + dx / d * p.spd, ny = p.y + dy / d * p.spd;
+    if (p.kind !== 'laser' && wall[(ny | 0) * W + (nx | 0)]) { p.done = true; continue; }
+    p.x = nx; p.y = ny;
   }
   projs = projs.filter(p => !p.done);
 }
@@ -1247,9 +1666,10 @@ function updateParts() {
   if (parts.length > 2500) parts.splice(0, parts.length - 2500);
 }
 
-// ---------- bucle de simulacion ----------
+// ---------- bucle ----------
 function tick() {
   tickN++;
+  if (regionDirty && tickN % 10 === 0) computeRegions();
   rebuildGrid();
   for (const k in countType) countType[k] = 0;
   for (const u of units) countType[u.type] = (countType[u.type] || 0) + 1;
@@ -1264,7 +1684,7 @@ function tick() {
   if (tickN % 120 === 0) kingdomUpdate();
   if (tickN % 200 === 0) naturalSpawns();
   if (units.some(u => u.dead)) {
-    if (selected && selected.dead) { selectedDeadName = displayName(selected); }
+    if (selected && selected.dead) selectedDeadName = displayName(selected);
     units = units.filter(u => !u.dead);
   }
 }
@@ -1272,53 +1692,54 @@ function tick() {
 // ---------- render ----------
 const nightCol = [18, 26, 60];
 function dayLight() {
-  if (!modOn('clima')) return 1;
+  if (!modOn('clima') || tickN === 0) return 1;
   const d = (tickN % (YEAR / 2)) / (YEAR / 2);
-  const s = Math.cos(d * Math.PI * 2);
-  return clamp(.62 + s * .55, .38, 1);
+  return clamp(.62 + Math.cos(d * Math.PI * 2) * .55, .4, 1);
 }
 function season() { return modOn('clima') ? Math.floor((tickN % YEAR) / (YEAR / 4)) : 1; }
 const SEASONS = ['Primavera', 'Verano', 'Otoño', 'Invierno'];
 function renderMap() {
-  const d = img.data, light = dayLight(), sea = season(), t0 = tickN * .05;
-  const winter = sea === 3, autumn = sea === 2;
+  const d = img.data, light = dayLight(), sea = season(), t0 = tickN * .05 + performance.now() * .0006;
+  const winter = sea === 3 && tickN > 0, autumn = sea === 2;
   for (let y = 0; y < H; y++) {
-    const lat = Math.abs(y / H - .5) * 2;
-    const snowy = winter && lat > .45;
+    const lat = Math.abs(y / H - .5) * 2, snowy = winter && lat > .45;
     for (let x = 0; x < W; x++) {
       const i = y * W + x, t = tile[i], c = TILE[t].c, j = jit[i];
       let r = c[0] + j, g = c[1] + j, b = c[2] + j;
-      if (t <= 1) { const w = Math.sin(t0 + x * .35 + y * .22) * 4; r += w; g += w; b += w; if (snowy && lat > .7 && t === 1) { r = 190; g = 220; b = 236; } }
-      else if (t === T.LAVA) { const w = Math.sin(t0 * 3 + x + y) * 20; g += w; }
-      else if (snowy && t !== T.LAVA && t !== T.DESERT) { const k = Math.min(1, (lat - .45) * 3); r += (236 - r) * k; g += (240 - g) * k; b += (246 - b) * k; }
+      if (t <= 1) { const w = Math.sin(t0 + x * .35 + y * .22) * 4; r += w; g += w; b += w; }
+      else if (t === T.LAVA || t === T.ACID) { const w = Math.sin(t0 * 3 + x + y) * 18; g += w; }
+      else if (snowy && t !== T.DESERT && t !== T.MESA) { const k = Math.min(1, (lat - .45) * 3); r += (236 - r) * k; g += (240 - g) * k; b += (246 - b) * k; }
       else if (autumn && (t === T.FOREST || t === T.GRASS)) { r += 30; g -= 6; b -= 10; }
+      const m = ore[i];
+      if (m) { const mc = MAT[m].c, sp = hash(x, y, m) > .45; if (sp) { r = mc[0]; g = mc[1]; b = mc[2]; } else { r = 70 + mc[0] * .3; g = 66 + mc[1] * .3; b = 64 + mc[2] * .3; } if (((x * 13 + y * 7 + (tickN >> 3)) % 37) === 0) { r += 60; g += 60; b += 60; } }
       const o = owner[i];
+      let city = null;
       if (o) {
-        const city = cities[o - 1];
+        city = cities[o - 1];
         if (city && city.alive && city.k) {
           const kc = city.k.color;
           const bd = (x > 0 && owner[i - 1] !== o) || (x < W - 1 && owner[i + 1] !== o) || (y > 0 && owner[i - W] !== o) || (y < H - 1 && owner[i + W] !== o);
-          const m = bd ? .6 : .16;
-          r += (kc[0] - r) * m; g += (kc[1] - g) * m; b += (kc[2] - b) * m;
-        }
+          if (bd && city.k.walls && modOn('tecnologia')) { r = 110 + kc[0] * .25; g = 106 + kc[1] * .25; b = 100 + kc[2] * .25; }
+          else { const mm = bd ? .6 : .16; r += (kc[0] - r) * mm; g += (kc[1] - g) * mm; b += (kc[2] - b) * mm; }
+        } else city = null;
       }
       const bl = bld[i];
       let lit = false;
       if (bl) {
-        const city = o ? cities[o - 1] : null, k = city && city.k;
-        const era = k && modOn('eras') ? k.era : 0;
+        const k = city && city.k;
+        const ht = k && modOn('tecnologia') ? k.house : 0;
         if (bl === 4) { r = 60; g = 52; b = 48; }
         else if (bl === 2) { const kc = k ? k.color : [200, 200, 200]; r = kc[0] * .5 + 120; g = kc[1] * .5 + 110; b = kc[2] * .5 + 100; lit = true; }
-        else if (bl === 3) { r = 150; g = 150; b = 160; lit = true; }
         else {
-          if (era >= 5) { r = 170; g = 172; b = 180; } else if (era >= 3) { r = 176; g = 120; b = 90; } else { r = 150; g = 108; b = 64; }
+          const hc = HOUSES[ht][1]; r = hc[0]; g = hc[1]; b = hc[2];
           if (k && (x + y) % 2) { r = r * .6 + k.color[0] * .4; g = g * .6 + k.color[1] * .4; b = b * .6 + k.color[2] * .4; }
           lit = true;
         }
       }
+      if (wall[i]) { const s = ((x + y) >> 1) % 2; r = s ? 245 : 214; g = s ? 245 : 40; b = s ? 240 : 48; }
       if (rad[i]) { const k = Math.min(.45, rad[i] / 400); r += (120 - r) * k; g += (255 - g) * k; b += (80 - b) * k; }
       if (fire[i]) { const f = rnd(); r = 255; g = 90 + f * 140; b = 20 + f * 30; }
-      else if (light < 1) {
+      else if (light < 1 && !wall[i]) {
         if (lit && light < .7 && ((x * 7 + y * 3) % 4 === 0)) { r = 236; g = 196; b = 112; }
         else { r = r * light + nightCol[0] * (1 - light); g = g * light + nightCol[1] * (1 - light); b = b * light + nightCol[2] * (1 - light); }
       }
@@ -1331,22 +1752,26 @@ function renderMap() {
 function bodyColor(u) { return u.k ? u.k.color : u.def.skin.map(v => v * .75); }
 function drawSprite(ctx, u, sx, sy, z) {
   const def = u.def;
-  const size = (def.size || 1) * traitMul(u, 'size') * (u.def.civ && u.age < 12 ? .7 : 1);
+  const size = (def.size || 1) * tmul(u, 'size') * (def.civ && u.age < 12 ? .7 : 1);
   const pat = SPR[def.spr], ph = pat.length, pw = pat[0].length;
-  const tall = z * 1.05 * size;
-  const p = tall / ph;
-  const w = p * pw;
+  const tall = z * 1.05 * size, p = tall / ph, w = p * pw;
   const ox = sx - w / 2, oy = sy - tall + p * .8;
-  const flashRed = u.hitT > 0;
-  const skin = flashRed ? [255, 80, 80] : def.skin;
-  const body = flashRed ? [255, 60, 60] : bodyColor(u);
-  const pal = { s: skin, b: body, d: [40, 32, 30], r: [200, 110, 40], w: def.skin.map(v => v * .65), e: [20, 10, 10], y: [180, 240, 255], c: [140, 220, 255], S: [240, 120, 120] };
+  const red = u.hitT > 0;
+  const skin = red ? [255, 80, 80] : def.skin;
+  const body = red ? [255, 60, 60] : bodyColor(u);
+  const tech = def.civ && u.k && modOn('tecnologia');
+  const helm = tech && u.k.armor.tier >= 1 && u.age >= 12 ? ARMORS[u.k.armor.tier][2] : skin;
+  const pal = { s: skin, h: helm, b: body, d: [40, 32, 30], r: [200, 110, 40], w: def.skin.map(v => v * .65), e: [20, 10, 10], y: [180, 240, 255], c: [140, 220, 255], S: [240, 120, 120] };
   const bob = def.fly ? Math.sin((tickN + u.id * 7) * .1) * p : 0;
   for (let yy = 0; yy < ph; yy++) for (let xx = 0; xx < pw; xx++) {
     const ch = pat[yy][xx]; if (ch === '.') continue;
-    const col = pal[ch] || skin;
-    ctx.fillStyle = `rgb(${col[0] | 0},${col[1] | 0},${col[2] | 0})`;
+    ctx.fillStyle = css(pal[ch] || skin);
     ctx.fillRect(ox + xx * p, oy + yy * p + bob, Math.ceil(p), Math.ceil(p));
+  }
+  if (tech && u.age >= 12 && u.k.weapon.c) {
+    ctx.fillStyle = css(u.k.weapon.c);
+    if (u.k.gun) ctx.fillRect(ox + w - p * .2, oy + p * 2.4 + bob, p * 1.8, Math.ceil(p * .7));
+    else ctx.fillRect(ox + w, oy + p * .6 + bob, Math.ceil(p * .7), p * 3.6);
   }
   const crown = (u.k && u.k.king === u) ? 'king' : u.hero ? 'hero' : null;
   if (crown) {
@@ -1355,6 +1780,7 @@ function drawSprite(ctx, u, sx, sy, z) {
     ctx.fillRect(sx - cw / 2, oy - p * 1.3 + bob, cw, p);
     if (crown === 'king') { ctx.fillRect(sx - cw / 2, oy - p * 2 + bob, p * .7, p); ctx.fillRect(sx + cw / 2 - p * .7, oy - p * 2 + bob, p * .7, p); ctx.fillRect(sx - p * .35, oy - p * 2 + bob, p * .7, p); }
   }
+  if (u.traits.length && z >= 12 && !crown) { ctx.fillStyle = 'rgba(232,182,76,.9)'; ctx.fillRect(sx - p * .4, oy - p * 1.4 + bob, p * .8, p * .8); }
   if (u.plague) { ctx.fillStyle = 'rgba(140,255,90,.8)'; ctx.fillRect(sx + w / 2, oy, p, p); }
   if (u.hp < u.maxHp && z >= 8) {
     ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(ox, oy - p * 2.8, w, Math.max(2, p * .7));
@@ -1374,7 +1800,6 @@ function render() {
   ctx.drawImage(off, ox, oy, W * z, H * z);
   const toS = (x, y) => [ox + x * z, oy + y * z];
   const vx0 = cam.x - 3, vy0 = cam.y - 3, vx1 = cam.x + VW / cam.z + 3, vy1 = cam.y + VH / cam.z + 3;
-  // unidades
   for (const u of units) {
     if (u.x < vx0 || u.x > vx1 || u.y < vy0 || u.y > vy1) continue;
     const [sx, sy] = toS(u.x, u.y);
@@ -1383,20 +1808,18 @@ function render() {
       const s = Math.max(2 * DPR, z * .9 * (u.def.size || 1));
       const c = u.hitT ? [255, 70, 70] : u.def.civ ? bodyColor(u) : u.def.skin;
       ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(sx - s / 2 - 1, sy - s - 1, s + 2, s + 2);
-      ctx.fillStyle = css(c.map(v => v | 0)); ctx.fillRect(sx - s / 2, sy - s, s, s);
+      ctx.fillStyle = css(c); ctx.fillRect(sx - s / 2, sy - s, s, s);
       if (u.def.civ) { ctx.fillStyle = css(u.def.skin); ctx.fillRect(sx - s / 4, sy - s, s / 2, s / 2.5); }
       if ((u.k && u.k.king === u) || u.hero) { ctx.fillStyle = '#ffd23a'; ctx.fillRect(sx - s / 2, sy - s - s * .5, s, s * .35); }
       if (u === selected) { ctx.strokeStyle = '#e8b64c'; ctx.lineWidth = 2; ctx.strokeRect(sx - s, sy - s * 1.6, s * 2, s * 2); }
     }
   }
-  // proyectiles
   for (const p of projs) {
     const [sx, sy] = toS(p.x, p.y);
-    const col = p.kind === 'fireball' ? '#ff8a1e' : p.kind === 'laser' ? '#6cff8a' : p.kind === 'bullet' ? '#ffe9a0' : '#d8c8a0';
+    ctx.fillStyle = p.kind === 'fireball' ? '#ff8a1e' : p.kind === 'laser' ? '#6cff8a' : p.kind === 'bullet' ? '#ffe9a0' : '#d8c8a0';
     const s = Math.max(2, z * (p.kind === 'fireball' ? .5 : .22));
-    ctx.fillStyle = col; ctx.fillRect(sx - s / 2, sy - s / 2 - z * .5, s, s);
+    ctx.fillRect(sx - s / 2, sy - s / 2 - z * .5, s, s);
   }
-  // efectos
   for (const f of fx) {
     const [sx, sy] = toS(f.x, f.y);
     if (f.k === 'meteor') {
@@ -1426,39 +1849,36 @@ function render() {
       ctx.fillStyle = `rgba(140,255,170,${f.life / 40})`; ctx.fillRect(sx - z * .6, sy - z * 6, z * 1.2, z * 6);
     }
   }
-  // particulas
   for (const p of parts) {
     if (p.x < vx0 || p.x > vx1 || p.y < vy0 || p.y > vy1) continue;
     const [sx, sy] = toS(p.x, p.y); const s = Math.max(1.5, z * .35 * p.s);
     ctx.globalAlpha = Math.min(1, p.l / 15);
-    ctx.fillStyle = `rgb(${p.c[0]},${p.c[1]},${p.c[2]})`; ctx.fillRect(sx - s / 2, sy - s / 2, s, s);
+    ctx.fillStyle = css(p.c); ctx.fillRect(sx - s / 2, sy - s / 2, s, s);
   }
   ctx.globalAlpha = 1;
-  // nombres de ciudades
   if (cam.z >= 3) {
     ctx.font = `600 ${Math.round(11 * DPR)}px Barlow, system-ui, sans-serif`; ctx.textAlign = 'center';
     for (const c of cities) {
       if (!c || !c.alive || c.x < vx0 || c.x > vx1 || c.y < vy0 || c.y > vy1) continue;
       const [sx, sy] = toS(c.x + .5, c.y - 1.5);
-      const cap = c.k.capital === c.id;
-      const label = (cap ? '♛ ' : '') + c.name + ' ' + c.pop;
+      const label = (c.k.capital === c.id ? '♛ ' : '') + c.name + ' ' + c.pop + (c.k.wars.size ? ' ⚔' : '');
       const w = ctx.measureText(label).width + 10 * DPR;
-      ctx.fillStyle = 'rgba(8,12,16,.72)'; ctx.fillRect(sx - w / 2, sy - 14 * DPR, w, 16 * DPR);
+      ctx.fillStyle = 'rgba(8,12,16,.75)'; ctx.fillRect(sx - w / 2, sy - 14 * DPR, w, 16 * DPR);
       ctx.fillStyle = css(c.k.color); ctx.fillRect(sx - w / 2, sy + 1 * DPR, w, 2 * DPR);
-      ctx.fillStyle = '#eef2ee'; ctx.fillText(label, sx, sy - 2 * DPR);
+      ctx.fillStyle = c.k === warPick ? '#e8b64c' : '#eef2ee'; ctx.fillText(label, sx, sy - 2 * DPR);
     }
   }
-  // pincel
-  if (hover && !['inspect', 'move', 'act', 'spawn', 'bolt', 'heroize'].includes(curTool.kind)) {
+  if (hover && !['inspect', 'move', 'act', 'spawn', 'bolt', 'heroize', 'village', 'declare', 'peace', 'gift', 'scope'].includes(curTool.kind) && !(curTool.kind === 'trait' && traitScope === 'village')) {
     const [sx, sy] = toS(hover.x, hover.y);
-    const r = (curTool.kind === 'quake' ? 8 + brush : curTool.kind === 'flood' ? 6 + brush : curTool.kind === 'nuke' ? 15 : curTool.kind === 'bomb' ? 3 + brush * .5 : curTool.kind === 'meteor' ? 4 + brush * .4 : brush) * z;
-    ctx.strokeStyle = 'rgba(232,182,76,.85)'; ctx.lineWidth = DPR; ctx.beginPath(); ctx.arc(sx, sy, r, 0, 7); ctx.stroke();
+    const k = curTool.kind;
+    const r = (k === 'quake' ? 8 + brush : k === 'flood' ? 6 + brush : k === 'nuke' ? 15 : k === 'bomb' ? 3 + brush * .5 : k === 'meteor' ? 4 + brush * .4 : k === 'wall' ? Math.max(.75, brush * .3) : k === 'unwall' ? Math.max(1, brush * .7) : k === 'ore' ? Math.max(.8, brush * .6) : (k === 'trait' || k === 'untrait') ? Math.max(1.2, brush * .8) : brush) * z;
+    ctx.strokeStyle = k === 'wall' ? 'rgba(224,88,75,.9)' : 'rgba(232,182,76,.85)'; ctx.lineWidth = DPR; ctx.beginPath(); ctx.arc(sx, sy, r, 0, 7); ctx.stroke();
   }
   if (flash > 0) { ctx.fillStyle = `rgba(255,250,235,${flash})`; ctx.fillRect(0, 0, view.width, view.height); if (!paused) flash *= .93; if (flash < .02) flash = 0; }
 }
 
 // ---------- entrada ----------
-let hover = null, painting = false, panning = null, lastApply = 0;
+let hover = null, painting = false, panning = null, lastApply = 0, lastWall = null;
 const pointers = new Map(); let pinch = null;
 function screenToWorld(px, py) { const r = view.getBoundingClientRect(); return { x: cam.x + (px - r.left) / cam.z, y: cam.y + (py - r.top) / cam.z }; }
 function zoomAt(px, py, f) {
@@ -1474,7 +1894,7 @@ view.addEventListener('pointerdown', e => {
   view.setPointerCapture(e.pointerId);
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (pointers.size === 2) {
-    painting = false; panning = null;
+    painting = false; panning = null; lastWall = null;
     const [a, b] = [...pointers.values()];
     pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2 };
     return;
@@ -1482,8 +1902,10 @@ view.addEventListener('pointerdown', e => {
   if (e.button === 1 || e.button === 2 || curTool.kind === 'move') { panning = { x: e.clientX, y: e.clientY, cx: cam.x, cy: cam.y }; return; }
   if (e.button === 0) {
     const w = screenToWorld(e.clientX, e.clientY);
-    hover = w; painting = !curTool.once && curTool.kind !== 'act';
-    if (curTool.kind === 'act') return;
+    hover = w;
+    if (curTool.kind === 'wall' || curTool.kind === 'unwall') { lastWall = w; wallLine(w.x, w.y, w.x, w.y, curTool.kind === 'wall'); return; }
+    painting = !curTool.once && curTool.kind !== 'act' && !(curTool.kind === 'trait' && traitScope === 'village');
+    if (curTool.kind === 'act' || curTool.kind === 'scope') return;
     applyTool(curTool, w.x, w.y, true); lastApply = performance.now();
   }
 });
@@ -1497,10 +1919,14 @@ view.addEventListener('pointermove', e => {
     pinch = { d, cx, cy }; return;
   }
   hover = screenToWorld(e.clientX, e.clientY);
+  if (lastWall) { wallLine(lastWall.x, lastWall.y, hover.x, hover.y, curTool.kind === 'wall'); lastWall = hover; }
   if (panning) { cam.x = panning.cx - (e.clientX - panning.x) / cam.z; cam.y = panning.cy - (e.clientY - panning.y) / cam.z; clampCam(); }
   updateHint();
 });
-function endPointer(e) { pointers.delete(e.pointerId); if (pointers.size < 2) pinch = null; if (!pointers.size) { painting = false; panning = null; } }
+function endPointer(e) {
+  pointers.delete(e.pointerId); if (pointers.size < 2) pinch = null;
+  if (!pointers.size) { painting = false; panning = null; if (lastWall) { lastWall = null; computeRegions(); sideDirty = true; } }
+}
 view.addEventListener('pointerup', endPointer);
 view.addEventListener('pointercancel', endPointer);
 view.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') hover = null; });
@@ -1509,20 +1935,20 @@ document.getElementById('zin').onclick = () => { const r = view.getBoundingClien
 document.getElementById('zout').onclick = () => { const r = view.getBoundingClientRect(); zoomAt(r.left + VW / 2, r.top + VH / 2, 1 / 1.35); };
 function heldTool(now) {
   if (!painting || !hover) return;
-  const rate = curTool.rate ? curTool.rate * 16 : curTool.kind === 'spawn' ? 70 : 40;
+  const rate = curTool.rate ? curTool.rate * 16 : curTool.kind === 'spawn' ? 70 : curTool.kind === 'trait' ? 60 : 40;
   if (now - lastApply > rate) { applyTool(curTool, hover.x, hover.y, false); lastApply = now; }
 }
 const keys = new Set();
 window.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
   keys.add(e.key.toLowerCase());
-  if (e.key === 'p' || e.key === 'P' || e.key === ' ') { setSpeed(paused ? lastSpeed : 0); e.preventDefault(); }
+  if (e.key === 'p' || e.key === 'P' || e.key === ' ') { togglePause(); e.preventDefault(); }
   const sp = { '1': 1, '2': 2, '3': 5, '4': 10, '5': 25 }[e.key]; if (sp && (sp < 10 || modOn('trucos'))) setSpeed(sp);
   if (e.key === '+' || e.key === '=') document.getElementById('zin').click();
   if (e.key === '-') document.getElementById('zout').click();
   if (e.key === 'i' || e.key === 'I') selectTool(TOOLS.find(t => t.id === 'inspect'));
   if (e.key === '[') setBrush(brush - 1); if (e.key === ']') setBrush(brush + 1);
-  if (e.key === 'Escape') { document.getElementById('modal').hidden = true; }
+  if (e.key === 'Escape') { document.getElementById('modal').hidden = true; warPick = null; }
 });
 window.addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
 function keyPan() {
@@ -1533,7 +1959,7 @@ function keyPan() {
 }
 
 // ---------- interfaz ----------
-const TABS = [['terreno', 'Terreno'], ['vida', 'Vida'], ['caos', 'Destrucción'], ['bendicion', 'Bendiciones'], ['dios', 'Dios'], ['leyes', 'Leyes'], ['mods', 'Mods']];
+const TABS = [['vida', 'Vida'], ['rasgos', 'Rasgos'], ['materiales', 'Materiales'], ['terreno', 'Terreno'], ['fronteras', 'Fronteras y guerra'], ['caos', 'Destrucción'], ['bendicion', 'Bendiciones'], ['dios', 'Dios'], ['leyes', 'Leyes'], ['mods', 'Mods']];
 let curTab = 'vida';
 const tabsEl = document.getElementById('tabs'), toolsEl = document.getElementById('tools');
 function renderTabs() {
@@ -1547,26 +1973,32 @@ function renderTabs() {
 function toolIcon(t) {
   const c = document.createElement('canvas'); c.width = 14; c.height = 14;
   const x = c.getContext('2d');
-  if (t.kind === 'tile') {
-    const col = TILE[t.tile].c;
-    for (let yy = 0; yy < 14; yy++) for (let xx = 0; xx < 14; xx++) { const j = (hash(xx, yy, t.tile) - .5) * 26; x.fillStyle = css([col[0] + j, col[1] + j, col[2] + j].map(v => clamp(v | 0, 0, 255))); x.fillRect(xx, yy, 1, 1); }
-  } else if (t.kind === 'spawn') {
+  if (t.kind === 'tile' || t.kind === 'ore') {
+    const col = t.kind === 'tile' ? TILE[t.tile].c : null;
+    for (let yy = 0; yy < 14; yy++) for (let xx = 0; xx < 14; xx++) {
+      let cc;
+      if (t.kind === 'tile') { const j = (hash(xx, yy, t.tile) - .5) * 26; cc = [col[0] + j, col[1] + j, col[2] + j]; }
+      else { const base = [110, 106, 102], mc = MAT[t.ore].c, s = hash(xx >> 1, yy >> 1, t.ore) > .5; const j = (hash(xx, yy, 3) - .5) * 30; cc = s ? [mc[0] + j, mc[1] + j, mc[2] + j] : [base[0] + j, base[1] + j, base[2] + j]; }
+      x.fillStyle = css(cc.map(v => clamp(v, 0, 255))); x.fillRect(xx, yy, 1, 1);
+    }
+  } else if (t.kind === 'spawn' || t.kind === 'village') {
     const def = SP[t.sp], pat = SPR[def.spr], ph = pat.length, pw = pat[0].length;
     const p = Math.floor(13 / Math.max(ph, pw)) || 1;
     const ox = Math.floor((14 - pw * p) / 2), oy = Math.floor((14 - ph * p) / 2);
     const body = def.civ ? hsl((CIV.indexOf(t.sp) * 51) % 360, 60, 50) : def.skin.map(v => v * .75);
-    const pal = { s: def.skin, b: body, d: [40, 32, 30], r: [200, 110, 40], w: def.skin.map(v => v * .65), e: [20, 10, 10], y: [180, 240, 255], c: [140, 220, 255], S: [240, 120, 120] };
-    for (let yy = 0; yy < ph; yy++) for (let xx = 0; xx < pw; xx++) { const ch = pat[yy][xx]; if (ch === '.') continue; x.fillStyle = css((pal[ch] || def.skin).map(v => v | 0)); x.fillRect(ox + xx * p, oy + yy * p, p, p); }
+    const pal = { s: def.skin, h: def.skin, b: body, d: [40, 32, 30], r: [200, 110, 40], w: def.skin.map(v => v * .65), e: [20, 10, 10], y: [180, 240, 255], c: [140, 220, 255], S: [240, 120, 120] };
+    if (t.kind === 'village') { x.fillStyle = css(HOUSES[1][1]); x.fillRect(0, 7, 4, 7); x.fillRect(10, 6, 4, 8); x.fillStyle = css(body); x.fillRect(0, 5, 4, 2); x.fillRect(10, 4, 4, 2); }
+    for (let yy = 0; yy < ph; yy++) for (let xx = 0; xx < pw; xx++) { const ch = pat[yy][xx]; if (ch === '.') continue; x.fillStyle = css(pal[ch] || def.skin); x.fillRect(ox + xx * p, oy + yy * p, p, p); }
   } else {
     c.width = 28; c.height = 28;
-    x.font = '20px system-ui, "Segoe UI Emoji", "Apple Color Emoji", sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.font = '20px system-ui, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
     x.fillStyle = '#e8b64c'; x.fillText(t.glyph || '•', 14, 15);
   }
   return c;
 }
 function renderTools() {
   toolsEl.innerHTML = '';
-  document.getElementById('brush').hidden = curTab === 'mods' || curTab === 'leyes';
+  document.getElementById('brush').hidden = ['mods', 'leyes'].includes(curTab);
   if (curTab === 'mods' || curTab === 'leyes') {
     const src = curTab === 'mods' ? MODS : LAWS;
     const wrap = document.createElement('div'); wrap.className = 'plist';
@@ -1580,33 +2012,45 @@ function renderTools() {
     toolsEl.appendChild(wrap);
     return;
   }
+  let lastCat = null;
   for (const t of TOOLS) {
     if (t.tab !== curTab || !modOn(t.mod)) continue;
+    if (t.kind === 'trait' && TRAITS[t.trait].cat !== lastCat) {
+      lastCat = TRAITS[t.trait].cat;
+      const s = document.createElement('div'); s.className = 'tool sep'; s.innerHTML = `<span>${lastCat}</span>`; toolsEl.appendChild(s);
+    }
     const b = document.createElement('button');
     b.className = 'tool' + (t === curTool ? ' on' : '') + (t.kind === 'act' ? ' act' : '');
-    b.title = t.n;
+    b.title = t.kind === 'trait' ? `${t.n}: ${TRAITS[t.trait].d}` : t.n;
     b.appendChild(toolIcon(t));
-    const s = document.createElement('span'); s.textContent = t.n; b.appendChild(s);
+    const s = document.createElement('span'); s.textContent = t.kind === 'scope' ? (traitScope === 'brush' ? 'Con pincel' : 'Pueblo entero') : t.n; b.appendChild(s);
     if (t.mod) { const m = document.createElement('i'); m.className = 'm'; m.title = 'Mod: ' + MODS[t.mod].n; b.appendChild(m); }
-    b.onclick = () => { if (t.kind === 'act') { globalAct(t.act); return; } selectTool(t); };
+    b.onclick = () => {
+      if (t.kind === 'act') { globalAct(t.act); return; }
+      if (t.kind === 'scope') { traitScope = traitScope === 'brush' ? 'village' : 'brush'; toast(traitScope === 'brush' ? 'Los rasgos se ponen con el pincel' : 'Ahora toca un pueblo: el rasgo se pone a todos sus habitantes'); renderTools(); return; }
+      selectTool(t);
+    };
     toolsEl.appendChild(b);
   }
 }
 function applyModChange() {
-  if (!modOn(curTool.mod)) curTool = TOOLS.find(t => t.id === 's_human');
+  if (!modOn(curTool.mod)) curTool = TOOLS.find(t => t.id === 'v_human');
   for (const u of units) if (!modOn(u.def.mod)) u.dead = true;
+  units = units.filter(u => !u.dead);
   document.querySelectorAll('#speed [data-mod]').forEach(b => b.hidden = !modOn(b.dataset.mod));
   if (!modOn('trucos') && speed > 5) setSpeed(5);
-  if (!modOn('eras')) for (const k of kingdoms) { k.era = 0; k.tech = 0; }
+  sideDirty = true;
 }
-function selectTool(t) { curTool = t; renderTools(); updateHint(); }
+function selectTool(t) { curTool = t; warPick = null; renderTools(); updateHint(); if (t.kind === 'declare' || t.kind === 'peace') toast('Toca el primer pueblo'); }
 function updateHint() {
   const h = document.getElementById('hint');
-  let s = `${curTool.n}`;
+  let s = curTool.kind === 'scope' ? 'Rasgos' : curTool.n;
   if (hover) {
     const x = hover.x | 0, y = hover.y | 0;
     if (x >= 0 && y >= 0 && x < W && y < H) {
       const i = y * W + x; s += ` · ${TILE[tile[i]].n}`;
+      if (ore[i]) s += ` con ${MAT[ore[i]].n.toLowerCase()}`;
+      if (wall[i]) s += ' · frontera';
       if (owner[i]) { const c = cities[owner[i] - 1]; if (c && c.alive) s += ` · ${c.name} (${c.k.name})`; }
     }
   }
@@ -1614,93 +2058,158 @@ function updateHint() {
 }
 function setBrush(v) { brush = clamp(v, 1, 12); document.getElementById('brushSize').value = brush; document.getElementById('brushLbl').textContent = 'Pincel ' + brush; }
 document.getElementById('brushSize').oninput = e => setBrush(+e.target.value);
-let lastSpeed = 1;
-function setSpeed(s) {
-  if (s > 0) lastSpeed = s;
-  paused = s === 0; speed = s || speed;
-  document.querySelectorAll('#speed button').forEach(b => b.classList.toggle('on', +b.dataset.s === (paused ? 0 : speed)));
+function setSpeed(s) { if (s === 0) paused = true; else { paused = false; speed = s; } syncSpeed(); }
+function togglePause() { paused = !paused; syncSpeed(); }
+function syncSpeed() {
+  document.querySelectorAll('#speed button').forEach(b => { const v = +b.dataset.s; b.classList.toggle('on', v > 0 && !paused && v === speed); });
+  const pb = document.getElementById('playBtn'); pb.textContent = paused ? '▶' : '❚❚'; pb.classList.toggle('play', paused);
+  document.getElementById('creation').hidden = !paused;
 }
-document.querySelectorAll('#speed button').forEach(b => b.onclick = () => setSpeed(+b.dataset.s));
+document.querySelectorAll('#speed button').forEach(b => b.onclick = () => { if (+b.dataset.s === 0) togglePause(); else setSpeed(+b.dataset.s); });
+document.getElementById('startBtn').onclick = () => {
+  if (!units.length) toast('El mundo está vacío. Funda un pueblo en la pestaña Vida.');
+  setSpeed(speed || 1);
+};
 let toastT = 0;
-function toast(m) { const t = document.getElementById('toast'); t.textContent = m; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 1800); }
-function addLog(m, cls = '') { logs.unshift({ y: year(), m, cls }); if (logs.length > 120) logs.pop(); sideDirty = true; }
+function toast(m) { const t = document.getElementById('toast'); t.textContent = m; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2200); }
+function addLog(m, cls = '') { logs.unshift({ y: year(), m, cls }); if (logs.length > 150) logs.pop(); sideDirty = true; }
 
 // panel lateral
-let sidePane = 'log', sideDirty = true, selected = null, selectedCity = null, selectedDeadName = null;
+let sidePane = 'log', sideDirty = true, selected = null, selectedCity = null, selectedKingdom = null, selectedDeadName = null;
 const side = document.getElementById('side'), sideBody = document.getElementById('sideBody');
-if (window.innerWidth > 760) side.classList.remove('closed');
-document.getElementById('sideToggle').onclick = () => side.classList.toggle('closed');
-document.querySelectorAll('#sideTabs button').forEach(b => b.onclick = () => { sidePane = b.dataset.p; sideDirty = true; renderSide(); });
-function select(u) { selected = u; selectedCity = null; selectedDeadName = null; sidePane = 'ins'; side.classList.remove('closed'); sideDirty = true; renderSide(); }
+function wideScreen() { return window.innerWidth > 900 && window.innerHeight > 520; }
+if (wideScreen()) side.classList.remove('closed');
+document.getElementById('sideToggle').onclick = () => { side.classList.toggle('closed'); sideDirty = true; };
+document.getElementById('sideClose').onclick = () => side.classList.add('closed');
+document.querySelectorAll('#sideTabs button[data-p]').forEach(b => b.onclick = () => { sidePane = b.dataset.p; if (sidePane === 'kingdoms') selectedKingdom = null; sideDirty = true; renderSide(); });
+function openSide(p) { sidePane = p; side.classList.remove('closed'); sideDirty = true; renderSide(); }
+function select(u) { selected = u; selectedCity = null; selectedDeadName = null; openSide('ins'); }
 function inspectAt(x, y) {
   rebuildGrid();
   const u = nearest(x, y, 2.2, () => true);
   if (u) { select(u); return; }
   const xi = x | 0, yi = y | 0;
-  if (xi >= 0 && yi >= 0 && xi < W && yi < H && owner[yi * W + xi]) { const c = cities[owner[yi * W + xi] - 1]; if (c && c.alive) { selected = null; selectedCity = c; sidePane = 'ins'; side.classList.remove('closed'); sideDirty = true; renderSide(); return; } }
+  if (xi >= 0 && yi >= 0 && xi < W && yi < H && owner[yi * W + xi]) { const c = cities[owner[yi * W + xi] - 1]; if (c && c.alive) { selected = null; selectedCity = c; openSide('ins'); return; } }
   toast(`${TILE[tile[yi * W + xi]]?.n || 'Nada'} · nadie aquí`);
 }
-function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+function resGrid(k) {
+  return '<div class="res">' + RESLIST.filter(r => { const m = MAT[MATID[r[0]]]; return !m || modOn(m.mod); }).map(([id, n, c]) => { const v = Math.floor(k.res[id] || 0); return `<span class="${v ? '' : 'zero'}"><i style="background:${css(c)}"></i>${n}<b>${v}</b></span>`; }).join('') + '</div>';
+}
+function cultureChips(k) {
+  const tot = Math.max(1, units.filter(u => u.k === k && u.def.civ && u.age >= 12).length);
+  const cnt = Object.create(null); for (const u of units) if (u.k === k && u.def.civ && u.age >= 12) for (const t of u.traits) cnt[t] = (cnt[t] || 0) + 1;
+  const arr = Object.entries(cnt).sort((a, b) => b[1] - a[1]).slice(0, 12);
+  if (!arr.length) return '<p class="empty">Sin rasgos todavía. Usa la pestaña Rasgos.</p>';
+  return '<div class="chips">' + arr.map(([t, n]) => `<span class="chip ${TRAITS[t].magic ? 'm' : TRAITS[t].bad ? 'r' : ''}">${TRAITS[t].g} ${TRAITS[t].n} ${Math.round(n / tot * 100)}%</span>`).join('') + '</div>';
+}
+function kingdomDetail(k) {
+  const kc = cities.filter(c => c && c.alive && c.k === k);
+  const wars = [...k.wars].map(w => kingdoms[w]).filter(o => o && o.alive);
+  const allies = [...k.allies].map(w => kingdoms[w]).filter(o => o && o.alive);
+  const avail = TECH.filter(t => techAvailable(k, t));
+  const ready = avail.filter(t => !missingFor(k, t).length).sort((a, b) => a.cost - b.cost);
+  const blocked = avail.filter(t => missingFor(k, t).length);
+  const nt = ready[0] || blocked.sort((a, b) => a.cost - b.cost)[0] || null;
+  let techHtml = '';
+  if (modOn('tecnologia')) {
+    const miss = nt ? missingFor(k, nt) : [];
+    techHtml = `<h4>Tecnología</h4>
+      <dl><dt>Era</dt><dd>${ERAS[k.era]}</dd><dt>Armas</dt><dd>${esc(k.weapon.n)}</dd><dt>Armadura</dt><dd>${esc(k.armor.n)}</dd><dt>Edificios</dt><dd>${HOUSES[k.house][0]}${k.walls ? ' + murallas' : ''}</dd><dt>Ciencia</dt><dd>${(k.rpRate || 0).toFixed(1)} cada medio año</dd></dl>
+      ${nt ? `<div class="next">Siguiente: <b>${nt.n}</b> <span style="color:var(--muted)">(${ERAS[nt.era]})</span><div class="bar"><i style="width:${Math.min(100, k.rp / nt.cost * 100)}%"></i></div>${miss.length ? `<div class="miss">Falta: ${miss.map(m => `${RESNAME[m[0]].toLowerCase()} ${m[1]}`).join(', ')}</div>` : ''}</div>` : '<div class="next">Lo ha descubierto todo.</div>'}
+      ${blocked.length && ready.length ? `<div class="chips">${blocked.map(t => `<span class="chip r" title="Falta ${missingFor(k, t).map(m => RESNAME[m[0]].toLowerCase()).join(', ')}">🔒 ${t.n}: falta ${missingFor(k, t).map(m => RESNAME[m[0]].toLowerCase()).join(' y ')}</span>`).join('')}</div>` : ''}
+      <h4>Ya sabe</h4><div class="chips">${TECH.filter(t => k.tech.has(t.id)).map(t => `<span class="chip ok">${t.n}</span>`).join('') || '<span class="empty">Nada todavía</span>'}</div>
+      <h4>Almacén</h4>${resGrid(k)}`;
+  }
+  const sep = kingdoms.filter(o => o.alive && o !== k && !kingdomsTouch(k, o));
+  return `<div class="ins"><button class="back" data-back="1">← Todos los pueblos</button><h3>${esc(k.name)}</h3>
+    <div class="sub">${SP[k.race].n} · nacido en el año ${k.born} · ${kc.length} ciudad${kc.length === 1 ? '' : 'es'} · ${k.pop || units.filter(u => u.k === k).length} habitantes${k.king && !k.king.dead ? '<br>Soberano: ' + esc(k.king.name) : ''}</div>
+    ${wars.length ? `<div class="chips">${wars.map(o => `<span class="chip r">⚔ ${esc(o.name)}</span>`).join('')}</div>` : ''}
+    ${allies.length ? `<div class="chips">${allies.map(o => `<span class="chip ok">Aliado: ${esc(o.name)}</span>`).join('')}</div>` : ''}
+    ${sep.length ? `<p class="empty" style="font-size:12px">Separado por fronteras o agua de: ${sep.map(o => esc(o.name)).join(', ')}.</p>` : ''}
+    <h4>Cultura (rasgos más comunes)</h4>${cultureChips(k)}
+    ${techHtml}
+    ${modOn('trucos') ? `<div class="acts"><button data-ka="res">+40 de todo</button><button data-ka="era">Avanzar una era</button><button data-ka="peace">Paz con todos</button><button data-ka="pop">+10 habitantes</button></div>` : ''}</div>`;
+}
 function renderSide() {
-  document.querySelectorAll('#sideTabs button').forEach(b => b.classList.toggle('on', b.dataset.p === sidePane));
+  if (side.classList.contains('closed')) { sideDirty = false; return; }
+  document.querySelectorAll('#sideTabs button[data-p]').forEach(b => b.classList.toggle('on', b.dataset.p === sidePane));
+  const scroll = sideBody.scrollTop;
   if (sidePane === 'log') {
-    sideBody.innerHTML = logs.length ? '<div class="log">' + logs.map(l => `<div class="${l.cls}"><i>Año ${l.y}</i>${esc(l.m)}</div>`).join('') + '</div>' : '<p class="empty">Aún no ha pasado nada. Siembra humanos, elfos, enanos u orcos en tierra firme y en pocos años fundarán reinos.</p>';
+    sideBody.innerHTML = logs.length > 1 ? '<div class="log">' + logs.map(l => `<div class="${l.cls}"><i>Año ${l.y}</i>${esc(l.m)}</div>`).join('') + '</div>'
+      : '<p class="empty">Aquí se escribirá la historia de tu mundo.<br><br>1. En <b>Vida</b>, toca la tierra para fundar un pueblo.<br>2. En <b>Rasgos</b>, pasa el pincel por su gente: inteligentes, trabajadores, tontos…<br>3. En <b>Materiales</b>, pon cobre, hierro, obsidiana… cerca de ellos.<br>4. Separa pueblos con una <b>frontera</b> si quieres que crezcan aislados.<br>5. Pulsa <b>▶ Empezar</b>.</p>';
   } else if (sidePane === 'kingdoms') {
-    const ks = kingdoms.filter(k => k.alive).sort((a, b) => (b.pop || 0) - (a.pop || 0));
-    sideBody.innerHTML = ks.length ? ks.map(k => {
-      const kc = cities.filter(c => c && c.alive && c.k === k).length;
-      const wars = [...k.wars].map(w => kingdoms[w]?.name).filter(Boolean);
-      const allies = [...k.allies].map(w => kingdoms[w]?.name).filter(Boolean);
-      return `<div class="krow" data-k="${k.id}"><span class="sw" style="background:${css(k.color)}"></span><div><div class="kn">${esc(k.name)}</div><div class="kmeta">${SP[k.race].n} · ${modOn('eras') ? ERAS[k.era][0] : 'sin eras'} · ${kc} ciudad${kc === 1 ? '' : 'es'}${k.king && !k.king.dead ? ' · Soberano: ' + esc(k.king.name) : ''}${wars.length ? '<br><span style="color:var(--danger)">En guerra con: ' + esc(wars.join(', ')) + '</span>' : ''}${allies.length ? '<br><span style="color:var(--ok)">Aliados: ' + esc(allies.join(', ')) + '</span>' : ''}</div></div><span class="kpop">${k.pop || 0}</span></div>`;
-    }).join('') : '<p class="empty">No hay reinos todavía.</p>';
-    sideBody.querySelectorAll('.krow').forEach(r => r.onclick = () => { const k = kingdoms[+r.dataset.k]; const c = cities[k.capital]; if (c) { selectedCity = c; selected = null; sidePane = 'ins'; cam.x = c.x - VW / cam.z / 2; cam.y = c.y - VH / cam.z / 2; clampCam(); renderSide(); } });
+    if (selectedKingdom && selectedKingdom.alive) sideBody.innerHTML = kingdomDetail(selectedKingdom);
+    else {
+      const ks = kingdoms.filter(k => k.alive).sort((a, b) => (b.pop || 0) - (a.pop || 0));
+      sideBody.innerHTML = ks.length ? ks.map(k => {
+        const kc = cities.filter(c => c && c.alive && c.k === k).length;
+        const wars = [...k.wars].map(w => kingdoms[w]?.name).filter(Boolean);
+        return `<div class="krow" data-k="${k.id}"><span class="sw" style="background:${css(k.color)}"></span><div style="min-width:0"><div class="kn">${esc(k.name)}</div><div class="kmeta">${SP[k.race].n}${modOn('tecnologia') ? ' · ' + ERAS[k.era] + ' · ' + esc(k.weapon.n) : ''} · ${kc} ciudad${kc === 1 ? '' : 'es'}${wars.length ? '<br><span style="color:var(--danger)">En guerra con: ' + esc(wars.join(', ')) + '</span>' : ''}</div></div><span class="kpop">${k.pop || units.filter(u => u.k === k).length}</span></div>`;
+      }).join('') : '<p class="empty">No hay pueblos todavía. Funda uno en la pestaña Vida.</p>';
+    }
   } else {
     if (selected && !selected.dead) {
       const u = selected;
-      const tr = u.traits.filter(t => modOn(TRAITS[t].mod)).map(t => `<span class="chip ${TRAITS[t].magic ? 'm' : TRAITS[t].bad ? 'r' : ''}">${TRAITS[t].n}</span>`).join('');
+      const tr = u.traits.filter(t => modOn(TRAITS[t].mod)).map(t => `<span class="chip ${TRAITS[t].magic ? 'm' : TRAITS[t].bad ? 'r' : ''}" title="${esc(TRAITS[t].d)}">${TRAITS[t].g} ${TRAITS[t].n}</span>`).join('');
+      const k = u.k;
       sideBody.innerHTML = `<div class="ins"><h3>${esc(displayName(u))}</h3>
-        <div class="sub">${u.def.n}${u.k ? ' · ' + esc(u.k.name) : ' · sin reino'}${u.city >= 0 && cities[u.city] ? ' · ' + esc(cities[u.city].name) : ''}</div>
-        <div class="chips">${u.k && u.k.king === u ? '<span class="chip g">Soberano</span>' : ''}${u.hero ? '<span class="chip g">Héroe</span>' : ''}${u.army ? '<span class="chip r">Ejército</span>' : ''}${u.settler ? '<span class="chip">Colono</span>' : ''}${u.plague ? '<span class="chip r">Con plaga</span>' : ''}${tr}</div>
-        <dl><dt>Vida</dt><dd>${Math.ceil(u.hp)} / ${Math.ceil(u.maxHp)}</dd><dt>Ataque</dt><dd>${atkOf(u).toFixed(1)}</dd><dt>Nivel</dt><dd>${u.level}${modOn('heroes') ? ' · ' + rankOf(u.level) : ''}</dd><dt>Bajas</dt><dd>${u.kills}</dd><dt>Edad</dt><dd>${Math.floor(u.age)} / ${u.maxAge > 5000 ? '∞' : Math.floor(u.maxAge)} años</dd>${u.item && modOn('heroes') ? `<dt>Arma</dt><dd>${u.item[0]}</dd>` : ''}${u.k && modOn('eras') ? `<dt>Era</dt><dd>${ERAS[u.k.era][0]}</dd>` : ''}</dl>
-        ${modOn('trucos') ? `<div class="acts"><button data-a="heal">Curar</button><button data-a="lvl">+5 niveles</button>${modOn('heroes') && u.def.civ ? '<button data-a="hero">Hacer héroe</button>' : ''}${u.k ? '<button data-a="king">Coronar</button>' : ''}<button data-a="trait">Rasgo al azar</button><button data-a="follow">Centrar cámara</button><button data-a="kill" class="bad">Fulminar</button></div>` : '<p class="empty">Activa el mod Modo Dios para editar esta unidad.</p>'}</div>`;
+        <div class="sub">${u.def.n}${k ? ' · ' + esc(k.name) : ' · sin pueblo'}${u.city >= 0 && cities[u.city] ? ' · ' + esc(cities[u.city].name) : ''}</div>
+        <div class="chips">${k && k.king === u ? '<span class="chip g">Soberano</span>' : ''}${u.hero ? '<span class="chip g">Héroe</span>' : ''}${u.army ? '<span class="chip r">Soldado</span>' : ''}${u.settler ? '<span class="chip">Colono</span>' : ''}${u.plague ? '<span class="chip r">Con plaga</span>' : ''}${u.age < 12 && u.def.civ ? '<span class="chip">Niño</span>' : ''}</div>
+        <h4>Rasgos</h4>${tr ? `<div class="chips">${tr}</div>` : '<p class="empty">Ninguno. Ve a la pestaña Rasgos y pasa el pincel por encima.</p>'}
+        <dl><dt>Vida</dt><dd>${Math.ceil(u.hp)} / ${Math.ceil(u.maxHp)}</dd><dt>Ataque</dt><dd>${atkOf(u).toFixed(1)}</dd>${u.def.civ && modOn('tecnologia') && k ? `<dt>Arma</dt><dd>${esc(u.item && modOn('heroes') ? u.item[0] : k.weapon.n)}</dd><dt>Armadura</dt><dd>${esc(k.armor.n)}</dd>` : ''}<dt>Nivel</dt><dd>${u.level}${modOn('heroes') ? ' · ' + rankOf(u.level) : ''}</dd><dt>Bajas</dt><dd>${u.kills}</dd><dt>Edad</dt><dd>${Math.floor(u.age)} / ${u.maxAge > 5000 ? '∞' : Math.floor(u.maxAge * kmul(k, 'age'))} años</dd></dl>
+        ${k ? `<button class="tbtn" data-a="kingdom">Ver ${esc(k.name)}</button>` : ''}
+        ${modOn('trucos') ? `<div class="acts"><button data-a="heal">Curar</button><button data-a="lvl">+5 niveles</button>${modOn('heroes') && u.def.civ ? '<button data-a="hero">Hacer héroe</button>' : ''}${k ? '<button data-a="king">Coronar</button>' : ''}<button data-a="follow">Centrar cámara</button><button data-a="kill" class="bad">Fulminar</button></div>` : ''}</div>`;
       sideBody.querySelectorAll('[data-a]').forEach(b => b.onclick = () => unitAct(u, b.dataset.a));
     } else if (selectedCity && selectedCity.alive) {
       const c = selectedCity, k = c.k;
       sideBody.innerHTML = `<div class="ins"><h3>${esc(c.name)}</h3><div class="sub">${k.capital === c.id ? 'Capital ' : 'Ciudad '}${esc(del(k))} · fundada en el año ${c.born}</div>
-        <dl><dt>Población</dt><dd>${c.pop} / ${c.cap}</dd><dt>Casas</dt><dd>${c.houses}</dd><dt>Cultivos</dt><dd>${c.fields}</dd><dt>Comida</dt><dd>${SP[k.race].noFood ? 'no necesita' : c.food.toFixed(0)}</dd><dt>Raza</dt><dd>${SP[k.race].n}</dd>${modOn('eras') ? `<dt>Era</dt><dd>${ERAS[k.era][0]}</dd>` : ''}<dt>Soberano</dt><dd>${k.king && !k.king.dead ? esc(k.king.name) : '—'}</dd></dl>
-        ${modOn('trucos') ? `<div class="acts"><button data-c="grow">+10 habitantes</button>${modOn('diplomacia') ? '<button data-c="rebel">Provocar rebelión</button>' : ''}<button data-c="war">Guerra al vecino</button><button data-c="burn" class="bad">Destruir ciudad</button></div>` : ''}</div>`;
+        <dl><dt>Población</dt><dd>${c.pop} / ${c.cap}</dd><dt>Casas</dt><dd>${c.houses}</dd><dt>Cultivos</dt><dd>${c.fields}</dd><dt>Comida</dt><dd>${SP[k.race].noFood ? 'no necesita' : c.food.toFixed(0)}</dd><dt>Minas cerca</dt><dd>${c.ores.length}</dd></dl>
+        <button class="tbtn" data-c="kingdom">Ver ${esc(k.name)}</button>
+        ${modOn('trucos') ? `<div class="acts"><button data-c="grow">+10 habitantes</button>${modOn('diplomacia') ? '<button data-c="rebel">Provocar rebelión</button>' : ''}<button data-c="burn" class="bad">Destruir ciudad</button></div>` : ''}</div>`;
       sideBody.querySelectorAll('[data-c]').forEach(b => b.onclick = () => cityAct(c, b.dataset.c));
     } else {
-      sideBody.innerHTML = `<p class="empty">${selectedDeadName ? esc(selectedDeadName) + ' ha muerto. ' : ''}Elige <b>Inspeccionar</b> (pestaña Dios o tecla I) y toca un ser o una ciudad para ver sus datos y editarlo.</p>`;
+      sideBody.innerHTML = `<p class="empty">${selectedDeadName ? esc(selectedDeadName) + ' ha muerto. ' : ''}Elige <b>Inspeccionar</b> (pestaña Dios o tecla I) y toca un ser o una ciudad para ver sus rasgos, armas y datos.</p>`;
     }
   }
+  sideBody.scrollTop = scroll;
+  sideBody.querySelectorAll('.krow').forEach(r => r.onclick = () => { selectedKingdom = kingdoms[+r.dataset.k]; const c = cities[selectedKingdom.capital]; if (c) { cam.x = c.x - VW / cam.z / 2; cam.y = c.y - VH / cam.z / 2; clampCam(); } renderSide(); sideBody.scrollTop = 0; });
+  sideBody.querySelectorAll('[data-back]').forEach(b => b.onclick = () => { selectedKingdom = null; renderSide(); });
+  sideBody.querySelectorAll('[data-ka]').forEach(b => b.onclick = () => kingdomAct(selectedKingdom, b.dataset.ka));
   sideDirty = false;
 }
+function showKingdom(k) { selectedKingdom = k; openSide('kingdoms'); }
+function kingdomAct(k, a) {
+  if (!k) return;
+  if (a === 'res') for (const r in k.res) k.res[r] += 40;
+  if (a === 'era') { const te = Math.min(ERAS.length - 1, k.era + 1); for (const t of TECH) if (t.era <= te && modOn(t.mod)) applyTech(k, t, true); addLog(`${El(k)} avanza a la ${ERAS[k.era]}.`, 'tech'); }
+  if (a === 'peace') for (const w of [...k.wars]) if (kingdoms[w]) makePeace(k, kingdoms[w]);
+  if (a === 'pop') { const c = cities[k.capital]; if (c) for (let i = 0; i < 10; i++) spawn(k.race, c.x + .5, c.y + .5, k, c.id); }
+  renderSide();
+}
 function unitAct(u, a) {
+  if (a === 'kingdom') { showKingdom(u.k); return; }
   if (a === 'heal') { u.hp = u.maxHp; u.plague = 0; }
-  if (a === 'lvl') { for (let i = 0; i < 5; i++) gainXp(u, u.level * 3); if (!modOn('heroes')) { u.level += 5; u.maxHp = maxHpOf(u); u.hp = u.maxHp; } }
-  if (a === 'hero') { if (!u.hero) { u.level = Math.max(4, u.level); makeHero(u); } }
+  if (a === 'lvl') { for (let i = 0; i < 5; i++) gainXp(u, u.level * 2); if (!modOn('heroes')) { u.level += 5; u.maxHp = maxHpOf(u); u.hp = u.maxHp; } }
+  if (a === 'hero') { if (!u.hero) { u.level = Math.max(5, u.level); makeHero(u); } }
   if (a === 'king' && u.k) { u.k.king = u; u.name = u.name || mkName(u.k.race); addLog(`Por voluntad divina, ${u.name} es coronado soberano ${del(u.k)}.`, 'peace'); }
-  if (a === 'trait') { const pool = Object.keys(TRAITS).filter(t => modOn(TRAITS[t].mod) && !u.traits.includes(t)); if (pool.length) { const t = pick(pool); u.traits.push(t); const om = u.maxHp; u.maxHp = maxHpOf(u); u.hp += u.maxHp - om; toast('Nuevo rasgo: ' + TRAITS[t].n); } }
   if (a === 'follow') { cam.x = u.x - VW / cam.z / 2; cam.y = u.y - VH / cam.z / 2; clampCam(); }
   if (a === 'kill') { lightning(u.x | 0, u.y | 0); kill(u, null, 'castigo divino'); }
   renderSide();
 }
 function cityAct(c, a) {
+  if (a === 'kingdom') { showKingdom(c.k); return; }
   if (a === 'grow') for (let i = 0; i < 10; i++) spawn(c.k.race, c.x + .5, c.y + .5, c.k, c.id);
   if (a === 'rebel') rebel(c);
-  if (a === 'war') { let best = null, bd = 1e9; for (const o of cities) if (o && o.alive && o.k !== c.k) { const d = dist2(o.x, o.y, c.x, c.y); if (d < bd) { bd = d; best = o; } } if (best) { c.k.allies.delete(best.k.id); best.k.allies.delete(c.k.id); declareWar(c.k, best.k); } else toast('No hay vecinos'); }
   if (a === 'burn') { explode(c.x + .5, c.y + .5, 6, { dmg: 300, fire: .7 }); destroyCity(c, 'ha sido destruida por los dioses'); }
   renderSide();
 }
 
-let statT = 0;
 function renderStats() {
-  const pop = units.filter(u => u.def.civ).length;
-  const ks = kingdoms.filter(k => k.alive).length, cs = cities.filter(c => c && c.alive).length;
-  const heroes = units.filter(u => u.hero).length;
-  const ak = kingdoms.filter(k => k.alive); let wars = 0; for (let i = 0; i < ak.length; i++) for (let j = i + 1; j < ak.length; j++) if (ak[i].wars.has(ak[j].id) || ak[j].wars.has(ak[i].id)) wars++;
-  document.getElementById('stats').innerHTML = `<span>Año <b>${year()}</b>${modOn('clima') ? ' · ' + SEASONS[season()] : ''}</span><span>Población <b>${pop}</b></span><span>Criaturas <b>${units.length - pop}</b></span><span>Reinos <b>${ks}</b></span><span>Ciudades <b>${cs}</b></span><span>Guerras <b>${wars}</b></span>${modOn('heroes') ? `<span>Héroes <b>${heroes}</b></span>` : ''}`;
+  let pop = 0, heroes = 0; for (const u of units) { if (u.def.civ) pop++; if (u.hero) heroes++; }
+  const ak = kingdoms.filter(k => k.alive); let wars = 0;
+  for (let i = 0; i < ak.length; i++) for (let j = i + 1; j < ak.length; j++) if (ak[i].wars.has(ak[j].id)) wars++;
+  const top = ak.reduce((m, k) => Math.max(m, k.era), 0);
+  document.getElementById('stats').innerHTML = `<span>Año <b>${year()}</b>${modOn('clima') ? ' · ' + SEASONS[season()] : ''}</span><span>Gente <b>${pop}</b></span><span>Pueblos <b>${ak.length}</b></span><span>Guerras <b>${wars}</b></span>${ak.length && modOn('tecnologia') ? `<span>Era más avanzada <b>${ERAS[top]}</b></span>` : ''}${modOn('heroes') ? `<span>Héroes <b>${heroes}</b></span>` : ''}<span>Criaturas <b>${units.length - pop}</b></span>`;
 }
 
 // ---------- guardar / cargar ----------
@@ -1708,70 +2217,77 @@ const toB64 = u8 => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s 
 const fromB64 = s => { const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; };
 function saveGame() {
   const data = {
-    v: 1, W, H, tickN, uid, tile: toB64(tile), owner: toB64(new Uint8Array(owner.buffer)), bld: toB64(bld), rad: toB64(rad),
+    v: 2, W, H, tickN, uid, tile: toB64(tile), owner: toB64(new Uint8Array(owner.buffer)), bld: toB64(bld), rad: toB64(rad), ore: toB64(ore), oreAmt: toB64(oreAmt), wall: toB64(wall),
     mods: Object.fromEntries(Object.entries(MODS).map(([k, m]) => [k, m.on])), laws: Object.fromEntries(Object.entries(LAWS).map(([k, m]) => [k, m.on])),
-    kingdoms: kingdoms.map(k => ({ ...k, wars: [...k.wars], allies: [...k.allies], king: k.king && !k.king.dead ? k.king.id : null })),
-    cities: cities.map(c => c && ({ ...c, k: c.k.id })),
-    units: units.filter(u => !u.dead).map(u => ({ id: u.id, type: u.type, x: u.x, y: u.y, k: u.k ? u.k.id : null, city: u.city, age: u.age, maxAge: u.maxAge, level: u.level, xp: u.xp, kills: u.kills, traits: u.traits, name: u.name, hero: u.hero, item: u.item, hp: u.hp, maxHp: u.maxHp, army: u.army, aggro: u.aggro, life: u.life })),
-    logs: logs.slice(0, 60),
+    kingdoms: kingdoms.map(k => ({ ...k, wars: [...k.wars], allies: [...k.allies], tech: [...k.tech], king: k.king && !k.king.dead ? k.king.id : null })),
+    cities: cities.map(c => c && ({ ...c, k: c.k.id, ores: [] })),
+    units: units.filter(u => !u.dead).map(u => ({ id: u.id, type: u.type, x: u.x, y: u.y, k: u.k ? u.k.id : null, city: u.city, age: u.age, maxAge: u.maxAge, level: u.level, xp: u.xp, kills: u.kills, traits: u.traits, name: u.name, hero: u.hero, item: u.item, hp: u.hp, maxHp: u.maxHp, army: u.army, archer: u.archer, aggro: u.aggro, life: u.life })),
+    logs: logs.slice(0, 80),
   };
-  try { localStorage.setItem('caja-de-dioses-save', JSON.stringify(data)); toast('Partida guardada en este navegador'); }
+  try { localStorage.setItem('caja-de-dioses-save2', JSON.stringify(data)); toast('Partida guardada en este navegador'); }
   catch (e) { toast('No se pudo guardar: el navegador bloquea el almacenamiento'); }
 }
 function loadGame() {
   let data;
-  try { data = JSON.parse(localStorage.getItem('caja-de-dioses-save') || 'null'); } catch (e) { data = null; }
+  try { data = JSON.parse(localStorage.getItem('caja-de-dioses-save2') || 'null'); } catch (e) { data = null; }
   if (!data) { toast('No hay ninguna partida guardada'); return false; }
   for (const k in data.mods) if (MODS[k]) MODS[k].on = data.mods[k];
   for (const k in data.laws) if (LAWS[k]) LAWS[k].on = data.laws[k];
   allocWorld(data.W, data.H);
   tile.set(fromB64(data.tile)); owner.set(new Uint16Array(fromB64(data.owner).buffer)); bld.set(fromB64(data.bld)); rad.set(fromB64(data.rad));
+  ore.set(fromB64(data.ore)); oreAmt.set(fromB64(data.oreAmt)); wall.set(fromB64(data.wall));
   tickN = data.tickN; uid = data.uid; logs = data.logs || [];
-  kingdoms = data.kingdoms.map(k => ({ ...k, wars: new Set(k.wars), allies: new Set(k.allies), kingId: k.king, king: null }));
+  kingdoms = data.kingdoms.map(k => ({ ...k, wars: new Set(k.wars), allies: new Set(k.allies), tech: new Set(k.tech), kingId: k.king, king: null }));
   cities = data.cities.map(c => c && ({ ...c, k: kingdoms[c.k] }));
   const byId = {};
   units = data.units.map(s => { const u = { ...s, def: SP[s.type], k: s.k !== null ? kingdoms[s.k] : null, tx: null, ty: null, think: ri(0, 30), cool: 0, spell: ri(60, 160), hitT: 0, plague: 0, job: null, settler: null, dead: false, target: null }; byId[u.id] = u; return u; }).filter(u => u.def);
   for (const k of kingdoms) { k.king = byId[k.kingId] || null; delete k.kingId; }
-  centerCam(); applyModChange(); renderTabs(); renderTools(); sideDirty = true;
-  toast('Partida cargada');
+  computeRegions(); for (const c of cities) if (c && c.alive) scanCity(c);
+  centerCam(); applyModChange(); renderTabs(); renderTools(); setSpeed(0); sideDirty = true;
+  toast('Partida cargada. El tiempo está parado.');
   return true;
 }
 
-// ---------- menu ----------
+// ---------- menú ----------
 const modal = document.getElementById('modal');
-document.getElementById('menuBtn').onclick = () => {
-  document.getElementById('mSize').querySelector('[value="384x256"]').disabled = !modOn('trucos');
-  modal.hidden = false;
-};
+document.getElementById('menuBtn').onclick = () => { document.getElementById('mSize').querySelector('[value="384x224"]').disabled = !modOn('trucos'); modal.hidden = false; };
 document.getElementById('mClose').onclick = () => modal.hidden = true;
 modal.addEventListener('click', e => { if (e.target === modal) modal.hidden = true; });
 document.getElementById('mSave').onclick = () => { saveGame(); modal.hidden = true; };
 document.getElementById('mLoad').onclick = () => { if (loadGame()) modal.hidden = true; };
 document.getElementById('mGen').onclick = () => {
   const [w, h] = document.getElementById('mSize').value.split('x').map(Number);
-  newWorld(w, h, document.getElementById('mType').value, document.getElementById('mLife').value);
+  newWorld(w, h, document.getElementById('mType').value, document.getElementById('mOre').value, document.getElementById('mLife').value);
   modal.hidden = true;
 };
-function newWorld(w, h, type, life) {
-  genWorld(w, h, type);
-  selected = null; selectedCity = null;
-  if (life === 'civ' || life === 'all') {
-    const races = life === 'all' ? CIV.filter(r => modOn(SP[r].mod)) : ['human', 'elf', 'dwarf', 'orc'];
-    for (const r of races) {
-      const home = SP[r].home;
-      const p = randomTile(t => home.includes(t) && TILE[t].build) || randomTile(t => TILE[t].build);
-      if (!p) continue;
-      for (let k = 0; k < 6; k++) spawn(r, p[0] + .5 + ri(-2, 2), p[1] + .5 + ri(-2, 2));
+function newWorld(w, h, type, ores, life) {
+  genWorld(w, h, type, ores);
+  selected = null; selectedCity = null; selectedKingdom = null; warPick = null;
+  computeRegions();
+  if (life === 'civ') {
+    for (const r of ['human', 'elf', 'dwarf', 'orc']) {
+      for (let a = 0; a < 20; a++) { const p = randomTile(t => TILE[t].build && t !== T.SNOW && t !== T.DESERT); if (p && !nearCity(p[0], p[1], 20)) { foundVillage(r, p[0] + .5, p[1] + .5); break; } }
     }
   }
-  if (life !== 'none') {
-    for (let k = 0; k < 30; k++) { const p = randomTile(t => t === T.GRASS); if (p) spawn('sheep', p[0] + .5, p[1] + .5); }
-    for (let k = 0; k < 6; k++) { const p = randomTile(t => t === T.FOREST); if (p) spawn('wolf', p[0] + .5, p[1] + .5); }
-    if (modOn('magia')) for (let k = 0; k < 4; k++) { const p = randomTile(t => t === T.CRYSTAL); if (p) spawn('fairy', p[0] + .5, p[1] + .5); }
+  if (life === 'civ' || life === 'animals') {
+    for (let k = 0; k < 24; k++) { const p = randomTile(t => t === T.GRASS); if (p) spawn('sheep', p[0] + .5, p[1] + .5); }
+    for (let k = 0; k < 5; k++) { const p = randomTile(t => t === T.FOREST); if (p) spawn('wolf', p[0] + .5, p[1] + .5); }
   }
-  addLog('Los dioses crean un mundo nuevo.', 'found');
+  setSpeed(0);
+  addLog('Los dioses crean un mundo nuevo. El tiempo está detenido.', 'found');
   sideDirty = true;
 }
+
+// pantalla en horizontal
+const rotate = document.getElementById('rotate');
+let rotSkipped = false;
+function checkRotate() { rotate.hidden = rotSkipped || !(window.innerWidth < 760 && window.innerHeight > window.innerWidth); }
+document.getElementById('rotSkip').onclick = () => { rotSkipped = true; checkRotate(); };
+document.getElementById('rotFull').onclick = async () => {
+  try { await document.documentElement.requestFullscreen(); } catch (e) { }
+  try { await screen.orientation.lock('landscape'); } catch (e) { toast('Gira el teléfono a mano: este navegador no deja girarlo solo'); }
+  setTimeout(checkRotate, 400);
+};
 
 // ---------- arranque ----------
 function loop(now) {
@@ -1785,15 +2301,14 @@ function loop(now) {
   }
   heldTool(now); keyPan();
   render();
-  if (++statT % 15 === 0) { renderStats(); if (sideDirty || sidePane !== 'log') { if (statT % 30 === 0 || sideDirty) renderSide(); } }
+  loop.f = (loop.f || 0) + 1;
+  if (loop.f % 15 === 0) { renderStats(); if (sideDirty || (loop.f % 45 === 0 && !paused && sidePane !== 'log')) renderSide(); }
   requestAnimationFrame(loop);
 }
-window.addEventListener('resize', () => { resize(); clampCam(); });
+window.addEventListener('resize', () => { resize(); clampCam(); checkRotate(); });
 if (window.ResizeObserver) new ResizeObserver(() => { resize(); clampCam(); }).observe(document.getElementById('stage'));
 resize();
-newWorld(192, 128, 'cont', 'civ');
-// adelantar unos años para que el mundo arranque vivo
-for (let i = 0; i < YEAR * 4; i++) tick();
-renderTabs(); renderTools(); setBrush(3); updateHint(); renderStats(); renderSide();
+newWorld(192, 112, 'cont', 'few', 'none');
+renderTabs(); renderTools(); setBrush(3); updateHint(); renderStats(); renderSide(); checkRotate();
 requestAnimationFrame(loop);
 </script>
