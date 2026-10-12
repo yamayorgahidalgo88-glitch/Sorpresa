@@ -41,7 +41,7 @@
       characters: 'Characters', balls: 'Balls', supers: 'Supers', paused: 'Paused', resume: 'Resume', menu: 'Menu',
       noThanks: 'No, thanks', youWin: 'You win!', youLose: 'You lose', p1Wins: 'Player 1 wins!', p2Wins: 'Player 2 wins!',
       next: 'Next rival', retry: 'Retry', rematch: 'Rematch', double: 'Double coins', coinsEarned: '+{n} coins', noMoreCoins: 'Get more stars here to earn coins again', allStars: 'All 3 stars done: this level gives no more coins',
-      champion: 'Tour champion!', createRoom: 'Create room', joinRoom: 'Join room', join: 'Join', cancel: 'Cancel', roomCode: 'Room code', shareCode: 'Share this code with your friend. Waiting for a rival…', enterCode: 'Type the room code', connecting: 'Connecting…', noRoom: 'That room does not exist', netFail: 'Could not connect. Try another network.', rivalLeft: 'Your rival left the match', waitRival: 'Waiting for your rival…', you: 'You', room: 'Room {c}', claim: 'Claim prize', pickBox: 'Pick a box!', cont: 'Continue', prizeCoins: '+{n} coins', prizeItem: 'New {type}: {name}!', tCharacter: 'character', tBall: 'ball', tSuper: 'super', bossNeed: 'You need {n} ★ in this world to face the boss', locked: 'Beat the previous rival', select: 'Select', selected: 'Selected',
+      champion: 'Tour champion!', createRoom: 'Create room', joinRoom: 'Join room', join: 'Join', cancel: 'Cancel', roomCode: 'Room code', shareCode: 'Share this code with your friend. Waiting for a rival…', enterCode: 'Type the room code', connecting: 'Connecting…', noRoom: 'That room does not exist', netFail: 'Could not connect. Try another network.', rivalLeft: 'Your rival left the match', waitRival: 'Waiting for your rival…', you: 'You', room: 'Room {c}', boxAd: 'Watch a video: pick another box', pickBox: 'Pick a box!', pickAnother: 'Pick another box!', cont: 'Continue', prizeCoins: '+{n} coins', prizeItem: 'New {type}: {name}!', tCharacter: 'character', tBall: 'ball', tSuper: 'super', bossNeed: 'You need {n} ★ in this world to face the boss', locked: 'Beat the previous rival', select: 'Select', selected: 'Selected',
       adUnavailable: 'Ad not available, try again later', serve: 'Serve!', point: 'Point!', superReady: 'SUPER',
       controls: '1P: A/D or arrows to move, W / up / space to jump  ·  2P: A/D/W vs arrows',
       rival: 'Rival {n}', beach: 'beach', gym: 'warehouse', rooftop: 'rooftop', snow: 'snow', jungle: 'jungle', volcano: 'volcano', moon: 'moon',
@@ -81,7 +81,7 @@
       characters: 'Personajes', balls: 'Balones', supers: 'Súpers', paused: 'Pausa', resume: 'Seguir', menu: 'Menú',
       noThanks: 'No, gracias', youWin: '¡Has ganado!', youLose: 'Has perdido', p1Wins: '¡Gana el jugador 1!', p2Wins: '¡Gana el jugador 2!',
       next: 'Siguiente rival', retry: 'Reintentar', rematch: 'Revancha', double: 'Duplicar monedas', coinsEarned: '+{n} monedas', noMoreCoins: 'Consigue más estrellas aquí para volver a ganar monedas', allStars: 'Ya tienes las 3 estrellas: este nivel no da más monedas',
-      champion: '¡Campeón del torneo!', createRoom: 'Crear sala', joinRoom: 'Unirse a sala', join: 'Unirse', cancel: 'Cancelar', roomCode: 'Código de sala', shareCode: 'Pásale este código a tu amigo. Esperando rival…', enterCode: 'Escribe el código de la sala', connecting: 'Conectando…', noRoom: 'No existe esa sala', netFail: 'No se pudo conectar. Prueba con otra red.', rivalLeft: 'Tu rival ha salido de la partida', waitRival: 'Esperando al rival…', you: 'Tú', room: 'Sala {c}', claim: 'Reclamar premio', pickBox: '¡Elige una caja!', cont: 'Continuar', prizeCoins: '+{n} monedas', prizeItem: '¡Nuevo {type}: {name}!', tCharacter: 'personaje', tBall: 'balón', tSuper: 'súper', bossNeed: 'Necesitas {n} ★ en este mundo para el jefe', locked: 'Gana al rival anterior', select: 'Elegir', selected: 'Elegido',
+      champion: '¡Campeón del torneo!', createRoom: 'Crear sala', joinRoom: 'Unirse a sala', join: 'Unirse', cancel: 'Cancelar', roomCode: 'Código de sala', shareCode: 'Pásale este código a tu amigo. Esperando rival…', enterCode: 'Escribe el código de la sala', connecting: 'Conectando…', noRoom: 'No existe esa sala', netFail: 'No se pudo conectar. Prueba con otra red.', rivalLeft: 'Tu rival ha salido de la partida', waitRival: 'Esperando al rival…', you: 'Tú', room: 'Sala {c}', boxAd: 'Ver un vídeo y elegir otra caja', pickBox: '¡Elige una caja!', pickAnother: '¡Elige otra caja!', cont: 'Continuar', prizeCoins: '+{n} monedas', prizeItem: '¡Nuevo {type}: {name}!', tCharacter: 'personaje', tBall: 'balón', tSuper: 'súper', bossNeed: 'Necesitas {n} ★ en este mundo para el jefe', locked: 'Gana al rival anterior', select: 'Elegir', selected: 'Elegido',
       adUnavailable: 'Anuncio no disponible, prueba más tarde', serve: '¡Saca!', point: '¡Punto!', superReady: 'SÚPER',
       controls: '1J: A/D o flechas para moverte, W / arriba / espacio para saltar  ·  2J: A/D/W contra flechas',
       rival: 'Rival {n}', beach: 'playa', gym: 'almacén', rooftop: 'azotea', snow: 'nieve', jungle: 'selva', volcano: 'volcán', moon: 'luna',
@@ -1200,29 +1200,6 @@
 
   // ---------- Tournament trophy: confetti, then pick one of three prize boxes ----------
   let trophyOpen = false, confetti = [], boxPrizes = [];
-  function drawCup() {
-    const cv = document.getElementById('cup'), c = cv.getContext('2d');
-    c.clearRect(0, 0, 320, 320);
-    const gold = c.createLinearGradient(70, 0, 250, 0);
-    gold.addColorStop(0, '#b8860b'); gold.addColorStop(0.35, '#ffe066'); gold.addColorStop(0.55, '#ffd60a'); gold.addColorStop(1, '#a8740a');
-    c.lineWidth = 16; c.strokeStyle = '#d4a017';                                  // handles
-    c.beginPath(); c.arc(72, 110, 40, Math.PI * 0.5, Math.PI * 1.5); c.stroke();
-    c.beginPath(); c.arc(248, 110, 40, -Math.PI * 0.5, Math.PI * 0.5); c.stroke();
-    c.fillStyle = gold;                                                         // bowl
-    c.beginPath(); c.moveTo(66, 50); c.lineTo(254, 50); c.bezierCurveTo(254, 150, 210, 196, 160, 200); c.bezierCurveTo(110, 196, 66, 150, 66, 50); c.fill();
-    c.fillStyle = '#fff3b0'; c.beginPath(); c.ellipse(160, 50, 94, 12, 0, 0, Math.PI * 2); c.fill();
-    c.fillStyle = '#b8860b'; c.beginPath(); c.ellipse(160, 52, 84, 8, 0, 0, Math.PI * 2); c.fill();
-    c.fillStyle = gold; c.fillRect(146, 196, 28, 44);                          // stem
-    c.beginPath(); c.ellipse(160, 240, 40, 10, 0, 0, Math.PI * 2); c.fill();
-    c.fillStyle = '#3d2b1f'; c.fillRect(100, 248, 120, 46);                    // base and plaque
-    c.fillStyle = gold; c.fillRect(92, 244, 136, 10); c.fillRect(92, 290, 136, 10);
-    c.fillStyle = '#ffd60a'; c.fillRect(122, 260, 76, 24);
-    c.fillStyle = '#3d2b1f'; c.font = '900 13px "Trebuchet MS",sans-serif'; c.textAlign = 'center'; c.fillText('SPIKE DUEL', 160, 277);
-    c.fillStyle = '#fff8dc'; c.save(); c.translate(160, 112); c.beginPath();        // star on the bowl
-    for (let k = 0; k < 10; k++) { const r = k % 2 ? 11 : 26, a = -Math.PI / 2 + k * Math.PI / 5; c.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
-    c.closePath(); c.fill(); c.restore();
-    c.fillStyle = 'rgba(255,255,255,0.45)'; c.beginPath(); c.ellipse(105, 100, 10, 34, -0.2, 0, Math.PI * 2); c.fill();
-  }
   function confettiLoop() {
     if (!trophyOpen) return;
     const cv = document.getElementById('confetti'), r = cv.getBoundingClientRect();
@@ -1242,15 +1219,18 @@
     }
     requestAnimationFrame(confettiLoop);
   }
-  function makePrize(taken) {
+  // One box always holds 75 coins, one 50 coins and one a random item the player does not own yet
+  // (100 coins if everything is already owned); the order of the boxes is shuffled.
+  function makePrizes() {
     const pool = [];
     const add = (list, owned, kind, label) => list.forEach((it, i) => {
-      if (!owned.includes(i) && !(kind === 'supers' && i === RETIRED_SUPER) && !taken.some(q => q.kind === kind && q.i === i)) pool.push({ kind, i, label });
+      if (!owned.includes(i) && !(kind === 'supers' && i === RETIRED_SUPER)) pool.push({ kind, i, label });
     });
     add(CHARS, save.chars, 'chars', 'tCharacter'); add(BALLS, save.balls, 'balls', 'tBall'); add(SUPERS, save.supers, 'supers', 'tSuper');
-    if (pool.length && Math.random() < 0.2) return pool[Math.floor(Math.random() * pool.length)];
-    const amounts = [50, 60, 75, 90, 100, 120, 150, 200];                       // small amounts are the most likely
-    return { kind: 'coins', n: amounts[Math.floor(Math.pow(Math.random(), 2) * amounts.length)] };
+    const item = pool.length ? pool[Math.floor(Math.random() * pool.length)] : { kind: 'coins', n: 100 };
+    const list = [{ kind: 'coins', n: 75 }, { kind: 'coins', n: 50 }, item];
+    for (let i = 2; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }
+    return list;
   }
   function prizeName(q) {
     return q.kind === 'chars' ? CHARS[q.i].name : q.kind === 'balls' ? BALLS[q.i].name : t('s_' + SUPERS[q.i].id);
@@ -1265,44 +1245,46 @@
     }));
     const n = document.createElement('div'); n.textContent = prizeName(q); el.appendChild(n);
   }
+  let boxOpened = [], boxPicksLeft = 1;
+  const boxEls = () => document.querySelectorAll('#trophy .box');
   function showTrophy() {
-    const tr = document.getElementById('trophy');
-    tr.classList.remove('claimed');
-    document.getElementById('boxes').classList.add('hidden');
+    boxPrizes = makePrizes(); boxOpened = [false, false, false]; boxPicksLeft = 1;
     document.getElementById('boxes').classList.remove('done');
-    document.querySelectorAll('#trophy .box').forEach(b => { b.className = 'box'; b.querySelector('.prize').innerHTML = ''; });
-    document.getElementById('btnClaim').classList.remove('hidden');
+    boxEls().forEach(b => { b.className = 'box'; b.querySelector('.prize').innerHTML = ''; });
+    document.getElementById('boxAdRow').classList.add('hidden');
     document.getElementById('btnTrophyGo').classList.add('hidden');
-    document.getElementById('boxNote').textContent = lastResult.note;
-    drawCup();
+    document.getElementById('boxNote').textContent = (lastResult.note ? lastResult.note + ' · ' : '') + t('pickBox');
     showScreen('trophy');
     trophyOpen = true; confetti = []; requestAnimationFrame(confettiLoop);
   }
-  function claimPrize() {
-    Sound.click();
-    document.getElementById('trophy').classList.add('claimed');
-    document.getElementById('btnClaim').classList.add('hidden');
-    document.getElementById('boxes').classList.remove('hidden');
-    document.getElementById('boxNote').textContent = t('pickBox');
-    boxPrizes = [];
-    for (let i = 0; i < 3; i++) boxPrizes.push(makePrize(boxPrizes));
+  function revealBox(k, cls) {
+    fillBox(boxEls()[k], boxPrizes[k]);
+    boxEls()[k].classList.add('open', cls);
+    boxOpened[k] = true;
   }
   function openBox(i) {
-    const row = document.getElementById('boxes');
-    if (row.classList.contains('done')) return;
-    row.classList.add('done');
+    if (boxPicksLeft <= 0 || boxOpened[i]) return;
+    boxPicksLeft--;
     const q = boxPrizes[i];
     if (q.kind === 'coins') { save.coins += q.n; lastResult.coins += q.n; }
     else save[q.kind].push(q.i);
     persist(); Sound.win();
-    document.querySelectorAll('#trophy .box').forEach((b, k) => {
-      fillBox(b, boxPrizes[k]);
-      b.classList.add('open', k === i ? 'chosen' : 'other');
-    });
+    revealBox(i, 'chosen');
     document.getElementById('boxNote').textContent = q.kind === 'coins' ? t('prizeCoins', { n: q.n })
       : t('prizeItem', { type: t(q.label), name: prizeName(q) });
-    document.getElementById('btnTrophyGo').classList.remove('hidden');
     confetti = [];
+    if (boxOpened.filter(Boolean).length === 1) {
+      // first pick: offer a video to pick a second box
+      document.getElementById('boxes').classList.add('done');
+      document.getElementById('boxAdRow').classList.remove('hidden');
+    } else endBoxes();
+  }
+  // Reveal the boxes nobody opened and offer to go back to the menu.
+  function endBoxes() {
+    document.getElementById('boxes').classList.add('done');
+    document.getElementById('boxAdRow').classList.add('hidden');
+    boxOpened.forEach((o, k) => { if (!o) revealBox(k, 'other'); });
+    document.getElementById('btnTrophyGo').classList.remove('hidden');
   }
 
   function afterRewardChoice() {
@@ -3411,9 +3393,22 @@
       afterRewardChoice();
     });
     on('btnNoThanks', afterRewardChoice);
-    on('btnClaim', claimPrize);
+    on('btnBoxAd', async () => {
+      document.getElementById('boxAdRow').classList.add('hidden');
+      const ok = await runAd('rewarded');
+      state = 'result';
+      if (ok) {
+        boxPicksLeft = 1;
+        document.getElementById('boxes').classList.remove('done');
+        document.getElementById('boxNote').textContent = t('pickAnother');
+      } else {
+        toast(t('adUnavailable'));
+        endBoxes();
+      }
+    });
+    on('btnBoxNo', () => { Sound.click(); endBoxes(); });
     document.querySelectorAll('#trophy .box').forEach((b, i) => b.addEventListener('click', () => openBox(i)));
-    on('btnTrophyGo', () => { Sound.click(); trophyOpen = false; showResult(true); });
+    on('btnTrophyGo', () => { Sound.click(); trophyOpen = false; goMenu(); });
     document.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click', () => { Sound.click(); goMenu(); }));
     if (isTouch) {
       document.querySelector('#menu .hint').classList.add('hidden');
