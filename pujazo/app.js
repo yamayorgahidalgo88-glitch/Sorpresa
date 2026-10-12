@@ -93,7 +93,8 @@
 
   function renderCatGrid(el, selected, onPick) {
     const opts = [{ key: 'random', name: 'Categoría aleatoria', emoji: '🎲' }, ...categories];
-    el.innerHTML = opts.map(c => `<button class="cat-opt ${c.key === 'random' ? 'random' : ''} ${c.key === selected ? 'sel' : ''}" data-k="${c.key}"><span class="e">${c.emoji}</span>${esc(c.name)}</button>`).join('');
+    const short = n => n.replace(/^(El|La) /, '').replace(/ ideal$/, '').replace(/^./, m => m.toUpperCase());
+    el.innerHTML = opts.map(c => `<button class="cat-opt ${c.key === 'random' ? 'random' : ''} ${c.key === selected ? 'sel' : ''}" data-k="${c.key}"><span class="e">${c.emoji}</span>${esc(short(c.name))}</button>`).join('');
     el.querySelectorAll('.cat-opt').forEach(b => b.onclick = () => {
       el.querySelectorAll('.cat-opt').forEach(x => x.classList.toggle('sel', x === b));
       onPick(b.dataset.k);
@@ -264,7 +265,8 @@
   function renderGame() {
     const s = state, a = s.auction, mine = myPlayer();
     if (!s.category) return;
-    $('#gameCat').textContent = `${s.category.emoji} ${s.category.name}`;
+    // Durante la ruleta de categoría aleatoria no se desvela cuál ha salido.
+    $('#gameCat').textContent = s.phase === 'category' && s.categoryChoice === 'random' ? '🎲 Eligiendo categoría…' : `${s.category.emoji} ${s.category.name}`;
     $('#gameCounter').textContent = s.totalItems ? `Objeto ${Math.max(1, s.itemIndex)} / ${s.totalItems}` : '';
 
     // Barra de jugadores
@@ -454,7 +456,7 @@
     word.classList.toggle('free', free);
     const who = sold.winnerId === me ? 'ti' : esc(sold.winnerName);
     $('#soldWho').innerHTML = free
-      ? `Para <b>${who}</b> gratis ${sold.reason === 'unico' ? '(era el único con huecos)' : '(nadie pujó)'}`
+      ? `Para <b>${who}</b> gratis ${sold.reason === 'unico' ? '(era el único con huecos)' : '(nadie pujó: le tocó al azar)'}`
       : `A <b>${who}</b> por <b>${sold.price} 🪙</b>`;
     $('#soldWhat').textContent = `${sold.item.emoji} ${sold.item.name}`;
     void ov.offsetWidth;
@@ -494,7 +496,8 @@
     if (voteBuiltFor !== key) {
       voteBuiltFor = key;
       $('#votingTitle').textContent = `¡A votar! ${s.category.emoji}`;
-      $('#voteCards').innerHTML = s.players.map(p => finalCard(p, p.id === me
+      const ordered = [...s.players.filter(p => p.id !== me), ...s.players.filter(p => p.id === me)];
+      $('#voteCards').innerHTML = ordered.map(p => finalCard(p, p.id === me
         ? '<div class="vote-box"><label>Esta es tu creación 😎</label></div>'
         : `<div class="vote-box"><label for="v-${p.id}">Tu nota para ${esc(p.name)}</label><input id="v-${p.id}" data-target="${p.id}" type="number" inputmode="decimal" min="0" max="10" step="0.5" placeholder="?"><span class="of">/10</span></div>`)).join('');
       $$('#voteCards input').forEach(inp => inp.oninput = () => {

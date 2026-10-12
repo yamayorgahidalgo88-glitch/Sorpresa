@@ -216,13 +216,8 @@
       const a = this.auction;
       const leader = a.leaderId && this.players.find(p => p.id === a.leaderId);
       if (leader) return this.award(leader, a.bid, 'puja');
-      // Nadie ha pujado: se adjudica gratis, primero a quien no tenga dinero.
-      const eligible = this.players.filter(p => a.eligible.includes(p.id));
-      let pool = eligible.filter(p => p.coins === 0);
-      if (!pool.length) {
-        const min = Math.min(...eligible.map(p => p.coins));
-        pool = eligible.filter(p => p.coins === min);
-      }
+      // Nadie ha pujado: se adjudica gratis a alguien al azar entre los que aún tienen huecos.
+      const pool = this.players.filter(p => a.eligible.includes(p.id));
       this.award(rand(pool), 0, 'nadie');
     }
 
