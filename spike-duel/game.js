@@ -52,7 +52,7 @@
       controlsBtn: 'Buttons', helpBtn: 'Controls', helpTitle: 'Controls', gotIt: 'Got it!', hMove: 'Move', hJump: 'Jump', hSpike: 'Spike', hSpikeD: 'Jump and hit the ball from above', hSuper: 'Super', hSuperD: 'Fill the bar, then spike', hPause: 'Pause', h2p: '2 players (same keyboard)', hP1: 'Player 1', hP2: 'Player 2', hOr: 'or', hSpace: 'Space', practiceHint: 'Practice · hold a button for 2.5 s to edit it', ctlJump: 'Jump button',
       ctlDir: 'Direction buttons', ctlSize: 'Size', ctlPos: 'Position', ctlGap: 'Spacing', done: 'Done', reset: 'Reset', free: 'Free', rotate: 'Turn your phone sideways to play',
       s_fire: 'Fire', s_fire_d: 'A blazing fast spike',
-      s_sticky: 'Bubblegum', s_sticky_d: 'Whoever stops it can\'t jump for 6.5 s',
+      s_sticky: 'Bubblegum', s_sticky_d: 'Whoever stops it can\'t jump for 6.5 s (or until the point ends)',
       s_shrink: 'Shrink', s_shrink_d: 'Whoever stops it shrinks this point',
       s_heavy: 'Meteor', s_heavy_d: 'Vanishes at the net and crashes down from the sky',
       s_ice: 'Ice', s_ice_d: 'Whoever stops it freezes for 2 seconds',
@@ -69,7 +69,7 @@
       s_bomb: 'Bomb', s_bomb_d: 'Explodes on touch and blasts the rival back',
       s_snail: 'Snail', s_snail_d: 'Whoever stops it moves at half speed this point',
       s_ink: 'Ink', s_ink_d: 'Splats ink over the rival\'s side for 3 seconds',
-      s_torment: 'Curse', s_torment_d: 'Whoever touches it after the strike can barely see for 1.5 s',
+      s_torment: 'Curse', s_torment_d: 'Whoever touches it after the strike can barely see for 3 s (or until the point ends)',
       s_wind: 'Gale', s_wind_d: 'Whoever stops it is blown back this point',
       s_balloon: 'Balloon', s_balloon_d: 'Flies off like a deflating balloon on the rival side',
       s_quake: 'Earthquake', s_quake_d: 'Launches whoever stops it into the air, out of control',
@@ -92,7 +92,7 @@
       controlsBtn: 'Botones', helpBtn: 'Controles', helpTitle: 'Controles', gotIt: '¡Entendido!', hMove: 'Moverse', hJump: 'Saltar', hSpike: 'Rematar', hSpikeD: 'Salta y golpea la pelota desde arriba', hSuper: 'Súper', hSuperD: 'Llena la barra y remata', hPause: 'Pausa', h2p: '2 jugadores (mismo teclado)', hP1: 'Jugador 1', hP2: 'Jugador 2', hOr: 'o', hSpace: 'Espacio', practiceHint: 'Práctica · mantén pulsado un botón 2,5 s para editarlo', ctlJump: 'Botón de salto',
       ctlDir: 'Botones de dirección', ctlSize: 'Tamaño', ctlPos: 'Posición', ctlGap: 'Separación', done: 'Listo', reset: 'Restablecer', free: 'Gratis', rotate: 'Gira el móvil en horizontal para jugar',
       s_fire: 'Fuego', s_fire_d: 'Un remate rapidísimo',
-      s_sticky: 'Chicle', s_sticky_d: 'Quien la para no puede saltar durante 6,5 s',
+      s_sticky: 'Chicle', s_sticky_d: 'Quien la para no puede saltar durante 6,5 s (o hasta que acabe el punto)',
       s_shrink: 'Encoger', s_shrink_d: 'Quien la para se encoge en este punto',
       s_heavy: 'Meteorito', s_heavy_d: 'Desaparece en la red y cae del cielo como un meteorito',
       s_ice: 'Hielo', s_ice_d: 'Quien la para se congela 2 segundos',
@@ -109,7 +109,7 @@
       s_bomb: 'Bomba', s_bomb_d: 'Explota al tocarla y lanza al rival hacia atrás',
       s_snail: 'Caracol', s_snail_d: 'Quien la para va a media velocidad en este punto',
       s_ink: 'Tinta', s_ink_d: 'Mancha de tinta el campo rival durante 3 segundos',
-      s_torment: 'Maldición', s_torment_d: 'Quien la toca después del golpe apenas ve nada durante 1,5 s',
+      s_torment: 'Maldición', s_torment_d: 'Quien la toca después del golpe apenas ve nada durante 3 s (o hasta que acabe el punto)',
       s_wind: 'Vendaval', s_wind_d: 'Quien la para sale empujado por el viento en este punto',
       s_balloon: 'Globo', s_balloon_d: 'En el campo rival sale disparado como un globo que se deshincha',
       s_quake: 'Terremoto', s_quake_d: 'Lanza por los aires a quien la para, sin control',
@@ -485,7 +485,7 @@
     for (const p of players) {
       p.x = p.side === 0 ? 200 : 760; p.y = GROUND; p.vx = p.vy = 0; p.onGround = true; p.hitCooldown = 0;
       p.ai.jumpPlan = null; p.ai.err = 0; p.ai.follow = null; p.ai.react = 0; p.ai.evt = '';
-      const gum = p.fx.sticky; p.fx = freshFx(); p.fx.sticky = gum || 0; p.r = p.baseR;   // bubblegum outlasts the point (6.5 s)
+      p.fx = freshFx(); p.r = p.baseR;   // every effect (bubblegum, curse...) ends with the point
     }
     if (players[server].isAI) players[server].x += 10; // AI serves with a slight forward push
     showBanner(t('serve'), 0.8);
@@ -622,7 +622,7 @@
     else if (id === 'ice') { fx.frozen = 2; key = 'e_ice'; burst(p.x, p.y - 20, 18, ['#caf0f8', '#48cae4', '#ffffff']); }
     else if (id === 'lightning') { fx.stunned = 0.5; key = 'e_lightning'; burst(p.x, p.y - 20, 16, ['#ffd60a', '#ffffff']); }
     else if (id === 'zerog') { fx.float = 2; key = 'e_zerog'; }
-    else if (id === 'torment') { fx.dark = 1.5; key = 'e_torment'; burst(p.x, p.y - 30, 14, ['#5a189a', '#c77dff', '#111']); }
+    else if (id === 'torment') { fx.dark = 3; key = 'e_torment'; burst(p.x, p.y - 30, 14, ['#5a189a', '#c77dff', '#111']); }
     else if (id === 'shrink') { fx.shrink = true; key = 'e_shrink'; }
     else if (id === 'sticky') { fx.sticky = 6.5; key = 'e_sticky'; }
     else if (id === 'snail') { fx.slow = true; key = 'e_snail'; }
@@ -2818,7 +2818,7 @@
 
   // Torment: the screen goes dark except for a small circle around the blinded player
   function drawDark(p) {
-    const a = Math.min(1, p.fx.dark / 0.25, (1.5 - p.fx.dark) / 0.12 + 0.001);
+    const a = Math.min(1, p.fx.dark / 0.25, (3 - p.fx.dark) / 0.12 + 0.001);
     const cx = p.x, cy = p.y - 30, g = ctx.createRadialGradient(cx, cy, 40, cx, cy, 150);
     g.addColorStop(0, 'rgba(8,4,16,0)'); g.addColorStop(1, 'rgba(8,4,16,0.97)');
     ctx.save();
