@@ -94,7 +94,7 @@
     .pass-card h3{font-size:28px;margin:0 0 8px}.pass-card p{color:var(--muted);line-height:1.5;margin:0 auto;max-width:350px}
 
     .reveal-card{padding:16px}.reveal-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-end}.target{font-size:37px;font-weight:950;letter-spacing:-.04em}.target small{display:block;color:var(--muted);font-size:10px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:4px}
-    .reveal-scale{height:430px;position:relative;margin-top:12px;border-radius:24px;background:rgba(4,10,18,.35);border:1px solid rgba(255,255,255,.06);overflow:hidden}
+    .reveal-scale{height:clamp(170px,calc(100svh - 530px),430px);position:relative;margin-top:12px;border-radius:24px;background:rgba(4,10,18,.35);border:1px solid rgba(255,255,255,.06);overflow:hidden}
     .reveal-scale:before{content:"";position:absolute;left:50%;top:18px;bottom:18px;width:1px;background:rgba(255,255,255,.07);transform:translateX(-50%)}
     .result-columns{height:100%;display:grid;grid-template-columns:repeat(var(--result-count,2),minmax(0,1fr));gap:clamp(4px,1.5vw,10px);padding:18px 6px 0}
     .result-column{position:relative;height:100%;display:flex;align-items:center;justify-content:flex-end;flex-direction:column;padding:0 clamp(2px,1vw,10px)}
@@ -106,8 +106,8 @@
     .result-bar.result-c4{background:linear-gradient(180deg,#ff78a8 0%,#ed3e79 45%,#b51f58 100%)}
     .result-labels{display:grid;grid-template-columns:repeat(var(--result-count,2),minmax(0,1fr));gap:clamp(4px,1.5vw,10px);margin:12px 0 0}.result-label{font-size:12px;font-weight:900;white-space:nowrap;padding:9px 7px;border-radius:14px;background:#0d1a2b;border:1px solid rgba(255,255,255,.15);text-align:center;overflow:hidden;text-overflow:ellipsis}.result-label .result-estimate{display:block;color:#fff;font-size:13px;margin-top:2px}.result-label .result-player-name{display:block;overflow:hidden;text-overflow:ellipsis}.result-name{font-size:11px;font-weight:800;color:rgba(255,255,255,.75);padding:8px 0 12px;z-index:4;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .diffs{display:grid;grid-template-columns:repeat(var(--result-count,2),minmax(0,1fr));gap:7px;margin-top:10px}.diff{padding:10px 6px;border:1px solid var(--line);background:rgba(255,255,255,.035);border-radius:15px;text-align:center;min-width:0}.diff span{display:block;color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.diff strong{font-size:15px;display:block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    @media (max-width:430px){.result-label{font-size:10px;padding:7px 4px}.result-label .result-estimate{font-size:11px}.result-name{font-size:9px}.diff strong{font-size:12px}.reveal-scale{height:390px}}
-    @media (max-width:360px){.result-label .result-estimate{font-size:10px}.diff{padding:8px 3px}.diff strong{font-size:11px}.reveal-scale{height:360px}}
+    @media (max-width:430px){.result-label{font-size:10px;padding:7px 4px}.result-label .result-estimate{font-size:11px}.result-name{font-size:9px}.diff strong{font-size:12px}}
+    @media (max-width:360px){.result-label .result-estimate{font-size:10px}.diff{padding:8px 3px}.diff strong{font-size:11px}}
     .source{font-size:10px;color:#74839b;line-height:1.4;margin-top:10px}.source b{color:#8ebcff;font-weight:600}
 
     .scoreboard{display:grid;grid-template-columns:repeat(var(--player-count,2),minmax(0,1fr));gap:8px}.score{padding:12px 8px;border-radius:18px;border:1px solid var(--line);background:rgba(255,255,255,.035);min-width:0}.score .name{font-size:11px;color:var(--muted);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.score b{font-size:27px;display:block;margin-top:2px}.score .muted{font-size:10px;display:block}.score.score-c0{box-shadow:inset 0 0 0 1px rgba(46,140,255,.12)}.score.score-c1{box-shadow:inset 0 0 0 1px rgba(42,210,118,.12)}.score.score-c2{box-shadow:inset 0 0 0 1px rgba(193,140,255,.12)}.score.score-c3{box-shadow:inset 0 0 0 1px rgba(255,179,91,.12)}.score.score-c4{box-shadow:inset 0 0 0 1px rgba(255,120,168,.12)}
@@ -223,6 +223,24 @@
       .wait-box{gap:14px}.wait-ticker{height:56px}.wait-ticker span{font-size:34px}
       .pass-card{padding:18px}.pass-icon{width:56px;height:56px;margin-bottom:10px;font-size:28px}
     }
+    /* Horizontal y bajo (escritorio en CrazyGames): dos columnas para que todo quepa sin desplazar. */
+    @media (max-height:640px) and (orientation:landscape){
+      .phone{max-width:780px}
+      #home.active{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto auto auto 1fr;grid-template-areas:"top top" "hero players" "online players" "start players" "how players";column-gap:16px;row-gap:8px;align-content:start}
+      #home>.topbar{grid-area:top}#home>.hero{grid-area:hero}#home>.home-players{grid-area:players;margin-top:0!important;align-self:start}
+      #home>.online-card{grid-area:online;align-self:start}#home>#startBtn{grid-area:start}#home>#howBtn{grid-area:how}
+      #home>.rules,#home>.spacer,#home>.version-tag{display:none}
+      .home-players .field label{display:none}.home-players .row .field label{display:block}
+      .home-players .players-list{gap:5px}.home-players .field input{padding:8px 12px}.home-players .player-remove{height:36px}.home-players .add-player{margin-top:6px;padding:8px}
+      .home-players .row{margin-top:6px!important}.home-players .row .field{flex-direction:row;align-items:center;gap:10px}.home-players .row select{padding:7px 10px}
+      #lobby.active{display:grid;grid-template-columns:1fr 1.2fr;grid-template-rows:auto auto auto 1fr auto auto;grid-template-areas:"top top" "code list" "wait list" "rounds list" "start list" "host list";column-gap:16px;row-gap:8px;align-content:start}
+      #lobby>.topbar{grid-area:top}#lobby>.lobby-code-card{grid-area:code}#lobby>.lobby-list{grid-area:list;align-self:start}#lobby>.lobby-waiting{grid-area:wait}
+      #lobby>.spacer{display:none}#lobby>#lobbyRoundsWrap{grid-area:rounds;align-self:end}#lobby>#lobbyStart{grid-area:start}#lobby>#lobbyWaitHost{grid-area:host;align-self:end}
+      .result-labels{display:none}.result-name-val{display:inline}
+      .reveal-scale{height:120px}
+    }
+    .result-name-val{display:none}
+    .winner h3{margin:14px 0 4px}.winner p{margin:0;color:var(--muted);line-height:1.4}
     @media (max-height:480px){
       .hero p,.hero .eyebrow{display:none}.hero h2{font-size:22px}
       .q-card .question{font-size:17px}.reveal-scale{height:110px}
@@ -234,7 +252,7 @@
   <section id="home" class="screen active fade">
     <div class="topbar"><div class="brand"><div class="logo"><div class="logo-mark"></div></div><div><h1>CIFRA</h1><p data-i18n="tagline">How close can you get?</p></div></div><div class="pill" id="playerCountPill">2 players</div></div>
     <div class="hero"><div class="eyebrow" data-i18n="heroEyebrow">local game</div><h2 data-i18n-html="heroTitle"></h2><p data-i18n="heroText"></p></div>
-    <div class="card pad" style="margin-top:14px">
+    <div class="card pad home-players" style="margin-top:14px">
       <div id="playersList" class="players-list">
       </div>
       <button type="button" class="add-player" id="addPlayerBtn">＋</button>
@@ -4981,6 +4999,7 @@ function showReveal(){
     const bar=document.createElement('div');bar.className=`result-bar ${resultColorClass(i)}`;
     bar.style.height=`${Math.max(4,(state.answers[i]/maxVal)*100)}%`;
     const nm=document.createElement('div');nm.className='result-name';nm.textContent=name;
+    const nv=document.createElement('span');nv.className='result-name-val';nv.textContent=` · ${fmtValue(state.answers[i],item)}`;nm.appendChild(nv);
     col.appendChild(bar);col.appendChild(nm);columns.appendChild(col);
 
     const diff=document.createElement('div');diff.className='diff';

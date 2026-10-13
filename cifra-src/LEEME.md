@@ -23,3 +23,17 @@ Y('¿En qué año…?', año, 'Pista sin cifras', {s:'fuente'})
 - `n`: nota que aparece junto a la fuente al revelar el dato.
 
 Las fichas de los nombres subrayados están en `9x-fichas-*.js` (`CONTEXT_INFO`). Una clave que empieza por mayúscula solo se subraya si aparece escrita igual.
+
+## Versión para CrazyGames (`cifra-crazygames/`)
+
+Copia aparte del juego; la de Vercel (`cifra/`) no se toca.
+
+- Traducciones al inglés en `en/`: un archivo por categoría, en el mismo orden que en `preguntas/`.
+  `E(respuesta,'texto','unidad','nota')` traduce una pregunta y `X(respuesta)` la deja fuera
+  (preguntas muy ligadas a España). Fichas en inglés: `en/9x-fichas-*.js` (`CONTEXT_INFO_EN`).
+- Comprobar: `node cifra-src/tools/check-en.js` (alineación) y `node cifra-src/tools/en-missing.js` (subrayados y fichas sin cifras).
+- Generar: `python3 cifra-src/tools/build-cg.py`. Solo entran las preguntas traducidas, para que en una sala online
+  todos tengan las mismas aunque jueguen en idiomas distintos.
+- Textos de la interfaz: `cifra-crazygames/i18n.js`. Idioma: el del SDK de CrazyGames (español si empieza por `es`, si no inglés).
+  Para probar: `?lang=es` o `?lang=en`.
+- SDK: `cifra-crazygames/cg.js` (gameplay, anuncio al acabar cada partida, usuario, invitaciones y estado de la sala).
