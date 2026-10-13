@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: anime-list-my
+    runtime: node
+    rootDir: animelist
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_TOKEN
+        sync: false

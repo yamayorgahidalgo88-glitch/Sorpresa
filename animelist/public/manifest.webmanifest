@@ -1,0 +1,16 @@
+{
+  "name": "Anime List M&Y",
+  "short_name": "Anime List",
+  "description": "Nuestra lista de anime: qué hemos visto, notas y dónde verlo en España.",
+  "lang": "es",
+  "start_url": "/#/tablas",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d0d14",
+  "theme_color": "#0d0d14",
+  "icons": [
+    { "src": "/img/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/img/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/img/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

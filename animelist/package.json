@@ -1,0 +1,21 @@
+{
+  "name": "anime-list-my",
+  "version": "1.0.0",
+  "description": "Anime List M&Y",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "build:catalog": "node scripts/build-catalog.mjs",
+    "test": "node --test test/*.test.js"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "@libsql/client": "^0.18.0",
+    "express": "^4.22.3"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20.10"
+  }
+}
