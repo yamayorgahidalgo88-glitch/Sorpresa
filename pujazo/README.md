@@ -1,7 +1,7 @@
 # 🔨 PUJAZO
 
 Juego online de pujas en tiempo real (2–5 jugadores) inspirado en el trend de TikTok de "pujar por cosas".
-Cada jugador empieza con **20 🪙** y tiene que acabar con **4 cosas** para montar su *jardín, casa, parque de atracciones, pizza, viaje, fiesta de cumpleaños, coche, pareja o mascota ideal*.
+Cada jugador empieza con **20 🪙** y tiene que acabar con **4 cosas** para montar su *jardín, casa, parque de atracciones, pizza, viaje, fiesta de cumpleaños, coche, pareja o mascota ideal*, o su equipo para la *batalla de animales* o el *equipo de guerra*.
 
 ## Publicarlo en Vercel
 Esta carpeta es una web estática, sin servidor ni base de datos, así que no hay nada que configurar:
@@ -24,9 +24,10 @@ El código de 4 caracteres identifica la sala.
 ## Cómo se juega
 - El anfitrión crea la sala (nombre + categoría o 🎲 aleatoria) y recibe el código.
 - Los demás pulsan *Unirse a sala*, ponen su nombre y el código.
-- Van saliendo cosas al azar (muy malas, malas, normales, buenas y muy buenas). 120 por categoría, sin repetirse.
+- Van saliendo cosas al azar (unas geniales, otras desastrosas y alguna locura), sin repetirse: entre 150 y 200 por categoría.
 - Cada puja dura **10 s**; cada vez que alguien puja, el reloj vuelve a **5 s**.
 - **Pujar X** sube 1 la puja actual, o escribe una cantidad.
+- **🔥 All in**: pujas de golpe todo el dinero que te queda.
 - **Dejar de pujar**: si todos los demás se retiran, el que va ganando se lo lleva al instante (martillazo + pantalla rota + ¡VENDIDO!).
 - Si nadie puja, se adjudica gratis a alguien al azar entre los que aún tienen huecos.
 - Al final cada uno ve lo que ha ganado con sus precios y todos se puntúan de 0 a 10.
@@ -43,5 +44,5 @@ node test/simulate.js           # simula una partida completa contra el motor
 - `index.html`, `style.css`, `app.js` – la interfaz.
 - `engine.js` – reglas del juego (salas, pujas, relojes, votación).
 - `net.js` – conexión entre jugadores con PeerJS.
-- `categories.js` – las 9 categorías con 120 cosas cada una.
+- `categories.js` – las 11 categorías (casi 2.000 cosas en total).
 - `logo.svg` – el logo.

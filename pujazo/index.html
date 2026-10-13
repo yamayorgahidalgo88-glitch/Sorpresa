@@ -36,8 +36,9 @@
     <h2>¿Cómo se juega?</h2>
     <ol class="rules">
       <li>Salas de <b>2 a 5 personas</b>. Todos empezáis con <b>20 🪙</b>.</li>
-      <li>Van saliendo cosas al azar: <span class="tier terrible">muy malas</span> <span class="tier malo">malas</span> <span class="tier normal">normales</span> <span class="tier bueno">buenas</span> y <span class="tier brutal">muy buenas</span>.</li>
+      <li>Van saliendo cosas al azar: unas geniales, otras desastrosas y alguna completamente loca.</li>
       <li>Cada puja dura <b>10 s</b>. En cuanto alguien puja, el reloj vuelve a <b>5 s</b>.</li>
+      <li><b>🔥 All in</b>: pujas de golpe todo el dinero que te queda.</li>
       <li>Si todos los demás pulsan <b>Dejar de pujar</b>, se lo lleva el que más ha pujado al momento.</li>
       <li>Si nadie puja, se lo come gratis alguien <b>al azar</b> de los que aún tienen huecos.</li>
       <li>Cada jugador acaba con <b>4 cosas</b> exactas. Después os puntuáis del 0 al 10.</li>
@@ -109,7 +110,6 @@
   <div id="playersBar" class="players-bar"></div>
   <main class="stage">
     <div id="itemCard" class="item-card">
-      <div id="itemTier" class="tier"></div>
       <div class="item-img-wrap">
         <div id="itemEmoji" class="item-emoji"></div>
       </div>
@@ -128,7 +128,10 @@
       </div>
       </div>
       <div id="controls" class="controls">
-        <button id="quickBid" class="btn btn-gold btn-xl">PUJAR 1</button>
+        <div class="bid-row">
+          <button id="quickBid" class="btn btn-gold btn-xl">PUJAR 1</button>
+          <button id="allInBtn" class="btn btn-allin btn-xl">🔥 ALL IN</button>
+        </div>
         <div class="custom-bid">
           <input id="customBid" type="number" inputmode="numeric" min="1" max="20" placeholder="¿Cuánto?">
           <button id="customBidBtn" class="btn btn-secondary">Pujar</button>
@@ -145,13 +148,13 @@
 <section id="voting" class="screen">
   <div class="screen-head">
     <h2 id="votingTitle">¡A votar!</h2>
-    <p class="muted">Puntúa del 0 al 10 lo que ha montado cada uno.</p>
+    <p id="votingHint" class="muted">Puntúa del 0 al 10 lo que ha montado cada uno.</p>
   </div>
   <div id="voteCards" class="final-cards"></div>
   <div class="sticky-actions">
     <span id="voteProgress" class="muted"></span>
     <button id="sendVotes" class="btn btn-primary">Enviar votos</button>
-    <button id="forceResults" class="btn btn-ghost" hidden>Ver resultados ya</button>
+    <button id="forceResults" class="btn btn-ghost" hidden>Ver resultados</button>
   </div>
 </section>
 

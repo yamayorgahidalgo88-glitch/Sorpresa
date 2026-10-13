@@ -1,7 +1,6 @@
 :root{
   --bg:#1a0b3d; --bg2:#2a0f5c; --panel:rgba(255,255,255,.07); --panel-b:rgba(255,255,255,.14);
   --text:#fff; --muted:#c3b6ec; --gold:#ffc21a; --gold2:#ff9500; --pink:#ff3d6e; --cyan:#22e1ff; --green:#2ee59d; --red:#ff3b3b;
-  --t-terrible:#ff2d55; --t-malo:#ff8a3d; --t-normal:#9aa6c4; --t-bueno:#2ee59d; --t-brutal:#c86bff;
   --radius:20px;
 }
 *{box-sizing:border-box}
@@ -45,6 +44,11 @@ h3{font-size:18px}
 .btn-primary{background:linear-gradient(180deg,#ff5d8a,#e01e5a);box-shadow:0 5px 0 #8c0b33,0 10px 24px rgba(224,30,90,.4)}
 .btn-secondary{background:linear-gradient(180deg,#3fd5ff,#1388e0);box-shadow:0 5px 0 #0b4f8c,0 10px 24px rgba(19,136,224,.35)}
 .btn-gold{background:linear-gradient(180deg,#ffe06a,#ffaa00);color:#4a2300;box-shadow:0 5px 0 #a65b00,0 10px 26px rgba(255,170,0,.45)}
+.btn-allin{background:linear-gradient(180deg,#c86bff,#7a2bd9);box-shadow:0 5px 0 #3f0f7a,0 10px 24px rgba(122,43,217,.45)}
+.bid-row{display:flex;gap:10px}
+.bid-row #quickBid{flex:1.4;min-width:0}
+.bid-row #allInBtn{flex:1;min-width:0;white-space:nowrap;line-height:1.1}
+#allInBtn small{display:block;font-size:12px;opacity:.85;margin-top:2px}
 .btn-danger{background:linear-gradient(180deg,#ff5a4a,#d4140a);box-shadow:0 5px 0 #7d0a04,0 10px 24px rgba(212,20,10,.35)}
 .btn-ghost{background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 2px rgba(255,255,255,.18)}
 .btn:active:not(:disabled){box-shadow:0 2px 0 rgba(0,0,0,.4)}
@@ -78,14 +82,10 @@ input::placeholder{color:rgba(255,255,255,.35)}
 .lobby-players li{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.07);font-weight:800;font-size:17px;animation:pop .35s ease}
 .lobby-players li.empty{opacity:.35;font-weight:600;font-style:italic;animation:none}
 .avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:900;color:#1a0b3d;flex:none}
-.badge{margin-left:auto;font-size:12px;padding:3px 9px;border-radius:999px;background:var(--gold);color:#4a2300;font-weight:900}
+.badge{margin-left:auto;white-space:nowrap;flex:none;font-size:12px;padding:3px 9px;border-radius:999px;background:var(--gold);color:#4a2300;font-weight:900}
 @keyframes pop{0%{transform:scale(.8);opacity:0}70%{transform:scale(1.04)}100%{transform:scale(1);opacity:1}}
 
 /* Niveles */
-.tier{display:inline-block;padding:4px 12px;border-radius:999px;font-weight:900;font-size:13px;text-transform:uppercase;letter-spacing:1px;color:#fff}
-.tier.terrible{background:var(--t-terrible)} .tier.malo{background:var(--t-malo)} .tier.normal{background:var(--t-normal);color:#1a0b3d}
-.tier.bueno{background:var(--t-bueno);color:#06331f} .tier.brutal{background:linear-gradient(90deg,#c86bff,#ff3d9a,#ffc21a);background-size:200% 100%;animation:shine 2s linear infinite}
-@keyframes shine{to{background-position:200% 0}}
 
 /* Partida */
 #game{justify-content:flex-start;padding-top:16px}
@@ -112,7 +112,6 @@ input::placeholder{color:rgba(255,255,255,.35)}
 .item-card{background:var(--panel);border:1px solid var(--panel-b);border-radius:28px;padding:16px;text-align:center;position:relative}
 .item-card.enter{animation:cardIn .6s cubic-bezier(.2,1.4,.4,1)}
 @keyframes cardIn{from{transform:perspective(800px) rotateY(80deg) scale(.8);opacity:0}to{transform:none;opacity:1}}
-.item-card .tier{position:absolute;top:26px;left:26px;z-index:2;box-shadow:0 4px 12px rgba(0,0,0,.35)}
 .item-img-wrap{position:relative;aspect-ratio:1;border-radius:20px;overflow:hidden;background:radial-gradient(circle at 50% 45%,rgba(255,255,255,.22),rgba(0,0,0,.25) 70%)}
 .item-img-wrap::before{content:"";position:absolute;inset:-50%;background:conic-gradient(from 0deg,transparent 0 10deg,rgba(255,255,255,.07) 10deg 20deg);background-size:100% 100%;animation:spin 18s linear infinite}
 @keyframes spin{to{transform:rotate(1turn)}}
@@ -129,7 +128,8 @@ input::placeholder{color:rgba(255,255,255,.35)}
 .timer-ring{fill:none;stroke:var(--green);stroke-width:10;stroke-linecap:round;stroke-dasharray:326.7;transition:stroke .2s}
 .timer-text{position:absolute;inset:0;display:grid;place-items:center;font-family:Bungee,sans-serif;font-size:40px}
 .timer.urgent .timer-text{color:var(--red);animation:pulse .5s ease-in-out infinite}
-.timer.waiting .timer-text{font-size:16px;font-family:Nunito;font-weight:900;color:var(--muted)}
+.timer-text{line-height:1}
+.timer.waiting .timer-text{font-size:15px;text-align:center;padding:0 6px;font-family:Nunito;font-weight:900;color:var(--muted)}
 @keyframes pulse{50%{transform:scale(1.15)}}
 .current-bid{text-align:center}
 .bid-amount{font-family:Bungee,sans-serif;font-size:56px;line-height:1.1;color:var(--gold);text-shadow:0 4px 0 #7a3b00}
@@ -154,16 +154,13 @@ input::placeholder{color:rgba(255,255,255,.35)}
 .fcard .me-tag{font:900 12px Nunito;background:var(--cyan);color:#06263a;padding:3px 8px;border-radius:999px}
 .final-img{position:relative;aspect-ratio:1;border-radius:18px;overflow:hidden;background:radial-gradient(circle at 50% 40%,rgba(255,255,255,.16),rgba(0,0,0,.3) 75%)}
 .final-img .collage{position:absolute;inset:0 0 34px;display:grid;grid-template-columns:1fr 1fr;place-items:center;padding:10px}
-.final-img .ci{font-size:min(17vw,84px);width:84%;aspect-ratio:1;display:grid;place-items:center;border-radius:22px;background:rgba(255,255,255,.07);border:3px solid;animation:pop .5s ease both}
-.final-img .ci.terrible{border-color:var(--t-terrible)} .final-img .ci.malo{border-color:var(--t-malo)} .final-img .ci.normal{border-color:var(--t-normal)}
-.final-img .ci.bueno{border-color:var(--t-bueno)} .final-img .ci.brutal{border-color:#c86bff;box-shadow:0 0 22px rgba(200,107,255,.6)}
+.final-img .ci{font-size:min(17vw,84px);width:84%;aspect-ratio:1;display:grid;place-items:center;border-radius:22px;background:rgba(255,255,255,.07);border:3px solid rgba(255,255,255,.22);animation:pop .5s ease both}
 .final-img .final-cat{position:absolute;left:0;right:0;bottom:0;padding:8px;text-align:center;font-weight:900;font-size:14px;background:rgba(0,0,0,.35)}
 .final-list{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:6px}
 .final-list li{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.2);border-radius:12px;padding:8px 10px;font-weight:800}
 .final-list .e{font-size:22px}
 .final-list .n{flex:1}
 .final-list .p{color:var(--gold);white-space:nowrap}
-.final-list .tier{font-size:10px;padding:2px 7px}
 .final-left{margin-top:8px;font-weight:800;color:var(--muted);font-size:14px}
 .vote-box{margin-top:12px;display:flex;align-items:center;gap:10px;background:rgba(255,194,26,.1);border:2px solid rgba(255,194,26,.35);border-radius:16px;padding:10px 12px}
 .vote-box label{font-weight:900;flex:1}
@@ -211,11 +208,11 @@ input::placeholder{color:rgba(255,255,255,.35)}
 @keyframes shardFall{to{transform:translate(var(--dx),120vh) rotate(var(--rot));opacity:0}}
 .sold-overlay.fall .cracks .line{animation:fadeOut .4s forwards}
 @keyframes fadeOut{to{opacity:0}}
-.sold-stamp{position:relative;text-align:center;opacity:0;transform:scale(3) rotate(-14deg)}
+.sold-stamp{position:relative;text-align:center;max-width:min(92vw,900px);padding:0 6px;opacity:0;transform:scale(3) rotate(-14deg)}
 .sold-overlay.cracked .sold-stamp{animation:stamp .45s cubic-bezier(.2,1.5,.4,1) .08s forwards}
 @keyframes stamp{to{opacity:1;transform:scale(1) rotate(-8deg)}}
-.sold-word{font-family:Bungee,sans-serif;font-size:clamp(48px,13vw,120px);color:#ff2d3d;padding:6px 26px;border:8px solid #ff2d3d;border-radius:22px;background:rgba(255,255,255,.92);text-shadow:0 3px 0 #8a0010;box-shadow:0 20px 60px rgba(0,0,0,.5);letter-spacing:2px}
-.sold-word.free{color:#7a2bd9;border-color:#7a2bd9;text-shadow:0 3px 0 #3a0a7a}
+.sold-word{font-family:Bungee,sans-serif;font-size:clamp(34px,11vw,120px);color:#ff2d3d;padding:4px .3em;border:clamp(5px,1.6vw,8px) solid #ff2d3d;border-radius:22px;background:rgba(255,255,255,.92);text-shadow:0 3px 0 #8a0010;box-shadow:0 20px 60px rgba(0,0,0,.5);letter-spacing:2px}
+.sold-word.free{font-size:clamp(26px,8vw,96px);color:#7a2bd9;border-color:#7a2bd9;text-shadow:0 3px 0 #3a0a7a}
 .sold-who{margin-top:16px;font-weight:900;font-size:clamp(22px,4.5vw,34px);text-shadow:0 3px 12px rgba(0,0,0,.6)}
 .sold-who b{color:var(--gold)}
 .sold-what{font-weight:800;font-size:18px;color:#fff;opacity:.9;margin-top:4px;text-shadow:0 2px 10px rgba(0,0,0,.7)}
@@ -225,14 +222,13 @@ input::placeholder{color:rgba(255,255,255,.35)}
 body.shake .screen.active{animation:shake .45s cubic-bezier(.36,.07,.19,.97)}
 @keyframes shake{10%,90%{transform:translate(-2px,1px)}20%,80%{transform:translate(5px,-3px)}30%,50%,70%{transform:translate(-9px,4px)}40%,60%{transform:translate(9px,-4px)}}
 
-.toast{pointer-events:none;position:fixed;left:50%;bottom:28px;transform:translate(-50%,40px);opacity:0;z-index:60;background:#fff;color:#1a0b3d;font-weight:900;padding:12px 18px;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.4);transition:.25s;max-width:90vw;text-align:center}
+.toast{pointer-events:none;position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top));transform:translate(-50%,-40px);opacity:0;z-index:60;background:#fff;color:#1a0b3d;font-weight:900;padding:12px 18px;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.4);transition:.25s;max-width:90vw;text-align:center}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 .toast.err{background:var(--red);color:#fff}
 
 @media (max-width:820px){
   .stage{gap:12px}
   .item-card{padding:10px;border-radius:22px}
-  .item-card .tier{top:16px;left:16px}
   .item-img-wrap{width:min(100%,32vh);margin:0 auto}
   .item-emoji{font-size:min(20vh,140px)}
   .item-name{font-size:20px;margin:8px 4px 2px}
@@ -248,15 +244,22 @@ body.shake .screen.active{animation:shake .45s cubic-bezier(.36,.07,.19,.97)}
 }
 @media (max-width:600px){
   .screen{padding:16px 14px 110px}
+  .timer.waiting .timer-text{font-size:13px}
   .panel{padding:22px 16px;border-radius:24px}
   .icon-btn{width:36px;height:36px;top:8px;right:8px;font-size:15px}
   .brand{margin-bottom:22px}
   .logo{width:120px;height:120px}
   .rules{padding-left:20px}
-  .cat-grid{grid-template-columns:1fr 1fr;gap:8px}
-  .cat-opt{padding:10px;font-size:14px;gap:8px;border-radius:14px}
+  .cat-grid,.cat-grid.small{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .cat-opt{padding:10px 8px;font-size:14px;gap:7px;border-radius:14px;min-width:0;overflow-wrap:anywhere;hyphens:auto}
   .cat-opt .e{font-size:24px}
-  .lobby-players li{padding:10px 12px;font-size:16px}
+  .lobby-players li{padding:10px 12px;font-size:16px;gap:10px}
+  .lobby-players li > span:nth-child(2){min-width:0;overflow-wrap:anywhere}
+  .badge{font-size:11px;padding:3px 7px}
+  .lobby-cat{display:flex;width:100%;border-radius:18px;font-size:16px;text-align:left;padding:10px 12px;margin:12px 0}
+  .lobby-cat > span:nth-child(2){flex:1}
+  .lobby-cat > span:first-child{font-size:24px}
+  .screen:not(#game){padding-top:56px}
   #game{padding-top:10px}
   .game-top{padding-right:44px}
   .game-cat{font-size:13px;line-height:1.3}
@@ -272,6 +275,9 @@ body.shake .screen.active{animation:shake .45s cubic-bezier(.36,.07,.19,.97)}
   .pchip .slot{height:17px;font-size:10px;border-radius:4px}
   .pchip .state{font-size:9px;padding:1px 5px;top:-8px;right:50%;transform:translateX(50%);white-space:nowrap}
   .bid-feed{display:none}
+  .bid-row{gap:8px}
+  .bid-row .btn-xl{font-size:16px;padding:12px 8px}
+  .toast{font-size:14px;padding:10px 14px}
   .final-cards{grid-template-columns:1fr;gap:14px}
   .fcard{padding:12px;border-radius:20px}
   .fcard h3{font-size:20px;margin-bottom:8px}
@@ -303,6 +309,7 @@ body.shake .screen.active{animation:shake .45s cubic-bezier(.36,.07,.19,.97)}
   .item-name{font-size:18px;margin-top:6px}
   .timer{width:78px;height:78px}
   .timer-text{font-size:26px}
+  .timer.waiting .timer-text{font-size:11px}
   .bid-amount{font-size:36px}
   .stage{gap:8px}
   .bid-zone{gap:10px}
@@ -312,3 +319,9 @@ body.shake .screen.active{animation:shake .45s cubic-bezier(.36,.07,.19,.97)}
 }
 button,input{touch-action:manipulation}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+@media (max-width:340px){
+  .cat-opt{font-size:13px;padding:9px 6px}
+  .cat-opt .e{font-size:20px}
+  .panel{padding:20px 12px}
+}

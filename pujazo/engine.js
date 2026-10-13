@@ -88,16 +88,18 @@
 
         case 'bid': {
           if (this.phase !== 'auction') return fail('Ahora no se puede pujar');
-          const amount = Math.floor(Number(data.amount));
+          const allIn = !!data.allIn;
+          const amount = allIn ? player.coins : Math.floor(Number(data.amount));
           if (!a.eligible.includes(player.id)) return fail('Ya tienes tus 4 cosas');
           if (a.passed.includes(player.id)) return fail('Ya te has retirado de esta puja');
           if (a.leaderId === player.id) return fail('Ya vas ganando tú');
+          if (allIn && amount <= a.bid) return fail('No te llega para superar la puja');
           if (!Number.isFinite(amount) || amount <= a.bid) return fail(`Alguien se te adelantó: la puja ya está en ${a.bid}`);
           if (amount > player.coins) return fail(`Solo tienes ${player.coins} monedas`);
           a.bid = amount;
           a.leaderId = player.id;
           a.endsAt = Date.now() + BID_TIMER_MS;
-          a.history.push({ name: player.name, amount });
+          a.history.push({ name: player.name, amount, allIn });
           this.schedule(BID_TIMER_MS, () => this.closeAuction());
           this.changed();
           this.checkEarlyEnd();
@@ -281,7 +283,7 @@
         hostId: this.hostId,
         phase: this.phase,
         categoryChoice: this.categoryChoice,
-        category: cat ? { key: cat.key, name: cat.name, emoji: cat.emoji } : null,
+        category: cat ? { key: cat.key, name: cat.name, emoji: cat.emoji, battle: cat.battle } : null,
         categoryChoices: Object.values(CATALOG).map(c => ({ key: c.key, name: c.name, emoji: c.emoji })),
         itemIndex: this.itemIndex,
         totalItems: this.deck.length,

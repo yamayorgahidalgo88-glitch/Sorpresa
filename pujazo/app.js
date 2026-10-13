@@ -3,7 +3,6 @@
   const $ = s => document.querySelector(s);
   const $$ = s => [...document.querySelectorAll(s)];
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const TIER_LABEL = { terrible: 'Muy malo', malo: 'Malo', normal: 'Normal', bueno: 'Bueno', brutal: 'Muy bueno' };
   const AVATAR_COLORS = ['#ffc21a', '#22e1ff', '#ff6b9d', '#2ee59d', '#c86bff'];
   const SESSION_KEY = 'pujazo:session';
 
@@ -35,6 +34,8 @@
   }
   const now = () => Date.now() + clockOffset;
   const colorFor = id => AVATAR_COLORS[state ? Math.max(0, state.players.findIndex(p => p.id === id)) % 5 : 0];
+  // "El parque de atracciones ideal" -> "Parque de atracciones"
+  const shortName = n => n.replace(/^(El|La) /, '').replace(/ ideal$/, '').replace(/^./, m => m.toUpperCase());
   const avatar = p => `<span class="avatar" style="background:${colorFor(p.id)}">${esc(p.name[0].toUpperCase())}</span>`;
 
   /* ---------- Sonido (WebAudio) ---------- */
@@ -93,8 +94,7 @@
 
   function renderCatGrid(el, selected, onPick) {
     const opts = [{ key: 'random', name: 'Categoría aleatoria', emoji: '🎲' }, ...categories];
-    const short = n => n.replace(/^(El|La) /, '').replace(/ ideal$/, '').replace(/^./, m => m.toUpperCase());
-    el.innerHTML = opts.map(c => `<button class="cat-opt ${c.key === 'random' ? 'random' : ''} ${c.key === selected ? 'sel' : ''}" data-k="${c.key}"><span class="e">${c.emoji}</span>${esc(short(c.name))}</button>`).join('');
+    el.innerHTML = opts.map(c => `<button class="cat-opt ${c.key === 'random' ? 'random' : ''} ${c.key === selected ? 'sel' : ''}" data-k="${c.key}"><span class="e">${c.emoji}</span>${esc(shortName(c.name))}</button>`).join('');
     el.querySelectorAll('.cat-opt').forEach(b => b.onclick = () => {
       el.querySelectorAll('.cat-opt').forEach(x => x.classList.toggle('sel', x === b));
       onPick(b.dataset.k);
@@ -266,7 +266,7 @@
     const s = state, a = s.auction, mine = myPlayer();
     if (!s.category) return;
     // Durante la ruleta de categoría aleatoria no se desvela cuál ha salido.
-    $('#gameCat').textContent = s.phase === 'category' && s.categoryChoice === 'random' ? '🎲 Eligiendo categoría…' : `${s.category.emoji} ${s.category.name}`;
+    $('#gameCat').textContent = s.phase === 'category' && s.categoryChoice === 'random' ? '🎲 Eligiendo categoría…' : `${s.category.emoji} ${shortName(s.category.name)}`;
     $('#gameCounter').textContent = s.totalItems ? `Objeto ${Math.max(1, s.itemIndex)} / ${s.totalItems}` : '';
 
     // Barra de jugadores
@@ -299,8 +299,6 @@
       prev.histLen = 0;
       const card = $('#itemCard');
       card.classList.remove('enter'); void card.offsetWidth; card.classList.add('enter');
-      $('#itemTier').className = 'tier ' + a.item.tier;
-      $('#itemTier').textContent = TIER_LABEL[a.item.tier];
       $('#itemEmoji').textContent = a.item.emoji;
       $('#itemName').textContent = a.item.name;
       $('#customBid').value = '';
@@ -310,14 +308,16 @@
     // Puja actual
     const leader = s.players.find(p => p.id === a.leaderId);
     $('#bidAmount').innerHTML = a.bid ? `${a.bid} <span class="coin-s">🪙</span>` : '—';
-    $('#bidLeader').innerHTML = leader ? `🔨 ${esc(leader.name)}${leader.id === me ? ' (tú)' : ''}` : (s.phase === 'auction' ? 'Nadie ha pujado aún' : 'Preparando la puja…');
+    const lastBid = a.history[a.history.length - 1];
+    $('#bidLeader').innerHTML = leader ? `${lastBid && lastBid.allIn ? '🔥 ALL IN · ' : '🔨 '}${esc(leader.name)}${leader.id === me ? ' (tú)' : ''}` : (s.phase === 'auction' ? 'Nadie ha pujado aún' : 'Preparando la puja…');
     if (a.history.length && a.history.length !== prev.histLen) {
       const el = $('#bidAmount');
       el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
-      sfx.bid();
+      const last = a.history[a.history.length - 1];
+      if (last && last.allIn) { sfx.win(); toast(`🔥 ¡ALL IN de ${last.name}!`); } else sfx.bid();
     }
     prev.histLen = a.history.length;
-    $('#bidFeed').innerHTML = a.history.map(h => `<li>${esc(h.name)} puja <b>${h.amount} 🪙</b></li>`).join('');
+    $('#bidFeed').innerHTML = a.history.map(h => `<li>${esc(h.name)} ${h.allIn ? 'va <b>ALL IN 🔥</b> con' : 'puja'} <b>${h.amount} 🪙</b></li>`).join('');
 
     // Controles
     const eligible = mine && a.eligible.includes(me);
@@ -327,6 +327,8 @@
     const canBid = live && eligible && !passed && !iLead && mine.coins > a.bid;
     $('#quickBid').textContent = `PUJAR ${a.bid + 1} 🪙`;
     $('#quickBid').disabled = !canBid;
+    $('#allInBtn').disabled = !canBid;
+    $('#allInBtn').innerHTML = mine && canBid ? `🔥 ALL IN<small>${mine.coins} 🪙</small>` : '🔥 ALL IN';
     $('#customBid').disabled = !canBid;
     $('#customBidBtn').disabled = !canBid;
     $('#customBid').min = a.bid + 1;
@@ -390,6 +392,7 @@
     $('#customBid').value = '';
   };
   $('#customBid').onkeydown = e => { if (e.key === 'Enter') $('#customBidBtn').click(); };
+  $('#allInBtn').onclick = () => act('bid', { allIn: true }, r => { if (!r.ok) toast(r.error, true); });
   $('#passBtn').onclick = () => act('pass', null, r => { if (!r.ok) toast(r.error, true); });
 
   /* ---------- Animación de VENDIDO ---------- */
@@ -477,12 +480,12 @@
   /* ---------- Tarjetas finales ---------- */
   function finalCard(p, extra = '') {
     const spent = p.items.reduce((t, i) => t + i.price, 0);
-    const list = p.items.map(i => `<li><span class="e">${i.emoji}</span><span class="n">${esc(i.name)} <span class="tier ${i.tier}">${TIER_LABEL[i.tier]}</span></span><span class="p">${i.price} 🪙</span></li>`).join('');
+    const list = p.items.map(i => `<li><span class="e">${i.emoji}</span><span class="n">${esc(i.name)}</span><span class="p">${i.price} 🪙</span></li>`).join('');
     return `<article class="fcard" data-id="${p.id}">
       <h3>${avatar(p)}${esc(p.name)}${p.id === me ? '<span class="me-tag">TÚ</span>' : ''}</h3>
-      <div class="final-img tier-mix">
-        <div class="collage">${p.items.map((i, k) => `<span class="ci ${i.tier}" style="animation-delay:${k * .12}s">${i.emoji}</span>`).join('')}</div>
-        <div class="final-cat">${state.category.emoji} ${esc(state.category.name.replace(/^(El|La) /, ''))} de ${esc(p.name)}</div>
+      <div class="final-img">
+        <div class="collage">${p.items.map((i, k) => `<span class="ci" style="animation-delay:${k * .12}s">${i.emoji}</span>`).join('')}</div>
+        <div class="final-cat">${state.category.emoji} ${state.category.battle ? 'Equipo' : esc(state.category.name.replace(/^(El|La) /, ''))} de ${esc(p.name)}</div>
       </div>
       <ul class="final-list">${list}</ul>
       <div class="final-left">Gastado: ${spent} 🪙 · Le sobran: ${p.coins} 🪙</div>
@@ -496,6 +499,9 @@
     if (voteBuiltFor !== key) {
       voteBuiltFor = key;
       $('#votingTitle').textContent = `¡A votar! ${s.category.emoji}`;
+      $('#votingHint').textContent = s.category.battle
+        ? '¿Quién ganaría la batalla? Puntúa del 0 al 10 a cada equipo.'
+        : 'Puntúa del 0 al 10 lo que ha montado cada uno.';
       const ordered = [...s.players.filter(p => p.id !== me), ...s.players.filter(p => p.id === me)];
       $('#voteCards').innerHTML = ordered.map(p => finalCard(p, p.id === me
         ? '<div class="vote-box"><label>Esta es tu creación 😎</label></div>'
