@@ -318,6 +318,47 @@ body.shake .screen.active{animation:shake .45s cubic-bezier(.36,.07,.19,.97)}
   .custom-bid input{padding:10px 12px}
 }
 button,input{touch-action:manipulation}
+/* Animación del ganador */
+.win-overlay{z-index:42;background:radial-gradient(circle at 50% 40%,#2a0f5c 0,#0a0320 70%);overflow:hidden;align-content:center;transition:opacity .45s}
+.win-overlay.closing{opacity:0}
+.win-rays{position:absolute;inset:-60%;background:conic-gradient(from 0deg,rgba(255,194,26,.0) 0 8deg,rgba(255,194,26,.13) 8deg 16deg);background-size:100% 100%;opacity:0;transition:opacity .6s;animation:spin 14s linear infinite}
+.win-overlay.revealed .win-rays{opacity:1}
+.win-stage{position:relative;width:min(560px,92vw);text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px}
+.win-title{font-family:Bungee,sans-serif;font-size:clamp(22px,6vw,38px);margin:0;color:#fff;text-shadow:0 4px 20px rgba(255,61,110,.6);min-height:1.3em}
+.win-title.pop{animation:titlePop .5s cubic-bezier(.2,1.5,.4,1)}
+@keyframes titlePop{from{opacity:0;transform:scale(.6) translateY(10px)}to{opacity:1;transform:none}}
+.win-list{list-style:none;margin:0;padding:0;width:100%;display:grid;gap:6px}
+.win-row{display:flex;align-items:center;gap:10px;padding:8px 14px;border-radius:14px;background:rgba(255,255,255,.08);font-weight:900;font-size:16px;animation:rowIn .55s cubic-bezier(.2,1.4,.4,1)}
+.win-row .pos{font-family:Bungee;min-width:2.2em;color:var(--muted)}
+.win-row .nm{flex:1;text-align:left;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.win-row .sc{font-family:Bungee;color:var(--gold)}
+.win-overlay .you{color:var(--cyan);font-size:.8em}
+@keyframes rowIn{from{opacity:0;transform:perspective(600px) rotateX(-80deg) translateY(-14px)}to{opacity:1;transform:none}}
+.win-final{display:flex;gap:min(5vw,26px);justify-content:center;width:100%;min-height:0}
+.fin{width:min(40vw,190px);display:flex;flex-direction:column;align-items:center;gap:8px;transition:transform .35s,opacity .5s,filter .5s;animation:rowIn .5s ease}
+.fin-inner{position:relative;width:100%;aspect-ratio:3/4;transform-style:preserve-3d;transition:transform .8s cubic-bezier(.3,1.4,.5,1)}
+.fin-back,.fin-front{position:absolute;inset:0;border-radius:20px;display:grid;place-items:center;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.fin-back{background:linear-gradient(150deg,#3b1a85,#1a0b3d);border:3px solid rgba(255,255,255,.25);font-family:Bungee;font-size:min(20vw,96px);color:rgba(255,255,255,.35)}
+.fin-front{background:linear-gradient(160deg,#ffe06a,#ff9500);border:3px solid #fff3c4;font-size:min(22vw,110px);transform:rotateY(180deg);box-shadow:0 0 60px rgba(255,194,26,.8)}
+.fin-name{font-weight:900;font-size:clamp(15px,4.2vw,20px);max-width:100%;overflow-wrap:anywhere;line-height:1.2}
+.fin .sc2{display:block;font-family:Bungee;font-size:14px;color:var(--muted);margin-top:4px}
+.fin.lit{transform:scale(1.07)}
+.fin.lit .fin-back{border-color:var(--gold);box-shadow:0 0 0 4px rgba(255,194,26,.35),0 0 50px rgba(255,194,26,.7);color:var(--gold)}
+.fin.loser{opacity:.45;filter:grayscale(.8);transform:scale(.88)}
+.fin.winner{transform:scale(1.12);z-index:2}
+.fin.winner .fin-inner{transform:rotateY(180deg)}
+.fin.winner .fin-front{animation:crownDrop .9s cubic-bezier(.2,1.6,.4,1)}
+@keyframes crownDrop{0%{font-size:0}60%{font-size:min(26vw,130px)}100%{font-size:min(22vw,110px)}}
+.win-banner{min-height:0}
+.wb-name{font-family:Bungee,sans-serif;font-size:clamp(30px,10vw,64px);line-height:1.05;background:linear-gradient(180deg,#fff6c9,#ffc21a 50%,#ff7a00);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 4px 0 #7a1f00);animation:titlePop .6s cubic-bezier(.2,1.5,.4,1);overflow-wrap:anywhere}
+.wb-score{font-family:Bungee;font-size:clamp(28px,8vw,48px);color:#fff;animation:titlePop .6s .2s both}
+.wb-score small{font-size:.5em;color:var(--muted)}
+.confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.confetti i{position:absolute;top:-20px;border-radius:2px;animation:confFall linear forwards}
+@keyframes confFall{to{transform:translate(var(--drift),110vh) rotate(var(--rot))}}
+.win-skip{position:absolute;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));padding:10px 16px;font-size:14px;z-index:3}
+@media (max-width:600px){.win-row{font-size:15px;padding:7px 12px}.win-stage{gap:12px}}
+@media (max-height:700px){.fin{width:min(34vw,150px)}.win-row{padding:5px 12px}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 
 @media (max-width:340px){

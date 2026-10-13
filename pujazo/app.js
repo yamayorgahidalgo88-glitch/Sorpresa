@@ -84,6 +84,9 @@
     reveal: () => [523, 659, 784].forEach((f, i) => setTimeout(() => tone(f, .18, 'triangle', .12), i * 90)),
     slot: () => tone(400 + Math.random() * 400, .05, 'square', .04),
     win: () => [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => tone(f, .3, 'triangle', .15), i * 120)),
+    drum: v => noise(.06, .25 + v * .5, 'lowpass', 400 + v * 300),
+    cymbal: () => { noise(1.6, .35, 'highpass', 5000); tone(80, .5, 'sine', .5, 40); },
+    fanfare: () => [[523, 0], [523, 150], [523, 300], [659, 450], [784, 750], [659, 950], [1046, 1150]].forEach(([f, t]) => setTimeout(() => { tone(f, .35, 'sawtooth', .07); tone(f / 2, .35, 'triangle', .1); }, t)),
   };
 
   /* ---------- Navegación inicial ---------- */
@@ -174,6 +177,7 @@
     localStorage.removeItem(SESSION_KEY);
     $('#catOverlay').hidden = true;
     $('#soldOverlay').hidden = true;
+    winDone = null; finishWinnerReveal();
     state = null; me = null;
     prev = { phase: null, histLen: 0, itemId: null, soldKey: null };
     $('#joinStep1').hidden = false; $('#joinStep2').hidden = true; $('#joinCode').value = '';
@@ -196,7 +200,7 @@
     if (phase === 'voting') { renderVoting(); show('voting'); }
     if (phase === 'results') { renderResults(); show('results'); }
     if (phase !== 'voting') { voteBuiltFor = null; sentVotes = false; }
-    if (phase !== 'results') resultsBuiltFor = null;
+    if (phase !== 'results') { resultsBuiltFor = null; if (!$('#winOverlay').hidden) { winDone = null; finishWinnerReveal(); } }
     prev.phase = phase;
   }
 
@@ -538,18 +542,134 @@
     if (resultsBuiltFor !== key) {
       resultsBuiltFor = key;
       const medals = ['🥇', '🥈', '🥉', '🏅', '🏅'];
-      $('#podium').innerHTML = s.results.map((r, i) => `<li style="animation-delay:${(s.results.length - i) * .35}s"><span class="medal">${medals[i]}</span>${esc(r.name)}${r.id === me ? ' <span class="muted small">(tú)</span>' : ''}<span class="sc">${r.avg.toFixed(1)}/10</span></li>`).join('');
+      const podiumHtml = s.results.map((r, i) => `<li style="animation-delay:${(s.results.length - i) * .35}s"><span class="medal">${medals[i]}</span>${esc(r.name)}${r.id === me ? ' <span class="muted small">(tú)</span>' : ''}<span class="sc">${r.avg.toFixed(1)}/10</span></li>`).join('');
+      $('#podium').innerHTML = '';
       $('#resultCards').innerHTML = s.results.map(r => {
         const p = s.players.find(x => x.id === r.id);
         if (!p) return '';
         const detail = r.votes.length ? r.votes.map(v => `${esc(v.from)}: ${v.score}`).join(' · ') : 'Sin votos';
         return finalCard(p, `<div class="vote-box"><label>Nota media</label><span class="score-big">${r.avg.toFixed(1)}</span></div><div class="votes-detail">${detail}</div>`);
       }).join('');
-      if (s.results[0]?.id === me) setTimeout(sfx.win, 800);
+      playWinnerReveal(s.results, s.category, () => { $('#podium').innerHTML = podiumHtml; });
     }
     const isHost = s.hostId === me;
     $('#againBtn').hidden = !isHost;
     $('#againWait').textContent = isHost ? '' : 'El anfitrión puede empezar otra partida';
   }
   $('#againBtn').onclick = () => act('again');
+
+  /* ---------- Animación del ganador ---------- */
+  let winTimers = [];
+  let winDone = null;
+  function finishWinnerReveal() {
+    winTimers.forEach(clearTimeout);
+    winTimers = [];
+    const ov = $('#winOverlay');
+    if (!ov.hidden) {
+      ov.classList.add('closing');
+      setTimeout(() => { ov.hidden = true; ov.className = 'overlay win-overlay'; $('#confetti').innerHTML = ''; }, 450);
+    }
+    if (winDone) { const cb = winDone; winDone = null; cb(); }
+  }
+  $('#winSkip').onclick = finishWinnerReveal;
+
+  function playWinnerReveal(results, cat, done) {
+    winTimers.forEach(clearTimeout);
+    winTimers = [];
+    winDone = done;
+    const at = (ms, fn) => winTimers.push(setTimeout(fn, ms));
+    const ov = $('#winOverlay'), title = $('#winTitle'), list = $('#winList'), fin = $('#winFinal'), banner = $('#winBanner');
+    ov.className = 'overlay win-overlay';
+    ov.hidden = false;
+    list.innerHTML = ''; fin.innerHTML = ''; banner.innerHTML = ''; $('#confetti').innerHTML = '';
+    const you = id => id === me ? ' <span class="you">(tú)</span>' : '';
+    const typeTitle = text => { title.classList.remove('pop'); void title.offsetWidth; title.textContent = text; title.classList.add('pop'); };
+
+    // Redoble de tambor que acelera
+    let t = 0;
+    const roll = (from, to, startGap, endGap) => {
+      for (let ms = from, gap = startGap; ms < to; ms += gap, gap = Math.max(endGap, gap * .93)) {
+        const v = (ms - from) / (to - from);
+        at(ms, () => sfx.drum(v));
+      }
+    };
+
+    typeTitle('Las notas están listas…');
+    roll(0, 1400, 140, 90);
+    t = 1600;
+    at(t, () => typeTitle(cat && cat.battle ? '¿Quién ha ganado la batalla?' : '¿Quién ha montado lo mejor?'));
+    t += 900;
+
+    // Puestos de abajo arriba (menos los dos finalistas)
+    const medals = ['🥇', '🥈', '🥉', '4º', '5º'];
+    for (let i = results.length - 1; i >= 2; i--) {
+      const r = results[i];
+      at(t, () => {
+        list.insertAdjacentHTML('afterbegin', `<li class="win-row"><span class="pos">${medals[i]}</span><span class="nm">${esc(r.name)}${you(r.id)}</span><span class="sc">${r.avg.toFixed(1)}</span></li>`);
+        sfx.reveal();
+      });
+      t += 1100;
+    }
+
+    // Duelo final entre los dos primeros
+    const [first, second] = results;
+    const finalists = [first, second].sort(() => Math.random() - .5);
+    at(t, () => {
+      typeTitle('Y el ganador es…');
+      fin.innerHTML = finalists.map(r => `<div class="fin" data-id="${r.id}"><div class="fin-inner"><div class="fin-back">?</div><div class="fin-front">👑</div></div><div class="fin-name">${esc(r.name)}${you(r.id)}</div></div>`).join('');
+    });
+    t += 600;
+    // El foco salta entre los dos finalistas, cada vez más despacio, y se para en el ganador
+    const winIdx = finalists.indexOf(first);
+    const gaps = [];
+    for (let g = 90; g < 650; g *= 1.17) gaps.push(g);
+    let idx = (winIdx + gaps.length) % 2 === 0 ? 1 : 0; // para que el último salto caiga en el ganador
+    roll(t, t + gaps.reduce((a, b) => a + b, 0), 80, 45);
+    for (const g of gaps) {
+      const target = idx;
+      at(t, () => {
+        $$('#winFinal .fin').forEach((el, k) => el.classList.toggle('lit', k === target));
+        sfx.tick();
+      });
+      t += g;
+      idx = 1 - idx;
+    }
+    // ¡Revelación!
+    at(t, () => {
+      const cards = $$('#winFinal .fin');
+      cards.forEach((el, k) => { el.classList.toggle('winner', k === winIdx); el.classList.toggle('loser', k !== winIdx); el.classList.remove('lit'); });
+      cards[1 - winIdx].querySelector('.fin-name').insertAdjacentHTML('beforeend', `<span class="sc2">🥈 ${second.avg.toFixed(1)}</span>`);
+      ov.classList.add('revealed');
+      typeTitle(first.id === me ? '¡HAS GANADO!' : '¡Tenemos ganador!');
+      sfx.cymbal(); sfx.fanfare();
+      const f = $('#flash'); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go');
+      if (navigator.vibrate) navigator.vibrate([80, 40, 80, 40, 200]);
+      banner.innerHTML = `<div class="wb-name">${esc(first.name)}</div><div class="wb-score"><span id="winScore">0.0</span><small>/10</small></div>`;
+      launchConfetti();
+      // La nota sube contando
+      const start = performance.now(), target = first.avg;
+      const count = now2 => {
+        const k = Math.min(1, (now2 - start) / 1400);
+        const el = $('#winScore');
+        if (!el) return;
+        el.textContent = (target * (1 - Math.pow(1 - k, 3))).toFixed(1);
+        if (k < 1) requestAnimationFrame(count);
+      };
+      requestAnimationFrame(count);
+    });
+    t += 5200;
+    at(t, finishWinnerReveal);
+  }
+
+  function launchConfetti() {
+    const box = $('#confetti');
+    const colors = ['#ffc21a', '#ff3d6e', '#22e1ff', '#2ee59d', '#c86bff', '#ffffff'];
+    let html = '';
+    for (let i = 0; i < 140; i++) {
+      const left = Math.random() * 100, delay = Math.random() * 1.2, dur = 2.4 + Math.random() * 2;
+      const size = 6 + Math.random() * 8, rot = Math.random() * 720 - 360, drift = Math.random() * 120 - 60;
+      html += `<i style="left:${left}%;width:${size}px;height:${size * .45}px;background:${colors[i % colors.length]};animation-delay:${delay}s;animation-duration:${dur}s;--rot:${rot}deg;--drift:${drift}px"></i>`;
+    }
+    box.innerHTML = html;
+  }
 })();
