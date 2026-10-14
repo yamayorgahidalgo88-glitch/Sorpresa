@@ -244,3 +244,119 @@ test('búsqueda en el catálogo local tolera erratas', async () => {
   assert.match(searchCatalog('kimetsu no yaiba')[0].title, /Kimetsu/);
   assert.match(searchCatalog('haikyu')[0].title, /Haikyu/);
 });
+
+// ───────────── Quiz tipo Kahoot ─────────────
+// AniList simulado: así los tests no dependen de internet
+const realFetch = globalThis.fetch;
+globalThis.fetch = async (url, opts) => {
+  if (!String(url).includes('anilist.co')) return realFetch(url, opts);
+  const query = JSON.parse(opts.body).query;
+  const aliases = [...query.matchAll(/\b(a\d+): Page/g)].map((m) => m[1]);
+  const data = Object.fromEntries(aliases.map((a, k) => [a, { media: [{
+    title: { romaji: `Romaji ${k}`, english: null }, format: 'TV', startDate: { year: 2015 + k }, episodes: 24,
+    bannerImage: `https://s4.anilist.co/banner/${k}.jpg`, coverImage: { large: null },
+    studios: { nodes: [{ name: 'MAPPA' }] },
+    characters: { edges: Array.from({ length: 6 }, (_, c) => ({ role: c < 3 ? 'MAIN' : 'SUPPORTING',
+      node: { name: { full: `Personaje ${k}-${c}` }, image: { large: `https://s4.anilist.co/char/${k}-${c}.jpg` } } })) },
+  }] }]));
+  return new Response(JSON.stringify({ data }), { headers: { 'content-type': 'application/json' } });
+};
+
+test('quiz: sin animes vistos no se puede jugar', async () => {
+  const r = await otro('/trivia');
+  assert.equal(r.data.seen, 0);
+  assert.equal((await otro('/trivia', { method: 'POST' })).status, 400);
+});
+
+test('quiz: 10 preguntas de tus vistos, respuestas en orden y ranking', async () => {
+  await yhm('/lists', { body: { name: 'Para el quiz', template: 'my' } });
+  const info = (await yhm('/trivia')).data;
+  assert.ok(info.seen >= 3, 'cuenta los animes con tu check');
+  assert.equal(info.ai, false);
+  assert.deepEqual(info.best, []);
+  const g = await yhm('/trivia', { method: 'POST' });
+  assert.equal(g.status, 201);
+  assert.equal(g.data.questions.length, 10);
+  for (const q of g.data.questions) {
+    assert.equal(q.options.length, 4);
+    assert.equal('correct' in q, false, 'el móvil no recibe la respuesta antes de contestar');
+  }
+  const id = g.data.id;
+  assert.equal((await yhm(`/trivia/${id}/answer`, { body: { q: 3, choice: 0, ms: 1000 } })).status, 409, 'hay que ir en orden');
+  assert.equal((await marta(`/trivia/${id}/answer`, { body: { q: 0, choice: 0, ms: 1000 } })).status, 404, 'cada uno juega la suya');
+  let last, rights = 0;
+  for (let i = 0; i < 10; i++) {
+    last = (await yhm(`/trivia/${id}/answer`, { body: { q: i, choice: i === 9 ? null : 0, ms: 1500 } })).data;
+    assert.ok(last.correct >= 0 && last.correct < 4);
+    if (last.right) rights++;
+    assert.equal(last.done, i === 9);
+  }
+  assert.equal(last.right, false, 'sin responder es fallo');
+  assert.equal(last.score, rights);
+  assert.equal(last.total_ms, 9 * 1500 + 20000);
+  assert.equal(last.rank, 1);
+  assert.equal(last.played, 1);
+  assert.equal((await yhm(`/trivia/${id}/answer`, { body: { q: 9, choice: 0 } })).status, 409);
+  const after = (await yhm('/trivia')).data;
+  assert.equal(after.best.length, 1);
+  assert.equal(after.best[0].score, rights);
+  assert.ok(after.best[0].finished_at > 0);
+  // Una partida a medias no cuenta
+  await yhm('/trivia', { method: 'POST' });
+  assert.equal((await yhm('/trivia')).data.played, 1);
+});
+
+test('quiz: preguntas de la IA (Claude simulado) con foto del personaje', async () => {
+  const http = await import('node:http');
+  let sent = null;
+  const fake = http.createServer((req, res) => {
+    let body = '';
+    req.on('data', (c) => (body += c));
+    req.on('end', () => {
+      sent = JSON.parse(body);
+      const blocks = [...sent.messages[0].content.matchAll(/^### (.+)$[\s\S]*?Personajes \(para el campo image\): ([^,\n]+)/gm)]
+        .map((m) => ({ title: m[1], who: m[2] }));
+      const questions = Array.from({ length: 10 }, (_, i) => {
+        const b = blocks[i % blocks.length];
+        return { anime: b.title, question: `¿Qué hace ${b.who} en la escena ${i}?`,
+          options: ['Corre', 'Salta', 'Llora', 'Grita'], correct: 2, image: b.who, fact: 'Porque sí.' };
+      });
+      res.setHeader('content-type', 'application/json');
+      res.end(JSON.stringify({ id: 'msg_1', type: 'message', role: 'assistant', model: sent.model, stop_reason: 'end_turn',
+        content: [{ type: 'text', text: JSON.stringify({ questions }) }], usage: { input_tokens: 1, output_tokens: 1 } }));
+    });
+  }).listen(0);
+  process.env.ANTHROPIC_API_KEY = 'test';
+  process.env.ANTHROPIC_BASE_URL = `http://127.0.0.1:${fake.address().port}`;
+  try {
+    assert.equal((await yhm('/trivia')).data.ai, true);
+    const g = await yhm('/trivia', { method: 'POST' });
+    assert.equal(g.data.source, 'ai');
+    assert.equal(sent.model, 'claude-opus-5-5');
+    assert.equal(sent.output_config.format.type, 'json_schema');
+    assert.match(sent.system, /español de España/);
+    const q = g.data.questions[0];
+    assert.match(q.image, /anilist\.co\/char\//, 'foto del personaje que sale en la pregunta');
+    const r = (await yhm(`/trivia/${g.data.id}/answer`, { body: { q: 0, choice: 0, ms: 500 } })).data;
+    assert.equal(q.options[r.correct], 'Llora', 'las opciones se mezclan pero la buena se conserva');
+    assert.equal(r.fact, 'Porque sí.');
+  } finally {
+    delete process.env.ANTHROPIC_API_KEY;
+    delete process.env.ANTHROPIC_BASE_URL;
+    fake.close();
+  }
+});
+
+test('quiz: si la IA falla, se juega igual con preguntas de AniList', async () => {
+  process.env.ANTHROPIC_API_KEY = 'test';
+  process.env.ANTHROPIC_BASE_URL = 'http://127.0.0.1:9'; // nadie escucha
+  try {
+    const g = await yhm('/trivia', { method: 'POST' });
+    assert.equal(g.status, 201);
+    assert.equal(g.data.source, 'local');
+    assert.equal(g.data.questions.length, 10);
+  } finally {
+    delete process.env.ANTHROPIC_API_KEY;
+    delete process.env.ANTHROPIC_BASE_URL;
+  }
+});

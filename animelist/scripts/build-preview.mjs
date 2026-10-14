@@ -56,6 +56,7 @@ const CATALOG = ${JSON.stringify(catalog)};
 const POSTERS = ${JSON.stringify(POSTERS)};
 const TEMPLATE = ${JSON.stringify({ people: TEMPLATE_PEOPLE, rows: TEMPLATE_ROWS })};
 const AVATARS = ${JSON.stringify(AVATARS)};
+${read('server/trivia-shared.js').replace(/^export /gm, '')}
 ${read('preview/mock-api.js')}
 </script>
 <script type="module">${app}</script>

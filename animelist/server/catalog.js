@@ -36,7 +36,8 @@ loadCatalog();
 
 export const catalogMeta = () => meta;
 export const topPosters = (n) => items.filter((x) => x.it.poster).slice(0, n).map((x) => x.it.poster);
-export const getById = (id) => items.find((x) => x.it.id === id)?.it || null;
+export const topTitles = (n) => items.slice(0, n).map((x) => x.it.title);
+export const getById =(id) => items.find((x) => x.it.id === id)?.it || null;
 
 /** Búsqueda tolerante a erratas ("tokyo goul", "black cover", "kimetsu"). */
 export function searchCatalog(query, limit = 10) {

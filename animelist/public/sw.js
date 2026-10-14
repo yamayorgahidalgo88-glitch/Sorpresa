@@ -1,5 +1,5 @@
 // Service worker mínimo: permite instalar la app y abre la interfaz aunque la red vaya lenta.
-const CACHE = 'animelist-v3';
+const CACHE = 'animelist-v4';
 const SHELL = ['/', '/app.css', '/app.js', '/manifest.webmanifest', '/img/logo-256.png', '/img/icon-192.png'];
 
 self.addEventListener('install', (e) => {

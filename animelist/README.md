@@ -13,6 +13,10 @@ App web (instalable en el móvil) para llevar nuestras listas de anime: quién l
 - **Amigos**: buscador por nombre de usuario, solicitudes con ✓ verde / ✗ roja, lista de amigos.
 - **Compartir**: el creador de una tabla la comparte con un amigo y elige qué columna será la suya (p. ej. «Marta») o una nueva. Al amigo le llega en **Amigos → Solicitudes** «te ha compartido una lista» con ✓ / ✗; al aceptar, la tabla aparece en sus tablas.
 - **Perfil** con tu color, tu personaje y cerrar sesión.
+- **Quiz** (al estilo Kahoot): 10 preguntas sobre los animes que tienes marcados como **vistos** en tus tablas, 20 segundos por pregunta y 4 respuestas de colores. Al acabar ves tu nota, un repaso de cada pregunta y el ranking de tus mejores partidas con el día y la hora. Las imágenes (personajes y escenas de la serie) salen de AniList.
+
+### Preguntas con IA en el quiz
+Si el proyecto tiene la variable `ANTHROPIC_API_KEY` (clave de la API de Claude, en console.anthropic.com), las preguntas las escribe la IA: situaciones y momentos conocidos de cada anime, sin rebuscar y evitando los finales. Sin la clave (o si la IA tarda o falla) el quiz funciona igual con preguntas de personajes, estudio y año sacadas de AniList. Cada partida con IA cuesta unos céntimos. Opcional: `TRIVIA_MODEL` y `TRIVIA_EFFORT` para cambiar el modelo o el esfuerzo.
 
 ## Catálogo de anime (España)
 `data/catalog.json` contiene **todo el anime (series y películas) disponible por suscripción en España** en Crunchyroll, Netflix, HBO Max, Prime Video y Disney+ (1663 títulos al generarlo), con idiomas de audio/subtítulos, sacado de JustWatch (país ES) y con títulos alternativos de AniList.

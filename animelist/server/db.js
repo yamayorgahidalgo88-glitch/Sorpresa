@@ -111,6 +111,19 @@ const SCHEMA = [
     picks TEXT NOT NULL,
     PRIMARY KEY (list_id, user_id)
   )`,
+  // Quiz tipo Kahoot: cada partida con sus 10 preguntas (con la respuesta correcta, que el móvil no ve hasta contestar)
+  `CREATE TABLE IF NOT EXISTS trivia_games (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at INTEGER NOT NULL,
+    source TEXT NOT NULL,
+    questions TEXT NOT NULL,
+    answers TEXT NOT NULL DEFAULT '[]',
+    score INTEGER,
+    total_ms INTEGER,
+    finished_at INTEGER
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_trivia_user ON trivia_games(user_id, finished_at)`,
   `CREATE INDEX IF NOT EXISTS idx_entries_list ON entries(list_id, position)`,
   `CREATE INDEX IF NOT EXISTS idx_members_user ON list_members(user_id)`,
 ];

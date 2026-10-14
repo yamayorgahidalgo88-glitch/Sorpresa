@@ -6,7 +6,9 @@ import {
   hashPassword, verifyPassword, createSession, setSessionCookie,
   loadUser, requireUser, tooManyAttempts, clearAttempts,
 } from './auth.js';
-import { searchCatalog, getById, catalogMeta, topPosters, norm } from './catalog.js';
+import { searchCatalog, getById, catalogMeta, topPosters, topTitles, norm } from './catalog.js';
+import { TRIVIA_COUNT, TRIVIA_SECONDS, dedupeSeen, buildTrivia, publicQuestion, sortBest } from './trivia-shared.js';
+import { aiTrivia, aiEnabled } from './trivia-ai.js';
 import { liveSearch, liveDetail, JW_PACKAGES } from './justwatch.js';
 import { TEMPLATE_PEOPLE, TEMPLATE_ROWS } from './template-my.js';
 import { COLORS, QUIZ_RESULTS, FALLBACK_COLOR } from './profile.js';
@@ -591,6 +593,73 @@ api.delete('/friends/:userId', requireUser, h(async (req, res) => {
   await run('DELETE FROM list_invites WHERE (from_user = ? AND to_user = ?) OR (from_user = ? AND to_user = ?)',
     [req.user.id, other, other, req.user.id]);
   res.json({ ok: true });
+}));
+
+// ───────────── Quiz (tipo Kahoot) con los animes que has visto ─────────────
+// Animes con tu check de «visto» en cualquiera de tus tablas
+async function seenAnimes(userId) {
+  const rows = await all(`SELECT e.jw_id, e.title, e.poster, e.kind FROM entries e
+    JOIN entry_marks k ON k.entry_id = e.id AND k.seen = 1
+    JOIN list_people p ON p.id = k.person_id AND p.user_id = ?
+    JOIN list_members m ON m.list_id = e.list_id AND m.user_id = p.user_id
+    ORDER BY e.id`, [userId]);
+  return dedupeSeen(rows).map((r) => {
+    const cat = r.jw_id ? getById(r.jw_id) : null;
+    return { title: r.title, jw_id: r.jw_id, poster: r.poster, kind: r.kind, year: cat?.year || null, search: cat?.aka?.[0] || cat?.original || r.title };
+  });
+}
+
+// Las partidas acabadas, de mejor a peor
+async function bestGames(userId) {
+  const games = await all('SELECT id, score, total_ms, finished_at, source FROM trivia_games WHERE user_id = ? AND finished_at IS NOT NULL', [userId]);
+  return sortBest(games);
+}
+
+api.get('/trivia', requireUser, h(async (req, res) => {
+  const [seen, best] = await Promise.all([seenAnimes(req.user.id), bestGames(req.user.id)]);
+  res.set('Cache-Control', 'no-store');
+  res.json({ seen: seen.length, ai: aiEnabled(), count: TRIVIA_COUNT, seconds: TRIVIA_SECONDS, played: best.length, best: best.slice(0, 10) });
+}));
+
+api.post('/trivia', requireUser, h(async (req, res) => {
+  const seen = await seenAnimes(req.user.id);
+  if (!seen.length) fail(400, 'Marca como visto algún anime en tus tablas para poder jugar');
+  const { questions, source } = await buildTrivia(seen, { ai: aiTrivia, extraTitles: topTitles(60) });
+  if (questions.length < TRIVIA_COUNT) fail(503, 'No se han podido preparar las preguntas. Inténtalo otra vez en un momento.');
+  const r = await run('INSERT INTO trivia_games (user_id, created_at, source, questions) VALUES (?, ?, ?, ?)',
+    [req.user.id, Date.now(), source, JSON.stringify(questions)]);
+  res.status(201).json({ id: Number(r.lastInsertRowid), source, seconds: TRIVIA_SECONDS, questions: questions.map(publicQuestion) });
+}));
+
+// Responder una pregunta (en orden). Devuelve cuál era la buena; con la última, la nota final y el ranking.
+api.post('/trivia/:id/answer', requireUser, h(async (req, res) => {
+  const g = await one('SELECT * FROM trivia_games WHERE id = ? AND user_id = ?', [intId(req.params.id), req.user.id]);
+  if (!g) fail(404, 'Partida no encontrada');
+  if (g.finished_at) fail(409, 'Esta partida ya ha terminado');
+  const questions = JSON.parse(g.questions);
+  const answers = JSON.parse(g.answers);
+  const qi = Number(req.body.q);
+  if (qi !== answers.length || qi >= questions.length) fail(409, 'Esa pregunta ya está respondida');
+  const choice = Number.isInteger(req.body.choice) && req.body.choice >= 0 && req.body.choice < 4 ? req.body.choice : null;
+  const ms = Math.min(TRIVIA_SECONDS * 1000, Math.max(0, Math.round(Number(req.body.ms) || 0)));
+  const q = questions[qi];
+  const right = choice === q.correct;
+  answers.push({ choice, ms: choice == null ? TRIVIA_SECONDS * 1000 : ms, right });
+  const done = answers.length === questions.length;
+  const out = { correct: q.correct, right, fact: q.fact || '', done };
+  if (done) {
+    out.score = answers.filter((a) => a.right).length;
+    out.total_ms = answers.reduce((s, a) => s + a.ms, 0);
+    await run('UPDATE trivia_games SET answers = ?, score = ?, total_ms = ?, finished_at = ? WHERE id = ?',
+      [JSON.stringify(answers), out.score, out.total_ms, Date.now(), g.id]);
+    const best = await bestGames(req.user.id);
+    out.rank = best.findIndex((b) => b.id === g.id) + 1;
+    out.played = best.length;
+    out.best = best.slice(0, 10);
+  } else {
+    await run('UPDATE trivia_games SET answers = ? WHERE id = ?', [JSON.stringify(answers), g.id]);
+  }
+  res.json(out);
 }));
 
 api.use((req, res) => res.status(404).json({ error: 'Ruta no encontrada' }));

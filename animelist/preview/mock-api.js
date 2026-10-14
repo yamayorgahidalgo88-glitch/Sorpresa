@@ -14,6 +14,7 @@
       if (!e.poster && e.jw_id && POSTERS[e.jw_id]) e.poster = POSTERS[e.jw_id];
     });
     mem.users.forEach((u) => { if (u.quiz_result === 'anya') { u.quiz_result = null; u.quiz_done = 0; } });
+    mem.trivia ||= []; // Partidas del quiz (añadido después: los datos antiguos se conservan)
     return mem;
   };
   // ¿Deja el navegador guardar datos? (en algunas apps o en modo incógnito no)
@@ -75,6 +76,17 @@
   };
   const touch = (listId) => { const l = db().lists.find((x) => x.id === listId); if (l) l.updated_at = now(); };
   const areFriends = (a, b) => db().friendships.some((f) => f.status === 'accepted' && ((f.requester_id === a && f.addressee_id === b) || (f.requester_id === b && f.addressee_id === a)));
+  // Quiz: animes con tu check de «visto» (como seenAnimes del servidor)
+  const seenAnimes = (uid) => {
+    const d = db();
+    const myCols = new Set(d.people.filter((p) => p.user_id === uid && d.members.some((x) => x.list_id === p.list_id && x.user_id === uid)).map((p) => p.id));
+    const ids = new Set(d.marks.filter((k) => myCols.has(k.person_id) && k.seen).map((k) => k.entry_id));
+    return dedupeSeen(d.entries.filter((e) => ids.has(e.id)).sort((a, b) => a.id - b.id)).map((e) => {
+      const cat = e.jw_id ? byId[e.jw_id] : null;
+      return { title: e.title, jw_id: e.jw_id, poster: e.poster, kind: e.kind, year: cat?.year || null, search: cat?.aka?.[0] || cat?.original || e.title };
+    });
+  };
+  const gameRow = ({ id: gid, score, total_ms, finished_at, source }) => ({ id: gid, score, total_ms, finished_at, source });
   const clean = (v, max) => (v == null ? null : String(v).trim().slice(0, max) || null);
   async function hash(pw) {
     const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('animelist:' + pw));
@@ -403,6 +415,45 @@
       else if ((m[2] === 'reject' && f.addressee_id === u.id) || (m[2] === 'cancel' && f.requester_id === u.id)) d.friendships = d.friendships.filter((x) => x !== f);
       else fail(400, 'Acción no válida');
       return { ok: true };
+    }],
+    // ── Quiz tipo Kahoot (misma lógica que el servidor; en la vista previa no hay IA) ──
+    ['GET', /^\/trivia$/, () => {
+      const u = me(true);
+      const best = sortBest(db().trivia.filter((g) => g.user_id === u.id && g.finished_at)).map(gameRow);
+      return { seen: seenAnimes(u.id).length, ai: false, count: TRIVIA_COUNT, seconds: TRIVIA_SECONDS, played: best.length, best: best.slice(0, 10) };
+    }],
+    ['POST', /^\/trivia$/, async () => {
+      const u = me(true);
+      const seen = seenAnimes(u.id);
+      if (!seen.length) fail(400, 'Marca como visto algún anime en tus tablas para poder jugar');
+      const { questions, source } = await buildTrivia(seen, { fetchFn: realFetch, extraTitles: CATALOG.items.slice(0, 60).map((i) => i.title) });
+      if (questions.length < TRIVIA_COUNT) fail(503, 'No se han podido preparar las preguntas. Inténtalo otra vez en un momento.');
+      const g = { id: id(), user_id: u.id, created_at: now(), source, questions, answers: [], score: null, total_ms: null, finished_at: null };
+      db().trivia.push(g);
+      return { id: g.id, source, seconds: TRIVIA_SECONDS, questions: questions.map(publicQuestion) };
+    }],
+    ['POST', /^\/trivia\/(\d+)\/answer$/, (b, m) => {
+      const u = me(true), g = db().trivia.find((x) => x.id === +m[1] && x.user_id === u.id);
+      if (!g) fail(404, 'Partida no encontrada');
+      if (g.finished_at) fail(409, 'Esta partida ya ha terminado');
+      const qi = Number(b.q);
+      if (qi !== g.answers.length || qi >= g.questions.length) fail(409, 'Esa pregunta ya está respondida');
+      const choice = Number.isInteger(b.choice) && b.choice >= 0 && b.choice < 4 ? b.choice : null;
+      const ms = Math.min(TRIVIA_SECONDS * 1000, Math.max(0, Math.round(Number(b.ms) || 0)));
+      const q = g.questions[qi], right = choice === q.correct;
+      g.answers.push({ choice, ms: choice == null ? TRIVIA_SECONDS * 1000 : ms, right });
+      const done = g.answers.length === g.questions.length;
+      const out = { correct: q.correct, right, fact: q.fact || '', done };
+      if (done) {
+        g.score = out.score = g.answers.filter((a) => a.right).length;
+        g.total_ms = out.total_ms = g.answers.reduce((s2, a) => s2 + a.ms, 0);
+        g.finished_at = now();
+        const best = sortBest(db().trivia.filter((x) => x.user_id === u.id && x.finished_at)).map(gameRow);
+        out.rank = best.findIndex((x) => x.id === g.id) + 1;
+        out.played = best.length;
+        out.best = best.slice(0, 10);
+      }
+      return out;
     }],
     ['DELETE', /^\/friends\/(\d+)$/, (_b, m) => {
       const u = me(true), o = +m[1];

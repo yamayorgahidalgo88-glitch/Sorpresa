@@ -138,6 +138,7 @@ function go(hash) { if (location.hash !== hash) location.hash = hash; else route
 
 async function route() {
   clearInterval(pollTimer);
+  stopTriviaTimer();
   const hash = location.hash || '#/tablas';
   if (!state.user) {
     try { state.user = (await api('/me')).user; } catch { state.user = null; }
@@ -153,6 +154,7 @@ async function route() {
   refreshBadge();
   if (section === 'perfil') return renderProfile();
   if (section === 'amigos') return renderFriends();
+  if (section === 'quiz') return renderTrivia();
   if (section === 'tabla' && id) return renderList(Number(id));
   if (section === 'amigo' && id && sub === 'tabla' && subId) return renderList(Number(subId), Number(id));
   if (section === 'amigo' && id) return renderFriendProfile(Number(id));
@@ -1478,6 +1480,190 @@ async function addToMyListSheet(entry, { mark = null, exclude = null } = {}) {
       toast(`«${title}» añadido a «${lists.find((l) => l.id === Number(b.dataset.l)).name}»`);
     } catch (e) { fail(e); b.disabled = false; }
   }));
+}
+
+// ───────────── Quiz tipo Kahoot (animes que has visto) ─────────────
+const TILES = [
+  { cls: 't-red', shape: '<svg viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/></svg>' },
+  { cls: 't-blue', shape: '<svg viewBox="0 0 24 24"><path d="M12 2.5l9.5 9.5-9.5 9.5L2.5 12z"/></svg>' },
+  { cls: 't-yellow', shape: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg>' },
+  { cls: 't-green', shape: '<svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="1.5"/></svg>' },
+];
+const MEDALS = ['🥇', '🥈', '🥉'];
+let triviaTimer = null;
+function stopTriviaTimer() { clearInterval(triviaTimer); triviaTimer = null; }
+const fmtWhen = (ts) => {
+  const d = new Date(ts);
+  return `${d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })} · ${d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`;
+};
+const fmtSecs = (ms) => { const s = Math.round(ms / 1000); return s >= 60 ? `${Math.floor(s / 60)} min ${s % 60} s` : `${s} s`; };
+const pickOne = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+function triviaRankingHtml(best, highlight = null) {
+  if (!best.length) return '<div class="empty">Aún no has jugado ninguna partida. ¡Estrena el ranking!</div>';
+  return `<ol class="tv-rank">${best.map((g, i) => `
+    <li class="${g.id === highlight ? 'me' : ''}">
+      <span class="pos">${MEDALS[i] || i + 1}</span>
+      <b class="sc">${g.score}<small>/10</small></b>
+      <span class="when">${fmtWhen(g.finished_at)}<small>${fmtSecs(g.total_ms)} en total</small></span>
+    </li>`).join('')}</ol>`;
+}
+
+async function renderTrivia() {
+  app.innerHTML = topbar('Quiz') + '<div class="skeleton" style="height:260px"></div>';
+  let info;
+  try { info = await api('/trivia'); } catch (e) { return fail(e); }
+  if (location.hash !== '#/quiz') return;
+  const can = info.seen > 0;
+  app.innerHTML = topbar('Quiz', { sub: 'Al estilo Kahoot' }) + `
+    <div class="card tv-hero fade-in">
+      <div class="tv-shapes">${TILES.map((t) => `<i class="${t.cls}">${t.shape}</i>`).join('')}</div>
+      <h2>¿Cuánto sabes de lo que has visto?</h2>
+      <p class="muted">${info.count} preguntas sobre los animes que tienes marcados como vistos. Tienes ${info.seconds} segundos para cada una y 4 respuestas: solo una es la buena.</p>
+      <div class="meta">
+        <span class="chip orange">${ICON.film}${info.seen} anime${info.seen === 1 ? '' : 's'} visto${info.seen === 1 ? '' : 's'}</span>
+        <span class="chip">${info.ai ? '✨ Preguntas creadas con IA' : '🎭 Preguntas de personajes'}</span>
+      </div>
+      <button class="btn primary block tv-go" data-play ${can ? '' : 'disabled'}>¡Jugar!</button>
+      ${can ? '' : '<p class="muted" style="font-size:13px;margin:10px 0 0">Marca con ✓ algún anime en tus tablas para poder jugar.</p>'}
+    </div>
+    <div class="card section">
+      <h2>🏆 Tus mejores puntuaciones ${info.played ? `<span class="count">${info.played}</span>` : ''}</h2>
+      ${triviaRankingHtml(info.best)}
+    </div>`;
+  $('[data-play]', app)?.addEventListener('click', playTrivia);
+}
+
+async function playTrivia() {
+  $('#tabbar').hidden = true;
+  const msgs = ['Repasando tus tablas…', 'Buscando escenas míticas…', 'Llamando a los personajes…', 'Escondiendo las respuestas…', 'Casi listo…'];
+  app.innerHTML = `<div class="tv-loading fade-in">
+      <div class="tv-shapes spin">${TILES.map((t) => `<i class="${t.cls}">${t.shape}</i>`).join('')}</div>
+      <h2>Preparando tu quiz</h2><p class="muted" data-msg>${msgs[0]}</p></div>`;
+  let n = 0;
+  triviaTimer = setInterval(() => { const m = $('[data-msg]', app); if (m) m.textContent = msgs[Math.min(++n, msgs.length - 1)]; }, 3500);
+  let game;
+  try { game = await api('/trivia', { method: 'POST' }); } catch (e) {
+    stopTriviaTimer();
+    fail(e);
+    if (location.hash === '#/quiz') { $('#tabbar').hidden = false; renderTrivia(); }
+    return;
+  }
+  stopTriviaTimer();
+  if (location.hash !== '#/quiz') return;
+  // Precarga de imágenes para que no tarden al salir la pregunta
+  for (const q of game.questions) if (q.image) { const img = new Image(); img.referrerPolicy = 'no-referrer'; img.src = q.image; }
+  showTriviaQuestion({ game, i: 0, score: 0, results: [] });
+}
+
+function showTriviaQuestion(st) {
+  stopTriviaTimer();
+  const q = st.game.questions[st.i];
+  const total = st.game.questions.length;
+  const secs = st.game.seconds;
+  app.innerHTML = `
+    <div class="tv-screen fade-in">
+      <div class="tv-top">
+        <button class="iconbtn" data-quit aria-label="Salir del quiz">${ICON.x}</button>
+        <div class="tv-progress">Pregunta <b>${st.i + 1}</b> de ${total}</div>
+        <div class="tv-score" data-score>✓ ${st.score}</div>
+      </div>
+      <div class="tv-timer"><i style="animation-duration:${secs}s"></i></div>
+      <div class="card tv-q">
+        ${q.image ? `<div class="tv-img"><img src="${esc(q.image)}" alt="" referrerpolicy="no-referrer"></div>` : ''}
+        <div class="tv-qhead"><span class="chip orange">${ICON.film}${esc(q.anime)}</span><span class="tv-count" data-count>${secs}</span></div>
+        <h2>${esc(q.question)}</h2>
+      </div>
+      <div class="tv-answers">${q.options.map((o, k) => `
+        <button class="tv-ans ${TILES[k].cls}" data-k="${k}">${TILES[k].shape}<span>${esc(o)}</span></button>`).join('')}</div>
+      <div data-feedback></div>
+    </div>`;
+  const screen = $('.tv-screen', app);
+  const started = performance.now();
+  let answered = false;
+  const answer = async (k) => {
+    if (answered) return;
+    answered = true;
+    stopTriviaTimer();
+    const ms = Math.round(performance.now() - started);
+    $$('.tv-ans', screen).forEach((b) => (b.disabled = true));
+    $('.tv-timer', screen).classList.add('stop');
+    if (k != null) $(`[data-k="${k}"]`, screen).classList.add('picked');
+    let r = null;
+    for (let tries = 0; tries < 3 && !r; tries++) {
+      try { r = await api(`/trivia/${st.game.id}/answer`, { body: { q: st.i, choice: k, ms } }); } catch (e) {
+        if (tries === 2 || /terminado|respondida|encontrada/.test(e.message)) { fail(e); break; }
+        await new Promise((res) => setTimeout(res, 900));
+      }
+    }
+    if (!app.contains(screen)) return;
+    if (!r) { $('#tabbar').hidden = false; return renderTrivia(); }
+    if (r.right) st.score++;
+    st.results.push({ ...q, choice: k, correct: r.correct, right: r.right });
+    $$('.tv-ans', screen).forEach((b, i) => b.classList.add(i === r.correct ? 'good' : 'bad'));
+    $('[data-score]', screen).textContent = `✓ ${st.score}`;
+    const title = r.right ? pickOne(['¡Correcto! 🎉', '¡Bien visto! ✨', '¡Sugoi! 🔥', '¡Eso es! 💥'])
+      : k == null ? '⏰ ¡Se acabó el tiempo!' : pickOne(['¡Casi! 😅', '¡Uy, por poco! 🙈', '¡Nooo! 😵']);
+    const fb = $('[data-feedback]', screen);
+    fb.innerHTML = `<div class="tv-fb ${r.right ? 'ok' : 'ko'}">
+        <b>${title}</b>
+        ${r.right ? '' : `<span>La respuesta era: <b>${esc(q.options[r.correct])}</b></span>`}
+        ${r.fact ? `<p>${esc(r.fact)}</p>` : ''}
+        <button class="btn primary block" data-next>${r.done ? 'Ver mi resultado' : 'Siguiente pregunta'}</button>
+      </div>`;
+    $('[data-next]', fb).addEventListener('click', () => {
+      if (r.done) return showTriviaEnd(st, r);
+      st.i++;
+      showTriviaQuestion(st);
+      scrollTo(0, 0);
+    });
+    fb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  };
+  const count = $('[data-count]', screen);
+  triviaTimer = setInterval(() => {
+    const left = Math.max(0, secs - Math.floor((performance.now() - started) / 1000));
+    count.textContent = left;
+    count.classList.toggle('hurry', left <= 5);
+    if (left <= 0) answer(null);
+  }, 200);
+  $$('.tv-ans', screen).forEach((b) => b.addEventListener('click', () => answer(Number(b.dataset.k))));
+  $('[data-quit]', screen).addEventListener('click', async () => {
+    if (!(await confirmSheet({ title: '¿Salir del quiz?', text: 'Esta partida no contará para el ranking.', ok: 'Salir', icon: ICON.x }))) return;
+    stopTriviaTimer();
+    answered = true;
+    go('#/quiz');
+  });
+}
+
+function showTriviaEnd(st, r) {
+  stopTriviaTimer();
+  $('#tabbar').hidden = false;
+  const s = r.score;
+  const msg = s === 10 ? '¡Pleno! Te lo sabes todo 👑' : s >= 8 ? '¡Increíble! Eres un crack 🔥' : s >= 6 ? '¡Muy bien! Se nota que lo has visto 😎'
+    : s >= 4 ? '¡Nada mal! Pero hay que repasar 📺' : '¡Toca maratón de repaso! 🍿';
+  const record = r.rank === 1 && r.played > 1;
+  app.innerHTML = topbar('Quiz', { sub: 'Resultado' }) + `
+    <div class="card tv-end fade-in">
+      ${record ? '<div class="tv-record">🏆 ¡Nuevo récord!</div>' : ''}
+      <div class="tv-big">${s}<small>/10</small></div>
+      <h2>${msg}</h2>
+      <p class="muted">${fmtSecs(r.total_ms)} en total · ${r.played === 1 ? 'Tu primera partida' : `Puesto ${r.rank} de ${r.played} partidas`}</p>
+      <div class="tv-dots">${st.results.map((x) => `<i class="${x.right ? 'ok' : 'ko'}"></i>`).join('')}</div>
+      <div class="row"><button class="btn primary" data-again>Jugar otra vez</button><button class="btn" data-home>Volver al inicio</button></div>
+    </div>
+    <div class="card section">
+      <h2>Repaso</h2>
+      ${st.results.map((x, i) => `<div class="tv-review ${x.right ? 'ok' : 'ko'}">
+        <span class="n">${i + 1}</span>
+        <div><small>${esc(x.anime)}</small><b>${esc(x.question)}</b>
+          ${x.right ? `<span>✓ ${esc(x.options[x.correct])}</span>`
+            : `<span>${x.choice == null ? '⏰ Sin responder' : `✗ ${esc(x.options[x.choice])}`} · Era: <b>${esc(x.options[x.correct])}</b></span>`}</div>
+      </div>`).join('')}
+    </div>
+    <div class="card section"><h2>🏆 Tus mejores puntuaciones</h2>${triviaRankingHtml(r.best, st.game.id)}</div>`;
+  $('[data-again]', app).addEventListener('click', playTrivia);
+  $('[data-home]', app).addEventListener('click', () => { renderTrivia(); scrollTo(0, 0); });
+  scrollTo(0, 0);
 }
 
 // ───────────── Arranque ─────────────
