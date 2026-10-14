@@ -507,6 +507,16 @@ table.anime tbody tr.dragging .grip { color: var(--orange); cursor: grabbing; }
 .tv-review small { color: var(--orange-2); font-weight: 800; font-size: 12px; }
 .tv-review span { color: var(--muted); font-size: 13px; }
 @media (max-width: 380px) { .tv-ans { min-height: 64px; font-size: 14px; padding: 10px; } .tv-ans svg { width: 20px; height: 20px; } }
+/* Respuestas con caras: el nombre aparece al contestar */
+.tv-ans.face { padding: 0; overflow: hidden; min-height: 0; aspect-ratio: 1 / 1; align-items: stretch; box-shadow: inset 0 0 0 4px var(--k), inset 0 -5px 0 rgba(0, 0, 0, .22); }
+.tv-ans.face img { position: absolute; inset: 4px; width: calc(100% - 8px); height: calc(100% - 8px); object-fit: cover; object-position: top; border-radius: 10px; }
+.tv-ans.face .tv-shape { position: absolute; left: 8px; bottom: 8px; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: var(--k); box-shadow: 0 4px 12px rgba(0, 0, 0, .4); }
+.tv-ans.face .tv-shape svg { width: 18px; height: 18px; }
+.tv-ans.face .tv-name { position: absolute; left: 4px; right: 4px; bottom: 4px; padding: 22px 8px 8px 48px; border-radius: 0 0 10px 10px; font-size: 13px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, .85)); opacity: 0; transition: opacity .25s; }
+.tv-ans.face.shown .tv-name { opacity: 1; }
+.tv-answers.faces { grid-template-columns: 1fr 1fr; max-width: 460px; margin: 0 auto; }
+.tv-img.wide { aspect-ratio: 3 / 1; } .tv-img.wide img { object-fit: cover; }
 
 /* Vista previa: el fondo de la página lo pinta el body y el mosaico va encima */
 body { background: var(--bg); }
@@ -567,7 +577,7 @@ function planTrivia(seen, rnd = Math.random) {
 // ───────────── AniList ─────────────
 const ANILIST_FIELDS = `title{romaji english} format startDate{year} episodes bannerImage coverImage{extraLarge large}
   studios(isMain:true){nodes{name}}
-  characters(sort:[ROLE,RELEVANCE,FAVOURITES_DESC], perPage:10){edges{role node{name{full} image{large}}}}`;
+  characters(sort:[ROLE,RELEVANCE,FAVOURITES_DESC], perPage:25){edges{role node{name{full} image{large} description(asHtml:false)}}}`;
 
 /** Busca cada anime en AniList (una sola petición). Devuelve un array paralelo con sus datos o null. */
 async function fetchAniList(animes, fetchFn = fetch, timeoutMs = 8000) {
@@ -603,13 +613,158 @@ async function fetchAniList(animes, fetchFn = fetch, timeoutMs = 8000) {
       studio: best.studios?.nodes?.[0]?.name || null,
       characters: (best.characters?.edges || [])
         .filter((e) => e.node?.name?.full && e.node?.image?.large && !/default\.jpg$/.test(e.node.image.large))
-        .map((e) => ({ name: e.node.name.full, image: e.node.image.large, main: e.role === 'MAIN' })),
+        .map((e) => ({ name: e.node.name.full, image: e.node.image.large, main: e.role === 'MAIN', facts: characterFacts(e.node.description) })),
     };
   });
 }
 
 /** Imagen de la serie para una pregunta (banner ancho; si no hay, la carátula o el póster). */
 const animeImage = (anime, info) => info?.banner || info?.cover || anime.poster || null;
+
+// ───────────── Datos de cada personaje (descripción de AniList) ─────────────
+// Solo se leen datos con formato fijo («Position: Setter») y unas pocas frases muy concretas
+// («the Wind Pillar»). Lo que AniList marca como spoiler (~! … !~) se quita siempre:
+// suele ser del manga o de lo último que ha pasado.
+const ELEMENTS = {
+  water: ['Agua', 'del'], flame: ['Llama', 'de la'], fire: ['Llama', 'de la'], thunder: ['Trueno', 'del'], beast: ['Bestia', 'de la'],
+  insect: ['Insecto', 'del'], sound: ['Sonido', 'del'], love: ['Amor', 'del'], mist: ['Niebla', 'de la'], serpent: ['Serpiente', 'de la'],
+  snake: ['Serpiente', 'de la'], wind: ['Viento', 'del'], stone: ['Roca', 'de la'], flower: ['Flor', 'de la'], moon: ['Luna', 'de la'],
+};
+const BREATHINGS = [...new Set(Object.values(ELEMENTS).map(([n, a]) => `Respiración ${a} ${n}`))];
+const POSITIONS = {
+  setter: 'colocador', libero: 'líbero', 'middle blocker': 'central', 'wing spiker': 'atacante', 'outside hitter': 'atacante',
+  'opposite hitter': 'opuesto', opposite: 'opuesto',
+  forward: 'delantero', striker: 'delantero', 'center forward': 'delantero', midfielder: 'centrocampista', defender: 'defensa', goalkeeper: 'portero',
+};
+const SPORTS = [['colocador', 'líbero', 'central', 'atacante', 'opuesto'], ['delantero', 'centrocampista', 'defensa', 'portero']];
+const ROLES = { captain: 'capitán', 'vice captain': 'vicecapitán', 'vice-captain': 'vicecapitán', ace: 'as', setter: 'colocador', libero: 'líbero', coach: 'entrenador' };
+const NUMBERS = { one: 'Uno', two: 'Dos', three: 'Tres', four: 'Cuatro', five: 'Cinco', six: 'Seis' };
+const GRADES = ['Grado especial', 'Grado 1', 'Grado 2', 'Grado 3', 'Grado 4'];
+// Puestos en la tripulación (One Piece)
+const CREW = { navigator: 'Navegante', doctor: 'Médico', sniper: 'Tirador', musician: 'Músico', swordsman: 'Espadachín', cook: 'Cocinero',
+  archaeologist: 'Arqueólogo', shipwright: 'Carpintero', helmsman: 'Timonel' };
+// Dones (My Hero Academia), con el nombre que usan en España
+const QUIRKS = { 'one for all': 'One For All', 'all for one': 'All For One', explosion: 'Explosión', 'zero gravity': 'Gravedad cero',
+  'half-cold half-hot': 'Medio frío, medio caliente', engine: 'Motor', frog: 'Rana', erasure: 'Borrado', decay: 'Desintegración',
+  creation: 'Creación', hardening: 'Endurecimiento', 'pop off': 'Pelotas pegajosas', acid: 'Ácido', electrification: 'Electrificación',
+  tape: 'Cinta adhesiva', tail: 'Cola', 'earphone jack': 'Clavija auricular', 'dark shadow': 'Dark Shadow', 'dupli-arms': 'Brazos duplicados',
+  invisibility: 'Invisibilidad', anivoice: 'Voz animal', 'sugar rush': 'Subidón de azúcar', gigantification: 'Gigantismo' };
+// Lo que hay justo antes de la frase no puede ser «hermano del…», «antiguo…», «no es…»
+const NOT_SELF = /(brother|sister|son|daughter|father|mother|apprentice|student|disciple|former|previous|formerly|title|not|n't|wants|dream|become|replace|succe)\W*(\w+\W+){0,4}$/i;
+const teamName = (s) => {
+  const parts = String(s).split(/[;,]/).map((x) => x.trim()).filter(Boolean);
+  const cur = parts.find((x) => /current/i.test(x)) || parts.find((x) => !/former|junior/i.test(x)) || '';
+  const t = cur.replace(/\(.*?\)/g, '').replace(/\b(High School|High|Academy|Junior|Volleyball Club|volleyball club|School)\b.*$/i, '').trim();
+  return /^[A-Z][\w.]+( [A-Z][\w.]+)?$/.test(t) ? t : null;
+};
+
+function characterFacts(description) {
+  const raw = String(description || '');
+  const clean = raw.replace(/~![\s\S]*?!~/g, ' ').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/<[^>]+>/g, ' ');
+  const fields = {};
+  for (const m of clean.matchAll(/(?:__|\*\*)\s*([A-Za-z][A-Za-z ]{1,24}?)\s*:\s*(?:__|\*\*)\s*([^\n]*)/g)) {
+    fields[m[1].toLowerCase()] = m[2].replace(/(__|\*\*)[\s\S]*$/, '').replace(/[&,;/\s]+$/, '').trim();
+  }
+  const text = clean.replace(/__|\*\*/g, '');
+  const facts = [];
+  const team = fields.team ? teamName(fields.team) : null;
+  // Respiración (Kimetsu): solo si usa una
+  const style = fields['combat style'] || '';
+  const sm = style.match(/^(\w+) Breathing$/i);
+  const rawStyle = (raw.match(/Combat Style\s*:\s*(?:__|\*\*)([^\n]*)/i) || [])[1] || '';
+  if (sm && ELEMENTS[sm[1].toLowerCase()] && (rawStyle.match(/Breathing/gi) || []).length === 1) {
+    const [n, a] = ELEMENTS[sm[1].toLowerCase()];
+    facts.push({ key: 'breathing', value: `Respiración ${a} ${n}` });
+  }
+  // Posición (deportes)
+  const pos = POSITIONS[(fields.position || '').toLowerCase()];
+  if (pos) facts.push({ key: 'position', value: pos, team });
+  // Grado de hechicero (Jujutsu Kaisen)
+  const gm = (fields.grade || '').match(/^(Special Grade|Grade ([1-4]))\b/i);
+  if (gm) facts.push({ key: 'grade', value: gm[2] ? `Grado ${gm[2]}` : 'Grado especial' });
+  const ok = (m) => !NOT_SELF.test(text.slice(Math.max(0, m.index - 40), m.index));
+  // Pilares
+  for (const m of text.matchAll(/\b([A-Z][a-z]+) (?:[Pp]illar|Hashira)\b/g)) {
+    const el = ELEMENTS[m[1].toLowerCase()];
+    if (el && ok(m)) { facts.push({ key: 'pillar', value: `el Pilar ${el[1]} ${el[0]}` }); break; }
+  }
+  // Lunas demoníacas
+  for (const m of text.matchAll(/\b(Upper|Lower) (?:Moon|Rank) (One|Two|Three|Four|Five|Six)\b/g)) {
+    if (ok(m)) { facts.push({ key: 'moon', value: `la Luna ${m[1] === 'Upper' ? 'Superior' : 'Inferior'} ${NUMBERS[m[2].toLowerCase()]}` }); break; }
+  }
+  // «The setter and captain of the Aoba Josai High School…»
+  const rm = text.match(/\b(?:[Tt]he|is)\s+((?:vice[- ]captain|captain|ace|setter|libero|coach)(?:\s+and\s+(?:vice[- ]captain|captain|ace|setter|libero))?)\s+of\s+(?:the\s+)?([A-Z][\w.]+(?: [A-Z][\w.]+)?)/);
+  if (rm && ok(rm)) {
+    const t = teamName(rm[2]);
+    if (t) for (const r of rm[1].toLowerCase().split(/\s+and\s+/)) facts.push({ key: 'role', value: ROLES[r.replace('-', ' ')] || ROLES[r], team: t });
+  }
+  // «…realizing that he is Karasuno's ace»
+  const am = text.match(/\b(?:is|as)\s+([A-Z][\w]+)'s\s+(ace|setter|libero|captain)\b/);
+  if (am && ok(am)) facts.push({ key: 'role', value: ROLES[am[2]], team: am[1] });
+  // One Piece: fruta del diablo y puesto en la tripulación
+  const fruit = (fields['devil fruit'] || '').match(/^([A-Z][a-z]+ [A-Z][a-z]+ no Mi)\b/);
+  if (fruit) facts.push({ key: 'fruit', value: fruit[1] });
+  const crew = CREW[(fields.position || '').toLowerCase()];
+  if (crew) facts.push({ key: 'crew', value: crew });
+  // My Hero Academia: don
+  const quirk = QUIRKS[(fields.quirk || '').toLowerCase()];
+  if (quirk) facts.push({ key: 'quirk', value: quirk });
+  // Bleach: zanpakutō y capitanes/tenientes de cada división
+  const zan = (fields.zanpakutou || fields['zanpakutō'] || fields.zanpakuto || '').replace(/\(.*$/, '').trim();
+  if (/^[A-Z][A-Za-z' -]{2,30}$/.test(zan) && !/none|unknown/i.test(zan)) facts.push({ key: 'zanpakuto', value: zan });
+  const div = (fields.rank || '').match(/^(Captain|Lieutenant) of (?:the )?(\d+)(?:st|nd|rd|th) Division\b/i);
+  if (div) facts.push({ key: 'division', value: `el ${/^c/i.test(div[1]) ? 'capitán' : 'teniente'} de la ${div[2]}.ª División` });
+  if (pos && team && ROLES[(fields.position || '').toLowerCase()]) facts.push({ key: 'role', value: ROLES[fields.position.toLowerCase()], team });
+  const seen = new Set();
+  return facts.filter((f) => f.value && !seen.has(f.key + f.value + f.team) && seen.add(f.key + f.value + f.team));
+}
+
+const capital = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+const del = (team) => `del ${team}`;
+const sameFact = (a, b) => a.key === b.key && a.value === b.value && (a.team || null) === (b.team || null);
+
+// «¿Quién es el Pilar del Viento?» → se responde eligiendo entre 4 caras
+function whoQuestions(a, info) {
+  const chars = info?.characters || [];
+  const out = [];
+  for (const c of chars) {
+    for (const f of c.facts || []) {
+      if (!['pillar', 'moon', 'role', 'division', 'fruit'].includes(f.key)) continue;
+      // «Capitán» o «entrenador» solo en equipos deportivos (no «capitán del Straw Hat»)
+      if (f.key === 'role' && ['capitán', 'vicecapitán', 'entrenador'].includes(f.value) &&
+        !chars.some((o) => (o.facts || []).some((g) => g.key === 'position' && g.team === f.team))) continue;
+      // La respuesta tiene que ser única entre los personajes del anime
+      if (chars.some((o) => o !== c && (o.facts || []).some((g) => sameFact(f, g) || (f.key === 'role' && g.key === 'position' && g.value === f.value && g.team === f.team)))) continue;
+      const family = f.key === 'role' ? ['role', 'position'] : [f.key];
+      const wrong = chars.filter((o) => o !== c && o.name !== c.name && (o.facts || []).some((g) => family.includes(g.key)));
+      if (wrong.length < 3) continue;
+      const text = f.key === 'role' ? `¿Quién es el ${f.value} ${del(f.team)}?` : f.key === 'fruit' ? `¿Quién comió la ${f.value}?` : `¿Quién es ${f.value}?`;
+      out.push({ char: c, text, wrong });
+    }
+  }
+  return out;
+}
+
+// «¿Qué respiración usa Zenitsu?» → se responde con texto y sale su cara
+function whatQuestions(info) {
+  const out = [];
+  const pool = (key) => [...new Set((info?.characters || []).flatMap((c) => (c.facts || []).filter((f) => f.key === key).map((f) => f.value)))];
+  for (const c of info?.characters || []) {
+    for (const f of c.facts || []) {
+      if (f.key === 'fruit') out.push({ char: c, text: `¿Qué fruta del diablo comió ${c.name}?`, right: f.value, pool: pool('fruit') });
+      if (f.key === 'crew') out.push({ char: c, text: `¿Qué puesto tiene ${c.name} en la tripulación?`, right: f.value, pool: Object.values(CREW) });
+      if (f.key === 'quirk') out.push({ char: c, text: `¿Cuál es el don de ${c.name}?`, right: f.value, pool: [...new Set(Object.values(QUIRKS))] });
+      if (f.key === 'zanpakuto') out.push({ char: c, text: `¿Cómo se llama la zanpakutō de ${c.name}?`, right: f.value, pool: pool('zanpakuto') });
+      if (f.key === 'breathing') out.push({ char: c, text: `¿Qué respiración usa ${c.name}?`, right: f.value, pool: BREATHINGS });
+      if (f.key === 'grade') out.push({ char: c, text: `¿De qué grado es ${c.name}?`, right: f.value, pool: GRADES });
+      if (f.key === 'position') {
+        const sport = SPORTS.find((g) => g.includes(f.value));
+        out.push({ char: c, text: `¿En qué posición juega ${c.name}${f.team ? ` en el ${f.team}` : ''}?`, right: capital(f.value), pool: sport.map(capital) });
+      }
+    }
+  }
+  return out;
+}
 
 // ───────────── Preguntas sin IA ─────────────
 const STUDIOS = ['MAPPA', 'ufotable', 'Wit Studio', 'Madhouse', 'Bones', 'Production I.G', 'Kyoto Animation', 'A-1 Pictures', 'CloverWorks',
@@ -641,6 +796,27 @@ function options4(correct, pool, rnd, backup = [], similarCheck = false) {
  */
 function localTrivia(animes, infos, plan, { extraTitles = [], rnd = Math.random, count = TRIVIA_COUNT } = {}) {
   const used = new Set();
+  // Preguntas «de dentro» del anime (Pilares, capitanes, posiciones, respiraciones…)
+  const deep = [
+    (a, info) => { // ¿Quién es el Pilar del Viento? → 4 caras
+      const w = triviaShuffle(whoQuestions(a, info), rnd).find((x) => !used.has(x.text) && !used.has(x.char.name));
+      if (!w) return null;
+      const picks = [w.char, ...triviaShuffle(w.wrong, rnd).filter((x, i, arr) => arr.findIndex((y) => y.name === x.name) === i).slice(0, 3)];
+      if (picks.length < 4) return null;
+      const order = triviaShuffle(picks, rnd);
+      used.add(w.text); used.add(w.char.name);
+      return { question: w.text, image: animeImage(a, info), options: order.map((x) => x.name), optionImages: order.map((x) => x.image),
+        correct: order.indexOf(w.char), fact: '' };
+    },
+    (a, info) => { // ¿Qué respiración usa…? / ¿En qué posición juega…?
+      const w = triviaShuffle(whatQuestions(info), rnd).find((x) => !used.has(x.text) && !used.has(x.char.name));
+      if (!w) return null;
+      const o = options4(w.right, w.pool, rnd);
+      if (!o) return null;
+      used.add(w.text); used.add(w.char.name);
+      return { question: w.text, image: w.char.image, ...o, fact: '' };
+    },
+  ];
   const makers = [
     (a, info) => { // ¿Cómo se llama este personaje?
       const chars = info?.characters || [];
@@ -653,13 +829,17 @@ function localTrivia(animes, infos, plan, { extraTitles = [], rnd = Math.random,
       return { question: `¿Cómo se llama este personaje de «${a.title}»?`, image: c.image, ...o, fact: '' };
     },
     (a, info) => { // ¿De qué anime es este personaje?
-      const c = triviaShuffle(info?.characters || [], rnd).find((x) => !used.has(x.name));
+      // Solo personajes importantes (los primeros de AniList), que se reconozcan
+      const c = triviaShuffle((info?.characters || []).slice(0, 10), rnd).find((x) => !used.has(x.name));
       if (!c) return null;
       const o = options4(a.title, animes.map((x) => x.title), rnd, extraTitles, true);
       if (!o) return null;
       used.add(c.name);
       return { question: `¿De qué anime es ${c.name}?`, image: c.image, ...o, fact: '' };
     },
+  ];
+  // Estudio y año: solo si no hay nada mejor
+  const tail = [
     (a, info) => { // Estudio de animación
       if (!info?.studio || used.has('studio:' + a.title)) return null;
       const o = options4(info.studio, STUDIOS, rnd);
@@ -681,7 +861,10 @@ function localTrivia(animes, infos, plan, { extraTitles = [], rnd = Math.random,
   for (const idx of plan) {
     if (out.length >= count) break;
     const a = animes[idx], info = infos[idx];
-    for (const make of triviaShuffle(makers, rnd)) {
+    // 3 de cada 4 veces se intenta antes una pregunta «de dentro» del anime
+    const order = (rnd() < 0.75 ? [...triviaShuffle(deep, rnd), ...triviaShuffle(makers, rnd)] : [...triviaShuffle(makers, rnd), ...triviaShuffle(deep, rnd)])
+      .concat(triviaShuffle(tail, rnd));
+    for (const make of order) {
       const q = make(a, info);
       if (q) { out.push({ anime: a.title, ...q }); break; }
     }
@@ -689,7 +872,8 @@ function localTrivia(animes, infos, plan, { extraTitles = [], rnd = Math.random,
   // Si algún anime no tenía datos suficientes, se rellenan con los demás
   for (let tries = 0; out.length < count && tries < 40; tries++) {
     const idx = Math.floor(rnd() * animes.length);
-    const q = makers[tries % makers.length](animes[idx], infos[idx]);
+    const all = [...deep, ...makers, ...tail];
+    const q = all[tries % all.length](animes[idx], infos[idx]);
     if (q) out.push({ anime: animes[idx].title, ...q });
   }
   return out.slice(0, count);
@@ -723,7 +907,7 @@ function validQuestion(q) {
 }
 
 /** Lo que ve el móvil antes de responder: sin la respuesta correcta. */
-const publicQuestion = ({ anime, question, options, image }) => ({ anime, question, options, image: image || null });
+const publicQuestion = ({ anime, question, options, image, optionImages }) => ({ anime, question, options, image: image || null, ...(optionImages ? { optionImages } : {}) });
 
 /** Mejores partidas: más aciertos, luego menos tiempo, luego la más reciente. */
 const sortBest = (games) => [...games].sort((a, b) => b.score - a.score || a.total_ms - b.total_ms || b.finished_at - a.finished_at);
@@ -2773,7 +2957,9 @@ async function playTrivia() {
   stopTriviaTimer();
   if (location.hash !== '#/quiz') return;
   // Precarga de imágenes para que no tarden al salir la pregunta
-  for (const q of game.questions) if (q.image) { const img = new Image(); img.referrerPolicy = 'no-referrer'; img.src = q.image; }
+  for (const q of game.questions) {
+    for (const src of [q.image, ...(q.optionImages || [])]) if (src) { const img = new Image(); img.referrerPolicy = 'no-referrer'; img.src = src; }
+  }
   showTriviaQuestion({ game, i: 0, score: 0, results: [] });
 }
 
@@ -2791,12 +2977,14 @@ function showTriviaQuestion(st) {
       </div>
       <div class="tv-timer"><i style="animation-duration:${secs}s"></i></div>
       <div class="card tv-q">
-        ${q.image ? `<div class="tv-img"><img src="${esc(q.image)}" alt="" referrerpolicy="no-referrer"></div>` : ''}
+        ${q.image ? `<div class="tv-img${q.optionImages ? ' wide' : ''}"><img src="${esc(q.image)}" alt="" referrerpolicy="no-referrer"></div>` : ''}
         <div class="tv-qhead"><span class="chip orange">${ICON.film}${esc(q.anime)}</span><span class="tv-count" data-count>${secs}</span></div>
         <h2>${esc(q.question)}</h2>
       </div>
-      <div class="tv-answers">${q.options.map((o, k) => `
-        <button class="tv-ans ${TILES[k].cls}" data-k="${k}">${TILES[k].shape}<span>${esc(o)}</span></button>`).join('')}</div>
+      <div class="tv-answers${q.optionImages ? ' faces' : ''}">${q.options.map((o, k) => (q.optionImages ? `
+        <button class="tv-ans face ${TILES[k].cls}" data-k="${k}" aria-label="Opción ${k + 1}">
+          <img src="${esc(q.optionImages[k])}" alt="" referrerpolicy="no-referrer"><i class="tv-shape">${TILES[k].shape}</i><span class="tv-name">${esc(o)}</span></button>` : `
+        <button class="tv-ans ${TILES[k].cls}" data-k="${k}">${TILES[k].shape}<span>${esc(o)}</span></button>`)).join('')}</div>
       <div data-feedback></div>
     </div>`;
   const screen = $('.tv-screen', app);
@@ -2821,7 +3009,7 @@ function showTriviaQuestion(st) {
     if (!r) { $('#tabbar').hidden = false; return renderTrivia(); }
     if (r.right) st.score++;
     st.results.push({ ...q, choice: k, correct: r.correct, right: r.right });
-    $$('.tv-ans', screen).forEach((b, i) => b.classList.add(i === r.correct ? 'good' : 'bad'));
+    $$('.tv-ans', screen).forEach((b, i) => b.classList.add(i === r.correct ? 'good' : 'bad', 'shown'));
     $('[data-score]', screen).textContent = `✓ ${st.score}`;
     const title = r.right ? pickOne(['¡Correcto! 🎉', '¡Bien visto! ✨', '¡Sugoi! 🔥', '¡Eso es! 💥'])
       : k == null ? '⏰ ¡Se acabó el tiempo!' : pickOne(['¡Casi! 😅', '¡Uy, por poco! 🙈', '¡Nooo! 😵']);

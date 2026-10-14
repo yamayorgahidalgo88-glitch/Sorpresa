@@ -360,3 +360,22 @@ test('quiz: si la IA falla, se juega igual con preguntas de AniList', async () =
     delete process.env.ANTHROPIC_BASE_URL;
   }
 });
+
+test('quiz: datos de los personajes (solo lo que es seguro y sin spoilers)', async () => {
+  const { characterFacts } = await import('../server/trivia-shared.js');
+  const keys = (d) => characterFacts(d).map((f) => `${f.key}:${f.value}${f.team ? '@' + f.team : ''}`);
+  assert.deepEqual(keys('__Height:__ 179cm\n\nDemon Hunter and the Wind Pillar of the Demon Killing Corps. He is the older brother of [Genya](https://anilist.co/character/1).'),
+    ['pillar:el Pilar del Viento']);
+  assert.deepEqual(keys('Genya is a Demon Hunter. He is also the younger brother of the Wind Pillar [Sanemi](https://anilist.co/character/2).'), [], 'el hermano no es el Pilar');
+  assert.deepEqual(keys('Retired member of the Demon Slayer Corps, previously holding the title of Water Hashira.'), [], 'antiguo Pilar: no cuenta');
+  assert.deepEqual(keys('__Height:__ 176 cm\n__Combat Style:__ Water Breathing\n\nWater pillar in the Demon Killing Corps.'),
+    ['breathing:Respiración del Agua', 'pillar:el Pilar del Agua']);
+  assert.deepEqual(keys('__Combat Style:__ Water Breathing & ~!Sun Breathing!~\n\nTanjirou is kind.'), [], 'dos respiraciones: se salta');
+  assert.deepEqual(keys('__Height:__ 169.2 cm\n\nThe setter of the Nekoma High School volleyball club.'), ['role:colocador@Nekoma']);
+  assert.deepEqual(keys("Even though he isn't Karasuno's official setter anymore"), [], 'Sugawara no es el colocador titular');
+  assert.deepEqual(keys('__Team:__ Karasuno High\n__Position:__ Libero'), ['position:líbero@Karasuno', 'role:líbero@Karasuno']);
+  assert.deepEqual(keys('~!Rui was a member of the Twelve Demon Moons, having held the position of Lower Moon Five.!~'), [], 'lo marcado como spoiler se ignora');
+  assert.deepEqual(keys('__Devil Fruit:__ Gomu Gomu no Mi (Rubber-Rubber Fruit)\n__Position:__ Navigator'), ['fruit:Gomu Gomu no Mi', 'crew:Navegante']);
+  assert.deepEqual(keys('__Quirk:__ Half-Cold Half-Hot'), ['quirk:Medio frío, medio caliente']);
+  assert.deepEqual(keys('__Rank:__ Captain of the 10th Division'), ['division:el capitán de la 10.ª División']);
+});

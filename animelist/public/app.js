@@ -1552,7 +1552,9 @@ async function playTrivia() {
   stopTriviaTimer();
   if (location.hash !== '#/quiz') return;
   // Precarga de imágenes para que no tarden al salir la pregunta
-  for (const q of game.questions) if (q.image) { const img = new Image(); img.referrerPolicy = 'no-referrer'; img.src = q.image; }
+  for (const q of game.questions) {
+    for (const src of [q.image, ...(q.optionImages || [])]) if (src) { const img = new Image(); img.referrerPolicy = 'no-referrer'; img.src = src; }
+  }
   showTriviaQuestion({ game, i: 0, score: 0, results: [] });
 }
 
@@ -1570,12 +1572,14 @@ function showTriviaQuestion(st) {
       </div>
       <div class="tv-timer"><i style="animation-duration:${secs}s"></i></div>
       <div class="card tv-q">
-        ${q.image ? `<div class="tv-img"><img src="${esc(q.image)}" alt="" referrerpolicy="no-referrer"></div>` : ''}
+        ${q.image ? `<div class="tv-img${q.optionImages ? ' wide' : ''}"><img src="${esc(q.image)}" alt="" referrerpolicy="no-referrer"></div>` : ''}
         <div class="tv-qhead"><span class="chip orange">${ICON.film}${esc(q.anime)}</span><span class="tv-count" data-count>${secs}</span></div>
         <h2>${esc(q.question)}</h2>
       </div>
-      <div class="tv-answers">${q.options.map((o, k) => `
-        <button class="tv-ans ${TILES[k].cls}" data-k="${k}">${TILES[k].shape}<span>${esc(o)}</span></button>`).join('')}</div>
+      <div class="tv-answers${q.optionImages ? ' faces' : ''}">${q.options.map((o, k) => (q.optionImages ? `
+        <button class="tv-ans face ${TILES[k].cls}" data-k="${k}" aria-label="Opción ${k + 1}">
+          <img src="${esc(q.optionImages[k])}" alt="" referrerpolicy="no-referrer"><i class="tv-shape">${TILES[k].shape}</i><span class="tv-name">${esc(o)}</span></button>` : `
+        <button class="tv-ans ${TILES[k].cls}" data-k="${k}">${TILES[k].shape}<span>${esc(o)}</span></button>`)).join('')}</div>
       <div data-feedback></div>
     </div>`;
   const screen = $('.tv-screen', app);
@@ -1600,7 +1604,7 @@ function showTriviaQuestion(st) {
     if (!r) { $('#tabbar').hidden = false; return renderTrivia(); }
     if (r.right) st.score++;
     st.results.push({ ...q, choice: k, correct: r.correct, right: r.right });
-    $$('.tv-ans', screen).forEach((b, i) => b.classList.add(i === r.correct ? 'good' : 'bad'));
+    $$('.tv-ans', screen).forEach((b, i) => b.classList.add(i === r.correct ? 'good' : 'bad', 'shown'));
     $('[data-score]', screen).textContent = `✓ ${st.score}`;
     const title = r.right ? pickOne(['¡Correcto! 🎉', '¡Bien visto! ✨', '¡Sugoi! 🔥', '¡Eso es! 💥'])
       : k == null ? '⏰ ¡Se acabó el tiempo!' : pickOne(['¡Casi! 😅', '¡Uy, por poco! 🙈', '¡Nooo! 😵']);
