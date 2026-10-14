@@ -1,4 +1,4 @@
-# Anime List M&Y
+# anYMe
 
 App web (instalable en el móvil) para llevar nuestras listas de anime: quién lo ha visto, la nota de cada uno y dónde verlo **en España**.
 

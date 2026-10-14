@@ -1,7 +1,7 @@
 {
-  "name": "anime-list-my",
+  "name": "anyme",
   "version": "1.0.0",
-  "description": "Anime List M&Y",
+  "description": "anYMe: nuestras listas de anime",
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",

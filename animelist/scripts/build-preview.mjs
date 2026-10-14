@@ -38,7 +38,7 @@ const app = read('public/app.js')
   .replace('Lo que vemos, lo que nos queda y nuestras notas</p>',
     'Lo que vemos, lo que nos queda y nuestras notas<span class="preview-note">${window.__previewStorage === false ? "⚠️ Este navegador no deja guardar datos: las cuentas se borrarán al cerrar. Ábrelo en Safari o Chrome." : "Vista previa · las cuentas y tablas se guardan solo en este móvil"}</span></p>');
 
-const out = `<title>Anime List M&amp;Y</title>
+const out = `<title>anYMe</title>
 <meta name="theme-color" content="#0d0d14">
 <link rel="icon" href="${icon}">
 <link rel="preconnect" href="https://fonts.googleapis.com">

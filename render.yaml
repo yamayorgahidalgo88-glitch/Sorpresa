@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: anime-list-my
+    name: anyme
     runtime: node
     rootDir: animelist
     buildCommand: npm install

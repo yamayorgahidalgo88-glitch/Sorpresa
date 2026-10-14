@@ -533,5 +533,5 @@ export const ready = () => (initPromise ||= initDb().catch((e) => { initPromise 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   await ready();
   const port = Number(process.env.PORT) || 3000;
-  app.listen(port, () => console.log(`Anime List M&Y → http://localhost:${port}`));
+  app.listen(port, () => console.log(`anYMe → http://localhost:${port}`));
 }

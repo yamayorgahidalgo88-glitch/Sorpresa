@@ -1,4 +1,4 @@
-// Anime List M&Y — frontend (vanilla JS, sin build)
+// anYMe — frontend (vanilla JS, sin build)
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 const app = $('#app');
@@ -198,7 +198,7 @@ function renderAuth(mode = 'login') {
   app.innerHTML = `
     <div class="auth-wrap fade-in"><div class="auth-box">
       <img class="auth-logo" src="/img/logo-256.png" alt="Logo">
-      <div class="auth-title">ANIME <em>LIST</em></div>
+      <div class="auth-title" aria-label="anYMe"><small>an</small><em>YM</em><small>e</small></div>
       <p class="auth-sub">Lo que vemos, lo que nos queda y nuestras notas</p>
       <form class="card" novalidate>
         <div class="seg"><button type="button" data-m="login">Iniciar sesión</button><button type="button" data-m="register">Crear cuenta</button></div>

@@ -382,3 +382,4 @@ table.anime tbody tr.dragging .grip { color: var(--orange); cursor: grabbing; }
 .toggle.remember > span:first-child { display: flex; flex-direction: column; gap: 2px; }
 .toggle.remember small { color: var(--muted); font-weight: 600; font-size: 12.5px; }
 .device-ico { width: 42px; height: 42px; flex: none; display: grid; place-items: center; font-size: 26px; border-radius: 14px; background: rgba(255, 255, 255, .06); }
+.auth-title small { font-size: .66em; letter-spacing: 1px; }
