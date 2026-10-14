@@ -3,7 +3,9 @@
 // - Datos e imágenes de AniList (personajes, banner de la serie)
 // - Preguntas «de reserva» sin IA (se usan si no hay IA o si falla)
 
-export const TRIVIA_COUNT = 10;
+export const TRIVIA_COUNT = 10; // preguntas que se preparan de cada tanda
+export const TRIVIA_MAX = 300; // tope de seguridad de una racha
+export const TRIVIA_TOP = 5; // puntuaciones que salen en el ranking
 export const TRIVIA_SECONDS = 20;
 
 export const triviaShuffle = (arr, rnd = Math.random) => {
@@ -269,8 +271,8 @@ function faceOf(info, name) {
  * Genera preguntas con los datos de AniList: personajes (con su foto), estudio y año.
  * extraTitles: títulos populares del catálogo para tener opciones aunque hayas visto pocos animes.
  */
-export function localTrivia(animes, infos, plan, { extraTitles = [], bank = [], avoid = new Set(), rnd = Math.random, count = TRIVIA_COUNT } = {}) {
-  const used = new Set();
+export function localTrivia(animes, infos, plan, { extraTitles = [], bank = [], avoid = new Set(), exclude = new Set(), rnd = Math.random, count = TRIVIA_COUNT } = {}) {
+  const used = new Set(exclude);
   // Preguntas de la trama escritas a mano
   const fromBank = (a, info) => {
     const pool = triviaShuffle(bankFor(a, bank), rnd).filter((x) => !used.has(x.q));
@@ -372,7 +374,10 @@ export function localTrivia(animes, infos, plan, { extraTitles = [], bank = [], 
  * Prepara una partida: elige animes, trae AniList y pide las preguntas a la IA (si hay);
  * lo que falte hasta 10 se completa con preguntas locales.
  */
-export async function buildTrivia(seen, { fetchFn = fetch, ai = null, extraTitles = [], bank = [], moreBank = null, avoid = new Set(), rnd = Math.random } = {}) {
+export async function buildTrivia(seen, { fetchFn = fetch, ai = null, extraTitles = [], bank = [], moreBank = null, avoid = new Set(), exclude = [], rnd = Math.random } = {}) {
+  // exclude: preguntas que ya han salido en esta partida (modo racha: se van pidiendo tandas)
+  const qid = (q) => `${q.question}|${q.options[q.correct]}`;
+  const exTexts = new Set(exclude.map((q) => q.question));
   const { animes, plan } = planTrivia(seen, rnd);
   const infos = await fetchAniList(animes, fetchFn);
   // Preguntas de la trama generadas por la IA gratuita y guardadas por el servidor (se amplían con el tiempo)
@@ -384,9 +389,11 @@ export async function buildTrivia(seen, { fetchFn = fetch, ai = null, extraTitle
   const fromAi = questions.length;
   if (questions.length < TRIVIA_COUNT) {
     const missing = plan.slice(questions.length);
-    questions = questions.concat(localTrivia(animes, infos, missing, { extraTitles, bank, avoid, rnd, count: TRIVIA_COUNT - questions.length }));
+    questions = questions.concat(localTrivia(animes, infos, missing, { extraTitles, bank, avoid, exclude: exTexts, rnd, count: TRIVIA_COUNT - questions.length }));
   }
-  questions = questions.filter(validQuestion).slice(0, TRIVIA_COUNT);
+  // Sin repetir preguntas dentro de la misma partida (en el modo racha se van pidiendo tandas)
+  const seenQ = new Set(exclude.map(qid));
+  questions = questions.filter((q) => validQuestion(q) && !seenQ.has(qid(q)) && seenQ.add(qid(q))).slice(0, TRIVIA_COUNT);
   return { questions, source: fromAi ? 'ai' : 'local' };
 }
 

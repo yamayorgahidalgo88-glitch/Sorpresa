@@ -88,6 +88,14 @@
     });
   };
   const gameRow = ({ id: gid, score, total_ms, finished_at, source }) => ({ id: gid, score, total_ms, finished_at, source });
+  // Solo el modo racha: las partidas antiguas se conservan pero no cuentan
+  const bestOf = (uid) => sortBest(db().trivia.filter((g) => g.user_id === uid && g.finished_at && g.mode === 'streak')).map(gameRow);
+  async function triviaBatch(u, exclude = []) {
+    const seen = seenAnimes(u.id);
+    if (!seen.length) fail(400, 'Marca como visto algún anime en tus tablas para poder jugar');
+    const avoid = new Set(db().trivia.filter((g) => g.user_id === u.id).slice(-6).flatMap((g) => g.questions.map((q) => q.question)));
+    return buildTrivia(seen, { fetchFn: realFetch, extraTitles: CATALOG.items.slice(0, 60).map((i) => i.title), bank: TRIVIA_BANK, avoid, exclude });
+  }
   const clean = (v, max) => (v == null ? null : String(v).trim().slice(0, max) || null);
   async function hash(pw) {
     const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('animelist:' + pw));
@@ -417,24 +425,21 @@
       else fail(400, 'Acción no válida');
       return { ok: true };
     }],
-    // ── Quiz tipo Kahoot (misma lógica que el servidor; en la vista previa no hay IA) ──
+    // ── Quiz tipo Kahoot, modo racha (misma lógica que el servidor; en la vista previa no hay IA) ──
     ['GET', /^\/trivia$/, () => {
       const u = me(true);
-      const best = sortBest(db().trivia.filter((g) => g.user_id === u.id && g.finished_at)).map(gameRow);
-      return { seen: seenAnimes(u.id).length, ai: false, count: TRIVIA_COUNT, seconds: TRIVIA_SECONDS, played: best.length, best: best.slice(0, 10) };
+      const best = bestOf(u.id);
+      return { seen: seenAnimes(u.id).length, ai: false, seconds: TRIVIA_SECONDS, played: best.length, best: best.slice(0, TRIVIA_TOP) };
     }],
     ['POST', /^\/trivia$/, async () => {
       const u = me(true);
-      const seen = seenAnimes(u.id);
-      if (!seen.length) fail(400, 'Marca como visto algún anime en tus tablas para poder jugar');
-      const { questions, source } = await buildTrivia(seen, { fetchFn: realFetch, extraTitles: CATALOG.items.slice(0, 60).map((i) => i.title), bank: TRIVIA_BANK,
-        avoid: new Set(db().trivia.filter((g) => g.user_id === u.id).slice(-6).flatMap((g) => g.questions.map((q) => q.question))) });
-      if (questions.length < TRIVIA_COUNT) fail(503, 'No se han podido preparar las preguntas. Inténtalo otra vez en un momento.');
-      const g = { id: id(), user_id: u.id, created_at: now(), source, questions, answers: [], score: null, total_ms: null, finished_at: null };
+      const { questions, source } = await triviaBatch(u);
+      if (!questions.length) fail(503, 'No se han podido preparar las preguntas. Inténtalo otra vez en un momento.');
+      const g = { id: id(), user_id: u.id, created_at: now(), source, questions, answers: [], score: null, total_ms: null, finished_at: null, mode: 'streak' };
       db().trivia.push(g);
       return { id: g.id, source, seconds: TRIVIA_SECONDS, questions: questions.map(publicQuestion) };
     }],
-    ['POST', /^\/trivia\/(\d+)\/answer$/, (b, m) => {
+    ['POST', /^\/trivia\/(\d+)\/answer$/, async (b, m) => {
       const u = me(true), g = db().trivia.find((x) => x.id === +m[1] && x.user_id === u.id);
       if (!g) fail(404, 'Partida no encontrada');
       if (g.finished_at) fail(409, 'Esta partida ya ha terminado');
@@ -444,16 +449,23 @@
       const ms = Math.min(TRIVIA_SECONDS * 1000, Math.max(0, Math.round(Number(b.ms) || 0)));
       const q = g.questions[qi], right = choice === q.correct;
       g.answers.push({ choice, ms: choice == null ? TRIVIA_SECONDS * 1000 : ms, right });
-      const done = g.answers.length === g.questions.length;
-      const out = { correct: q.correct, right, fact: q.fact || '', done };
-      if (done) {
+      const out = { correct: q.correct, right, fact: q.fact || '' };
+      if (right && g.answers.length === g.questions.length && g.questions.length < TRIVIA_MAX) {
+        try {
+          const batch = await triviaBatch(u, g.questions);
+          if (batch.questions.length) { out.more = batch.questions.map(publicQuestion); g.questions.push(...batch.questions); }
+        } catch { /* sin más preguntas */ }
+      }
+      out.done = !right || g.answers.length === g.questions.length;
+      if (out.done) {
         g.score = out.score = g.answers.filter((a) => a.right).length;
         g.total_ms = out.total_ms = g.answers.reduce((s2, a) => s2 + a.ms, 0);
+        out.outOfQuestions = right;
         g.finished_at = now();
-        const best = sortBest(db().trivia.filter((x) => x.user_id === u.id && x.finished_at)).map(gameRow);
+        const best = bestOf(u.id);
         out.rank = best.findIndex((x) => x.id === g.id) + 1;
         out.played = best.length;
-        out.best = best.slice(0, 10);
+        out.best = best.slice(0, TRIVIA_TOP);
       }
       return out;
     }],

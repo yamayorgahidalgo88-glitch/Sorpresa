@@ -1504,7 +1504,7 @@ function triviaRankingHtml(best, highlight = null) {
   return `<ol class="tv-rank">${best.map((g, i) => `
     <li class="${g.id === highlight ? 'me' : ''}">
       <span class="pos">${MEDALS[i] || i + 1}</span>
-      <b class="sc">${g.score}<small>/10</small></b>
+      <b class="sc">${g.score}<small> acierto${g.score === 1 ? '' : 's'}</small></b>
       <span class="when">${fmtWhen(g.finished_at)}<small>${fmtSecs(g.total_ms)} en total</small></span>
     </li>`).join('')}</ol>`;
 }
@@ -1519,7 +1519,7 @@ async function renderTrivia() {
     <div class="card tv-hero fade-in">
       <div class="tv-shapes">${TILES.map((t) => `<i class="${t.cls}">${t.shape}</i>`).join('')}</div>
       <h2>¿Cuánto sabes de lo que has visto?</h2>
-      <p class="muted">${info.count} preguntas sobre los animes que tienes marcados como vistos. Tienes ${info.seconds} segundos para cada una y 4 respuestas: solo una es la buena.</p>
+      <p class="muted">Preguntas sin fin sobre los animes que tienes marcados como vistos: <b>sigues mientras aciertes</b> y al primer fallo se acaba. Tienes ${info.seconds} segundos para cada una y 4 respuestas: solo una es la buena.</p>
       <div class="meta">
         <span class="chip orange">${ICON.film}${info.seen} anime${info.seen === 1 ? '' : 's'} visto${info.seen === 1 ? '' : 's'}</span>
         <span class="chip">${info.ai ? '✨ Preguntas creadas con IA' : '🎭 Preguntas de personajes'}</span>
@@ -1528,7 +1528,7 @@ async function renderTrivia() {
       ${can ? '' : '<p class="muted" style="font-size:13px;margin:10px 0 0">Marca con ✓ algún anime en tus tablas para poder jugar.</p>'}
     </div>
     <div class="card section">
-      <h2>🏆 Tus mejores puntuaciones ${info.played ? `<span class="count">${info.played}</span>` : ''}</h2>
+      <h2>🏆 Tus 5 mejores rachas</h2>
       ${triviaRankingHtml(info.best)}
     </div>`;
   $('[data-play]', app)?.addEventListener('click', playTrivia);
@@ -1561,14 +1561,13 @@ async function playTrivia() {
 function showTriviaQuestion(st) {
   stopTriviaTimer();
   const q = st.game.questions[st.i];
-  const total = st.game.questions.length;
   const secs = st.game.seconds;
   app.innerHTML = `
     <div class="tv-screen fade-in">
       <div class="tv-top">
         <button class="iconbtn" data-quit aria-label="Salir del quiz">${ICON.x}</button>
-        <div class="tv-progress">Pregunta <b>${st.i + 1}</b> de ${total}</div>
-        <div class="tv-score" data-score>✓ ${st.score}</div>
+        <div class="tv-progress">Pregunta <b>${st.i + 1}</b></div>
+        <div class="tv-score" data-score>🔥 ${st.score}</div>
       </div>
       <div class="tv-timer"><i style="animation-duration:${secs}s"></i></div>
       <div class="card tv-q">
@@ -1605,15 +1604,20 @@ function showTriviaQuestion(st) {
     if (r.right) st.score++;
     st.results.push({ ...q, choice: k, correct: r.correct, right: r.right });
     $$('.tv-ans', screen).forEach((b, i) => b.classList.add(i === r.correct ? 'good' : 'bad', 'shown'));
-    $('[data-score]', screen).textContent = `✓ ${st.score}`;
+    $('[data-score]', screen).textContent = `🔥 ${st.score}`;
+    // Siguiente tanda de preguntas (llega al acertar la última preparada)
+    if (r.more?.length) {
+      st.game.questions.push(...r.more);
+      for (const nq of r.more) for (const src of [nq.image, ...(nq.optionImages || [])]) if (src) { const img = new Image(); img.referrerPolicy = 'no-referrer'; img.src = src; }
+    }
     const title = r.right ? pickOne(['¡Correcto! 🎉', '¡Bien visto! ✨', '¡Sugoi! 🔥', '¡Eso es! 💥'])
-      : k == null ? '⏰ ¡Se acabó el tiempo!' : pickOne(['¡Casi! 😅', '¡Uy, por poco! 🙈', '¡Nooo! 😵']);
+      : k == null ? '⏰ ¡Se acabó el tiempo!' : pickOne(['¡Fallaste! 😵', '¡Uy, se acabó la racha! 🙈', '¡Nooo! 💥']);
     const fb = $('[data-feedback]', screen);
     fb.innerHTML = `<div class="tv-fb ${r.right ? 'ok' : 'ko'}">
         <b>${title}</b>
         ${r.right ? '' : `<span>La respuesta era: <b>${esc(q.options[r.correct])}</b></span>`}
         ${r.fact ? `<p>${esc(r.fact)}</p>` : ''}
-        <button class="btn primary block" data-next>${r.done ? 'Ver mi resultado' : 'Siguiente pregunta'}</button>
+        <button class="btn primary block" data-next>${r.done ? 'Ver mi resultado' : '¡Sigue la racha! →'}</button>
         ${q.reportable ? '<button class="tv-report" data-report>⚠️ Esta pregunta está mal: quitarla</button>' : ''}
       </div>`;
     const qi = st.i;
@@ -1649,15 +1653,16 @@ function showTriviaEnd(st, r) {
   stopTriviaTimer();
   $('#tabbar').hidden = false;
   const s = r.score;
-  const msg = s === 10 ? '¡Pleno! Te lo sabes todo 👑' : s >= 8 ? '¡Increíble! Eres un crack 🔥' : s >= 6 ? '¡Muy bien! Se nota que lo has visto 😎'
-    : s >= 4 ? '¡Nada mal! Pero hay que repasar 📺' : '¡Toca maratón de repaso! 🍿';
+  const msg = r.outOfQuestions ? '¡Te has quedado sin preguntas sin fallar ni una! 👑'
+    : s >= 20 ? '¡Leyenda del anime! 👑' : s >= 10 ? '¡Eres una bestia! 🔥' : s >= 6 ? '¡Rachón! Se nota que lo has visto 😎'
+    : s >= 3 ? '¡Buena racha! A por más 💪' : s >= 1 ? 'Calentando motores… 📺' : '¡Uy, a la primera! Otra vez 😅';
   const record = r.rank === 1 && r.played > 1;
   app.innerHTML = topbar('Quiz', { sub: 'Resultado' }) + `
     <div class="card tv-end fade-in">
       ${record ? '<div class="tv-record">🏆 ¡Nuevo récord!</div>' : ''}
-      <div class="tv-big">${s}<small>/10</small></div>
+      <div class="tv-big">${s}<small> acierto${s === 1 ? '' : 's'} seguido${s === 1 ? '' : 's'}</small></div>
       <h2>${msg}</h2>
-      <p class="muted">${fmtSecs(r.total_ms)} en total · ${r.played === 1 ? 'Tu primera partida' : `Puesto ${r.rank} de ${r.played} partidas`}</p>
+      <p class="muted">${fmtSecs(r.total_ms)} en total · ${r.played === 1 ? 'Tu primera racha' : r.rank <= 5 ? `Puesto ${r.rank} de tus mejores rachas` : 'Fuera de tus 5 mejores rachas'}</p>
       <div class="tv-dots">${st.results.map((x) => `<i class="${x.right ? 'ok' : 'ko'}"></i>`).join('')}</div>
       <div class="row"><button class="btn primary" data-again>Jugar otra vez</button><button class="btn" data-home>Volver al inicio</button></div>
     </div>
@@ -1670,7 +1675,7 @@ function showTriviaEnd(st, r) {
             : `<span>${x.choice == null ? '⏰ Sin responder' : `✗ ${esc(x.options[x.choice])}`} · Era: <b>${esc(x.options[x.correct])}</b></span>`}</div>
       </div>`).join('')}
     </div>
-    <div class="card section"><h2>🏆 Tus mejores puntuaciones</h2>${triviaRankingHtml(r.best, st.game.id)}</div>`;
+    <div class="card section"><h2>🏆 Tus 5 mejores rachas</h2>${triviaRankingHtml(r.best, st.game.id)}</div>`;
   $('[data-again]', app).addEventListener('click', playTrivia);
   $('[data-home]', app).addEventListener('click', () => { renderTrivia(); scrollTo(0, 0); });
   scrollTo(0, 0);

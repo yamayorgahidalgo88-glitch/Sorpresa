@@ -147,6 +147,9 @@ const MIGRATIONS = [
   'ALTER TABLE users ADD COLUMN avatar TEXT',
   // Preguntas del quiz que se han quitado por estar mal: la IA no puede volver a meterlas
   'ALTER TABLE trivia_ai_bank ADD COLUMN removed TEXT',
+  // Modo del quiz: 'streak' = racha (sigue mientras aciertes). Las partidas antiguas (10 preguntas) se quedan sin modo:
+  // no se borran, pero ya no cuentan para el ranking
+  'ALTER TABLE trivia_games ADD COLUMN mode TEXT',
 ];
 
 export async function initDb() {

@@ -518,6 +518,7 @@ table.anime tbody tr.dragging .grip { color: var(--orange); cursor: grabbing; }
 .tv-answers.faces { grid-template-columns: 1fr 1fr; max-width: 460px; margin: 0 auto; }
 .tv-img.wide { aspect-ratio: 3 / 1; } .tv-img.wide img { object-fit: cover; }
 .tv-report { display: block; margin: 12px auto 0; border: 0; background: none; color: var(--muted); font-size: 13px; font-weight: 700; text-decoration: underline; }
+.tv-big small { font-size: 22px; letter-spacing: .5px; } .tv-dots { flex-wrap: wrap; }
 
 /* Vista previa: el fondo de la página lo pinta el body y el mosaico va encima */
 body { background: var(--bg); }
@@ -845,7 +846,9 @@ const TRIVIA_BANK = [
 // - Datos e imágenes de AniList (personajes, banner de la serie)
 // - Preguntas «de reserva» sin IA (se usan si no hay IA o si falla)
 
-const TRIVIA_COUNT = 10;
+const TRIVIA_COUNT = 10; // preguntas que se preparan de cada tanda
+const TRIVIA_MAX = 300; // tope de seguridad de una racha
+const TRIVIA_TOP = 5; // puntuaciones que salen en el ranking
 const TRIVIA_SECONDS = 20;
 
 const triviaShuffle = (arr, rnd = Math.random) => {
@@ -1111,8 +1114,8 @@ function faceOf(info, name) {
  * Genera preguntas con los datos de AniList: personajes (con su foto), estudio y año.
  * extraTitles: títulos populares del catálogo para tener opciones aunque hayas visto pocos animes.
  */
-function localTrivia(animes, infos, plan, { extraTitles = [], bank = [], avoid = new Set(), rnd = Math.random, count = TRIVIA_COUNT } = {}) {
-  const used = new Set();
+function localTrivia(animes, infos, plan, { extraTitles = [], bank = [], avoid = new Set(), exclude = new Set(), rnd = Math.random, count = TRIVIA_COUNT } = {}) {
+  const used = new Set(exclude);
   // Preguntas de la trama escritas a mano
   const fromBank = (a, info) => {
     const pool = triviaShuffle(bankFor(a, bank), rnd).filter((x) => !used.has(x.q));
@@ -1214,7 +1217,10 @@ function localTrivia(animes, infos, plan, { extraTitles = [], bank = [], avoid =
  * Prepara una partida: elige animes, trae AniList y pide las preguntas a la IA (si hay);
  * lo que falte hasta 10 se completa con preguntas locales.
  */
-async function buildTrivia(seen, { fetchFn = fetch, ai = null, extraTitles = [], bank = [], moreBank = null, avoid = new Set(), rnd = Math.random } = {}) {
+async function buildTrivia(seen, { fetchFn = fetch, ai = null, extraTitles = [], bank = [], moreBank = null, avoid = new Set(), exclude = [], rnd = Math.random } = {}) {
+  // exclude: preguntas que ya han salido en esta partida (modo racha: se van pidiendo tandas)
+  const qid = (q) => `${q.question}|${q.options[q.correct]}`;
+  const exTexts = new Set(exclude.map((q) => q.question));
   const { animes, plan } = planTrivia(seen, rnd);
   const infos = await fetchAniList(animes, fetchFn);
   // Preguntas de la trama generadas por la IA gratuita y guardadas por el servidor (se amplían con el tiempo)
@@ -1226,9 +1232,11 @@ async function buildTrivia(seen, { fetchFn = fetch, ai = null, extraTitles = [],
   const fromAi = questions.length;
   if (questions.length < TRIVIA_COUNT) {
     const missing = plan.slice(questions.length);
-    questions = questions.concat(localTrivia(animes, infos, missing, { extraTitles, bank, avoid, rnd, count: TRIVIA_COUNT - questions.length }));
+    questions = questions.concat(localTrivia(animes, infos, missing, { extraTitles, bank, avoid, exclude: exTexts, rnd, count: TRIVIA_COUNT - questions.length }));
   }
-  questions = questions.filter(validQuestion).slice(0, TRIVIA_COUNT);
+  // Sin repetir preguntas dentro de la misma partida (en el modo racha se van pidiendo tandas)
+  const seenQ = new Set(exclude.map(qid));
+  questions = questions.filter((q) => validQuestion(q) && !seenQ.has(qid(q)) && seenQ.add(qid(q))).slice(0, TRIVIA_COUNT);
   return { questions, source: fromAi ? 'ai' : 'local' };
 }
 
@@ -1338,6 +1346,14 @@ const sortBest = (games) => [...games].sort((a, b) => b.score - a.score || a.tot
     });
   };
   const gameRow = ({ id: gid, score, total_ms, finished_at, source }) => ({ id: gid, score, total_ms, finished_at, source });
+  // Solo el modo racha: las partidas antiguas se conservan pero no cuentan
+  const bestOf = (uid) => sortBest(db().trivia.filter((g) => g.user_id === uid && g.finished_at && g.mode === 'streak')).map(gameRow);
+  async function triviaBatch(u, exclude = []) {
+    const seen = seenAnimes(u.id);
+    if (!seen.length) fail(400, 'Marca como visto algún anime en tus tablas para poder jugar');
+    const avoid = new Set(db().trivia.filter((g) => g.user_id === u.id).slice(-6).flatMap((g) => g.questions.map((q) => q.question)));
+    return buildTrivia(seen, { fetchFn: realFetch, extraTitles: CATALOG.items.slice(0, 60).map((i) => i.title), bank: TRIVIA_BANK, avoid, exclude });
+  }
   const clean = (v, max) => (v == null ? null : String(v).trim().slice(0, max) || null);
   async function hash(pw) {
     const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('animelist:' + pw));
@@ -1667,24 +1683,21 @@ const sortBest = (games) => [...games].sort((a, b) => b.score - a.score || a.tot
       else fail(400, 'Acción no válida');
       return { ok: true };
     }],
-    // ── Quiz tipo Kahoot (misma lógica que el servidor; en la vista previa no hay IA) ──
+    // ── Quiz tipo Kahoot, modo racha (misma lógica que el servidor; en la vista previa no hay IA) ──
     ['GET', /^\/trivia$/, () => {
       const u = me(true);
-      const best = sortBest(db().trivia.filter((g) => g.user_id === u.id && g.finished_at)).map(gameRow);
-      return { seen: seenAnimes(u.id).length, ai: false, count: TRIVIA_COUNT, seconds: TRIVIA_SECONDS, played: best.length, best: best.slice(0, 10) };
+      const best = bestOf(u.id);
+      return { seen: seenAnimes(u.id).length, ai: false, seconds: TRIVIA_SECONDS, played: best.length, best: best.slice(0, TRIVIA_TOP) };
     }],
     ['POST', /^\/trivia$/, async () => {
       const u = me(true);
-      const seen = seenAnimes(u.id);
-      if (!seen.length) fail(400, 'Marca como visto algún anime en tus tablas para poder jugar');
-      const { questions, source } = await buildTrivia(seen, { fetchFn: realFetch, extraTitles: CATALOG.items.slice(0, 60).map((i) => i.title), bank: TRIVIA_BANK,
-        avoid: new Set(db().trivia.filter((g) => g.user_id === u.id).slice(-6).flatMap((g) => g.questions.map((q) => q.question))) });
-      if (questions.length < TRIVIA_COUNT) fail(503, 'No se han podido preparar las preguntas. Inténtalo otra vez en un momento.');
-      const g = { id: id(), user_id: u.id, created_at: now(), source, questions, answers: [], score: null, total_ms: null, finished_at: null };
+      const { questions, source } = await triviaBatch(u);
+      if (!questions.length) fail(503, 'No se han podido preparar las preguntas. Inténtalo otra vez en un momento.');
+      const g = { id: id(), user_id: u.id, created_at: now(), source, questions, answers: [], score: null, total_ms: null, finished_at: null, mode: 'streak' };
       db().trivia.push(g);
       return { id: g.id, source, seconds: TRIVIA_SECONDS, questions: questions.map(publicQuestion) };
     }],
-    ['POST', /^\/trivia\/(\d+)\/answer$/, (b, m) => {
+    ['POST', /^\/trivia\/(\d+)\/answer$/, async (b, m) => {
       const u = me(true), g = db().trivia.find((x) => x.id === +m[1] && x.user_id === u.id);
       if (!g) fail(404, 'Partida no encontrada');
       if (g.finished_at) fail(409, 'Esta partida ya ha terminado');
@@ -1694,16 +1707,23 @@ const sortBest = (games) => [...games].sort((a, b) => b.score - a.score || a.tot
       const ms = Math.min(TRIVIA_SECONDS * 1000, Math.max(0, Math.round(Number(b.ms) || 0)));
       const q = g.questions[qi], right = choice === q.correct;
       g.answers.push({ choice, ms: choice == null ? TRIVIA_SECONDS * 1000 : ms, right });
-      const done = g.answers.length === g.questions.length;
-      const out = { correct: q.correct, right, fact: q.fact || '', done };
-      if (done) {
+      const out = { correct: q.correct, right, fact: q.fact || '' };
+      if (right && g.answers.length === g.questions.length && g.questions.length < TRIVIA_MAX) {
+        try {
+          const batch = await triviaBatch(u, g.questions);
+          if (batch.questions.length) { out.more = batch.questions.map(publicQuestion); g.questions.push(...batch.questions); }
+        } catch { /* sin más preguntas */ }
+      }
+      out.done = !right || g.answers.length === g.questions.length;
+      if (out.done) {
         g.score = out.score = g.answers.filter((a) => a.right).length;
         g.total_ms = out.total_ms = g.answers.reduce((s2, a) => s2 + a.ms, 0);
+        out.outOfQuestions = right;
         g.finished_at = now();
-        const best = sortBest(db().trivia.filter((x) => x.user_id === u.id && x.finished_at)).map(gameRow);
+        const best = bestOf(u.id);
         out.rank = best.findIndex((x) => x.id === g.id) + 1;
         out.played = best.length;
-        out.best = best.slice(0, 10);
+        out.best = best.slice(0, TRIVIA_TOP);
       }
       return out;
     }],
@@ -3247,7 +3267,7 @@ function triviaRankingHtml(best, highlight = null) {
   return `<ol class="tv-rank">${best.map((g, i) => `
     <li class="${g.id === highlight ? 'me' : ''}">
       <span class="pos">${MEDALS[i] || i + 1}</span>
-      <b class="sc">${g.score}<small>/10</small></b>
+      <b class="sc">${g.score}<small> acierto${g.score === 1 ? '' : 's'}</small></b>
       <span class="when">${fmtWhen(g.finished_at)}<small>${fmtSecs(g.total_ms)} en total</small></span>
     </li>`).join('')}</ol>`;
 }
@@ -3262,7 +3282,7 @@ async function renderTrivia() {
     <div class="card tv-hero fade-in">
       <div class="tv-shapes">${TILES.map((t) => `<i class="${t.cls}">${t.shape}</i>`).join('')}</div>
       <h2>¿Cuánto sabes de lo que has visto?</h2>
-      <p class="muted">${info.count} preguntas sobre los animes que tienes marcados como vistos. Tienes ${info.seconds} segundos para cada una y 4 respuestas: solo una es la buena.</p>
+      <p class="muted">Preguntas sin fin sobre los animes que tienes marcados como vistos: <b>sigues mientras aciertes</b> y al primer fallo se acaba. Tienes ${info.seconds} segundos para cada una y 4 respuestas: solo una es la buena.</p>
       <div class="meta">
         <span class="chip orange">${ICON.film}${info.seen} anime${info.seen === 1 ? '' : 's'} visto${info.seen === 1 ? '' : 's'}</span>
         <span class="chip">${info.ai ? '✨ Preguntas creadas con IA' : '🎭 Preguntas de personajes'}</span>
@@ -3271,7 +3291,7 @@ async function renderTrivia() {
       ${can ? '' : '<p class="muted" style="font-size:13px;margin:10px 0 0">Marca con ✓ algún anime en tus tablas para poder jugar.</p>'}
     </div>
     <div class="card section">
-      <h2>🏆 Tus mejores puntuaciones ${info.played ? `<span class="count">${info.played}</span>` : ''}</h2>
+      <h2>🏆 Tus 5 mejores rachas</h2>
       ${triviaRankingHtml(info.best)}
     </div>`;
   $('[data-play]', app)?.addEventListener('click', playTrivia);
@@ -3304,14 +3324,13 @@ async function playTrivia() {
 function showTriviaQuestion(st) {
   stopTriviaTimer();
   const q = st.game.questions[st.i];
-  const total = st.game.questions.length;
   const secs = st.game.seconds;
   app.innerHTML = `
     <div class="tv-screen fade-in">
       <div class="tv-top">
         <button class="iconbtn" data-quit aria-label="Salir del quiz">${ICON.x}</button>
-        <div class="tv-progress">Pregunta <b>${st.i + 1}</b> de ${total}</div>
-        <div class="tv-score" data-score>✓ ${st.score}</div>
+        <div class="tv-progress">Pregunta <b>${st.i + 1}</b></div>
+        <div class="tv-score" data-score>🔥 ${st.score}</div>
       </div>
       <div class="tv-timer"><i style="animation-duration:${secs}s"></i></div>
       <div class="card tv-q">
@@ -3348,15 +3367,20 @@ function showTriviaQuestion(st) {
     if (r.right) st.score++;
     st.results.push({ ...q, choice: k, correct: r.correct, right: r.right });
     $$('.tv-ans', screen).forEach((b, i) => b.classList.add(i === r.correct ? 'good' : 'bad', 'shown'));
-    $('[data-score]', screen).textContent = `✓ ${st.score}`;
+    $('[data-score]', screen).textContent = `🔥 ${st.score}`;
+    // Siguiente tanda de preguntas (llega al acertar la última preparada)
+    if (r.more?.length) {
+      st.game.questions.push(...r.more);
+      for (const nq of r.more) for (const src of [nq.image, ...(nq.optionImages || [])]) if (src) { const img = new Image(); img.referrerPolicy = 'no-referrer'; img.src = src; }
+    }
     const title = r.right ? pickOne(['¡Correcto! 🎉', '¡Bien visto! ✨', '¡Sugoi! 🔥', '¡Eso es! 💥'])
-      : k == null ? '⏰ ¡Se acabó el tiempo!' : pickOne(['¡Casi! 😅', '¡Uy, por poco! 🙈', '¡Nooo! 😵']);
+      : k == null ? '⏰ ¡Se acabó el tiempo!' : pickOne(['¡Fallaste! 😵', '¡Uy, se acabó la racha! 🙈', '¡Nooo! 💥']);
     const fb = $('[data-feedback]', screen);
     fb.innerHTML = `<div class="tv-fb ${r.right ? 'ok' : 'ko'}">
         <b>${title}</b>
         ${r.right ? '' : `<span>La respuesta era: <b>${esc(q.options[r.correct])}</b></span>`}
         ${r.fact ? `<p>${esc(r.fact)}</p>` : ''}
-        <button class="btn primary block" data-next>${r.done ? 'Ver mi resultado' : 'Siguiente pregunta'}</button>
+        <button class="btn primary block" data-next>${r.done ? 'Ver mi resultado' : '¡Sigue la racha! →'}</button>
         ${q.reportable ? '<button class="tv-report" data-report>⚠️ Esta pregunta está mal: quitarla</button>' : ''}
       </div>`;
     const qi = st.i;
@@ -3392,15 +3416,16 @@ function showTriviaEnd(st, r) {
   stopTriviaTimer();
   $('#tabbar').hidden = false;
   const s = r.score;
-  const msg = s === 10 ? '¡Pleno! Te lo sabes todo 👑' : s >= 8 ? '¡Increíble! Eres un crack 🔥' : s >= 6 ? '¡Muy bien! Se nota que lo has visto 😎'
-    : s >= 4 ? '¡Nada mal! Pero hay que repasar 📺' : '¡Toca maratón de repaso! 🍿';
+  const msg = r.outOfQuestions ? '¡Te has quedado sin preguntas sin fallar ni una! 👑'
+    : s >= 20 ? '¡Leyenda del anime! 👑' : s >= 10 ? '¡Eres una bestia! 🔥' : s >= 6 ? '¡Rachón! Se nota que lo has visto 😎'
+    : s >= 3 ? '¡Buena racha! A por más 💪' : s >= 1 ? 'Calentando motores… 📺' : '¡Uy, a la primera! Otra vez 😅';
   const record = r.rank === 1 && r.played > 1;
   app.innerHTML = topbar('Quiz', { sub: 'Resultado' }) + `
     <div class="card tv-end fade-in">
       ${record ? '<div class="tv-record">🏆 ¡Nuevo récord!</div>' : ''}
-      <div class="tv-big">${s}<small>/10</small></div>
+      <div class="tv-big">${s}<small> acierto${s === 1 ? '' : 's'} seguido${s === 1 ? '' : 's'}</small></div>
       <h2>${msg}</h2>
-      <p class="muted">${fmtSecs(r.total_ms)} en total · ${r.played === 1 ? 'Tu primera partida' : `Puesto ${r.rank} de ${r.played} partidas`}</p>
+      <p class="muted">${fmtSecs(r.total_ms)} en total · ${r.played === 1 ? 'Tu primera racha' : r.rank <= 5 ? `Puesto ${r.rank} de tus mejores rachas` : 'Fuera de tus 5 mejores rachas'}</p>
       <div class="tv-dots">${st.results.map((x) => `<i class="${x.right ? 'ok' : 'ko'}"></i>`).join('')}</div>
       <div class="row"><button class="btn primary" data-again>Jugar otra vez</button><button class="btn" data-home>Volver al inicio</button></div>
     </div>
@@ -3413,7 +3438,7 @@ function showTriviaEnd(st, r) {
             : `<span>${x.choice == null ? '⏰ Sin responder' : `✗ ${esc(x.options[x.choice])}`} · Era: <b>${esc(x.options[x.correct])}</b></span>`}</div>
       </div>`).join('')}
     </div>
-    <div class="card section"><h2>🏆 Tus mejores puntuaciones</h2>${triviaRankingHtml(r.best, st.game.id)}</div>`;
+    <div class="card section"><h2>🏆 Tus 5 mejores rachas</h2>${triviaRankingHtml(r.best, st.game.id)}</div>`;
   $('[data-again]', app).addEventListener('click', playTrivia);
   $('[data-home]', app).addEventListener('click', () => { renderTrivia(); scrollTo(0, 0); });
   scrollTo(0, 0);

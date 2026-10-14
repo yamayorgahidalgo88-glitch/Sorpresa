@@ -7,7 +7,7 @@ import {
   loadUser, requireUser, tooManyAttempts, clearAttempts,
 } from './auth.js';
 import { searchCatalog, getById, catalogMeta, topPosters, topTitles, norm } from './catalog.js';
-import { TRIVIA_COUNT, TRIVIA_SECONDS, dedupeSeen, buildTrivia, bankFor, publicQuestion, sortBest } from './trivia-shared.js';
+import { TRIVIA_SECONDS, TRIVIA_MAX, TRIVIA_TOP, dedupeSeen, buildTrivia, bankFor, publicQuestion, sortBest } from './trivia-shared.js';
 import { aiTrivia, aiEnabled } from './trivia-ai.js';
 import { TRIVIA_BANK } from './trivia-bank.js';
 import * as gemini from './trivia-gemini.js';
@@ -615,7 +615,8 @@ async function seenAnimes(userId) {
 
 // Las partidas acabadas, de mejor a peor
 async function bestGames(userId) {
-  const games = await all('SELECT id, score, total_ms, finished_at, source FROM trivia_games WHERE user_id = ? AND finished_at IS NOT NULL', [userId]);
+  // Solo el modo racha: las partidas antiguas de 10 preguntas se conservan pero no cuentan
+  const games = await all("SELECT id, score, total_ms, finished_at, source FROM trivia_games WHERE user_id = ? AND finished_at IS NOT NULL AND mode = 'streak'", [userId]);
   return sortBest(games);
 }
 
@@ -689,28 +690,35 @@ async function aiBankInner(animes, infos, handBank = [], later = []) {
 api.get('/trivia', requireUser, h(async (req, res) => {
   const [seen, best] = await Promise.all([seenAnimes(req.user.id), bestGames(req.user.id)]);
   res.set('Cache-Control', 'no-store');
-  res.json({ seen: seen.length, ai: aiEnabled() || geminiEnabled(), aiError: gemini.geminiLastError, aiInfo: gemini.geminiLastInfo, count: TRIVIA_COUNT, seconds: TRIVIA_SECONDS, played: best.length, best: best.slice(0, 10) });
+  res.json({ seen: seen.length, ai: aiEnabled() || geminiEnabled(), aiError: gemini.geminiLastError, aiInfo: gemini.geminiLastInfo, seconds: TRIVIA_SECONDS, played: best.length, best: best.slice(0, TRIVIA_TOP) });
 }));
 
-api.post('/trivia', requireUser, h(async (req, res) => {
-  const seen = await seenAnimes(req.user.id);
+// Prepara una tanda de preguntas (10) sin repetir las que ya han salido en la partida
+async function triviaBatch(user, exclude = []) {
+  const seen = await seenAnimes(user.id);
   if (!seen.length) fail(400, 'Marca como visto algún anime en tus tablas para poder jugar');
   // Preguntas que te han salido en tus últimas partidas: se prefieren otras
-  const recent = await all('SELECT questions FROM trivia_games WHERE user_id = ? ORDER BY id DESC LIMIT 6', [req.user.id]);
+  const recent = await all('SELECT questions FROM trivia_games WHERE user_id = ? ORDER BY id DESC LIMIT 6', [user.id]);
   const avoid = new Set(recent.flatMap((g) => JSON.parse(g.questions).map((q) => q.question)));
   const later = []; // ampliaciones del banco de la IA: se hacen después de contestar
-  const { questions, source } = await buildTrivia(seen, {
-    ai: aiTrivia, extraTitles: topTitles(60), bank: TRIVIA_BANK, avoid,
+  const batch = await buildTrivia(seen, {
+    ai: aiTrivia, extraTitles: topTitles(60), bank: TRIVIA_BANK, avoid, exclude,
     moreBank: (animes, infos, handBank) => aiBank(animes, infos, handBank, later),
   });
-  if (questions.length < TRIVIA_COUNT) fail(503, 'No se han podido preparar las preguntas. Inténtalo otra vez en un momento.');
-  const r = await run('INSERT INTO trivia_games (user_id, created_at, source, questions) VALUES (?, ?, ?, ?)',
+  return { ...batch, later };
+}
+
+// Modo racha: las preguntas se suceden mientras aciertes; al primer fallo se acaba y cuentan los aciertos
+api.post('/trivia', requireUser, h(async (req, res) => {
+  const { questions, source, later } = await triviaBatch(req.user);
+  if (!questions.length) fail(503, 'No se han podido preparar las preguntas. Inténtalo otra vez en un momento.');
+  const r = await run("INSERT INTO trivia_games (user_id, created_at, source, questions, mode) VALUES (?, ?, ?, ?, 'streak')",
     [req.user.id, Date.now(), source, JSON.stringify(questions)]);
   res.status(201).json({ id: Number(r.lastInsertRowid), source, seconds: TRIVIA_SECONDS, questions: questions.map(publicQuestion) });
   runAfterResponse(later);
 }));
 
-// Responder una pregunta (en orden). Devuelve cuál era la buena; con la última, la nota final y el ranking.
+// Responder una pregunta (en orden). Si aciertas y se acaban las preparadas, llega otra tanda; si fallas, se acaba.
 api.post('/trivia/:id/answer', requireUser, h(async (req, res) => {
   const g = await one('SELECT * FROM trivia_games WHERE id = ? AND user_id = ?', [intId(req.params.id), req.user.id]);
   if (!g) fail(404, 'Partida no encontrada');
@@ -724,21 +732,36 @@ api.post('/trivia/:id/answer', requireUser, h(async (req, res) => {
   const q = questions[qi];
   const right = choice === q.correct;
   answers.push({ choice, ms: choice == null ? TRIVIA_SECONDS * 1000 : ms, right });
-  const done = answers.length === questions.length;
-  const out = { correct: q.correct, right, fact: q.fact || '', done };
+  const out = { correct: q.correct, right, fact: q.fact || '' };
+  let later = [];
+  // Has acertado la última preparada: se prepara otra tanda (sin repetir ninguna de esta partida)
+  if (right && answers.length === questions.length && questions.length < TRIVIA_MAX) {
+    try {
+      const batch = await triviaBatch(req.user, questions);
+      later = batch.later;
+      if (batch.questions.length) {
+        out.more = batch.questions.map(publicQuestion);
+        questions.push(...batch.questions);
+      }
+    } catch { /* sin más preguntas: se acaba aquí con todo acertado */ }
+  }
+  const done = !right || answers.length === questions.length;
+  out.done = done;
   if (done) {
-    out.score = answers.filter((a) => a.right).length;
+    out.score = answers.filter((a) => a.right).length; // = aciertos seguidos
     out.total_ms = answers.reduce((s, a) => s + a.ms, 0);
-    await run('UPDATE trivia_games SET answers = ?, score = ?, total_ms = ?, finished_at = ? WHERE id = ?',
-      [JSON.stringify(answers), out.score, out.total_ms, Date.now(), g.id]);
+    out.outOfQuestions = right; // se acabaron las preguntas sin fallar
+    await run('UPDATE trivia_games SET questions = ?, answers = ?, score = ?, total_ms = ?, finished_at = ? WHERE id = ?',
+      [JSON.stringify(questions), JSON.stringify(answers), out.score, out.total_ms, Date.now(), g.id]);
     const best = await bestGames(req.user.id);
     out.rank = best.findIndex((b) => b.id === g.id) + 1;
     out.played = best.length;
-    out.best = best.slice(0, 10);
+    out.best = best.slice(0, TRIVIA_TOP);
   } else {
-    await run('UPDATE trivia_games SET answers = ? WHERE id = ?', [JSON.stringify(answers), g.id]);
+    await run('UPDATE trivia_games SET questions = ?, answers = ? WHERE id = ?', [JSON.stringify(questions), JSON.stringify(answers), g.id]);
   }
   res.json(out);
+  runAfterResponse(later);
 }));
 
 // «Esta pregunta está mal»: se quita para siempre del banco de la IA (solo preguntas ya respondidas)

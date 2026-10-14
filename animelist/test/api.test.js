@@ -268,7 +268,13 @@ test('quiz: sin animes vistos no se puede jugar', async () => {
   assert.equal((await otro('/trivia', { method: 'POST' })).status, 400);
 });
 
-test('quiz: 10 preguntas de tus vistos, respuestas en orden y ranking', async () => {
+// La respuesta buena solo la sabe el servidor: los tests la leen de la base de datos
+async function rightAnswer(gameId, qi) {
+  const { db } = await import('../server/db.js');
+  return JSON.parse((await db.execute({ sql: 'SELECT questions FROM trivia_games WHERE id = ?', args: [gameId] })).rows[0].questions)[qi].correct;
+}
+
+test('quiz modo racha: sigue mientras aciertes, al primer fallo se acaba; top 5', async () => {
   await yhm('/lists', { body: { name: 'Para el quiz', template: 'my' } });
   const info = (await yhm('/trivia')).data;
   assert.ok(info.seen >= 3, 'cuenta los animes con tu check');
@@ -276,7 +282,7 @@ test('quiz: 10 preguntas de tus vistos, respuestas en orden y ranking', async ()
   assert.deepEqual(info.best, []);
   const g = await yhm('/trivia', { method: 'POST' });
   assert.equal(g.status, 201);
-  assert.equal(g.data.questions.length, 10);
+  assert.equal(g.data.questions.length, 10, 'se prepara una tanda de 10');
   for (const q of g.data.questions) {
     assert.equal(q.options.length, 4);
     assert.equal('correct' in q, false, 'el móvil no recibe la respuesta antes de contestar');
@@ -284,26 +290,49 @@ test('quiz: 10 preguntas de tus vistos, respuestas en orden y ranking', async ()
   const id = g.data.id;
   assert.equal((await yhm(`/trivia/${id}/answer`, { body: { q: 3, choice: 0, ms: 1000 } })).status, 409, 'hay que ir en orden');
   assert.equal((await marta(`/trivia/${id}/answer`, { body: { q: 0, choice: 0, ms: 1000 } })).status, 404, 'cada uno juega la suya');
-  let last, rights = 0;
-  for (let i = 0; i < 10; i++) {
-    last = (await yhm(`/trivia/${id}/answer`, { body: { q: i, choice: i === 9 ? null : 0, ms: 1500 } })).data;
-    assert.ok(last.correct >= 0 && last.correct < 4);
-    if (last.right) rights++;
-    assert.equal(last.done, i === 9);
+  // 12 aciertos seguidos: al acertar la 10.ª llega otra tanda
+  const asked = [...g.data.questions];
+  let r;
+  for (let i = 0; i < 12; i++) {
+    r = (await yhm(`/trivia/${id}/answer`, { body: { q: i, choice: await rightAnswer(id, i), ms: 1000 } })).data;
+    assert.equal(r.right, true);
+    assert.equal(r.done, false, 'mientras aciertas, la partida sigue');
+    if (i === 9) { assert.ok(r.more?.length > 0, 'llega otra tanda de preguntas'); asked.push(...r.more); }
+    else assert.equal(r.more, undefined);
   }
-  assert.equal(last.right, false, 'sin responder es fallo');
-  assert.equal(last.score, rights);
-  assert.equal(last.total_ms, 9 * 1500 + 20000);
-  assert.equal(last.rank, 1);
-  assert.equal(last.played, 1);
-  assert.equal((await yhm(`/trivia/${id}/answer`, { body: { q: 9, choice: 0 } })).status, 409);
-  const after = (await yhm('/trivia')).data;
-  assert.equal(after.best.length, 1);
-  assert.equal(after.best[0].score, rights);
-  assert.ok(after.best[0].finished_at > 0);
-  // Una partida a medias no cuenta
+  const ids = new Set();
+  for (let i = 0; i < asked.length; i++) ids.add(`${asked[i].question}|${asked[i].options[await rightAnswer(id, i)]}`);
+  assert.equal(ids.size, asked.length, 'ninguna pregunta se repite en la misma partida');
+  // Fallo → se acaba, y la puntuación son los aciertos seguidos
+  const wrong = ((await rightAnswer(id, 12)) + 1) % 4;
+  r = (await yhm(`/trivia/${id}/answer`, { body: { q: 12, choice: wrong, ms: 1500 } })).data;
+  assert.equal(r.right, false);
+  assert.equal(r.done, true);
+  assert.equal(r.score, 12);
+  assert.equal(r.total_ms, 12 * 1000 + 1500);
+  assert.equal(r.rank, 1);
+  assert.equal(r.played, 1);
+  assert.equal((await yhm(`/trivia/${id}/answer`, { body: { q: 13, choice: 0 } })).status, 409, 'ya ha terminado');
+  // Sin responder a tiempo también es fallo
+  const g2 = (await yhm('/trivia', { method: 'POST' })).data;
+  r = (await yhm(`/trivia/${g2.id}/answer`, { body: { q: 0, choice: null, ms: 20000 } })).data;
+  assert.deepEqual([r.right, r.done, r.score], [false, true, 0]);
+  // Las partidas antiguas (formato de 10 preguntas) se conservan pero no cuentan
+  const { db } = await import('../server/db.js');
+  const yid = (await yhm('/me')).data.user.id;
+  await db.execute({ sql: "INSERT INTO trivia_games (user_id, created_at, source, questions, answers, score, total_ms, finished_at) VALUES (?, 1, 'local', '[]', '[]', 10, 1, 2)", args: [yid] });
+  // Una partida a medias no cuenta; en el ranking solo salen las 5 mejores
   await yhm('/trivia', { method: 'POST' });
-  assert.equal((await yhm('/trivia')).data.played, 1);
+  for (let k = 0; k < 5; k++) {
+    const gk = (await yhm('/trivia', { method: 'POST' })).data;
+    await yhm(`/trivia/${gk.id}/answer`, { body: { q: 0, choice: ((await rightAnswer(gk.id, 0)) + 1) % 4, ms: 500 } });
+  }
+  const after = (await yhm('/trivia')).data;
+  assert.equal(after.played, 7, 'cuentan solo las partidas acabadas en modo racha');
+  assert.equal(after.best.length, 5, 'top 5');
+  assert.equal(after.best[0].score, 12);
+  assert.ok(after.best.every((b) => b.score !== 10), 'la partida antigua no sale');
+  assert.equal((await db.execute({ sql: 'SELECT COUNT(*) AS n FROM trivia_games WHERE user_id = ? AND mode IS NULL', args: [yid] })).rows[0].n, 1, 'pero sigue guardada');
 });
 
 test('quiz: preguntas de la IA (Claude simulado) con foto del personaje', async () => {
@@ -425,9 +454,9 @@ test('quiz: animes nuevos → preguntas de la trama con Gemini (gratis), generad
     await yhm(`/entries/${eid}/marks/${col.id}`, { method: 'PUT', body: { seen: true } });
     assert.equal((await yhm('/trivia')).data.ai, true);
     let found = null, game = null;
-    for (let t = 0; t < 6 && !found; t++) {
+    for (let t = 0; t < 12 && found == null; t++) {
       game = (await yhm('/trivia', { method: 'POST' })).data;
-      const i = game.questions.findIndex((q) => q.reportable);
+      const i = game.questions.findIndex((q) => q.reportable && q.anime === 'Sakamoto Days');
       if (i >= 0) found = i;
     }
     assert.equal(calledFor['Sakamoto Days'], 1, 'se pide a Gemini una sola vez por anime; luego se reutiliza');
@@ -438,7 +467,7 @@ test('quiz: animes nuevos → preguntas de la trama con Gemini (gratis), generad
     assert.equal(await count(), 15);
     // Quitar una pregunta mala: primero hay que responderla
     assert.equal((await yhm(`/trivia/${game.id}/report`, { body: { q: found } })).status, 400);
-    for (let i = 0; i <= found; i++) await yhm(`/trivia/${game.id}/answer`, { body: { q: i, choice: 0, ms: 100 } });
+    for (let i = 0; i <= found; i++) await yhm(`/trivia/${game.id}/answer`, { body: { q: i, choice: await rightAnswer(game.id, i), ms: 100 } });
     assert.equal((await yhm(`/trivia/${game.id}/report`, { body: { q: found } })).status, 200);
     assert.equal(await count(), 14);
     // Un fallo puntual (límite gratuito) no deja el anime marcado como «sin preguntas»
