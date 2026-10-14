@@ -4,10 +4,11 @@ import { validQuestion } from './trivia-shared.js';
 
 const BASE = () => process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com';
 // Si uno está saturado o no existe, se prueba el siguiente (todos están en el plan gratuito)
-const MODELS = () => [...new Set([process.env.GEMINI_MODEL, 'gemini-flash-latest', 'gemini-2.5-flash', 'gemini-flash-lite-latest', 'gemini-2.5-flash-lite'].filter(Boolean))];
+const MODELS = () => [...new Set([process.env.GEMINI_MODEL, 'gemini-3.8-flash', 'gemini-flash-latest', 'gemini-flash-lite-latest'].filter(Boolean))];
 export const geminiEnabled = () => !!process.env.GEMINI_API_KEY;
 // Último fallo de Gemini (sin la clave), para poder ver qué pasa desde la app
 export let geminiLastError = null;
+export let geminiLastInfo = null; // qué modelo contestó y cuántas preguntas dio
 export const noteGeminiError = (msg) => { geminiLastError = String(msg).slice(0, 300); };
 
 const SYSTEM = `Eres el presentador de un quiz tipo Kahoot sobre anime para dos amigos españoles.
@@ -51,7 +52,7 @@ function prompt(anime, info) {
 }
 
 /** Pide a Gemini las preguntas de un anime (formato del banco: { q, a, w }). [] = no conoce el anime; null = error (se reintenta). */
-export async function geminiQuestions(anime, info, { timeoutMs = 20_000 } = {}) {
+export async function geminiQuestions(anime, info, { timeoutMs = 15_000 } = {}) {
   if (!geminiEnabled()) return null;
   const body = JSON.stringify({
     systemInstruction: { parts: [{ text: SYSTEM }] },
@@ -68,9 +69,9 @@ export async function geminiQuestions(anime, info, { timeoutMs = 20_000 } = {}) 
         signal: AbortSignal.timeout(timeoutMs),
       });
     } catch (e) {
-      console.error('Quiz: Gemini no responde', e?.message || e);
-      geminiLastError = `Sin respuesta: ${e?.message || e}`.slice(0, 300);
-      return null;
+      console.error('Quiz: Gemini no responde', model, e?.message || e);
+      geminiLastError = `${model} sin respuesta: ${e?.message || e}`.slice(0, 300);
+      continue; // tarda demasiado: probamos el siguiente
     }
     if (!res.ok) {
       const txt = (await res.text()).slice(0, 300);
@@ -85,10 +86,12 @@ export async function geminiQuestions(anime, info, { timeoutMs = 20_000 } = {}) 
       const data = await res.json();
       parsed = JSON.parse(data?.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('') || '{}');
     } catch (e) { geminiLastError = `Respuesta rara: ${e?.message || e}`.slice(0, 300); return null; }
-    return (parsed?.questions || [])
+    const out = (parsed?.questions || [])
       .map((x) => ({ q: String(x.q || '').trim(), a: String(x.a || '').trim(), w: (Array.isArray(x.w) ? x.w : []).map((y) => String(y).trim()).slice(0, 3) }))
       .filter((x) => validQuestion({ question: x.q, options: [x.a, ...x.w], correct: 0 }))
       .slice(0, 20);
+    geminiLastInfo = `${model} → ${out.length} preguntas para «${anime.title}» (${new Date().toISOString()})`;
+    return out;
   }
   return null;
 }

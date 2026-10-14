@@ -622,7 +622,7 @@ async function bestGames(userId) {
 // Preguntas de la trama con IA para los animes sin banco escrito a mano: se generan una vez y se guardan
 const aiBankKey = (a) => a.jw_id || 'title:' + a.title.toLowerCase().trim();
 const AI_BANK_PER_GAME = 4; // como mucho 4 animes nuevos por partida (límite del plan gratuito)
-const AI_RETRY_MS = 7 * 24 * 3600 * 1000; // si la IA no conocía el anime, se vuelve a probar a la semana
+const AI_RETRY_MS = 24 * 3600 * 1000; // si la IA no conocía el anime, se vuelve a probar al día siguiente
 async function aiBank(animes, infos) {
   try { return await aiBankInner(animes, infos); } catch (e) { gemini.noteGeminiError(`Servidor: ${e?.message || e}`); throw e; }
 }
@@ -652,7 +652,7 @@ async function aiBankInner(animes, infos) {
 api.get('/trivia', requireUser, h(async (req, res) => {
   const [seen, best] = await Promise.all([seenAnimes(req.user.id), bestGames(req.user.id)]);
   res.set('Cache-Control', 'no-store');
-  res.json({ seen: seen.length, ai: aiEnabled() || geminiEnabled(), aiError: gemini.geminiLastError, count: TRIVIA_COUNT, seconds: TRIVIA_SECONDS, played: best.length, best: best.slice(0, 10) });
+  res.json({ seen: seen.length, ai: aiEnabled() || geminiEnabled(), aiError: gemini.geminiLastError, aiInfo: gemini.geminiLastInfo, count: TRIVIA_COUNT, seconds: TRIVIA_SECONDS, played: best.length, best: best.slice(0, 10) });
 }));
 
 api.post('/trivia', requireUser, h(async (req, res) => {
