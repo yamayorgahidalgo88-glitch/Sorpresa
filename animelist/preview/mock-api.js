@@ -16,6 +16,8 @@
     mem.users.forEach((u) => { if (u.quiz_result === 'anya') { u.quiz_result = null; u.quiz_done = 0; } });
     return mem;
   };
+  // ¿Deja el navegador guardar datos? (en algunas apps o en modo incógnito no)
+  window.__previewStorage = (() => { try { localStorage.setItem(KEY + ':t', '1'); localStorage.removeItem(KEY + ':t'); return true; } catch { return false; } })();
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(mem)); } catch { /* solo en memoria */ } };
   const id = () => load().seq++;
   const now = () => Date.now();
@@ -104,7 +106,8 @@
     }],
     ['POST', /^\/auth\/login$/, async (b) => {
       const u = userByName(b.username || '');
-      if (!u || u.pass !== (await hash(String(b.password || '')))) fail(401, 'Usuario o contraseña incorrectos');
+      if (!u) fail(401, `No hay ninguna cuenta «${String(b.username || '').trim()}» guardada en este móvil. Créala en «Crear cuenta».`);
+      if (u.pass !== (await hash(String(b.password || '')))) fail(401, 'La contraseña no es correcta');
       db().session = u.id;
       return { user: pub(u) };
     }],

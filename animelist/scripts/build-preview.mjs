@@ -36,7 +36,7 @@ const app = read('public/app.js')
   .replace('const charImg = (key) => `/img/characters/${key}.jpg`;', `const CHAR_IMGS = ${JSON.stringify(CHAR_IMGS)};\nconst charImg = (key) => CHAR_IMGS[key] || '';`)
   .replace("if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});", '')
   .replace('Lo que vemos, lo que nos queda y nuestras notas</p>',
-    'Lo que vemos, lo que nos queda y nuestras notas<span class="preview-note">Vista previa · las cuentas y tablas se guardan solo en este móvil</span></p>');
+    'Lo que vemos, lo que nos queda y nuestras notas<span class="preview-note">${window.__previewStorage === false ? "⚠️ Este navegador no deja guardar datos: las cuentas se borrarán al cerrar. Ábrelo en Safari o Chrome." : "Vista previa · las cuentas y tablas se guardan solo en este móvil"}</span></p>');
 
 const out = `<title>Anime List M&amp;Y</title>
 <meta name="theme-color" content="#0d0d14">
