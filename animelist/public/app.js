@@ -447,12 +447,10 @@ async function renderLists() {
 async function newListFlow() {
   const res = await promptSheet({
     title: 'Nueva tabla', label: 'Nombre de la tabla', ok: 'Crear tabla', placeholder: 'Ej: Anime para el finde',
-    extra: `<label class="toggle"><span>Empezar con nuestros <b>animes para ver juntos</b><br><small class="muted">Los 9 de la lista M&amp;Y, con sus checks y notas</small></span>
-      <span class="switch"><input type="checkbox" name="template" value="my"><i></i></span></label>`,
   });
   if (!res) return;
   try {
-    const { id } = await api('/lists', { body: { name: res.value, template: res.template } });
+    const { id } = await api('/lists', { body: { name: res.value } });
     toast('Tabla creada');
     go('#/tabla/' + id);
   } catch (e) { fail(e); }
@@ -469,13 +467,24 @@ async function renderList(id) {
   app.innerHTML = topbar('Cargando…', { back: '#/tablas' }) + '<div class="skeleton" style="height:320px"></div>';
   try { await loadList(id); } catch (e) { fail(e); return go('#/tablas'); }
   drawList();
-  // Sincroniza con los cambios de las otras personas de la tabla
-  pollTimer = setInterval(async () => {
-    if (document.visibilityState !== 'visible' || $('.sheet') || state.dragging || location.hash !== '#/tabla/' + id) return;
-    const prev = state.list.list.updated_at;
-    try { await loadList(id); if (state.list.list.updated_at !== prev) drawList(true); } catch { /* reintenta luego */ }
-  }, 8000);
+  // Sincroniza con los cambios de las otras personas de la tabla: pregunta cada 2,5 s si algo ha cambiado
+  // (consulta muy ligera) y solo entonces vuelve a cargar la tabla.
+  let checking = false;
+  const sync = async () => {
+    if (checking || document.visibilityState !== 'visible' || location.hash !== '#/tabla/' + id || !state.list) return;
+    // No repintar mientras escribes, arrastras o tienes una ventana abierta
+    if ($('.sheet') || state.dragging || (document.activeElement && app.contains(document.activeElement) && document.activeElement.matches('input'))) return;
+    checking = true;
+    try {
+      const { updated_at } = await api(`/lists/${id}/version`);
+      if (updated_at !== state.list.list.updated_at) { await loadList(id); drawList(true); }
+    } catch { /* reintenta en la siguiente vuelta */ } finally { checking = false; }
+  };
+  pollTimer = setInterval(sync, 2500);
+  state.syncNow = sync;
 }
+document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && state.syncNow?.());
+addEventListener('focus', () => state.syncNow?.());
 
 // Ranking: podio por persona (o media) y por tipo (series / películas)
 function rankingFor(key, kind, people, entries) {
@@ -573,7 +582,7 @@ function drawList(keepScroll = false) {
           `<button data-f="${k}" class="${state.filter === k ? 'on' : ''}">${t}</button>`).join('')}
       </div>
     </div>
-    <div class="order-hint" data-hint ${state.filter === 'pending' ? '' : 'hidden'}>${ICON.grip} Arrastra desde las rayas para ordenar qué ver primero. Este orden es solo tuyo.</div>
+    <div class="order-hint" data-hint ${state.filter === 'pending' ? '' : 'hidden'}>${ICON.grip} Arrastra desde las rayas para ordenar qué ver primero. El orden lo veis todos los de la tabla.</div>
 
     <div class="table-wrap"><table class="anime">
       <thead><tr>

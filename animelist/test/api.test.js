@@ -98,8 +98,11 @@ test('añadir, editar y borrar un anime; orden de pendientes', async () => {
   assert.equal(r.status, 201);
   assert.equal((await yhm(`/entries/${r.data.id}`, { method: 'PATCH', body: { title: 'Sousou no Frieren' } })).status, 200);
   assert.equal((await yhm('/lists/' + listId)).data.entries.at(-1).title, 'Sousou no Frieren');
+  const v1 = (await yhm(`/lists/${listId}/version`)).data.updated_at;
   assert.equal((await yhm(`/lists/${listId}/pending-order`, { method: 'PUT', body: { ids: [r.data.id, ids.kny] } })).status, 200);
   assert.deepEqual((await yhm('/lists/' + listId)).data.pendingOrder, [r.data.id, ids.kny]);
+  assert.ok((await yhm(`/lists/${listId}/version`)).data.updated_at >= v1, 'reordenar avisa a los demás');
+  assert.equal((await marta(`/lists/${listId}/version`)).status, 404, 'solo los miembros consultan la versión');
   assert.equal((await yhm(`/entries/${r.data.id}`, { method: 'DELETE' })).status, 200);
   assert.equal((await yhm('/lists/' + listId)).data.entries.length, 9);
 });
@@ -147,6 +150,10 @@ test('compartir: invitación que Martita acepta y ocupa la columna «Marta»', a
   assert.deepEqual([mine.name, mine.color, mine.user_id], ['Martita', '#ff6fb5', martaId]);
   // Conserva las notas antiguas de Marta y ahora puede cambiarlas ella, pero no las de YHM
   assert.equal(data.entries.find((e) => e.id === ids.kny).marks[ids.m].rating, 9);
+  // El orden de «Pendientes» es el mismo para los dos
+  assert.deepEqual(data.pendingOrder, (await yhm('/lists/' + listId)).data.pendingOrder);
+  await marta(`/lists/${listId}/pending-order`, { method: 'PUT', body: { ids: [ids.kny] } });
+  assert.deepEqual((await yhm('/lists/' + listId)).data.pendingOrder, [ids.kny]);
   assert.equal((await marta(`/entries/${ids.kny}/marks/${ids.m}`, { method: 'PUT', body: { rating: 9.75 } })).status, 200);
   assert.equal((await marta(`/entries/${ids.kny}/marks/${ids.y}`, { method: 'PUT', body: { rating: 1 } })).status, 403);
   // Los invitados no comparten ni borran para todos

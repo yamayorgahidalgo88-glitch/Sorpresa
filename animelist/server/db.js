@@ -114,6 +114,8 @@ const MIGRATIONS = [
   'ALTER TABLE users ADD COLUMN quiz_done INTEGER NOT NULL DEFAULT 0',
   'ALTER TABLE users ADD COLUMN quiz_result TEXT',
   'ALTER TABLE list_people ADD COLUMN user_id INTEGER',
+  // Orden de «Pendientes» compartido por toda la tabla (antes era uno por persona)
+  'ALTER TABLE lists ADD COLUMN pending_order TEXT',
 ];
 
 export async function initDb() {

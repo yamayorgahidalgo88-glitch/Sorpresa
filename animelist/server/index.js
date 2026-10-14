@@ -211,23 +211,25 @@ api.get('/lists/:id', requireUser, h(async (req, res) => {
   const listId = intId(req.params.id);
   const m = await membership(listId, req.user.id);
   const [list, people, entries, marks, members, invites, order] = await Promise.all([
-    one('SELECT id, name, owner_id, updated_at FROM lists WHERE id = ?', [listId]),
+    one('SELECT id, name, owner_id, updated_at, pending_order FROM lists WHERE id = ?', [listId]),
     all(`SELECT p.id, p.position, p.user_id, COALESCE(u.username, p.name) AS name, COALESCE(u.color, p.color) AS color
       FROM list_people p LEFT JOIN users u ON u.id = p.user_id WHERE p.list_id = ? ORDER BY p.position, p.id`, [listId]),
     all('SELECT * FROM entries WHERE list_id = ? ORDER BY position, id', [listId]),
     all('SELECT k.entry_id, k.person_id, k.seen, k.rating FROM entry_marks k JOIN entries e ON e.id = k.entry_id WHERE e.list_id = ?', [listId]),
     all('SELECT u.id, u.username, u.color, m.role FROM list_members m JOIN users u ON u.id = m.user_id WHERE m.list_id = ? ORDER BY m.role DESC, u.username', [listId]),
     all('SELECT i.id, i.to_user, i.person_id, u.username FROM list_invites i JOIN users u ON u.id = i.to_user WHERE i.list_id = ?', [listId]),
-    one('SELECT ids FROM pending_orders WHERE list_id = ? AND user_id = ?', [listId, req.user.id]),
+    // Orden antiguo (personal) solo como respaldo: primero el del creador, si no el de cualquiera
+    one('SELECT ids FROM pending_orders WHERE list_id = ? ORDER BY (user_id = (SELECT owner_id FROM lists WHERE id = ?)) DESC LIMIT 1', [listId, listId]),
   ]);
   const byEntry = {};
   for (const k of marks) (byEntry[k.entry_id] ||= {})[k.person_id] = { seen: !!k.seen, rating: k.rating };
+  const { pending_order: shared, ...listInfo } = list;
   res.json({
-    list: { ...list, role: m.role },
+    list: { ...listInfo, role: m.role },
     people,
     members,
     invites: m.role === 'owner' ? invites : [],
-    pendingOrder: order ? JSON.parse(order.ids) : [],
+    pendingOrder: shared ? JSON.parse(shared) : order ? JSON.parse(order.ids) : [],
     entries: entries.map((e) => ({
       ...e,
       availability: e.availability ? JSON.parse(e.availability) : null,
@@ -349,14 +351,22 @@ api.delete('/entries/:eid', requireUser, h(async (req, res) => {
   res.json({ ok: true });
 }));
 
-// Orden personal de la vista «Pendientes»
+// Orden de la vista «Pendientes»: uno para toda la tabla, lo ven todos sus miembros
 api.put('/lists/:id/pending-order', requireUser, h(async (req, res) => {
   const listId = intId(req.params.id);
   await membership(listId, req.user.id);
   const ids = Array.isArray(req.body.ids) ? req.body.ids.map(Number).filter(Number.isInteger).slice(0, 2000) : [];
-  await run(`INSERT INTO pending_orders (list_id, user_id, ids) VALUES (?, ?, ?)
-    ON CONFLICT (list_id, user_id) DO UPDATE SET ids = excluded.ids`, [listId, req.user.id, JSON.stringify(ids)]);
+  await run('UPDATE lists SET pending_order = ?, updated_at = ? WHERE id = ?', [JSON.stringify(ids), Date.now(), listId]);
   res.json({ ok: true });
+}));
+
+// Consulta ligera para saber si alguien ha cambiado la tabla (la app la pregunta cada pocos segundos)
+api.get('/lists/:id/version', requireUser, h(async (req, res) => {
+  const listId = intId(req.params.id);
+  await membership(listId, req.user.id);
+  const l = await one('SELECT updated_at FROM lists WHERE id = ?', [listId]);
+  res.set('Cache-Control', 'no-store');
+  res.json({ updated_at: l.updated_at });
 }));
 
 // Check (visto) y nota: cada persona solo puede cambiar los suyos

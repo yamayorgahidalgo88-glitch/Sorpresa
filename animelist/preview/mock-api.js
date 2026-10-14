@@ -197,7 +197,8 @@
       });
       const members = d.members.filter((x) => x.list_id === lid).map((x) => ({ ...pub(d.users.find((uu) => uu.id === x.user_id)), role: x.role }));
       const invites = mem_.role === 'owner' ? d.invites.filter((i) => i.list_id === lid).map((i) => ({ id: i.id, to_user: i.to_user, person_id: i.person_id, username: d.users.find((x) => x.id === i.to_user)?.username })) : [];
-      const order = d.orders.find((o) => o.list_id === lid && o.user_id === u.id);
+      // Orden compartido; el antiguo (personal) solo como respaldo, primero el del creador
+      const order = l.pending_order ? { ids: l.pending_order } : d.orders.find((o) => o.list_id === lid && o.user_id === l.owner_id) || d.orders.find((o) => o.list_id === lid);
       return { list: { id: l.id, name: l.name, owner_id: l.owner_id, updated_at: l.updated_at, role: mem_.role }, people, members, invites, pendingOrder: order ? order.ids : [], entries };
     }],
     ['PATCH', /^\/lists\/(\d+)$/, (b, m) => {
@@ -250,10 +251,13 @@
     }],
     ['PUT', /^\/lists\/(\d+)\/pending-order$/, (b, m) => {
       const u = me(true), d = db(), lid = +m[1]; membership(lid, u.id);
-      const ids = Array.isArray(b.ids) ? b.ids.map(Number).filter(Number.isInteger) : [];
-      const o = d.orders.find((x) => x.list_id === lid && x.user_id === u.id);
-      if (o) o.ids = ids; else d.orders.push({ list_id: lid, user_id: u.id, ids });
+      d.lists.find((x) => x.id === lid).pending_order = Array.isArray(b.ids) ? b.ids.map(Number).filter(Number.isInteger) : [];
+      touch(lid);
       return { ok: true };
+    }],
+    ['GET', /^\/lists\/(\d+)\/version$/, (_b, m) => {
+      const u = me(true), lid = +m[1]; membership(lid, u.id);
+      return { updated_at: db().lists.find((x) => x.id === lid).updated_at };
     }],
     ['PUT', /^\/entries\/(\d+)\/marks\/(\d+)$/, (b, m) => {
       const u = me(true), d = db(), ent = d.entries.find((x) => x.id === +m[1]); if (!ent) fail(404, 'Anime no encontrado');
