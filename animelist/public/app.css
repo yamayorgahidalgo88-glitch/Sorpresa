@@ -127,7 +127,6 @@ body.auth #backdrop .mosaic { opacity: .75; }
 /* ── Vista de una tabla ── */
 .legend { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
 .legend .dot { width: 12px; height: 12px; border-radius: 4px; display: inline-block; }
-.legend .together-key { font-weight: 900; }
 .rank-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
 .rank-col { background: rgba(0, 0, 0, .25); border-radius: 14px; padding: 10px 12px; border-left: 4px solid var(--c); }
 .rank-col b { color: var(--c); }
@@ -149,11 +148,9 @@ table.anime th.p { color: #111; background: var(--c); }
 table.anime td.p { background: color-mix(in srgb, var(--c) 26%, transparent); }
 table.anime td.name { text-align: left; position: sticky; left: 0; background: #161622; z-index: 1; min-width: 180px; max-width: 240px; cursor: pointer; }
 table.anime thead th.name { left: 0; z-index: 3; text-align: left; }
-table.anime tr.together td.name .t { font-weight: 900; color: #fff; }
 table.anime td.name .wrap { display: flex; align-items: center; gap: 10px; }
 table.anime td.name img, table.anime td.name .ph { width: 34px; height: 50px; border-radius: 6px; object-fit: cover; flex: none; background: #2a2a3a; }
 table.anime td.name .t { font-weight: 600; line-height: 1.2; }
-table.anime td.name .heart { color: var(--orange); font-size: 12px; font-weight: 900; display: block; margin-top: 2px; }
 table.anime tbody tr:hover td { filter: brightness(1.08); }
 .check { width: 30px; height: 30px; border-radius: 9px; border: 2px solid rgba(255, 255, 255, .55); background: rgba(0, 0, 0, .25); display: inline-grid; place-items: center; transition: .15s; }
 .check svg { width: 18px; height: 18px; stroke-width: 3.2; opacity: 0; transform: scale(.4); transition: .15s; }

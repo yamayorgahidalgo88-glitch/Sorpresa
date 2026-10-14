@@ -52,15 +52,15 @@ test('registro, login y validaciones', async () => {
 });
 
 let listId;
-test('crear tabla con la plantilla M&Y', async () => {
-  const r = await yago('/lists', { body: { name: 'ANIME LIST: M&Y', template: 'my' } });
+test('crear tabla con la plantilla de animes para ver juntos', async () => {
+  const r = await yago('/lists', { body: { name: 'Animes para ver juntos', template: 'my' } });
   assert.equal(r.status, 201);
   listId = r.data.id;
   const { data } = await yago('/lists/' + listId);
-  assert.equal(data.entries.length, 32);
+  assert.equal(data.entries.length, 9);
+  assert.ok(!data.entries.some((e) => e.title === 'Hunter X Hunter'), 'solo los de ver juntos');
   assert.deepEqual(data.people.map((p) => p.name), ['Marta', 'Yago']);
   const kny = data.entries.find((e) => e.title === 'Kimetsu No Yaiba');
-  assert.equal(kny.together, true);
   const [m, y] = data.people;
   assert.deepEqual(kny.marks[m.id], { seen: true, rating: 9 });
   assert.deepEqual(kny.marks[y.id], { seen: true, rating: 10 });
@@ -68,7 +68,7 @@ test('crear tabla con la plantilla M&Y', async () => {
 });
 
 test('añadir, puntuar, editar y borrar un anime', async () => {
-  const r = await yago(`/lists/${listId}/entries`, { body: { title: 'Frieren', duration: '28 cap', platform: 'Crunchyroll', language: 'Español', together: true } });
+  const r = await yago(`/lists/${listId}/entries`, { body: { title: 'Frieren', duration: '28 cap', platform: 'Crunchyroll', language: 'Español' } });
   assert.equal(r.status, 201);
   const { data } = await yago('/lists/' + listId);
   const yagoCol = data.people.find((p) => p.name === 'Yago');
@@ -79,7 +79,7 @@ test('añadir, puntuar, editar y borrar un anime', async () => {
   assert.equal(after.title, 'Sousou no Frieren');
   assert.equal(after.marks[yagoCol.id].rating, 9.5);
   assert.equal((await yago(`/entries/${r.data.id}`, { method: 'DELETE' })).status, 200);
-  assert.equal((await yago('/lists/' + listId)).data.entries.length, 32);
+  assert.equal((await yago('/lists/' + listId)).data.entries.length, 9);
 });
 
 test('amigos: solicitud, rechazo, aceptación', async () => {

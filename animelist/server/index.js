@@ -158,12 +158,12 @@ async function importTemplate(listId) {
     peopleIds.push(Number(r.lastInsertRowid));
   }
   const now = Date.now();
-  for (const [pos, [title, duration, platform, language, together, mMark, yMark, jwId]] of TEMPLATE_ROWS.entries()) {
+  for (const [pos, [title, duration, platform, language, mMark, yMark, jwId]] of TEMPLATE_ROWS.entries()) {
     const cat = jwId ? getById(jwId) : null;
-    const r = await run(`INSERT INTO entries (list_id, position, title, jw_id, poster, kind, duration, platform, language, together, availability, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    const r = await run(`INSERT INTO entries (list_id, position, title, jw_id, poster, kind, duration, platform, language, availability, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [listId, pos, title, jwId || null, cat?.poster || null, duration === 'Película' ? 'movie' : 'show',
-      duration, platform, language, together, cat ? JSON.stringify(cat.platforms) : null, now + pos]);
+      duration, platform, language, cat ? JSON.stringify(cat.platforms) : null, now + pos]);
     const entryId = Number(r.lastInsertRowid);
     const stmts = [mMark, yMark].map(([seen, rating], k) => [
       'INSERT INTO entry_marks (entry_id, person_id, seen, rating) VALUES (?, ?, ?, ?)', [entryId, peopleIds[k], seen, rating]]);
@@ -189,7 +189,6 @@ api.get('/lists/:id', requireUser, h(async (req, res) => {
     members,
     entries: entries.map((e) => ({
       ...e,
-      together: !!e.together,
       availability: e.availability ? JSON.parse(e.availability) : null,
       marks: byEntry[e.id] || {},
     })),
@@ -272,7 +271,6 @@ const ENTRY_FIELDS = {
   duration: (v) => cleanText(v, 30),
   platform: (v) => cleanText(v, 40),
   language: (v) => cleanText(v, 40),
-  together: (v) => (v ? 1 : 0),
   availability: (v) => (Array.isArray(v) ? JSON.stringify(v.slice(0, 8)).slice(0, 4000) : null),
 };
 function pickEntry(body, partial) {
@@ -287,9 +285,9 @@ api.post('/lists/:id/entries', requireUser, h(async (req, res) => {
   const e = pickEntry(req.body, false);
   if (!e.title) fail(400, 'Escribe el nombre del anime');
   const pos = (await one('SELECT COALESCE(MAX(position), -1) + 1 AS p FROM entries WHERE list_id = ?', [listId])).p;
-  const r = await run(`INSERT INTO entries (list_id, position, title, jw_id, poster, kind, duration, platform, language, together, availability, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  [listId, pos, e.title, e.jw_id, e.poster, e.kind, e.duration, e.platform, e.language, e.together, e.availability, Date.now()]);
+  const r = await run(`INSERT INTO entries (list_id, position, title, jw_id, poster, kind, duration, platform, language, availability, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  [listId, pos, e.title, e.jw_id, e.poster, e.kind, e.duration, e.platform, e.language, e.availability, Date.now()]);
   await touch(listId);
   res.status(201).json({ id: Number(r.lastInsertRowid) });
 }));

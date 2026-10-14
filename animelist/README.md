@@ -4,8 +4,8 @@ App web (instalable en el móvil) para llevar nuestras listas de anime: quién l
 
 ## Qué hace
 - **Cuentas** con usuario y contraseña (contraseñas cifradas con scrypt, sesión por cookie).
-- **Tablas**: crear (pide el nombre primero), abrir y eliminar con la papelera roja (pide confirmación). Al crear puedes empezar con la lista original **ANIME LIST: M&Y** (las 32 filas del PDF con checks, notas y los de “ver juntos” en negrita).
-- Cada tabla tiene columnas de **check y nota por persona** (con su color), ranking automático, filtros (pendientes / vistos / juntos) y botón **Añadir** al final.
+- **Tablas**: crear (pide el nombre primero), abrir y eliminar con la papelera roja (pide confirmación). Al crear puedes empezar con nuestros **animes para ver juntos** (los 9 que estaban en negrita en el PDF, con sus checks y notas). El resto de animes van en otras tablas.
+- Cada tabla tiene columnas de **check y nota por persona** (con su color), ranking automático, filtros (pendientes / vistos) y botón **Añadir** al final.
 - **Autocompletado**: al escribir salen los animes que coinciden (entiende títulos en japonés, inglés y español, y erratas como “tokyo goul”). Al elegir uno se rellena solo dónde está disponible en España y en qué **idiomas de audio y subtítulos**.
 - **Amigos**: buscador por nombre de usuario, solicitudes con ✓ verde / ✗ roja, lista de amigos.
 - **Compartir**: el creador de una tabla puede compartirla con un amigo, que podrá editarla.

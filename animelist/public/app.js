@@ -34,7 +34,6 @@ const ICON = {
   film: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/></svg>',
   pencil: '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>',
   columns: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 4v16"/></svg>',
-  heart: '♥',
 };
 
 // ───────────── Utilidades ─────────────
@@ -268,7 +267,7 @@ async function renderLists() {
 async function newListFlow() {
   const res = await promptSheet({
     title: 'Nueva tabla', label: 'Nombre de la tabla', ok: 'Crear tabla', placeholder: 'Ej: Anime para el finde',
-    extra: `<label class="toggle"><span>Empezar con nuestra lista original <b>M&amp;Y</b><br><small class="muted">32 animes con checks y notas del PDF</small></span>
+    extra: `<label class="toggle"><span>Empezar con nuestros <b>animes para ver juntos</b><br><small class="muted">Los 9 de la lista M&amp;Y, con sus checks y notas</small></span>
       <span class="switch"><input type="checkbox" name="template" value="my"><i></i></span></label>`,
   });
   if (!res) return;
@@ -315,7 +314,6 @@ function visibleEntries() {
     const seenAny = people.some((p) => e.marks[p.id]?.seen);
     if (state.filter === 'pending') return !seenAll;
     if (state.filter === 'seen') return seenAny;
-    if (state.filter === 'together') return e.together;
     return true;
   });
 }
@@ -336,7 +334,6 @@ function drawList(keepScroll = false) {
     <div class="card section">
       <div class="legend">
         ${people.map((p) => `<span class="chip"><i class="dot" style="background:${p.color}"></i>${esc(p.name)}</span>`).join('')}
-        <span class="chip"><span class="together-key">Negrita</span>&nbsp;→ ver juntos</span>
       </div>
       ${ranking.length ? `<div class="rank-grid">${ranking.map(({ p, top }) => `
         <div class="rank-col" style="--c:${p.color}"><b>Top de ${esc(p.name)}</b>
@@ -347,7 +344,7 @@ function drawList(keepScroll = false) {
     <div class="toolbar">
       <label class="search">${ICON.search}<input class="input" type="search" placeholder="Buscar en la tabla…" value="${esc(state.query)}" data-q></label>
       <div class="filters">
-        ${[['all', 'Todos'], ['pending', 'Pendientes'], ['seen', 'Vistos'], ['together', 'Juntos ♥']].map(([k, t]) =>
+        ${[['all', 'Todos'], ['pending', 'Pendientes'], ['seen', 'Vistos']].map(([k, t]) =>
           `<button data-f="${k}" class="${state.filter === k ? 'on' : ''}">${t}</button>`).join('')}
       </div>
     </div>
@@ -385,10 +382,10 @@ function drawRows() {
   const cols = people.length * 2 + 4;
   tbody.innerHTML = rows.length ? rows.map((e) => {
     const pk = platKey(e.platform);
-    return `<tr class="${e.together ? 'together' : ''}" data-id="${e.id}">
+    return `<tr data-id="${e.id}">
       ${people.map((p) => `<td class="p" style="--c:${p.color}"><button class="check ${e.marks[p.id]?.seen ? 'on' : ''}" data-seen="${p.id}" aria-label="Visto por ${esc(p.name)}" aria-pressed="${!!e.marks[p.id]?.seen}">${ICON.check}</button></td>`).join('')}
       <td class="name" data-open><div class="wrap">${e.poster ? `<img src="${esc(e.poster)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : '<span class="ph"></span>'}
-        <div><span class="t">${esc(e.title)}</span>${e.together ? `<span class="heart">${ICON.heart} juntos</span>` : ''}</div></div></td>
+        <div><span class="t">${esc(e.title)}</span></div></div></td>
       <td>${esc(e.duration || '—')}</td>
       <td>${e.platform ? platBadge(pk, e.platform) : '—'}</td>
       <td>${esc(e.language || '—')}</td>
@@ -495,7 +492,6 @@ function entrySheet(entry = null) {
     duration: entry?.duration || '',
     platform: entry?.platform || '',
     language: entry?.language || 'Español',
-    together: entry?.together || false,
     availability: entry?.availability || null,
     meta: null,
   };
@@ -514,8 +510,6 @@ function entrySheet(entry = null) {
         <label class="field"><span>Plataforma</span><select class="input" name="platform"></select></label>
       </div>
       <label class="field"><span>Idioma en que lo veis</span><select class="input" name="language"></select></label>
-      <label class="toggle"><span>${ICON.heart} Para ver juntos <small class="muted">(sale en negrita)</small></span>
-        <span class="switch"><input type="checkbox" name="together"><i></i></span></label>
       <div class="actions">
         ${editing ? `<button type="button" class="btn" data-delete style="flex:0 0 auto;color:var(--red)" aria-label="Eliminar">${ICON.trash}</button>` : '<button type="button" class="btn" data-close>Cancelar</button>'}
         <button class="btn primary" data-submit>${editing ? 'Guardar' : `${ICON.plus} Añadir`}</button>
@@ -540,7 +534,6 @@ function entrySheet(entry = null) {
     form.platform.value = f.platform || [...opts][0];
     updateLangOptions();
     form.duration.value = f.duration;
-    form.together.checked = f.together;
   }
 
   function updateLangOptions() {
@@ -659,7 +652,6 @@ function entrySheet(entry = null) {
       duration: form.duration.value.trim(),
       platform: form.platform.value === 'Otra' ? '' : form.platform.value,
       language: form.language.value,
-      together: form.together.checked,
       availability: f.availability,
     };
     if (!body.jw_id) { body.poster = editing && title === entry.title ? entry.poster : null; body.availability = editing && title === entry.title ? entry.availability : null; }
