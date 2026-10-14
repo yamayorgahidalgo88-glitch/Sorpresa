@@ -498,14 +498,17 @@ document.addEventListener('visibilitychange', () => document.visibilityState ===
 addEventListener('focus', () => state.syncNow?.());
 
 // Ranking: podio por persona (o media) y por tipo (series / películas)
-function rankingFor(key, kind, people, entries) {
+// Ranking completo; en empate de nota manda el orden que hayas elegido (podiumPicks) y luego el de la tabla
+function rankingFor(key, kind, people, entries, picks = []) {
+  const pri = new Map(picks.map((id, i) => [id, i]));
   const score = (e) => {
     if (key !== 'avg') return e.marks[key]?.rating ?? null;
     const rs = people.map((p) => e.marks[p.id]?.rating).filter((r) => r != null);
     return rs.length ? Math.round((rs.reduce((a, b) => a + b, 0) / rs.length) * 100) / 100 : null;
   };
   return entries.filter((e) => (e.kind === 'movie' ? 'movie' : 'show') === kind)
-    .map((e) => ({ e, r: score(e) })).filter((x) => x.r != null).sort((a, b) => b.r - a.r).slice(0, 3);
+    .map((e) => ({ e, r: score(e) })).filter((x) => x.r != null)
+    .sort((a, b) => b.r - a.r || (pri.get(a.e.id) ?? 1e9) - (pri.get(b.e.id) ?? 1e9));
 }
 
 const LANG_FLAG = { 'Español': '🇪🇸', 'Japonés': '🇯🇵', 'Inglés': '🇬🇧', 'Catalán': '🏴', 'Francés': '🇫🇷', 'Italiano': '🇮🇹', 'Alemán': '🇩🇪', 'Portugués': '🇵🇹', 'Coreano': '🇰🇷', 'Chino': '🇨🇳' };
@@ -518,12 +521,16 @@ function podiumHtml() {
   const tab = tabs.find((t) => t.key === state.rankKey);
   if (!tab) return '';
   const kind = state.rankKind;
-  const top = rankingFor(tab.key, kind, people, entries);
+  const all = rankingFor(tab.key, kind, people, entries, (state.list.podiumPicks || {})[`${tab.key}:${kind}`]);
+  const top = all.slice(0, 3);
+  state.podium = { all, pickKey: `${tab.key}:${kind}` };
   const slot = (place) => {
     const x = top[place - 1];
+    const ties = x ? all.filter((y) => y.r === x.r && y.e.id !== x.e.id && !top.slice(0, place - 1).some((t) => t.e.id === y.e.id)).length : 0;
     const medal = ['', 'gold', 'silver', 'bronze'][place];
     return `<div class="pod pod-${place} ${medal}">
-      ${x ? `<button class="pod-card" data-open-entry="${x.e.id}">
+      ${x ? `<button class="pod-card" data-open-entry="${x.e.id}" ${ties ? `data-tie="${place}"` : ''}>
+          ${ties ? `<span class="tie-badge">⇄ ${ties + 1} con ${fmtRating(x.r)}</span>` : ''}
           <span class="pod-poster">${x.e.poster ? `<img src="${esc(x.e.poster)}" alt="" referrerpolicy="no-referrer">` : `<span class="ph">${esc(x.e.title[0] || '?')}</span>`}<i class="medal">${place}</i></span>
           <span class="pod-title">${esc(x.e.title)}</span>
           <span class="pod-score">${fmtRating(x.r)}</span>
@@ -637,8 +644,42 @@ function bindPodium() {
     redraw();
   }));
   $$('[data-kind]', box).forEach((b) => b.addEventListener('click', () => { state.rankKind = b.dataset.kind; redraw(); }));
-  $$('[data-open-entry]', box).forEach((b) => b.addEventListener('click', () =>
-    openEntry(state.list.entries.find((e) => e.id === Number(b.dataset.openEntry)))));
+  $$('[data-open-entry]', box).forEach((b) => b.addEventListener('click', () => {
+    const entry = state.list.entries.find((e) => e.id === Number(b.dataset.openEntry));
+    if (b.dataset.tie) tieSheet(Number(b.dataset.tie), entry, redraw); else openEntry(entry);
+  }));
+}
+
+// Empate en el podio: elegir cuál de los animes con la misma nota ocupa este puesto
+function tieSheet(place, current, redraw) {
+  const { all, pickKey } = state.podium;
+  const score = all[place - 1].r;
+  const above = all.slice(0, place - 1).map((x) => x.e.id);
+  const group = all.filter((x) => x.r === score && !above.includes(x.e.id));
+  const s = openSheet(`
+    <h3>${['', 'Primer', 'Segundo', 'Tercer'][place]} puesto · empate a ${fmtRating(score)}</h3>
+    <p class="muted" style="margin-top:-8px;font-size:14px">Elige cuál quieres que salga en ese puesto del podio. Solo cambia tu podio, no el de los demás.</p>
+    <div class="tie-list">${group.map((x) => `
+      <button class="tie-opt ${x.e.id === current.id ? 'on' : ''}" data-pick="${x.e.id}">
+        ${x.e.poster ? `<img src="${esc(x.e.poster)}" alt="" referrerpolicy="no-referrer">` : `<span class="ph">${esc(x.e.title[0] || '?')}</span>`}
+        <span class="t">${esc(x.e.title)}</span><b>${fmtRating(x.r)}</b></button>`).join('')}</div>
+    <div class="actions"><button class="btn" data-see>Ver ficha de «${esc(current.title)}»</button><button class="btn" data-close>Cerrar</button></div>`);
+  $('[data-see]', s).addEventListener('click', () => { s.close(); openEntry(current); });
+  $$('[data-pick]', s).forEach((b) => b.addEventListener('click', async () => {
+    const id = Number(b.dataset.pick);
+    // Orden del grupo empatado: el elegido pasa al sitio del que estaba en este puesto
+    const order = group.map((x) => x.e.id).filter((x) => x !== id);
+    order.splice(order.indexOf(current.id) === -1 ? 0 : order.indexOf(current.id), 0, id);
+    const tiedIds = all.filter((x) => x.r === score).map((x) => x.e.id);
+    const before = above.filter((x) => tiedIds.includes(x));
+    const prev = (state.list.podiumPicks[pickKey] || []).filter((x) => !tiedIds.includes(x));
+    state.list.podiumPicks = { ...state.list.podiumPicks, [pickKey]: [...before, ...order, ...prev] };
+    s.close();
+    redraw();
+    if (state.list.list.role !== 'viewer') {
+      try { await api(`/lists/${state.list.list.id}/podium-picks`, { method: 'PUT', body: { picks: state.list.podiumPicks } }); } catch (e) { fail(e); }
+    }
+  }));
 }
 
 function drawRows() {

@@ -218,6 +218,13 @@ test('«Añadir a otra lista» copia tu check y tu nota (y luego van por separad
   await yhm('/lists/' + vistos, { method: 'DELETE' });
 });
 
+test('desempate del podio: cada uno guarda el suyo', async () => {
+  assert.equal((await yhm(`/lists/${listId}/podium-picks`, { method: 'PUT', body: { picks: { [`${ids.y}:show`]: [5, 3], 'malo': [1] } } })).status, 200);
+  assert.deepEqual((await yhm('/lists/' + listId)).data.podiumPicks, { [`${ids.y}:show`]: [5, 3] });
+  assert.deepEqual((await marta('/lists/' + listId)).data.podiumPicks, {});
+  assert.equal((await otro(`/lists/${listId}/podium-picks`, { method: 'PUT', body: { picks: {} } })).status, 404);
+});
+
 test('salir de la tabla deja la columna libre con su nombre', async () => {
   assert.equal((await marta('/lists/' + listId, { method: 'DELETE' })).data.left, true);
   assert.equal((await marta('/lists/' + listId)).status, 404);

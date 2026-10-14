@@ -104,6 +104,13 @@ const SCHEMA = [
     ids TEXT NOT NULL,
     PRIMARY KEY (list_id, user_id)
   )`,
+  // Desempates del podio que elige cada persona: { "<pestaña>:<series|pelis>": [ids en orden] }
+  `CREATE TABLE IF NOT EXISTS podium_picks (
+    list_id INTEGER NOT NULL REFERENCES lists(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    picks TEXT NOT NULL,
+    PRIMARY KEY (list_id, user_id)
+  )`,
   `CREATE INDEX IF NOT EXISTS idx_entries_list ON entries(list_id, position)`,
   `CREATE INDEX IF NOT EXISTS idx_members_user ON list_members(user_id)`,
 ];

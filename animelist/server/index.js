@@ -215,8 +215,8 @@ async function importTemplate(listId, ownerId) {
 }
 
 // Todo lo necesario para pintar una tabla. role = 'owner' | 'editor' | 'viewer' (amigo que solo mira)
-async function listPayload(listId, role) {
-  const [list, people, entries, marks, members, invites, order] = await Promise.all([
+async function listPayload(listId, role, userId) {
+  const [list, people, entries, marks, members, invites, order, picks] = await Promise.all([
     one('SELECT id, name, owner_id, updated_at, pending_order FROM lists WHERE id = ?', [listId]),
     all(`SELECT p.id, p.position, p.user_id, COALESCE(u.username, p.name) AS name, COALESCE(u.color, p.color) AS color, u.avatar
       FROM list_people p LEFT JOIN users u ON u.id = p.user_id WHERE p.list_id = ? ORDER BY p.position, p.id`, [listId]),
@@ -226,6 +226,7 @@ async function listPayload(listId, role) {
     all('SELECT i.id, i.to_user, i.person_id, u.username FROM list_invites i JOIN users u ON u.id = i.to_user WHERE i.list_id = ?', [listId]),
     // Orden antiguo (personal) solo como respaldo: primero el del creador, si no el de cualquiera
     one('SELECT ids FROM pending_orders WHERE list_id = ? ORDER BY (user_id = (SELECT owner_id FROM lists WHERE id = ?)) DESC LIMIT 1', [listId, listId]),
+    one('SELECT picks FROM podium_picks WHERE list_id = ? AND user_id = ?', [listId, userId]),
   ]);
   const byEntry = {};
   for (const k of marks) (byEntry[k.entry_id] ||= {})[k.person_id] = { seen: !!k.seen, rating: k.rating };
@@ -236,6 +237,7 @@ async function listPayload(listId, role) {
     members,
     invites: role === 'owner' ? invites : [],
     pendingOrder: shared ? JSON.parse(shared) : order ? JSON.parse(order.ids) : [],
+    podiumPicks: picks ? JSON.parse(picks.picks) : {},
     entries: entries.map((e) => ({
       ...e,
       availability: e.availability ? JSON.parse(e.availability) : null,
@@ -247,7 +249,7 @@ async function listPayload(listId, role) {
 api.get('/lists/:id', requireUser, h(async (req, res) => {
   const listId = intId(req.params.id);
   const m = await membership(listId, req.user.id);
-  res.json(await listPayload(listId, m.role));
+  res.json(await listPayload(listId, m.role, req.user.id));
 }));
 
 api.patch('/lists/:id', requireUser, h(async (req, res) => {
@@ -380,6 +382,19 @@ api.put('/lists/:id/pending-order', requireUser, h(async (req, res) => {
   await membership(listId, req.user.id);
   const ids = Array.isArray(req.body.ids) ? req.body.ids.map(Number).filter(Number.isInteger).slice(0, 2000) : [];
   await run('UPDATE lists SET pending_order = ?, updated_at = ? WHERE id = ?', [JSON.stringify(ids), Date.now(), listId]);
+  res.json({ ok: true });
+}));
+
+// Qué anime sale en el podio cuando hay empate de nota (lo elige cada persona para sí)
+api.put('/lists/:id/podium-picks', requireUser, h(async (req, res) => {
+  const listId = intId(req.params.id);
+  await membership(listId, req.user.id);
+  const picks = {};
+  for (const [k, v] of Object.entries(req.body.picks || {}).slice(0, 40)) {
+    if (/^(\d+|avg):(show|movie)$/.test(k) && Array.isArray(v)) picks[k] = v.map(Number).filter(Number.isInteger).slice(0, 200);
+  }
+  await run(`INSERT INTO podium_picks (list_id, user_id, picks) VALUES (?, ?, ?)
+    ON CONFLICT (list_id, user_id) DO UPDATE SET picks = excluded.picks`, [listId, req.user.id, JSON.stringify(picks)]);
   res.json({ ok: true });
 }));
 
@@ -538,7 +553,7 @@ api.get('/friends/:userId/lists/:listId', requireUser, h(async (req, res) => {
   const listId = intId(req.params.listId);
   if (!(await one('SELECT 1 FROM list_members WHERE list_id = ? AND user_id = ?', [listId, f.id]))) fail(404, 'Tabla no encontrada');
   const mine = await one('SELECT role FROM list_members WHERE list_id = ? AND user_id = ?', [listId, req.user.id]);
-  res.json(await listPayload(listId, mine ? mine.role : 'viewer'));
+  res.json(await listPayload(listId, mine ? mine.role : 'viewer', req.user.id));
 }));
 
 api.post('/friends/request', requireUser, h(async (req, res) => {

@@ -110,7 +110,8 @@
     const members = d.members.filter((x) => x.list_id === lid).map((x) => ({ ...pub(d.users.find((uu) => uu.id === x.user_id)), role: x.role }));
     const invites = role === 'owner' ? d.invites.filter((i) => i.list_id === lid).map((i) => ({ id: i.id, to_user: i.to_user, person_id: i.person_id, username: d.users.find((x) => x.id === i.to_user)?.username })) : [];
     const order = l.pending_order ? { ids: l.pending_order } : d.orders.find((o) => o.list_id === lid && o.user_id === l.owner_id) || d.orders.find((o) => o.list_id === lid);
-    return { list: { id: l.id, name: l.name, owner_id: l.owner_id, updated_at: l.updated_at, role }, people, members, invites, pendingOrder: order ? order.ids : [], entries };
+    const pk = (d.picks || []).find((x) => x.list_id === lid && x.user_id === d.session);
+    return { list: { id: l.id, name: l.name, owner_id: l.owner_id, updated_at: l.updated_at, role }, people, members, invites, pendingOrder: order ? order.ids : [], podiumPicks: pk ? pk.picks : {}, entries };
   }
   const deleteEntry = (eid) => { db().marks = db().marks.filter((k) => k.entry_id !== eid); db().entries = db().entries.filter((e) => e.id !== eid); };
   const ENTRY = ['title', 'jw_id', 'poster', 'kind', 'duration', 'platform', 'language', 'availability'];
@@ -284,6 +285,13 @@
       const u = me(true), d = db(), lid = +m[1]; membership(lid, u.id);
       d.lists.find((x) => x.id === lid).pending_order = Array.isArray(b.ids) ? b.ids.map(Number).filter(Number.isInteger) : [];
       touch(lid);
+      return { ok: true };
+    }],
+    ['PUT', /^\/lists\/(\d+)\/podium-picks$/, (b, m) => {
+      const u = me(true), d = db(), lid = +m[1]; membership(lid, u.id);
+      d.picks ||= [];
+      const ex = d.picks.find((x) => x.list_id === lid && x.user_id === u.id);
+      if (ex) ex.picks = b.picks || {}; else d.picks.push({ list_id: lid, user_id: u.id, picks: b.picks || {} });
       return { ok: true };
     }],
     ['GET', /^\/lists\/(\d+)\/version$/, (_b, m) => {
