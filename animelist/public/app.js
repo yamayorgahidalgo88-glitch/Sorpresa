@@ -256,69 +256,75 @@ function renderAuth(mode = 'login') {
 // ───────────── Colores y test de personalidad ─────────────
 const COLORS = [
   { hex: '#ff4d5e', name: 'Rojo' }, { hex: '#ff8a1f', name: 'Naranja' }, { hex: '#ffd23f', name: 'Amarillo' },
-  { hex: '#8bc34a', name: 'Verde', reservedFor: 'yhm' }, { hex: '#2ed3c6', name: 'Turquesa' }, { hex: '#4aa8ff', name: 'Azul' },
+  { hex: '#8bc34a', name: 'Verde' }, { hex: '#2ed3c6', name: 'Turquesa' }, { hex: '#4aa8ff', name: 'Azul' },
   { hex: '#a77bff', name: 'Morado' }, { hex: '#ff6fb5', name: 'Rosa' },
 ];
 const colorName = (hex) => COLORS.find((c) => c.hex === hex)?.name || 'tu color';
-const isReservedFor = (c, user) => c.reservedFor && c.reservedFor !== user.username.toLowerCase();
 
-const CHARACTERS = {
-  rengoku: { name: 'Kyojuro Rengoku', anime: 'Kimetsu no Yaiba', color: '#ff4d5e',
-    why: 'Vas de frente y con el corazón en llamas. Proteges a los tuyos y contagias tu energía a todo el que tienes cerca.' },
-  jinwoo: { name: 'Sung Jinwoo', anime: 'Solo Leveling', color: '#a77bff',
-    why: 'Tranquilidad por fuera, fuerza imparable por dentro. Vas a tu ritmo, subes de nivel en silencio y cuando apareces, arrasas.' },
-  hinata: { name: 'Shoyo Hinata', anime: 'Haikyu!!', color: '#ff8a1f',
-    why: 'Pura energía. No te rindes nunca y saltas más alto que nadie aunque te digan que no puedes.' },
-  mitsuri: { name: 'Mitsuri Kanroji', anime: 'Kimetsu no Yaiba', color: '#ff6fb5',
-    why: 'Cariño a lo grande, risas y un apetito legendario. Pareces dulce, pero cuando toca proteger a los tuyos eres de las más fuertes.' },
-  kageyama: { name: 'Tobio Kageyama', anime: 'Haikyu!!', color: '#4aa8ff',
-    why: 'Estrategia y perfeccionismo. Ves la jugada antes que nadie y pones el balón justo donde hace falta.' },
-  zenitsu: { name: 'Zenitsu Agatsuma', anime: 'Kimetsu no Yaiba', color: '#ffd23f',
-    why: 'Un poquito de drama y bastante miedo… hasta que toca de verdad. Entonces eres un rayo.' },
-  tanjiro: { name: 'Tanjiro Kamado', anime: 'Kimetsu no Yaiba', color: '#8bc34a',
-    why: 'Amabilidad, esfuerzo y lealtad. Nunca abandonas a tu familia ni a tus amigos, pase lo que pase.' },
+// Cada color = una forma de ser, con 5 personajes que la comparten. El test da el color y,
+// al azar, uno de sus 5 personajes como foto de perfil.
+const PERSONAS = {
+  rojo: { color: '#ff4d5e', why: 'Vas de frente y con el corazón en llamas. Proteges a los tuyos y contagias tu energía a todo el que tienes cerca.',
+    chars: [['rengoku', 'Kyojuro Rengoku', 'Kimetsu no Yaiba'], ['kirishima', 'Eijiro Kirishima', 'My Hero Academia'], ['asta', 'Asta', 'Black Clover'], ['yuji', 'Yuji Itadori', 'Jujutsu Kaisen'], ['eren', 'Eren Yeager', 'Ataque a los titanes']] },
+  naranja: { color: '#ff8a1f', why: 'Pura energía. No te rindes nunca y saltas más alto que nadie aunque te digan que no puedes.',
+    chars: [['hinata', 'Shoyo Hinata', 'Haikyu!!'], ['naruto', 'Naruto Uzumaki', 'Naruto'], ['deku', 'Izuku Midoriya', 'My Hero Academia'], ['gon', 'Gon Freecss', 'Hunter x Hunter'], ['bokuto', 'Kotaro Bokuto', 'Haikyu!!']] },
+  amarillo: { color: '#ffd23f', why: 'Un poquito de drama y bastante miedo… hasta que toca de verdad. Entonces eres un rayo.',
+    chars: [['zenitsu', 'Zenitsu Agatsuma', 'Kimetsu no Yaiba'], ['okarun', 'Okarun', 'Dan Da Dan'], ['kafka', 'Kafka Hibino', 'Kaiju No. 8'], ['subaru', 'Subaru Natsuki', 'Re:Zero'], ['denji', 'Denji', 'Chainsaw Man']] },
+  verde: { color: '#8bc34a', why: 'Amabilidad, esfuerzo y lealtad. Nunca abandonas a tu familia ni a tus amigos, pase lo que pase.',
+    chars: [['tanjiro', 'Tanjiro Kamado', 'Kimetsu no Yaiba'], ['alphonse', 'Alphonse Elric', 'Fullmetal Alchemist'], ['armin', 'Armin Arlert', 'Ataque a los titanes'], ['kuroko', 'Tetsuya Kuroko', 'Kuroko no Basket'], ['thorfinn', 'Thorfinn', 'Vinland Saga']] },
+  turquesa: { color: '#2ed3c6', why: 'Calma total. Nada te altera, vas a tu ritmo y cuando hace falta resuelves sin despeinarte.',
+    chars: [['frieren', 'Frieren', 'Frieren'], ['rimuru', 'Rimuru Tempest', 'Tensei Slime'], ['kenma', 'Kenma Kozume', 'Haikyu!!'], ['giyu', 'Giyu Tomioka', 'Kimetsu no Yaiba'], ['saitama', 'Saitama', 'One Punch Man']] },
+  azul: { color: '#4aa8ff', why: 'Estrategia y perfeccionismo. Ves la jugada antes que nadie y siempre tienes un plan.',
+    chars: [['kageyama', 'Tobio Kageyama', 'Haikyu!!'], ['light', 'Light Yagami', 'Death Note'], ['l', 'L', 'Death Note'], ['isagi', 'Yoichi Isagi', 'Blue Lock'], ['akashi', 'Seijuro Akashi', 'Kuroko no Basket']] },
+  morado: { color: '#a77bff', why: 'Tranquilidad por fuera, fuerza imparable por dentro. Vas por libre, subes de nivel en silencio y cuando apareces, arrasas.',
+    chars: [['jinwoo', 'Sung Jinwoo', 'Solo Leveling'], ['levi', 'Levi', 'Ataque a los titanes'], ['itachi', 'Itachi Uchiha', 'Naruto'], ['killua', 'Killua Zoldyck', 'Hunter x Hunter'], ['nagi', 'Seishiro Nagi', 'Blue Lock']] },
+  rosa: { color: '#ff6fb5', why: 'Cariño a lo grande y risas aseguradas. Pareces dulce, pero cuando toca proteger a los tuyos eres de lo más fuerte.',
+    chars: [['mitsuri', 'Mitsuri Kanroji', 'Kimetsu no Yaiba'], ['anya', 'Anya Forger', 'Spy x Family'], ['uraraka', 'Ochaco Uraraka', 'My Hero Academia'], ['nezuko', 'Nezuko Kamado', 'Kimetsu no Yaiba'], ['rem', 'Rem', 'Re:Zero']] },
 };
-
-const charImg = (key) => `/img/characters/${key}.jpg?v=${ASSET_V}`;
 
 const QUIZ = [
   { anime: 'Kimetsu no Yaiba', q: 'Es de noche y te encuentras con un demonio. ¿Qué haces?', a: [
-    ['Desenvaino la espada y voy a por él', { rengoku: 3, tanjiro: 1 }],
-    ['Aviso a mis compañeros y lo rodeamos', { kageyama: 2, tanjiro: 2 }],
-    ['Me escondo y estudio cómo se mueve', { jinwoo: 3 }],
-    ['¡Huyo gritando! …y luego vuelvo a por él', { zenitsu: 3, mitsuri: 1 }],
+    ['Desenvaino la espada y voy a por él', { rojo: 3, verde: 1 }],
+    ['Aviso a mis compañeros y lo rodeamos', { azul: 2, verde: 2 }],
+    ['Me escondo y estudio cómo se mueve', { morado: 2, turquesa: 2 }],
+    ['¡Huyo gritando! …y luego vuelvo a por él', { amarillo: 3, rosa: 1 }],
   ] },
   { anime: 'Haikyu!!', q: 'Partido de vóley. ¿En qué posición juegas?', a: [
-    ['Rematador: quiero el último toque', { hinata: 3, rengoku: 1 }],
-    ['Colocador: yo dirijo el juego', { kageyama: 3 }],
-    ['Líbero: que no caiga ni un balón', { tanjiro: 2, zenitsu: 1 }],
-    ['Saque: un buen saque y punto directo', { jinwoo: 2, zenitsu: 1 }],
+    ['Rematador: quiero el último toque', { naranja: 3, rojo: 1 }],
+    ['Colocador: yo dirijo el juego', { azul: 3 }],
+    ['Líbero: que no caiga ni un balón', { verde: 2, turquesa: 1 }],
+    ['Saque: un buen saque y punto directo', { morado: 2, amarillo: 1 }],
   ] },
   { anime: 'Solo Leveling', q: 'Se abre una mazmorra de rango S delante de ti.', a: [
-    ['Entro sin nadie: así subo de nivel', { jinwoo: 3 }],
-    ['Monto un equipo y reparto los roles', { kageyama: 2, tanjiro: 1 }],
-    ['Entro en primera fila para proteger al resto', { rengoku: 3, hinata: 1 }],
-    ['Me quedo fuera con snacks a ver qué pasa', { zenitsu: 2, mitsuri: 2 }],
+    ['Entro sin nadie: así subo de nivel', { morado: 3 }],
+    ['Monto un equipo y reparto los roles', { azul: 2, verde: 1 }],
+    ['Entro en primera fila para proteger al resto', { rojo: 3, naranja: 1 }],
+    ['Me quedo fuera con snacks a ver qué pasa', { turquesa: 2, amarillo: 1, rosa: 1 }],
   ] },
   { anime: 'Tokyo Ghoul', q: 'Despiertas en el hospital y, como Kaneki, ahora eres medio ghoul. ¿Qué haces?', a: [
-    ['Lucho por seguir siendo humano y proteger a mis amigos', { tanjiro: 2, rengoku: 1 }],
-    ['Me refugio en Anteiku y aprendo de Touka y del jefe', { mitsuri: 2, kageyama: 1 }],
-    ['Acepto mi lado ghoul y me hago más fuerte en solitario', { jinwoo: 3 }],
-    ['Me encierro con un café de Anteiku… y que me rescaten', { zenitsu: 3 }],
+    ['Lucho por seguir siendo humano y proteger a mis amigos', { verde: 2, rojo: 1 }],
+    ['Me refugio en Anteiku y aprendo de Touka y del jefe', { rosa: 2, turquesa: 1 }],
+    ['Acepto mi lado ghoul y me hago más fuerte en solitario', { morado: 3 }],
+    ['Me encierro con un café de Anteiku… y que me rescaten', { amarillo: 3 }],
   ] },
   { anime: 'Naruto', q: '¿Cuál es tu camino ninja?', a: [
-    ['No rendirme jamás, ¡dattebayo!', { hinata: 3 }],
-    ['Proteger a los míos cueste lo que cueste', { tanjiro: 2, rengoku: 2 }],
-    ['Ser el más fuerte, aunque sea en solitario', { jinwoo: 2, kageyama: 1 }],
-    ['Disfrutar del camino con mis amigos', { mitsuri: 2, zenitsu: 1, hinata: 1 }],
+    ['No rendirme jamás, ¡dattebayo!', { naranja: 3 }],
+    ['Proteger a los míos cueste lo que cueste', { verde: 2, rojo: 2 }],
+    ['Ser el más fuerte, aunque sea en solitario', { morado: 2, azul: 1 }],
+    ['Disfrutar del camino con mis amigos', { rosa: 2, turquesa: 1, naranja: 1 }],
   ] },
 ];
 
-function quizResult(answers, user) {
-  const order = Object.keys(CHARACTERS).filter((k) => !isReservedFor(COLORS.find((c) => c.hex === CHARACTERS[k].color), user));
-  const score = Object.fromEntries(order.map((k) => [k, 0]));
-  answers.forEach((ai, qi) => Object.entries(QUIZ[qi].a[ai][1]).forEach(([k, v]) => { if (k in score) score[k] += v; }));
-  return order.reduce((best, k) => (score[k] > score[best] ? k : best), order[0]);
+// Color según las respuestas (si hay empate, al azar entre los empatados) y personaje al azar de ese color
+function quizResult(answers) {
+  const score = Object.fromEntries(Object.keys(PERSONAS).map((k) => [k, 0]));
+  answers.forEach((ai, qi) => Object.entries(QUIZ[qi].a[ai][1]).forEach(([k, v]) => { score[k] += v; }));
+  const max = Math.max(...Object.values(score));
+  const tops = Object.keys(score).filter((k) => score[k] === max);
+  const key = tops[Math.floor(Math.random() * tops.length)];
+  const chars = PERSONAS[key].chars;
+  const [avatar, name, anime] = chars[Math.floor(Math.random() * chars.length)];
+  return { key, ...PERSONAS[key], avatar, name, anime };
 }
 
 function renderQuiz({ again = false } = {}) {
@@ -331,7 +337,7 @@ function renderQuiz({ again = false } = {}) {
       <img class="quiz-logo" src="/img/logo-256.png" alt="">
       <div class="quiz-kicker">${again ? 'Repetir test' : `¡Hola, ${esc(user.username)}!`}</div>
       <h1 class="quiz-title">¿Qué color<br><em>te representa?</em></h1>
-      <p class="muted">5 preguntas sobre nuestros animes. Al final sabrás tu color y a qué personaje te pareces. Lo podrás cambiar cuando quieras en tu perfil.</p>
+      <p class="muted">5 preguntas sobre nuestros animes. Al final te toca un color y un personaje para tu foto de perfil. Los dos se pueden cambiar cuando quieras en tu perfil.</p>
       <button class="btn primary block" data-start>Empezar el test</button>
       ${again ? '<button class="btn ghost block" data-skip>Volver al perfil</button>' : ''}
     </div>`;
@@ -354,38 +360,29 @@ function renderQuiz({ again = false } = {}) {
     }));
     $('[data-back]', app)?.addEventListener('click', () => step(i - 1));
   };
-  const result = async () => {
-    const key = quizResult(answers, user);
-    const ch = CHARACTERS[key];
-    const keep = user.color && user.color !== ch.color ? user.color : null;
-    app.innerHTML = `<div class="quiz result fade-in" style="--c:${ch.color}">
+  const result = () => {
+    const r = quizResult(answers);
+    app.innerHTML = `<div class="quiz result fade-in" style="--c:${r.color}">
       <div class="quiz-kicker">Tu color es</div>
-      <h1 class="quiz-title color-name">${esc(colorName(ch.color))}</h1>
+      <h1 class="quiz-title color-name">${esc(colorName(r.color))}</h1>
       <div class="result-card">
-        <div class="result-poster"><img src="${charImg(key)}" alt="${esc(ch.name)}"></div>
+        <div class="result-poster square"><img src="${avatarImg(r.avatar)}" alt="${esc(r.name)}"></div>
         <div class="result-txt">
-          <small>Te pareces a</small>
-          <b>${esc(ch.name)}</b>
-          <span class="chip">${esc(ch.anime)}</span>
-          <p>${esc(ch.why)}</p>
+          <small>Tu foto de perfil</small>
+          <b>${esc(r.name)}</b>
+          <span class="chip">${esc(r.anime)}</span>
+          <p>${esc(r.why)}</p>
         </div>
       </div>
-      <button class="btn primary block" data-use style="background:${ch.color};color:#111">Usar el ${esc(colorName(ch.color).toLowerCase())}</button>
-      ${keep ? `<button class="btn block" data-keep><i class="swatch" style="background:${keep}"></i> Mantener mi ${esc(colorName(keep).toLowerCase())}</button>` : ''}
-      <button class="btn ghost block" data-other>Elegir otro color</button>
+      <button class="btn primary block" data-use style="background:${r.color};color:#111">¡Me lo quedo!</button>
+      <p class="muted center" style="font-size:13px">El color y la foto los puedes cambiar luego en tu perfil.</p>
     </div>`;
-    const finish = async (color) => {
+    $('[data-use]', app).addEventListener('click', async () => {
       try {
-        state.user = (await api('/me', { method: 'PATCH', body: { quizResult: key, color } })).user;
-        toast(`¡Listo! Tu color es el ${colorName(color).toLowerCase()}`);
+        state.user = (await api('/me', { method: 'PATCH', body: { quizResult: r.key, color: r.color, avatar: r.avatar } })).user;
+        toast(`¡Listo! Eres ${colorName(r.color).toLowerCase()} · ${r.name}`);
         go(again ? '#/perfil' : '#/tablas');
       } catch (e) { fail(e); }
-    };
-    $('[data-use]', app).addEventListener('click', () => finish(ch.color));
-    $('[data-keep]', app)?.addEventListener('click', () => finish(keep));
-    $('[data-other]', app).addEventListener('click', async () => {
-      const c = await colorSheet(ch.color);
-      if (c) finish(c);
     });
   };
   intro();
@@ -397,11 +394,8 @@ function colorSheet(current) {
     const s = openSheet(`
       <h3>Elige tu color</h3>
       <p class="muted" style="margin-top:-8px;font-size:14px">Es el color de tu columna de check y nota en todas las tablas.</p>
-      <div class="swatches">${COLORS.map((c) => {
-        const taken = isReservedFor(c, state.user);
-        return `<button class="sw ${c.hex === current ? 'on' : ''}" data-c="${c.hex}" style="--c:${c.hex}" ${taken ? 'disabled' : ''}>
-          <i></i><span>${c.name}</span>${taken ? '<small>Reservado</small>' : ''}</button>`;
-      }).join('')}</div>
+      <div class="swatches">${COLORS.map((c) => `<button class="sw ${c.hex === current ? 'on' : ''}" data-c="${c.hex}" style="--c:${c.hex}">
+          <i></i><span>${c.name}</span></button>`).join('')}</div>
       <div class="actions"><button class="btn" data-close>Cancelar</button></div>`, { onClose: () => !done && resolve(null) });
     $$('[data-c]', s).forEach((b) => b.addEventListener('click', () => { done = true; s.close(); resolve(b.dataset.c); }));
   });
@@ -1301,7 +1295,6 @@ async function renderProfile() {
   const { user, stats } = me;
   state.user = { ...state.user, ...user };
   const since = new Date(user.createdAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
-  const ch = CHARACTERS[user.quizResult];
   let meta = null;
   try { meta = await api('/meta'); } catch { /* opcional */ }
   app.innerHTML = topbar('Perfil') + `
@@ -1319,9 +1312,9 @@ async function renderProfile() {
     <div class="card section me-color" style="--c:${user.color || 'var(--orange)'}">
       <h2>Tu color</h2>
       <div class="me-color-row">
-        ${ch ? `<img class="char-thumb" src="${charImg(user.quizResult)}" alt="${esc(ch.name)}">` : '<i class="swatch big"></i>'}
+        <i class="swatch big"></i>
         <div class="name"><b>${esc(user.color ? colorName(user.color) : 'Sin elegir')}</b>
-          ${ch ? `<small>Te pareces a <b>${esc(ch.name)}</b> · ${esc(ch.anime)}</small>` : ''}</div>
+          <small>Es el color de tu columna en todas las tablas</small></div>
       </div>
       <div class="row" style="margin-top:12px">
         <button class="btn" data-color>${ICON.palette} Cambiar color</button>
@@ -1407,12 +1400,10 @@ async function renderFriendProfile(id) {
   let data;
   try { data = await api(`/friends/${id}/profile`); } catch (e) { fail(e); return go('#/amigos'); }
   const { user, stats, lists } = data;
-  const ch = CHARACTERS[user.quizResult];
   app.innerHTML = topbar('@' + user.username, { back: '#/amigos', sub: 'Amigo' }) + `
     <div class="card profile-hero fade-in" style="--c:${user.color || 'var(--orange)'}">
       ${avatarHtml(user)}
       <h2>@${esc(user.username)}</h2>
-      ${ch ? `<div class="muted">Se parece a <b style="color:var(--c)">${esc(ch.name)}</b> · ${esc(ch.anime)}</div>` : ''}
       <div class="stats" style="grid-template-columns:repeat(2,1fr)">
         <div><b>${stats.lists}</b><span>Tablas</span></div>
         <div><b>${stats.seen}</b><span>Animes vistos</span></div>

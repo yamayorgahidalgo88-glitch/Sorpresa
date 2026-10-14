@@ -42,7 +42,7 @@ test('registro, login y validaciones', async () => {
   assert.equal((await yhm('/auth/register', { body: { username: 'YHM', password: '123' } })).status, 400);
   const r = await yhm('/auth/register', { body: { username: 'YHM', password: 'karasuno10' } });
   assert.equal(r.status, 201);
-  assert.equal(r.data.user.color, '#8bc34a', 'YHM empieza con el verde');
+  assert.equal(r.data.user.color, null, 'el color lo da el test');
   assert.equal(r.data.user.quizDone, false, 'y aún tiene pendiente el test');
   assert.equal((await marta('/auth/register', { body: { username: 'yhm', password: 'whatever1' } })).status, 409);
   const m = await marta('/auth/register', { body: { username: 'Martita', password: 'nekoma05' } });
@@ -62,12 +62,12 @@ test('«Recordar usuario»: cookie de un año o solo de sesión', async () => {
   assert.doesNotMatch(await login(false), /Max-Age/);
 });
 
-test('test de personalidad y color (el verde está reservado para YHM)', async () => {
-  assert.equal((await marta('/me', { method: 'PATCH', body: { color: '#8bc34a' } })).status, 403);
+test('test de personalidad y color (cualquiera puede coger cualquier color)', async () => {
+  assert.equal((await marta('/me', { method: 'PATCH', body: { color: '#8bc34a' } })).data.user.color, '#8bc34a');
   assert.equal((await marta('/me', { method: 'PATCH', body: { color: '#123456' } })).status, 400);
   assert.equal((await marta('/me', { method: 'PATCH', body: { quizResult: 'nadie' } })).status, 400);
-  const r = await marta('/me', { method: 'PATCH', body: { quizResult: 'mitsuri', color: '#ff6fb5' } });
-  assert.deepEqual([r.data.user.quizDone, r.data.user.quizResult, r.data.user.color], [true, 'mitsuri', '#ff6fb5']);
+  const r = await marta('/me', { method: 'PATCH', body: { quizResult: 'rosa', color: '#ff6fb5', avatar: 'anya' } });
+  assert.deepEqual([r.data.user.quizDone, r.data.user.quizResult, r.data.user.color, r.data.user.avatar], [true, 'rosa', '#ff6fb5', 'anya']);
   assert.equal((await marta('/me')).data.user.color, '#ff6fb5');
   // YHM hace el test y se queda con su verde
   assert.equal((await yhm('/me', { method: 'PATCH', body: { quizResult: 'hinata', color: '#8bc34a' } })).status, 200);

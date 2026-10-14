@@ -425,3 +425,4 @@ table.anime tbody tr.dragging .grip { color: var(--orange); cursor: grabbing; }
 .tie-opt .t { flex: 1; font-weight: 800; }
 .tie-opt b { color: var(--orange-2); }
 .tie-opt.on { border-color: var(--orange); background: rgba(255, 122, 26, .12); }
+.result-poster.square { aspect-ratio: 1; width: 104px; border-radius: 24px; }

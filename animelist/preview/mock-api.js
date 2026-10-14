@@ -22,7 +22,7 @@
   const id = () => load().seq++;
   const now = () => Date.now();
   const COLORS = ['#8bc34a', '#ff4d5e', '#a77bff', '#ff8a1f', '#ff6fb5', '#4aa8ff', '#ffd23f', '#2ed3c6'];
-  const QUIZ_RESULTS = ['rengoku', 'jinwoo', 'hinata', 'mitsuri', 'kageyama', 'zenitsu', 'tanjiro'];
+  const QUIZ_RESULTS = ['rojo', 'naranja', 'amarillo', 'verde', 'turquesa', 'azul', 'morado', 'rosa', 'rengoku', 'jinwoo', 'hinata', 'mitsuri', 'kageyama', 'zenitsu', 'tanjiro'];
   const FALLBACK = '#9aa0b4';
 
   class E extends Error { constructor(s, m) { super(m); this.status = s; } }
@@ -128,7 +128,7 @@
       if (!/^[a-zA-Z0-9_.]{3,20}$/.test(username)) fail(400, 'El usuario debe tener 3-20 caracteres: letras, números, "_" o "."');
       if (String(b.password || '').length < 6) fail(400, 'La contraseña debe tener al menos 6 caracteres');
       if (userByName(username)) fail(409, 'Ese nombre de usuario ya existe');
-      const u = { id: id(), username, pass: await hash(b.password), created_at: now(), color: username.toLowerCase() === 'yhm' ? '#8bc34a' : null, quiz_done: 0, quiz_result: null };
+      const u = { id: id(), username, pass: await hash(b.password), created_at: now(), color: null, quiz_done: 0, quiz_result: null };
       db().users.push(u); startSession(u.id, b.remember);
       return { user: pub(u) };
     }],
@@ -158,7 +158,6 @@
       if ('color' in b) {
         const c = String(b.color || '').toLowerCase();
         if (!COLORS.includes(c)) fail(400, 'Ese color no está disponible');
-        if (c === '#8bc34a' && u.username.toLowerCase() !== 'yhm') fail(403, 'El verde está reservado para otra persona');
         u.color = c;
       }
       if ('avatar' in b) {

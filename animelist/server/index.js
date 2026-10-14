@@ -9,7 +9,7 @@ import {
 import { searchCatalog, getById, catalogMeta, topPosters, norm } from './catalog.js';
 import { liveSearch, liveDetail, JW_PACKAGES } from './justwatch.js';
 import { TEMPLATE_PEOPLE, TEMPLATE_ROWS } from './template-my.js';
-import { COLORS, RESERVED, DEFAULT_COLOR, QUIZ_RESULTS, FALLBACK_COLOR } from './profile.js';
+import { COLORS, QUIZ_RESULTS, FALLBACK_COLOR } from './profile.js';
 import { AVATARS, AVATAR_KEYS } from './avatars.js';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -38,7 +38,7 @@ api.post('/auth/register', h(async (req, res) => {
   if (!USERNAME_RE.test(username)) fail(400, 'El usuario debe tener 3-20 caracteres: letras, números, "_" o "."');
   if (password.length < 6) fail(400, 'La contraseña debe tener al menos 6 caracteres');
   if (await one('SELECT 1 FROM users WHERE username = ?', [username])) fail(409, 'Ese nombre de usuario ya existe');
-  const color = DEFAULT_COLOR(username);
+  const color = null;
   const r = await run('INSERT INTO users (username, pass_hash, created_at, color, quiz_done) VALUES (?, ?, ?, ?, 0)',
     [username, await hashPassword(password), Date.now(), color]);
   const id = Number(r.lastInsertRowid);
@@ -88,7 +88,6 @@ api.patch('/me', requireUser, h(async (req, res) => {
   if ('color' in req.body) {
     const c = String(req.body.color || '').toLowerCase();
     if (!COLORS[c]) fail(400, 'Ese color no está disponible');
-    if (RESERVED[c] && RESERVED[c] !== u.username.toLowerCase()) fail(403, `El ${COLORS[c].toLowerCase()} está reservado para otra persona`);
     color = c;
   }
   if ('quizResult' in req.body) {
