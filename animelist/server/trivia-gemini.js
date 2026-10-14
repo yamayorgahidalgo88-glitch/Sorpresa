@@ -5,6 +5,9 @@ import { validQuestion } from './trivia-shared.js';
 const BASE = () => process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com';
 const MODELS = () => [process.env.GEMINI_MODEL, 'gemini-flash-latest', 'gemini-2.5-flash'].filter(Boolean);
 export const geminiEnabled = () => !!process.env.GEMINI_API_KEY;
+// Último fallo de Gemini (sin la clave), para poder ver qué pasa desde la app
+export let geminiLastError = null;
+export const noteGeminiError = (msg) => { geminiLastError = String(msg).slice(0, 300); };
 
 const SYSTEM = `Eres el presentador de un quiz tipo Kahoot sobre anime para dos amigos españoles.
 Escribes todo en español de España (castellano).
@@ -65,19 +68,26 @@ export async function geminiQuestions(anime, info, { timeoutMs = 25_000 } = {}) 
       });
     } catch (e) {
       console.error('Quiz: Gemini no responde', e?.message || e);
+      geminiLastError = `Sin respuesta: ${e?.message || e}`.slice(0, 300);
       return null;
     }
     if (res.status === 404) continue; // ese modelo ya no existe: probamos el siguiente
-    if (!res.ok) { console.error('Quiz: Gemini ha fallado', res.status, (await res.text()).slice(0, 300)); return null; }
+    if (!res.ok) {
+      const txt = (await res.text()).slice(0, 300);
+      console.error('Quiz: Gemini ha fallado', res.status, txt);
+      geminiLastError = `${model} → ${res.status}: ${txt}`;
+      return null;
+    }
     let parsed;
     try {
       const data = await res.json();
       parsed = JSON.parse(data?.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('') || '{}');
-    } catch { return null; }
+    } catch (e) { geminiLastError = `Respuesta rara: ${e?.message || e}`.slice(0, 300); return null; }
     return (parsed?.questions || [])
       .map((x) => ({ q: String(x.q || '').trim(), a: String(x.a || '').trim(), w: (Array.isArray(x.w) ? x.w : []).map((y) => String(y).trim()).slice(0, 3) }))
       .filter((x) => validQuestion({ question: x.q, options: [x.a, ...x.w], correct: 0 }))
       .slice(0, 20);
   }
+  geminiLastError = 'Ningún modelo disponible (404)';
   return null;
 }
