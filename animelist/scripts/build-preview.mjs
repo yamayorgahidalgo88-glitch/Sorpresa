@@ -18,6 +18,9 @@ if (posterDir && existsSync(posterDir)) {
 const catalog = JSON.parse(read('data/catalog.json'));
 catalog.items = catalog.items.map(({ poster, ...it }) => it);
 const logo = dataUri(path.join(ROOT, 'public/img/logo-256.png'), 'image/png');
+const charDir = path.join(ROOT, 'public/img/characters');
+const CHAR_IMGS = Object.fromEntries(readdirSync(charDir).filter((f) => f.endsWith('.jpg'))
+  .map((f) => [f.replace('.jpg', ''), dataUri(path.join(charDir, f), 'image/jpeg')]));
 const icon = dataUri(path.join(ROOT, 'public/img/icon-64.png'), 'image/png');
 
 const html = read('public/index.html');
@@ -30,6 +33,7 @@ body { background: var(--bg); }
 .preview-note { display: block; margin-top: 6px; color: var(--orange-2); font-size: 12px; font-weight: 700; }`;
 const app = read('public/app.js')
   .replaceAll('/img/logo-256.png', logo)
+  .replace('const charImg = (key) => `/img/characters/${key}.jpg`;', `const CHAR_IMGS = ${JSON.stringify(CHAR_IMGS)};\nconst charImg = (key) => CHAR_IMGS[key] || '';`)
   .replace("if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});", '')
   .replace('Lo que vemos, lo que nos queda y nuestras notas</p>',
     'Lo que vemos, lo que nos queda y nuestras notas<span class="preview-note">Vista previa · las cuentas y tablas se guardan solo en este móvil</span></p>');

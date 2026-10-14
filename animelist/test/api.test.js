@@ -59,8 +59,8 @@ test('test de personalidad y color (el verde está reservado para YHM)', async (
   assert.equal((await marta('/me', { method: 'PATCH', body: { color: '#8bc34a' } })).status, 403);
   assert.equal((await marta('/me', { method: 'PATCH', body: { color: '#123456' } })).status, 400);
   assert.equal((await marta('/me', { method: 'PATCH', body: { quizResult: 'nadie' } })).status, 400);
-  const r = await marta('/me', { method: 'PATCH', body: { quizResult: 'anya', color: '#ff6fb5' } });
-  assert.deepEqual([r.data.user.quizDone, r.data.user.quizResult, r.data.user.color], [true, 'anya', '#ff6fb5']);
+  const r = await marta('/me', { method: 'PATCH', body: { quizResult: 'mitsuri', color: '#ff6fb5' } });
+  assert.deepEqual([r.data.user.quizDone, r.data.user.quizResult, r.data.user.color], [true, 'mitsuri', '#ff6fb5']);
   assert.equal((await marta('/me')).data.user.color, '#ff6fb5');
   // YHM hace el test y se queda con su verde
   assert.equal((await yhm('/me', { method: 'PATCH', body: { quizResult: 'hinata', color: '#8bc34a' } })).status, 200);
@@ -77,7 +77,7 @@ test('plantilla: columna de YHM enlazada y columna «Marta» libre', async () =>
   assert.deepEqual([m.name, m.user_id], ['Marta', null]);
   assert.equal(y.name, 'YHM', 'la columna «Yago» muestra el usuario');
   assert.equal(y.color, '#8bc34a');
-  const kny = data.entries.find((e) => e.title === 'Kimetsu No Yaiba');
+  const kny = data.entries.find((e) => e.title === 'Kimetsu no Yaiba');
   assert.deepEqual(kny.marks[m.id], { seen: true, rating: 9 });
   assert.deepEqual(kny.marks[y.id], { seen: true, rating: 10 });
   ids = { m: m.id, y: y.id, kny: kny.id };

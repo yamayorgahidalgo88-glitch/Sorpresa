@@ -235,28 +235,30 @@ const colorName = (hex) => COLORS.find((c) => c.hex === hex)?.name || 'tu color'
 const isReservedFor = (c, user) => c.reservedFor && c.reservedFor !== user.username.toLowerCase();
 
 const CHARACTERS = {
-  rengoku: { name: 'Kyojuro Rengoku', anime: 'Kimetsu no Yaiba', jw: 'ts87466', color: '#ff4d5e',
+  rengoku: { name: 'Kyojuro Rengoku', anime: 'Kimetsu no Yaiba', color: '#ff4d5e',
     why: 'Vas de frente y con el corazón en llamas. Proteges a los tuyos y contagias tu energía a todo el que tienes cerca.' },
-  jinwoo: { name: 'Sung Jinwoo', anime: 'Solo Leveling', jw: 'ts359486', color: '#a77bff',
+  jinwoo: { name: 'Sung Jinwoo', anime: 'Solo Leveling', color: '#a77bff',
     why: 'Tranquilidad por fuera, fuerza imparable por dentro. Vas a tu ritmo, subes de nivel en silencio y cuando apareces, arrasas.' },
-  hinata: { name: 'Shoyo Hinata', anime: 'Haikyu!!', jw: 'ts20112', color: '#ff8a1f',
+  hinata: { name: 'Shoyo Hinata', anime: 'Haikyu!!', color: '#ff8a1f',
     why: 'Pura energía. No te rindes nunca y saltas más alto que nadie aunque te digan que no puedes.' },
-  anya: { name: 'Anya Forger', anime: 'Spy x Family', jw: 'ts283022', color: '#ff6fb5',
-    why: 'Curiosidad, risas y un sexto sentido para saber lo que piensan los demás. Waku waku.' },
-  kageyama: { name: 'Tobio Kageyama', anime: 'Haikyu!!', jw: 'ts20112', color: '#4aa8ff',
+  mitsuri: { name: 'Mitsuri Kanroji', anime: 'Kimetsu no Yaiba', color: '#ff6fb5',
+    why: 'Cariño a lo grande, risas y un apetito legendario. Pareces dulce, pero cuando toca proteger a los tuyos eres de las más fuertes.' },
+  kageyama: { name: 'Tobio Kageyama', anime: 'Haikyu!!', color: '#4aa8ff',
     why: 'Estrategia y perfeccionismo. Ves la jugada antes que nadie y pones el balón justo donde hace falta.' },
-  zenitsu: { name: 'Zenitsu Agatsuma', anime: 'Kimetsu no Yaiba', jw: 'ts87466', color: '#ffd23f',
+  zenitsu: { name: 'Zenitsu Agatsuma', anime: 'Kimetsu no Yaiba', color: '#ffd23f',
     why: 'Un poquito de drama y bastante miedo… hasta que toca de verdad. Entonces eres un rayo.' },
-  tanjiro: { name: 'Tanjiro Kamado', anime: 'Kimetsu no Yaiba', jw: 'ts87466', color: '#8bc34a',
+  tanjiro: { name: 'Tanjiro Kamado', anime: 'Kimetsu no Yaiba', color: '#8bc34a',
     why: 'Amabilidad, esfuerzo y lealtad. Nunca abandonas a tu familia ni a tus amigos, pase lo que pase.' },
 };
+
+const charImg = (key) => `/img/characters/${key}.jpg`;
 
 const QUIZ = [
   { anime: 'Kimetsu no Yaiba', q: 'Es de noche y te encuentras con un demonio. ¿Qué haces?', a: [
     ['Desenvaino la espada y voy a por él', { rengoku: 3, tanjiro: 1 }],
     ['Aviso a mis compañeros y lo rodeamos', { kageyama: 2, tanjiro: 2 }],
     ['Me escondo y estudio cómo se mueve', { jinwoo: 3 }],
-    ['¡Huyo gritando! …y luego vuelvo a por él', { zenitsu: 3, anya: 1 }],
+    ['¡Huyo gritando! …y luego vuelvo a por él', { zenitsu: 3, mitsuri: 1 }],
   ] },
   { anime: 'Haikyu!!', q: 'Partido de vóley. ¿En qué posición juegas?', a: [
     ['Rematador: quiero el último toque', { hinata: 3, rengoku: 1 }],
@@ -268,19 +270,19 @@ const QUIZ = [
     ['Entro sin nadie: así subo de nivel', { jinwoo: 3 }],
     ['Monto un equipo y reparto los roles', { kageyama: 2, tanjiro: 1 }],
     ['Entro en primera fila para proteger al resto', { rengoku: 3, hinata: 1 }],
-    ['Me quedo fuera con snacks a ver qué pasa', { zenitsu: 2, anya: 2 }],
+    ['Me quedo fuera con snacks a ver qué pasa', { zenitsu: 2, mitsuri: 2 }],
   ] },
-  { anime: 'Spy x Family', q: 'En la familia Forger, ¿quién serías?', a: [
-    ['Loid: lo planeo todo al milímetro', { kageyama: 3 }],
-    ['Yor: calma total… hasta que hay que repartir', { rengoku: 2, jinwoo: 1 }],
-    ['Anya: leo mentes y quiero cacahuetes', { anya: 3 }],
-    ['Bond: fiel a muerte y veo el futuro', { tanjiro: 2, hinata: 1 }],
+  { anime: 'Tokyo Ghoul', q: 'Despiertas en el hospital y, como Kaneki, ahora eres medio ghoul. ¿Qué haces?', a: [
+    ['Lucho por seguir siendo humano y proteger a mis amigos', { tanjiro: 2, rengoku: 1 }],
+    ['Me refugio en Anteiku y aprendo de Touka y del jefe', { mitsuri: 2, kageyama: 1 }],
+    ['Acepto mi lado ghoul y me hago más fuerte en solitario', { jinwoo: 3 }],
+    ['Me encierro con un café de Anteiku… y que me rescaten', { zenitsu: 3 }],
   ] },
   { anime: 'Naruto', q: '¿Cuál es tu camino ninja?', a: [
     ['No rendirme jamás, ¡dattebayo!', { hinata: 3 }],
     ['Proteger a los míos cueste lo que cueste', { tanjiro: 2, rengoku: 2 }],
     ['Ser el más fuerte, aunque sea en solitario', { jinwoo: 2, kageyama: 1 }],
-    ['Disfrutar del camino con mis amigos', { anya: 2, zenitsu: 1, hinata: 1 }],
+    ['Disfrutar del camino con mis amigos', { mitsuri: 2, zenitsu: 1, hinata: 1 }],
   ] },
 ];
 
@@ -289,10 +291,6 @@ function quizResult(answers, user) {
   const score = Object.fromEntries(order.map((k) => [k, 0]));
   answers.forEach((ai, qi) => Object.entries(QUIZ[qi].a[ai][1]).forEach(([k, v]) => { if (k in score) score[k] += v; }));
   return order.reduce((best, k) => (score[k] > score[best] ? k : best), order[0]);
-}
-
-async function animePoster(jw) {
-  try { return (await api('/anime/' + jw)).item.poster; } catch { return null; }
 }
 
 function renderQuiz({ again = false } = {}) {
@@ -336,7 +334,7 @@ function renderQuiz({ again = false } = {}) {
       <div class="quiz-kicker">Tu color es</div>
       <h1 class="quiz-title color-name">${esc(colorName(ch.color))}</h1>
       <div class="result-card">
-        <div class="result-poster"><span class="ph"></span></div>
+        <div class="result-poster"><img src="${charImg(key)}" alt="${esc(ch.name)}"></div>
         <div class="result-txt">
           <small>Te pareces a</small>
           <b>${esc(ch.name)}</b>
@@ -348,7 +346,6 @@ function renderQuiz({ again = false } = {}) {
       ${keep ? `<button class="btn block" data-keep><i class="swatch" style="background:${keep}"></i> Mantener mi ${esc(colorName(keep).toLowerCase())}</button>` : ''}
       <button class="btn ghost block" data-other>Elegir otro color</button>
     </div>`;
-    animePoster(ch.jw).then((src) => { if (src && $('.result-poster', app)) $('.result-poster', app).innerHTML = `<img src="${esc(src)}" alt="" referrerpolicy="no-referrer">`; });
     const finish = async (color) => {
       try {
         state.user = (await api('/me', { method: 'PATCH', body: { quizResult: key, color } })).user;
@@ -1218,7 +1215,7 @@ async function renderProfile() {
     <div class="card section me-color" style="--c:${user.color || 'var(--orange)'}">
       <h2>Tu color</h2>
       <div class="me-color-row">
-        <i class="swatch big"></i>
+        ${ch ? `<img class="char-thumb" src="${charImg(user.quizResult)}" alt="${esc(ch.name)}">` : '<i class="swatch big"></i>'}
         <div class="name"><b>${esc(user.color ? colorName(user.color) : 'Sin elegir')}</b>
           ${ch ? `<small>Te pareces a <b>${esc(ch.name)}</b> · ${esc(ch.anime)}</small>` : ''}</div>
       </div>

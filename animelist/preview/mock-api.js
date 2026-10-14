@@ -7,13 +7,20 @@
     if (mem) return mem;
     try { mem = JSON.parse(localStorage.getItem(KEY)); } catch { mem = null; }
     mem ||= { seq: 1, users: [], session: null, friendships: [], lists: [], members: [], people: [], entries: [], marks: [], invites: [], orders: [] };
+    // Tablas creadas con versiones anteriores: nombres corregidos y pósters que faltaban
+    const FIX = { 'Kimetsu No Yaiba': 'Kimetsu no Yaiba', 'Kimetsu No Yaiba: Infinity Castle': 'Kimetsu no Yaiba: Infinity Castle', 'Haikyu': 'Haikyu!!', 'Tokyo Goul': 'Tokyo Ghoul', 'Spy X Family': 'Spy x Family' };
+    mem.entries.forEach((e) => {
+      if (FIX[e.title]) e.title = FIX[e.title];
+      if (!e.poster && e.jw_id && POSTERS[e.jw_id]) e.poster = POSTERS[e.jw_id];
+    });
+    mem.users.forEach((u) => { if (u.quiz_result === 'anya') { u.quiz_result = null; u.quiz_done = 0; } });
     return mem;
   };
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(mem)); } catch { /* solo en memoria */ } };
   const id = () => load().seq++;
   const now = () => Date.now();
   const COLORS = ['#8bc34a', '#ff4d5e', '#a77bff', '#ff8a1f', '#ff6fb5', '#4aa8ff', '#ffd23f', '#2ed3c6'];
-  const QUIZ_RESULTS = ['rengoku', 'jinwoo', 'hinata', 'anya', 'kageyama', 'zenitsu', 'tanjiro'];
+  const QUIZ_RESULTS = ['rengoku', 'jinwoo', 'hinata', 'mitsuri', 'kageyama', 'zenitsu', 'tanjiro'];
   const FALLBACK = '#9aa0b4';
 
   class E extends Error { constructor(s, m) { super(m); this.status = s; } }

@@ -5,5 +5,5 @@ export const COLORS = {
 };
 export const RESERVED = { '#8bc34a': 'yhm' };
 export const DEFAULT_COLOR = (username) => (username.toLowerCase() === RESERVED['#8bc34a'] ? '#8bc34a' : null);
-export const QUIZ_RESULTS = ['rengoku', 'jinwoo', 'hinata', 'anya', 'kageyama', 'zenitsu', 'tanjiro'];
+export const QUIZ_RESULTS = ['rengoku', 'jinwoo', 'hinata', 'mitsuri', 'kageyama', 'zenitsu', 'tanjiro'];
 export const FALLBACK_COLOR = '#9aa0b4';

@@ -377,3 +377,4 @@ input[type=range] { width: 100%; accent-color: var(--orange); height: 30px; }
 table.anime tbody tr.dragging { position: relative; z-index: 5; }
 table.anime tbody tr.dragging td { --row: rgba(52, 44, 40, .97); box-shadow: 0 16px 34px rgba(0, 0, 0, .55); border-color: rgba(255, 122, 26, .6); }
 table.anime tbody tr.dragging .grip { color: var(--orange); cursor: grabbing; }
+.char-thumb { width: 54px; height: 72px; border-radius: 14px; object-fit: cover; flex: none; box-shadow: 0 0 0 2px var(--c), 0 0 22px color-mix(in srgb, var(--c) 55%, transparent); }
