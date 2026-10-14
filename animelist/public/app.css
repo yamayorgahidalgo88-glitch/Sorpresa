@@ -412,3 +412,6 @@ table.anime tbody tr.dragging .grip { color: var(--orange); cursor: grabbing; }
 .their-marks .chip { font-size: 12px; }
 .their-marks .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
 .col-pick[disabled] { opacity: .5; }
+.av-search { display: block; position: relative; margin: 0 0 14px; }
+.av-search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 18px; color: var(--muted); }
+.av-search .input { padding-left: 38px; }

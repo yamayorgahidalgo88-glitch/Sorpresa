@@ -1319,10 +1319,11 @@ async function changeAvatar() {
     let done = false;
     const s = openSheet(`
       <h3>Elige tu foto de perfil</h3>
-      <p class="muted" style="margin-top:-8px;font-size:14px">La verán tus amigos y quien te busque.</p>
+      <p class="muted" style="margin-top:-8px;font-size:14px">La verán tus amigos y quien te busque. ${avatarsCache.length} personajes.</p>
+      <label class="search av-search">${ICON.search}<input class="input" type="search" placeholder="Busca personaje o anime…" data-avq autocomplete="off"></label>
       <div class="av-groups">${groups.map((g) => `
-        <div class="av-group"><div class="av-anime">${esc(g.anime)}</div>
-          <div class="av-grid">${g.items.map((a) => `<button class="av ${a.key === current ? 'on' : ''}" data-av="${a.key}" title="${esc(a.name)}" aria-label="${esc(a.name)}">
+        <div class="av-group" data-anime="${esc(g.anime.toLowerCase())}"><div class="av-anime">${esc(g.anime)}</div>
+          <div class="av-grid">${g.items.map((a) => `<button class="av ${a.key === current ? 'on' : ''}" data-av="${a.key}" data-n="${esc(a.name.toLowerCase())}" title="${esc(a.name)}" aria-label="${esc(a.name)}">
             <img src="${avatarImg(a.key)}" alt="" loading="lazy"><span>${esc(a.name.split(' ')[0])}</span></button>`).join('')}</div>
         </div>`).join('')}</div>
       <div class="actions">${current ? '<button class="btn" data-none>Quitar foto</button>' : ''}<button class="btn" data-close>Cancelar</button></div>`,
@@ -1337,6 +1338,15 @@ async function changeAvatar() {
       } catch (e) { done = false; fail(e); }
     };
     $$('[data-av]', s).forEach((b) => b.addEventListener('click', () => save(b.dataset.av)));
+    $('[data-avq]', s).addEventListener('input', (e) => {
+      const q = e.target.value.trim().toLowerCase();
+      $$('.av-group', s).forEach((g) => {
+        const animeHit = g.dataset.anime.includes(q);
+        let any = false;
+        $$('[data-av]', g).forEach((b) => { const hit = !q || animeHit || b.dataset.n.includes(q); b.hidden = !hit; any ||= hit; });
+        g.hidden = !any;
+      });
+    });
     $('[data-none]', s)?.addEventListener('click', () => save(null));
   });
 }
