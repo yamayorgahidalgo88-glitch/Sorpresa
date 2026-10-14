@@ -68,7 +68,9 @@ const avatarStyle = (name, color) => {
   for (const c of name) h = (h * 31 + c.charCodeAt(0)) % 360;
   return `--a1:hsl(${h} 90% 55%);--a2:hsl(${(h + 50) % 360} 80% 42%)`;
 };
-const avatarImg = (key) => `/img/avatars/${key}.jpg`;
+// Súbelo al cambiar imágenes: obliga a los móviles a descargar las nuevas
+const ASSET_V = '3';
+const avatarImg = (key) => `/img/avatars/${key}.jpg?v=${ASSET_V}`;
 const platKey = (name) => PLATFORM_BY_NAME[(name || '').toLowerCase()] || null;
 const platBadge = (key, label) => {
   const p = PLATFORMS[key];
@@ -277,7 +279,7 @@ const CHARACTERS = {
     why: 'Amabilidad, esfuerzo y lealtad. Nunca abandonas a tu familia ni a tus amigos, pase lo que pase.' },
 };
 
-const charImg = (key) => `/img/characters/${key}.jpg`;
+const charImg = (key) => `/img/characters/${key}.jpg?v=${ASSET_V}`;
 
 const QUIZ = [
   { anime: 'Kimetsu no Yaiba', q: 'Es de noche y te encuentras con un demonio. ¿Qué haces?', a: [
@@ -844,7 +846,8 @@ function entrySheet(entry = null) {
       </div>
       <label class="field"><span>Idioma en que lo veis</span><select class="input" name="language"></select></label>
       <div class="actions">
-        ${editing ? `<button type="button" class="btn" data-delete style="flex:0 0 auto;color:var(--red)" aria-label="Eliminar">${ICON.trash}</button>` : '<button type="button" class="btn" data-close>Cancelar</button>'}
+        ${editing ? `<button type="button" class="btn" data-delete style="flex:0 0 auto;color:var(--red)" aria-label="Eliminar">${ICON.trash}</button>
+          <button type="button" class="btn" data-copy style="flex:0 0 auto" aria-label="Añadir a otra lista">${ICON.plus} Otra lista</button>` : '<button type="button" class="btn" data-close>Cancelar</button>'}
         <button class="btn primary" data-submit>${editing ? 'Guardar' : `${ICON.plus} Añadir`}</button>
       </div>
     </form>`);
@@ -1000,6 +1003,12 @@ function entrySheet(entry = null) {
     } catch (ex) { fail(ex); $('[data-submit]', s).disabled = false; }
   });
 
+  $('[data-copy]', s)?.addEventListener('click', () => {
+    const me = state.list.people.find(isMine);
+    const m = me ? entry.marks[me.id] : null;
+    s.close();
+    addToMyListSheet(entry, { mark: m ? { seen: !!m.seen, rating: m.rating ?? null } : null, exclude: state.list.list.id });
+  });
   $('[data-delete]', s)?.addEventListener('click', async () => {
     s.close();
     if (!(await confirmSheet({ title: '¿Quitar de la tabla?', text: `Se eliminará <b>${esc(entry.title)}</b> con sus checks y notas.` }))) return;
@@ -1406,9 +1415,11 @@ function viewEntrySheet(entry) {
   $('[data-add-mine]', s).addEventListener('click', () => { s.close(); addToMyListSheet(entry); });
 }
 
-async function addToMyListSheet(entry) {
+// mark = tu check y nota para copiarlos (desde una tabla tuya); exclude = tabla en la que ya estás
+async function addToMyListSheet(entry, { mark = null, exclude = null } = {}) {
   let lists;
   try { ({ lists } = await api('/lists')); } catch (e) { return fail(e); }
+  lists = lists.filter((l) => l.id !== exclude);
   // Comprueba en qué tablas ya está (por id del catálogo o por nombre)
   const has = {};
   await Promise.all(lists.map(async (l) => {
@@ -1419,7 +1430,9 @@ async function addToMyListSheet(entry) {
   }));
   const s = openSheet(`
     <h3>¿A qué lista lo añades?</h3>
-    <p class="muted" style="margin-top:-8px;font-size:14px">«${esc(entry.title)}» se añadirá sin notas ni checks, para que pongáis los vuestros.</p>
+    <p class="muted" style="margin-top:-8px;font-size:14px">${mark && (mark.seen || mark.rating != null)
+      ? `«${esc(entry.title)}» se copiará con tu ${mark.seen ? 'check de visto' : ''}${mark.seen && mark.rating != null ? ' y tu ' : ''}${mark.rating != null ? `nota (<b>${fmtRating(mark.rating)}</b>)` : ''}. Luego podrás cambiarla en cada lista por separado.`
+      : `«${esc(entry.title)}» se añadirá sin notas ni checks, para que pongáis los vuestros.`}</p>
     <div style="display:grid;gap:8px">${lists.map((l) => `
       <button class="btn block col-pick" data-l="${l.id}" ${has[l.id] ? 'disabled' : ''}>${ICON.film} ${esc(l.name)}
         <small class="muted" style="margin-left:auto">${has[l.id] ? 'Ya está' : `${l.count} animes`}</small></button>`).join('') || '<div class="empty">Aún no tienes tablas. Crea una en «Tablas».</div>'}</div>
@@ -1428,7 +1441,7 @@ async function addToMyListSheet(entry) {
     b.disabled = true;
     const { title, jw_id, poster, kind, duration, platform, language, availability } = entry;
     try {
-      await api(`/lists/${b.dataset.l}/entries`, { body: { title, jw_id, poster, kind, duration, platform, language, availability } });
+      await api(`/lists/${b.dataset.l}/entries`, { body: { title, jw_id, poster, kind, duration, platform, language, availability, ...(mark ? { myMark: mark } : {}) } });
       s.close();
       toast(`«${title}» añadido a «${lists.find((l) => l.id === Number(b.dataset.l)).name}»`);
     } catch (e) { fail(e); b.disabled = false; }

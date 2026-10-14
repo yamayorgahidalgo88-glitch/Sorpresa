@@ -204,6 +204,20 @@ test('ver las tablas de un amigo (solo mirar) y llevarte un anime a la tuya', as
   assert.deepEqual(after.at(-1).marks, {});
 });
 
+test('«Añadir a otra lista» copia tu check y tu nota (y luego van por separado)', async () => {
+  const { id: vistos } = (await yhm('/lists', { body: { name: 'Todo lo que he visto' } })).data;
+  const src = (await yhm('/lists/' + listId)).data;
+  const kny = src.entries.find((e) => e.id === ids.kny);
+  const mine = kny.marks[ids.y];
+  const r = await yhm(`/lists/${vistos}/entries`, { body: { title: kny.title, jw_id: kny.jw_id, kind: kny.kind, myMark: mine } });
+  const dst = (await yhm('/lists/' + vistos)).data;
+  const myCol = dst.people.find((p) => p.name === 'YHM');
+  assert.deepEqual(dst.entries[0].marks[myCol.id], { seen: true, rating: mine.rating });
+  await yhm(`/entries/${r.data.id}/marks/${myCol.id}`, { method: 'PUT', body: { rating: 3 } });
+  assert.equal((await yhm('/lists/' + listId)).data.entries.find((e) => e.id === ids.kny).marks[ids.y].rating, mine.rating);
+  await yhm('/lists/' + vistos, { method: 'DELETE' });
+});
+
 test('salir de la tabla deja la columna libre con su nombre', async () => {
   assert.equal((await marta('/lists/' + listId, { method: 'DELETE' })).data.left, true);
   assert.equal((await marta('/lists/' + listId)).status, 404);

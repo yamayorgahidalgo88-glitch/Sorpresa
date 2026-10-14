@@ -100,7 +100,7 @@ api.patch('/me', requireUser, h(async (req, res) => {
   res.json({ user: publicUser({ ...u, color, avatar, quiz_done: quizDone, quiz_result: quizResult }) });
 }));
 
-api.get('/avatars', (_req, res) => { res.set('Cache-Control', 'public, max-age=86400'); res.json({ avatars: AVATARS }); });
+api.get('/avatars', (_req, res) => { res.set('Cache-Control', 'no-cache'); res.json({ avatars: AVATARS }); });
 
 api.get('/meta', (_req, res) => res.json({ catalog: catalogMeta(), platforms: JW_PACKAGES.map(({ key, name }) => ({ key, name })) }));
 
@@ -337,8 +337,19 @@ api.post('/lists/:id/entries', requireUser, h(async (req, res) => {
   const r = await run(`INSERT INTO entries (list_id, position, title, jw_id, poster, kind, duration, platform, language, availability, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   [listId, pos, e.title, e.jw_id, e.poster, e.kind, e.duration, e.platform, e.language, e.availability, Date.now()]);
+  const entryId = Number(r.lastInsertRowid);
+  // «Añadir a otra lista» desde una tabla tuya: copia tu check y tu nota a tu columna de la tabla destino
+  const mark = req.body.myMark;
+  if (mark && typeof mark === 'object') {
+    const mine = await one('SELECT id FROM list_people WHERE list_id = ? AND user_id = ?', [listId, req.user.id]);
+    let rating = mark.rating == null || mark.rating === '' ? null : Math.round(Number(mark.rating) * 100) / 100;
+    if (!Number.isFinite(rating) || rating < 0 || rating > 10) rating = null;
+    if (mine && (mark.seen || rating != null)) {
+      await run('INSERT INTO entry_marks (entry_id, person_id, seen, rating) VALUES (?, ?, ?, ?)', [entryId, mine.id, mark.seen ? 1 : 0, rating]);
+    }
+  }
   await touch(listId);
-  res.status(201).json({ id: Number(r.lastInsertRowid) });
+  res.status(201).json({ id: entryId });
 }));
 
 api.patch('/entries/:eid', requireUser, h(async (req, res) => {
@@ -571,7 +582,11 @@ api.delete('/friends/:userId', requireUser, h(async (req, res) => {
 api.use((req, res) => res.status(404).json({ error: 'Ruta no encontrada' }));
 
 // ───────────── Frontend ─────────────
-app.use(express.static(path.join(ROOT, 'public'), { maxAge: '1h', extensions: ['html'] }));
+// Imágenes con caché larga (llevan ?v= cuando cambian); HTML, JS y CSS siempre se comprueban para ver la última versión
+app.use(express.static(path.join(ROOT, 'public'), {
+  maxAge: '7d', extensions: ['html'],
+  setHeaders: (res, file) => { if (/\.(html|js|css|webmanifest)$/.test(file)) res.setHeader('Cache-Control', 'no-cache'); },
+}));
 app.get('*', (_req, res) => res.sendFile(path.join(ROOT, 'public', 'index.html')));
 
 app.use((err, _req, res, _next) => {

@@ -266,6 +266,8 @@
       const pos = Math.max(-1, ...d.entries.filter((x) => x.list_id === lid).map((x) => x.position)) + 1;
       const ent = { id: id(), list_id: lid, position: pos, ...e, created_at: now() };
       d.entries.push(ent); touch(lid);
+      const mk = b.myMark, mine = d.people.find((p) => p.list_id === lid && p.user_id === u.id);
+      if (mk && mine && (mk.seen || mk.rating != null)) d.marks.push({ entry_id: ent.id, person_id: mine.id, seen: !!mk.seen, rating: mk.rating == null ? null : Number(mk.rating) });
       return { id: ent.id };
     }],
     ['PATCH', /^\/entries\/(\d+)$/, (b, m) => {

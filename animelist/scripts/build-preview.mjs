@@ -37,8 +37,8 @@ body { background: var(--bg); }
 .preview-note { display: block; margin-top: 6px; color: var(--orange-2); font-size: 12px; font-weight: 700; }`;
 const app = read('public/app.js')
   .replaceAll('/img/logo-256.png', logo)
-  .replace('const charImg = (key) => `/img/characters/${key}.jpg`;', `const CHAR_IMGS = ${JSON.stringify(CHAR_IMGS)};\nconst charImg = (key) => CHAR_IMGS[key] || '';`)
-  .replace('const avatarImg = (key) => `/img/avatars/${key}.jpg`;', `const AV_IMGS = ${JSON.stringify(AV_IMGS)};\nconst avatarImg = (key) => AV_IMGS[key] || '';`)
+  .replace('const charImg = (key) => `/img/characters/${key}.jpg?v=${ASSET_V}`;', `const CHAR_IMGS = ${JSON.stringify(CHAR_IMGS)};\nconst charImg = (key) => CHAR_IMGS[key] || '';`)
+  .replace('const avatarImg = (key) => `/img/avatars/${key}.jpg?v=${ASSET_V}`;', `const AV_IMGS = ${JSON.stringify(AV_IMGS)};\nconst avatarImg = (key) => AV_IMGS[key] || '';`)
   .replace("if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});", '')
   .replace('Lo que vemos, lo que nos queda y nuestras notas</p>',
     'Lo que vemos, lo que nos queda y nuestras notas<span class="preview-note">${window.__previewStorage === false ? "⚠️ Este navegador no deja guardar datos: las cuentas se borrarán al cerrar. Ábrelo en Safari o Chrome." : "Vista previa · las cuentas y tablas se guardan solo en este móvil"}</span></p>');
