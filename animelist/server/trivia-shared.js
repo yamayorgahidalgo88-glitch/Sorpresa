@@ -278,7 +278,7 @@ export function localTrivia(animes, infos, plan, { extraTitles = [], bank = [], 
     const options = triviaShuffle([q.a, ...q.w], rnd);
     const faces = q.f ? options.map((o) => faceOf(info, o)) : null;
     return { question: q.q, image: animeImage(a, info), options, correct: options.indexOf(q.a), fact: '',
-      ...(faces && faces.every(Boolean) ? { optionImages: faces } : {}) };
+      ...(faces && faces.every(Boolean) ? { optionImages: faces } : {}), ...(q.k ? { bankKey: q.k } : {}) };
   };
   // Preguntas «de dentro» del anime (Pilares, capitanes, posiciones, respiraciones…)
   const deep = [
@@ -370,9 +370,14 @@ export function localTrivia(animes, infos, plan, { extraTitles = [], bank = [], 
  * Prepara una partida: elige animes, trae AniList y pide las preguntas a la IA (si hay);
  * lo que falte hasta 10 se completa con preguntas locales.
  */
-export async function buildTrivia(seen, { fetchFn = fetch, ai = null, extraTitles = [], bank = [], rnd = Math.random } = {}) {
+export async function buildTrivia(seen, { fetchFn = fetch, ai = null, extraTitles = [], bank = [], moreBank = null, rnd = Math.random } = {}) {
   const { animes, plan } = planTrivia(seen, rnd);
   const infos = await fetchAniList(animes, fetchFn);
+  // Preguntas de la trama que no están escritas a mano (las genera y guarda el servidor con IA gratuita)
+  if (moreBank) {
+    const without = animes.map((a, i) => i).filter((i) => !bankFor(animes[i], bank).length);
+    try { bank = bank.concat(await moreBank(without.map((i) => animes[i]), without.map((i) => infos[i]))); } catch { /* sin IA: seguimos */ }
+  }
   let questions = [];
   if (ai) { try { questions = await ai(animes, infos, plan); } catch { questions = []; } }
   const fromAi = questions.length;
@@ -394,7 +399,8 @@ export function validQuestion(q) {
 }
 
 /** Lo que ve el móvil antes de responder: sin la respuesta correcta. */
-export const publicQuestion = ({ anime, question, options, image, optionImages }) => ({ anime, question, options, image: image || null, ...(optionImages ? { optionImages } : {}) });
+export const publicQuestion = ({ anime, question, options, image, optionImages, bankKey }) => ({
+  anime, question, options, image: image || null, ...(optionImages ? { optionImages } : {}), ...(bankKey ? { reportable: true } : {}) });
 
 /** Mejores partidas: más aciertos, luego menos tiempo, luego la más reciente. */
 export const sortBest = (games) => [...games].sort((a, b) => b.score - a.score || a.total_ms - b.total_ms || b.finished_at - a.finished_at);

@@ -396,3 +396,59 @@ test('quiz: banco de preguntas de la trama (formato y que cada anime se encuentr
   assert.deepEqual(bankFor({ title: 'Un anime que no está' }, TRIVIA_BANK), []);
   for (const b of TRIVIA_BANK) for (const id of b.ids) assert.ok(getById(id) || id === 'ts359486', `${id} está en el catálogo`);
 });
+
+test('quiz: animes nuevos → preguntas de la trama con Gemini (gratis), generadas una vez y guardadas', async () => {
+  const http = await import('node:http');
+  let calls = 0, fail429 = false, lastBody = null;
+  const fake = http.createServer((req, res) => {
+    let body = '';
+    req.on('data', (c) => (body += c));
+    req.on('end', () => {
+      calls++;
+      lastBody = JSON.parse(body);
+      if (fail429) { res.statusCode = 429; return res.end('{"error":"quota"}'); }
+      const questions = Array.from({ length: 15 }, (_, i) => ({ q: `¿Qué hace Sakamoto en la escena ${i}?`, a: 'Protege a su familia', w: ['Huye', 'Duerme', 'Canta'] }));
+      res.setHeader('content-type', 'application/json');
+      res.end(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify({ questions }) }] } }] }));
+    });
+  }).listen(0);
+  process.env.GEMINI_API_KEY = 'test';
+  process.env.GEMINI_BASE_URL = `http://127.0.0.1:${fake.address().port}`;
+  try {
+    // Marca como visto un anime que no está en el banco escrito a mano
+    const { id: lid } = (await yhm('/lists', { body: { name: 'Nuevos' } })).data;
+    const { id: eid } = (await yhm(`/lists/${lid}/entries`, { body: { title: 'Sakamoto Days', kind: 'show' } })).data;
+    const col = (await yhm('/lists/' + lid)).data.people.find((p) => p.user_id);
+    await yhm(`/entries/${eid}/marks/${col.id}`, { method: 'PUT', body: { seen: true } });
+    assert.equal((await yhm('/trivia')).data.ai, true);
+    let found = null, game = null;
+    for (let t = 0; t < 6 && !found; t++) {
+      game = (await yhm('/trivia', { method: 'POST' })).data;
+      const i = game.questions.findIndex((q) => q.reportable);
+      if (i >= 0) found = i;
+    }
+    assert.equal(calls, 1, 'se pide a Gemini una sola vez; luego se reutiliza');
+    assert.match(lastBody.contents[0].parts[0].text, /Sakamoto Days/);
+    assert.equal(lastBody.generationConfig.responseMimeType, 'application/json');
+    assert.ok(found != null, 'salen preguntas de la IA para el anime nuevo');
+    const { db } = await import('../server/db.js');
+    const count = async () => JSON.parse((await db.execute("SELECT questions FROM trivia_ai_bank WHERE key = 'title:sakamoto days'")).rows[0].questions).length;
+    assert.equal(await count(), 15);
+    // Quitar una pregunta mala: primero hay que responderla
+    assert.equal((await yhm(`/trivia/${game.id}/report`, { body: { q: found } })).status, 400);
+    for (let i = 0; i <= found; i++) await yhm(`/trivia/${game.id}/answer`, { body: { q: i, choice: 0, ms: 100 } });
+    assert.equal((await yhm(`/trivia/${game.id}/report`, { body: { q: found } })).status, 200);
+    assert.equal(await count(), 14);
+    // Un fallo puntual (límite gratuito) no deja el anime marcado como «sin preguntas»
+    await yhm(`/lists/${lid}/entries`, { body: { title: 'Kaiju No. 8', kind: 'show' } }).then(async (r) => {
+      await yhm(`/entries/${r.data.id}/marks/${col.id}`, { method: 'PUT', body: { seen: true } });
+    });
+    fail429 = true;
+    assert.equal((await yhm('/trivia', { method: 'POST' })).status, 201, 'se juega igual');
+    assert.equal((await db.execute("SELECT 1 FROM trivia_ai_bank WHERE key = 'title:kaiju no. 8'")).rows.length, 0);
+  } finally {
+    delete process.env.GEMINI_API_KEY;
+    delete process.env.GEMINI_BASE_URL;
+    fake.close();
+  }
+});

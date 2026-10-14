@@ -1614,7 +1614,13 @@ function showTriviaQuestion(st) {
         ${r.right ? '' : `<span>La respuesta era: <b>${esc(q.options[r.correct])}</b></span>`}
         ${r.fact ? `<p>${esc(r.fact)}</p>` : ''}
         <button class="btn primary block" data-next>${r.done ? 'Ver mi resultado' : 'Siguiente pregunta'}</button>
+        ${q.reportable ? '<button class="tv-report" data-report>⚠️ Esta pregunta está mal: quitarla</button>' : ''}
       </div>`;
+    const qi = st.i;
+    $('[data-report]', fb)?.addEventListener('click', async (e) => {
+      e.currentTarget.disabled = true;
+      try { await api(`/trivia/${st.game.id}/report`, { body: { q: qi } }); toast('Quitada: no volverá a salir'); e.target.remove(); } catch (ex) { fail(ex); e.target.disabled = false; }
+    });
     $('[data-next]', fb).addEventListener('click', () => {
       if (r.done) return showTriviaEnd(st, r);
       st.i++;

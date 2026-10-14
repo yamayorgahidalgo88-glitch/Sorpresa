@@ -517,6 +517,7 @@ table.anime tbody tr.dragging .grip { color: var(--orange); cursor: grabbing; }
 .tv-ans.face.shown .tv-name { opacity: 1; }
 .tv-answers.faces { grid-template-columns: 1fr 1fr; max-width: 460px; margin: 0 auto; }
 .tv-img.wide { aspect-ratio: 3 / 1; } .tv-img.wide img { object-fit: cover; }
+.tv-report { display: block; margin: 12px auto 0; border: 0; background: none; color: var(--muted); font-size: 13px; font-weight: 700; text-decoration: underline; }
 
 /* Vista previa: el fondo de la página lo pinta el body y el mosaico va encima */
 body { background: var(--bg); }
@@ -1119,7 +1120,7 @@ function localTrivia(animes, infos, plan, { extraTitles = [], bank = [], rnd = M
     const options = triviaShuffle([q.a, ...q.w], rnd);
     const faces = q.f ? options.map((o) => faceOf(info, o)) : null;
     return { question: q.q, image: animeImage(a, info), options, correct: options.indexOf(q.a), fact: '',
-      ...(faces && faces.every(Boolean) ? { optionImages: faces } : {}) };
+      ...(faces && faces.every(Boolean) ? { optionImages: faces } : {}), ...(q.k ? { bankKey: q.k } : {}) };
   };
   // Preguntas «de dentro» del anime (Pilares, capitanes, posiciones, respiraciones…)
   const deep = [
@@ -1211,9 +1212,14 @@ function localTrivia(animes, infos, plan, { extraTitles = [], bank = [], rnd = M
  * Prepara una partida: elige animes, trae AniList y pide las preguntas a la IA (si hay);
  * lo que falte hasta 10 se completa con preguntas locales.
  */
-async function buildTrivia(seen, { fetchFn = fetch, ai = null, extraTitles = [], bank = [], rnd = Math.random } = {}) {
+async function buildTrivia(seen, { fetchFn = fetch, ai = null, extraTitles = [], bank = [], moreBank = null, rnd = Math.random } = {}) {
   const { animes, plan } = planTrivia(seen, rnd);
   const infos = await fetchAniList(animes, fetchFn);
+  // Preguntas de la trama que no están escritas a mano (las genera y guarda el servidor con IA gratuita)
+  if (moreBank) {
+    const without = animes.map((a, i) => i).filter((i) => !bankFor(animes[i], bank).length);
+    try { bank = bank.concat(await moreBank(without.map((i) => animes[i]), without.map((i) => infos[i]))); } catch { /* sin IA: seguimos */ }
+  }
   let questions = [];
   if (ai) { try { questions = await ai(animes, infos, plan); } catch { questions = []; } }
   const fromAi = questions.length;
@@ -1235,7 +1241,8 @@ function validQuestion(q) {
 }
 
 /** Lo que ve el móvil antes de responder: sin la respuesta correcta. */
-const publicQuestion = ({ anime, question, options, image, optionImages }) => ({ anime, question, options, image: image || null, ...(optionImages ? { optionImages } : {}) });
+const publicQuestion = ({ anime, question, options, image, optionImages, bankKey }) => ({
+  anime, question, options, image: image || null, ...(optionImages ? { optionImages } : {}), ...(bankKey ? { reportable: true } : {}) });
 
 /** Mejores partidas: más aciertos, luego menos tiempo, luego la más reciente. */
 const sortBest = (games) => [...games].sort((a, b) => b.score - a.score || a.total_ms - b.total_ms || b.finished_at - a.finished_at);
@@ -3348,7 +3355,13 @@ function showTriviaQuestion(st) {
         ${r.right ? '' : `<span>La respuesta era: <b>${esc(q.options[r.correct])}</b></span>`}
         ${r.fact ? `<p>${esc(r.fact)}</p>` : ''}
         <button class="btn primary block" data-next>${r.done ? 'Ver mi resultado' : 'Siguiente pregunta'}</button>
+        ${q.reportable ? '<button class="tv-report" data-report>⚠️ Esta pregunta está mal: quitarla</button>' : ''}
       </div>`;
+    const qi = st.i;
+    $('[data-report]', fb)?.addEventListener('click', async (e) => {
+      e.currentTarget.disabled = true;
+      try { await api(`/trivia/${st.game.id}/report`, { body: { q: qi } }); toast('Quitada: no volverá a salir'); e.target.remove(); } catch (ex) { fail(ex); e.target.disabled = false; }
+    });
     $('[data-next]', fb).addEventListener('click', () => {
       if (r.done) return showTriviaEnd(st, r);
       st.i++;

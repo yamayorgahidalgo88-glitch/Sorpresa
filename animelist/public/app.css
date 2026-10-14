@@ -511,3 +511,4 @@ table.anime tbody tr.dragging .grip { color: var(--orange); cursor: grabbing; }
 .tv-ans.face.shown .tv-name { opacity: 1; }
 .tv-answers.faces { grid-template-columns: 1fr 1fr; max-width: 460px; margin: 0 auto; }
 .tv-img.wide { aspect-ratio: 3 / 1; } .tv-img.wide img { object-fit: cover; }
+.tv-report { display: block; margin: 12px auto 0; border: 0; background: none; color: var(--muted); font-size: 13px; font-weight: 700; text-decoration: underline; }

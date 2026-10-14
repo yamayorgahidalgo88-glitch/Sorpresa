@@ -123,6 +123,13 @@ const SCHEMA = [
     total_ms INTEGER,
     finished_at INTEGER
   )`,
+  // Preguntas de la trama generadas con IA, una vez por anime (key = id del catálogo o «title:…»)
+  `CREATE TABLE IF NOT EXISTS trivia_ai_bank (
+    key TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    questions TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  )`,
   `CREATE INDEX IF NOT EXISTS idx_trivia_user ON trivia_games(user_id, finished_at)`,
   `CREATE INDEX IF NOT EXISTS idx_entries_list ON entries(list_id, position)`,
   `CREATE INDEX IF NOT EXISTS idx_members_user ON list_members(user_id)`,
