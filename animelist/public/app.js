@@ -177,6 +177,21 @@ async function loadBackdrop() {
 }
 
 // ───────────── Login / registro ─────────────
+// ───────────── Dispositivo y «Recordar usuario» ─────────────
+function deviceName() {
+  const ua = navigator.userAgent || '';
+  const os = /iPhone/.test(ua) ? 'iPhone' : /iPad/.test(ua) ? 'iPad' : /Android/.test(ua) ? (/Mobile/.test(ua) ? 'Móvil Android' : 'Tablet Android')
+    : /Macintosh/.test(ua) ? 'Mac' : /Windows/.test(ua) ? 'PC Windows' : /Linux/.test(ua) ? 'Linux' : 'este dispositivo';
+  const br = /EdgA?\//.test(ua) ? 'Edge' : /SamsungBrowser/.test(ua) ? 'Samsung Internet' : /CriOS|Chrome\//.test(ua) ? 'Chrome'
+    : /FxiOS|Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : '';
+  return br ? `${os} · ${br}` : os;
+}
+const DEVICE_ICON = () => (/iPhone|Android.*Mobile/.test(navigator.userAgent) ? '📱' : /iPad|Android/.test(navigator.userAgent) ? '📲' : '💻');
+const pref = {
+  get: (k) => { try { return localStorage.getItem('animelist:' + k); } catch { return null; } },
+  set: (k, v) => { try { if (v == null) localStorage.removeItem('animelist:' + k); else localStorage.setItem('animelist:' + k, v); } catch { /* nada */ } },
+};
+
 function renderAuth(mode = 'login') {
   document.body.classList.add('auth');
   $('#tabbar').hidden = true;
@@ -190,6 +205,8 @@ function renderAuth(mode = 'login') {
         <label class="field"><span>Nombre de usuario</span><input class="input" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="20" required></label>
         <label class="field"><span>Contraseña</span><input class="input" type="password" name="password" autocomplete="current-password" required></label>
         <label class="field" data-reg><span>Repite la contraseña</span><input class="input" type="password" name="password2" autocomplete="new-password"></label>
+        <label class="toggle remember"><span>Recordar usuario<small>${DEVICE_ICON()} En ${esc(deviceName())} entrarás directamente</small></span>
+          <span class="switch"><input type="checkbox" name="remember" checked><i></i></span></label>
         <div class="err"></div>
         <button class="btn primary block" data-submit></button>
       </form>
@@ -205,6 +222,8 @@ function renderAuth(mode = 'login') {
   };
   $$('.seg button', form).forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m)));
   setMode(mode);
+  const last = pref.get('lastUser');
+  if (last && mode === 'login') { form.username.value = last; setTimeout(() => form.password.focus(), 50); }
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const err = $('.err', form);
@@ -215,8 +234,11 @@ function renderAuth(mode = 'login') {
     const btn = $('[data-submit]', form);
     btn.disabled = true;
     try {
-      const { user } = await api('/auth/' + mode, { body: { username, password } });
+      const remember = form.remember.checked;
+      const { user } = await api('/auth/' + mode, { body: { username, password, remember } });
       state.user = user;
+      pref.set('remember', remember ? '1' : '0');
+      pref.set('lastUser', remember ? user.username : null);
       toast(mode === 'register' ? `¡Bienvenido/a, ${user.username}!` : `Hola de nuevo, ${user.username}`);
       go('#/tablas');
     } catch (ex) {
@@ -1225,6 +1247,14 @@ async function renderProfile() {
       </div>
     </div>
     <div class="card section">
+      <h2>Este dispositivo</h2>
+      <div class="me-color-row">
+        <span class="device-ico">${DEVICE_ICON()}</span>
+        <div class="name"><b style="color:var(--text)">${esc(deviceName())}</b>
+          <small>${pref.get('remember') === '0' ? 'Sesión solo mientras tengas la app abierta' : 'Usuario recordado: entras directamente sin contraseña'}</small></div>
+      </div>
+    </div>
+    <div class="card section">
       <h2>Dónde ver</h2>
       <div class="plat-list" style="justify-content:flex-start">${Object.keys(PLATFORMS).map((k) => platBadge(k)).join('')}</div>
       <p class="muted" style="font-size:13px;margin:10px 0 0">Disponibilidad e idiomas para <b>España</b> 🇪🇸${meta?.catalog?.count ? ` · ${meta.catalog.count} animes en el catálogo` : ''}. Se consulta en directo al elegir un anime.</p>
@@ -1232,7 +1262,7 @@ async function renderProfile() {
     <button class="btn danger block" data-logout>${ICON.logout} Cerrar sesión</button>`;
   $('[data-color]', app).addEventListener('click', async () => { if (await changeColor()) renderProfile(); });
   $('[data-logout]', app).addEventListener('click', async () => {
-    if (!(await confirmSheet({ title: '¿Cerrar sesión?', text: 'Tendrás que volver a entrar con tu usuario y contraseña.', ok: 'Cerrar sesión', icon: ICON.logout }))) return;
+    if (!(await confirmSheet({ title: '¿Cerrar sesión?', text: `Tendrás que volver a entrar con tu contraseña en ${esc(deviceName())}.`, ok: 'Cerrar sesión', icon: ICON.logout }))) return;
     try { await api('/auth/logout', { method: 'POST' }); } catch { /* da igual */ }
     state.user = null;
     location.hash = '#/login';

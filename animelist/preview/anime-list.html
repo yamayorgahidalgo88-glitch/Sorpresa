@@ -384,6 +384,10 @@ table.anime tbody tr.dragging { position: relative; z-index: 5; }
 table.anime tbody tr.dragging td { --row: rgba(52, 44, 40, .97); box-shadow: 0 16px 34px rgba(0, 0, 0, .55); border-color: rgba(255, 122, 26, .6); }
 table.anime tbody tr.dragging .grip { color: var(--orange); cursor: grabbing; }
 .char-thumb { width: 54px; height: 72px; border-radius: 14px; object-fit: cover; flex: none; box-shadow: 0 0 0 2px var(--c), 0 0 22px color-mix(in srgb, var(--c) 55%, transparent); }
+.toggle.remember { margin: 2px 0 10px; }
+.toggle.remember > span:first-child { display: flex; flex-direction: column; gap: 2px; }
+.toggle.remember small { color: var(--muted); font-weight: 600; font-size: 12.5px; }
+.device-ico { width: 42px; height: 42px; flex: none; display: grid; place-items: center; font-size: 26px; border-radius: 14px; background: rgba(255, 255, 255, .06); }
 
 /* Vista previa: el fondo de la página lo pinta el body y el mosaico va encima */
 body { background: var(--bg); }
@@ -465,7 +469,14 @@ const TEMPLATE = {"people":[{"name":"Marta","color":"#9aa0b4"},{"name":"Yago","c
 
   // ── Helpers de datos ──
   const db = () => load();
-  const me = (req) => { const u = db().users.find((x) => x.id === db().session); if (!u && req) fail(401, 'Inicia sesión para continuar'); return u; };
+  // Sesión «recordada» → se guarda con los datos; si no, solo dura mientras la pestaña esté abierta
+  const SKEY = KEY + ':session';
+  const tempSession = () => { try { return Number(sessionStorage.getItem(SKEY)) || null; } catch { return mem?.tempSession || null; } };
+  const startSession = (uid, remember) => {
+    db().session = remember === false ? null : uid;
+    try { if (remember === false) sessionStorage.setItem(SKEY, uid); else sessionStorage.removeItem(SKEY); } catch { db().tempSession = remember === false ? uid : null; }
+  };
+  const me = (req) => { const uid = db().session || tempSession(); const u = db().users.find((x) => x.id === uid); if (!u && req) fail(401, 'Inicia sesión para continuar'); return u; };
   const pub = (u) => ({ id: u.id, username: u.username, color: u.color || null, quizDone: !!u.quiz_done, quizResult: u.quiz_result || null });
   const userByName = (n) => db().users.find((u) => u.username.toLowerCase() === String(n).trim().toLowerCase());
   const membership = (listId, uid) => {
@@ -508,17 +519,17 @@ const TEMPLATE = {"people":[{"name":"Marta","color":"#9aa0b4"},{"name":"Yago","c
       if (String(b.password || '').length < 6) fail(400, 'La contraseña debe tener al menos 6 caracteres');
       if (userByName(username)) fail(409, 'Ese nombre de usuario ya existe');
       const u = { id: id(), username, pass: await hash(b.password), created_at: now(), color: username.toLowerCase() === 'yhm' ? '#8bc34a' : null, quiz_done: 0, quiz_result: null };
-      db().users.push(u); db().session = u.id;
+      db().users.push(u); startSession(u.id, b.remember);
       return { user: pub(u) };
     }],
     ['POST', /^\/auth\/login$/, async (b) => {
       const u = userByName(b.username || '');
       if (!u) fail(401, `No hay ninguna cuenta «${String(b.username || '').trim()}» guardada en este móvil. Créala en «Crear cuenta».`);
       if (u.pass !== (await hash(String(b.password || '')))) fail(401, 'La contraseña no es correcta');
-      db().session = u.id;
+      startSession(u.id, b.remember);
       return { user: pub(u) };
     }],
-    ['POST', /^\/auth\/logout$/, () => { db().session = null; return { ok: true }; }],
+    ['POST', /^\/auth\/logout$/, () => { db().session = null; db().tempSession = null; try { sessionStorage.removeItem(SKEY); } catch { /* nada */ } return { ok: true }; }],
     ['GET', /^\/me$/, () => {
       const u = me(false);
       if (!u) return { user: null };
@@ -974,6 +985,21 @@ async function loadBackdrop() {
 }
 
 // ───────────── Login / registro ─────────────
+// ───────────── Dispositivo y «Recordar usuario» ─────────────
+function deviceName() {
+  const ua = navigator.userAgent || '';
+  const os = /iPhone/.test(ua) ? 'iPhone' : /iPad/.test(ua) ? 'iPad' : /Android/.test(ua) ? (/Mobile/.test(ua) ? 'Móvil Android' : 'Tablet Android')
+    : /Macintosh/.test(ua) ? 'Mac' : /Windows/.test(ua) ? 'PC Windows' : /Linux/.test(ua) ? 'Linux' : 'este dispositivo';
+  const br = /EdgA?\//.test(ua) ? 'Edge' : /SamsungBrowser/.test(ua) ? 'Samsung Internet' : /CriOS|Chrome\//.test(ua) ? 'Chrome'
+    : /FxiOS|Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : '';
+  return br ? `${os} · ${br}` : os;
+}
+const DEVICE_ICON = () => (/iPhone|Android.*Mobile/.test(navigator.userAgent) ? '📱' : /iPad|Android/.test(navigator.userAgent) ? '📲' : '💻');
+const pref = {
+  get: (k) => { try { return localStorage.getItem('animelist:' + k); } catch { return null; } },
+  set: (k, v) => { try { if (v == null) localStorage.removeItem('animelist:' + k); else localStorage.setItem('animelist:' + k, v); } catch { /* nada */ } },
+};
+
 function renderAuth(mode = 'login') {
   document.body.classList.add('auth');
   $('#tabbar').hidden = true;
@@ -987,6 +1013,8 @@ function renderAuth(mode = 'login') {
         <label class="field"><span>Nombre de usuario</span><input class="input" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="20" required></label>
         <label class="field"><span>Contraseña</span><input class="input" type="password" name="password" autocomplete="current-password" required></label>
         <label class="field" data-reg><span>Repite la contraseña</span><input class="input" type="password" name="password2" autocomplete="new-password"></label>
+        <label class="toggle remember"><span>Recordar usuario<small>${DEVICE_ICON()} En ${esc(deviceName())} entrarás directamente</small></span>
+          <span class="switch"><input type="checkbox" name="remember" checked><i></i></span></label>
         <div class="err"></div>
         <button class="btn primary block" data-submit></button>
       </form>
@@ -1002,6 +1030,8 @@ function renderAuth(mode = 'login') {
   };
   $$('.seg button', form).forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m)));
   setMode(mode);
+  const last = pref.get('lastUser');
+  if (last && mode === 'login') { form.username.value = last; setTimeout(() => form.password.focus(), 50); }
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const err = $('.err', form);
@@ -1012,8 +1042,11 @@ function renderAuth(mode = 'login') {
     const btn = $('[data-submit]', form);
     btn.disabled = true;
     try {
-      const { user } = await api('/auth/' + mode, { body: { username, password } });
+      const remember = form.remember.checked;
+      const { user } = await api('/auth/' + mode, { body: { username, password, remember } });
       state.user = user;
+      pref.set('remember', remember ? '1' : '0');
+      pref.set('lastUser', remember ? user.username : null);
       toast(mode === 'register' ? `¡Bienvenido/a, ${user.username}!` : `Hola de nuevo, ${user.username}`);
       go('#/tablas');
     } catch (ex) {
@@ -2023,6 +2056,14 @@ async function renderProfile() {
       </div>
     </div>
     <div class="card section">
+      <h2>Este dispositivo</h2>
+      <div class="me-color-row">
+        <span class="device-ico">${DEVICE_ICON()}</span>
+        <div class="name"><b style="color:var(--text)">${esc(deviceName())}</b>
+          <small>${pref.get('remember') === '0' ? 'Sesión solo mientras tengas la app abierta' : 'Usuario recordado: entras directamente sin contraseña'}</small></div>
+      </div>
+    </div>
+    <div class="card section">
       <h2>Dónde ver</h2>
       <div class="plat-list" style="justify-content:flex-start">${Object.keys(PLATFORMS).map((k) => platBadge(k)).join('')}</div>
       <p class="muted" style="font-size:13px;margin:10px 0 0">Disponibilidad e idiomas para <b>España</b> 🇪🇸${meta?.catalog?.count ? ` · ${meta.catalog.count} animes en el catálogo` : ''}. Se consulta en directo al elegir un anime.</p>
@@ -2030,7 +2071,7 @@ async function renderProfile() {
     <button class="btn danger block" data-logout>${ICON.logout} Cerrar sesión</button>`;
   $('[data-color]', app).addEventListener('click', async () => { if (await changeColor()) renderProfile(); });
   $('[data-logout]', app).addEventListener('click', async () => {
-    if (!(await confirmSheet({ title: '¿Cerrar sesión?', text: 'Tendrás que volver a entrar con tu usuario y contraseña.', ok: 'Cerrar sesión', icon: ICON.logout }))) return;
+    if (!(await confirmSheet({ title: '¿Cerrar sesión?', text: `Tendrás que volver a entrar con tu contraseña en ${esc(deviceName())}.`, ok: 'Cerrar sesión', icon: ICON.logout }))) return;
     try { await api('/auth/logout', { method: 'POST' }); } catch { /* da igual */ }
     state.user = null;
     location.hash = '#/login';

@@ -33,10 +33,12 @@ function readCookie(req) {
   return null;
 }
 
-export function setSessionCookie(req, res, token) {
+// persistent = «Recordar usuario»: la sesión dura un año en este dispositivo.
+// Si no, la cookie es de sesión y desaparece al cerrar el navegador.
+export function setSessionCookie(req, res, token, { persistent = true } = {}) {
   const secure = req.secure ? '; Secure' : '';
-  const maxAge = token ? 60 * 60 * 24 * 365 : 0;
-  res.setHeader('Set-Cookie', `${COOKIE}=${token || ''}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${secure}`);
+  const age = !token ? '; Max-Age=0' : persistent ? `; Max-Age=${60 * 60 * 24 * 365}` : '';
+  res.setHeader('Set-Cookie', `${COOKIE}=${token || ''}; Path=/; HttpOnly; SameSite=Lax${age}${secure}`);
 }
 
 /** Middleware: añade req.user si la cookie de sesión es válida. */

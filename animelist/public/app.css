@@ -378,3 +378,7 @@ table.anime tbody tr.dragging { position: relative; z-index: 5; }
 table.anime tbody tr.dragging td { --row: rgba(52, 44, 40, .97); box-shadow: 0 16px 34px rgba(0, 0, 0, .55); border-color: rgba(255, 122, 26, .6); }
 table.anime tbody tr.dragging .grip { color: var(--orange); cursor: grabbing; }
 .char-thumb { width: 54px; height: 72px; border-radius: 14px; object-fit: cover; flex: none; box-shadow: 0 0 0 2px var(--c), 0 0 22px color-mix(in srgb, var(--c) 55%, transparent); }
+.toggle.remember { margin: 2px 0 10px; }
+.toggle.remember > span:first-child { display: flex; flex-direction: column; gap: 2px; }
+.toggle.remember small { color: var(--muted); font-weight: 600; font-size: 12.5px; }
+.device-ico { width: 42px; height: 42px; flex: none; display: grid; place-items: center; font-size: 26px; border-radius: 14px; background: rgba(255, 255, 255, .06); }

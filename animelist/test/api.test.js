@@ -55,6 +55,13 @@ test('registro, login y validaciones', async () => {
   assert.equal((await yhm('/auth/login', { body: { username: 'yhm', password: 'karasuno10' } })).status, 200);
 });
 
+test('«Recordar usuario»: cookie de un año o solo de sesión', async () => {
+  const login = (remember) => fetch(base + '/auth/login', { method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ username: 'otro', password: 'otro123', remember }) }).then((r) => r.headers.get('set-cookie'));
+  assert.match(await login(true), /Max-Age=31536000/);
+  assert.doesNotMatch(await login(false), /Max-Age/);
+});
+
 test('test de personalidad y color (el verde está reservado para YHM)', async () => {
   assert.equal((await marta('/me', { method: 'PATCH', body: { color: '#8bc34a' } })).status, 403);
   assert.equal((await marta('/me', { method: 'PATCH', body: { color: '#123456' } })).status, 400);

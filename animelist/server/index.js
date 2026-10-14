@@ -41,7 +41,7 @@ api.post('/auth/register', h(async (req, res) => {
   const r = await run('INSERT INTO users (username, pass_hash, created_at, color, quiz_done) VALUES (?, ?, ?, ?, 0)',
     [username, await hashPassword(password), Date.now(), color]);
   const id = Number(r.lastInsertRowid);
-  setSessionCookie(req, res, await createSession(id));
+  setSessionCookie(req, res, await createSession(id), { persistent: req.body.remember !== false });
   res.status(201).json({ user: publicUser({ id, username, color, quiz_done: 0 }) });
 }));
 
@@ -53,7 +53,7 @@ api.post('/auth/login', h(async (req, res) => {
   const u = await one('SELECT id, username, pass_hash, color, quiz_done, quiz_result FROM users WHERE username = ?', [username]);
   if (!u || !(await verifyPassword(password, u.pass_hash))) fail(401, 'Usuario o contraseña incorrectos');
   clearAttempts(key);
-  setSessionCookie(req, res, await createSession(u.id));
+  setSessionCookie(req, res, await createSession(u.id), { persistent: req.body.remember !== false });
   res.json({ user: publicUser(u) });
 }));
 

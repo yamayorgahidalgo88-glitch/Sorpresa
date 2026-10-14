@@ -58,7 +58,14 @@
 
   // ── Helpers de datos ──
   const db = () => load();
-  const me = (req) => { const u = db().users.find((x) => x.id === db().session); if (!u && req) fail(401, 'Inicia sesión para continuar'); return u; };
+  // Sesión «recordada» → se guarda con los datos; si no, solo dura mientras la pestaña esté abierta
+  const SKEY = KEY + ':session';
+  const tempSession = () => { try { return Number(sessionStorage.getItem(SKEY)) || null; } catch { return mem?.tempSession || null; } };
+  const startSession = (uid, remember) => {
+    db().session = remember === false ? null : uid;
+    try { if (remember === false) sessionStorage.setItem(SKEY, uid); else sessionStorage.removeItem(SKEY); } catch { db().tempSession = remember === false ? uid : null; }
+  };
+  const me = (req) => { const uid = db().session || tempSession(); const u = db().users.find((x) => x.id === uid); if (!u && req) fail(401, 'Inicia sesión para continuar'); return u; };
   const pub = (u) => ({ id: u.id, username: u.username, color: u.color || null, quizDone: !!u.quiz_done, quizResult: u.quiz_result || null });
   const userByName = (n) => db().users.find((u) => u.username.toLowerCase() === String(n).trim().toLowerCase());
   const membership = (listId, uid) => {
@@ -101,17 +108,17 @@
       if (String(b.password || '').length < 6) fail(400, 'La contraseña debe tener al menos 6 caracteres');
       if (userByName(username)) fail(409, 'Ese nombre de usuario ya existe');
       const u = { id: id(), username, pass: await hash(b.password), created_at: now(), color: username.toLowerCase() === 'yhm' ? '#8bc34a' : null, quiz_done: 0, quiz_result: null };
-      db().users.push(u); db().session = u.id;
+      db().users.push(u); startSession(u.id, b.remember);
       return { user: pub(u) };
     }],
     ['POST', /^\/auth\/login$/, async (b) => {
       const u = userByName(b.username || '');
       if (!u) fail(401, `No hay ninguna cuenta «${String(b.username || '').trim()}» guardada en este móvil. Créala en «Crear cuenta».`);
       if (u.pass !== (await hash(String(b.password || '')))) fail(401, 'La contraseña no es correcta');
-      db().session = u.id;
+      startSession(u.id, b.remember);
       return { user: pub(u) };
     }],
-    ['POST', /^\/auth\/logout$/, () => { db().session = null; return { ok: true }; }],
+    ['POST', /^\/auth\/logout$/, () => { db().session = null; db().tempSession = null; try { sessionStorage.removeItem(SKEY); } catch { /* nada */ } return { ok: true }; }],
     ['GET', /^\/me$/, () => {
       const u = me(false);
       if (!u) return { user: null };
