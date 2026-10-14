@@ -18,7 +18,6 @@ const LANGS = {
   id: 'Indonesio', ms: 'Malayo', vi: 'Vietnamita', tr: 'Turco', nl: 'Neerlandés', eu: 'Euskera', gl: 'Gallego',
 };
 const langName = (c) => LANGS[c] || c.toUpperCase();
-const PERSON_COLORS = ['#8bc34a', '#5b9bd5', '#ff8a3d', '#e05b8f', '#b38cff', '#ffd54f', '#4dd0c4'];
 
 const ICON = {
   check: '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
@@ -32,6 +31,8 @@ const ICON = {
   users: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><circle cx="17" cy="9" r="2.8"/><path d="M16.5 14.1c2.9.3 5 2.4 5 5.4"/></svg>',
   logout: '<svg viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 012 2v12a2 2 0 01-2 2h-3M10 17l5-5-5-5M15 12H4"/></svg>',
   film: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/></svg>',
+  grip: '<svg viewBox="0 0 24 24"><path d="M5 8h14M5 12h14M5 16h14"/></svg>',
+  palette: '<svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 100 18c1.1 0 1.6-.8 1.6-1.6 0-.9-.7-1.3-.7-2.2 0-.9.8-1.6 1.7-1.6H17a4 4 0 004-4c0-4.7-4-8.6-9-8.6z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="14.5" cy="7" r="1"/></svg>',
   pencil: '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>',
   columns: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 4v16"/></svg>',
 };
@@ -61,7 +62,8 @@ function toast(msg, bad = false) {
 const fail = (e) => toast(e.message || String(e), true);
 
 const fmtRating = (r) => (r == null ? '' : String(Math.round(r * 100) / 100).replace('.', ','));
-const avatarStyle = (name) => {
+const avatarStyle = (name, color) => {
+  if (color) return `--a1:${color};--a2:color-mix(in srgb, ${color} 55%, #000)`;
   let h = 0;
   for (const c of name) h = (h * 31 + c.charCodeAt(0)) % 360;
   return `--a1:hsl(${h} 90% 55%);--a2:hsl(${(h + 50) % 360} 80% 42%)`;
@@ -126,7 +128,7 @@ function promptSheet({ title, label, value = '', ok = 'Guardar', placeholder = '
 }
 
 // ───────────── Estado y router ─────────────
-const state = { user: null, list: null, filter: 'all', query: '', friendsBadge: 0, rankKey: null };
+const state = { user: null, list: null, filter: 'all', query: '', friendsBadge: 0, rankKey: null, rankKind: 'show', dragging: false };
 let pollTimer = null;
 
 function go(hash) { if (location.hash !== hash) location.hash = hash; else route(); }
@@ -138,6 +140,8 @@ async function route() {
     try { state.user = (await api('/me')).user; } catch { state.user = null; }
   }
   if (!state.user) return renderAuth();
+  if (!state.user.quizDone) return renderQuiz();
+  if (hash === '#/test') return renderQuiz({ again: true });
   document.body.classList.remove('auth');
   $('#tabbar').hidden = false;
   const [, section, id] = hash.split('/');
@@ -221,6 +225,163 @@ function renderAuth(mode = 'login') {
   });
 }
 
+// ───────────── Colores y test de personalidad ─────────────
+const COLORS = [
+  { hex: '#ff4d5e', name: 'Rojo' }, { hex: '#ff8a1f', name: 'Naranja' }, { hex: '#ffd23f', name: 'Amarillo' },
+  { hex: '#8bc34a', name: 'Verde', reservedFor: 'yhm' }, { hex: '#2ed3c6', name: 'Turquesa' }, { hex: '#4aa8ff', name: 'Azul' },
+  { hex: '#a77bff', name: 'Morado' }, { hex: '#ff6fb5', name: 'Rosa' },
+];
+const colorName = (hex) => COLORS.find((c) => c.hex === hex)?.name || 'tu color';
+const isReservedFor = (c, user) => c.reservedFor && c.reservedFor !== user.username.toLowerCase();
+
+const CHARACTERS = {
+  rengoku: { name: 'Kyojuro Rengoku', anime: 'Kimetsu no Yaiba', jw: 'ts87466', color: '#ff4d5e',
+    why: 'Vas de frente y con el corazón en llamas. Proteges a los tuyos y contagias tu energía a todo el que tienes cerca.' },
+  jinwoo: { name: 'Sung Jinwoo', anime: 'Solo Leveling', jw: 'ts359486', color: '#a77bff',
+    why: 'Tranquilidad por fuera, fuerza imparable por dentro. Vas a tu ritmo, subes de nivel en silencio y cuando apareces, arrasas.' },
+  hinata: { name: 'Shoyo Hinata', anime: 'Haikyu!!', jw: 'ts20112', color: '#ff8a1f',
+    why: 'Pura energía. No te rindes nunca y saltas más alto que nadie aunque te digan que no puedes.' },
+  anya: { name: 'Anya Forger', anime: 'Spy x Family', jw: 'ts283022', color: '#ff6fb5',
+    why: 'Curiosidad, risas y un sexto sentido para saber lo que piensan los demás. Waku waku.' },
+  kageyama: { name: 'Tobio Kageyama', anime: 'Haikyu!!', jw: 'ts20112', color: '#4aa8ff',
+    why: 'Estrategia y perfeccionismo. Ves la jugada antes que nadie y pones el balón justo donde hace falta.' },
+  zenitsu: { name: 'Zenitsu Agatsuma', anime: 'Kimetsu no Yaiba', jw: 'ts87466', color: '#ffd23f',
+    why: 'Un poquito de drama y bastante miedo… hasta que toca de verdad. Entonces eres un rayo.' },
+  tanjiro: { name: 'Tanjiro Kamado', anime: 'Kimetsu no Yaiba', jw: 'ts87466', color: '#8bc34a',
+    why: 'Amabilidad, esfuerzo y lealtad. Nunca abandonas a tu familia ni a tus amigos, pase lo que pase.' },
+};
+
+const QUIZ = [
+  { anime: 'Kimetsu no Yaiba', q: 'Es de noche y te encuentras con un demonio. ¿Qué haces?', a: [
+    ['Desenvaino la espada y voy a por él', { rengoku: 3, tanjiro: 1 }],
+    ['Aviso a mis compañeros y lo rodeamos', { kageyama: 2, tanjiro: 2 }],
+    ['Me escondo y estudio cómo se mueve', { jinwoo: 3 }],
+    ['¡Huyo gritando! …y luego vuelvo a por él', { zenitsu: 3, anya: 1 }],
+  ] },
+  { anime: 'Haikyu!!', q: 'Partido de vóley. ¿En qué posición juegas?', a: [
+    ['Rematador: quiero el último toque', { hinata: 3, rengoku: 1 }],
+    ['Colocador: yo dirijo el juego', { kageyama: 3 }],
+    ['Líbero: que no caiga ni un balón', { tanjiro: 2, zenitsu: 1 }],
+    ['Saque: un buen saque y punto directo', { jinwoo: 2, zenitsu: 1 }],
+  ] },
+  { anime: 'Solo Leveling', q: 'Se abre una mazmorra de rango S delante de ti.', a: [
+    ['Entro sin nadie: así subo de nivel', { jinwoo: 3 }],
+    ['Monto un equipo y reparto los roles', { kageyama: 2, tanjiro: 1 }],
+    ['Entro en primera fila para proteger al resto', { rengoku: 3, hinata: 1 }],
+    ['Me quedo fuera con snacks a ver qué pasa', { zenitsu: 2, anya: 2 }],
+  ] },
+  { anime: 'Spy x Family', q: 'En la familia Forger, ¿quién serías?', a: [
+    ['Loid: lo planeo todo al milímetro', { kageyama: 3 }],
+    ['Yor: calma total… hasta que hay que repartir', { rengoku: 2, jinwoo: 1 }],
+    ['Anya: leo mentes y quiero cacahuetes', { anya: 3 }],
+    ['Bond: fiel a muerte y veo el futuro', { tanjiro: 2, hinata: 1 }],
+  ] },
+  { anime: 'Naruto', q: '¿Cuál es tu camino ninja?', a: [
+    ['No rendirme jamás, ¡dattebayo!', { hinata: 3 }],
+    ['Proteger a los míos cueste lo que cueste', { tanjiro: 2, rengoku: 2 }],
+    ['Ser el más fuerte, aunque sea en solitario', { jinwoo: 2, kageyama: 1 }],
+    ['Disfrutar del camino con mis amigos', { anya: 2, zenitsu: 1, hinata: 1 }],
+  ] },
+];
+
+function quizResult(answers, user) {
+  const order = Object.keys(CHARACTERS).filter((k) => !isReservedFor(COLORS.find((c) => c.hex === CHARACTERS[k].color), user));
+  const score = Object.fromEntries(order.map((k) => [k, 0]));
+  answers.forEach((ai, qi) => Object.entries(QUIZ[qi].a[ai][1]).forEach(([k, v]) => { if (k in score) score[k] += v; }));
+  return order.reduce((best, k) => (score[k] > score[best] ? k : best), order[0]);
+}
+
+async function animePoster(jw) {
+  try { return (await api('/anime/' + jw)).item.poster; } catch { return null; }
+}
+
+function renderQuiz({ again = false } = {}) {
+  document.body.classList.add('auth');
+  $('#tabbar').hidden = true;
+  const user = state.user;
+  const answers = [];
+  const intro = () => {
+    app.innerHTML = `<div class="quiz fade-in">
+      <img class="quiz-logo" src="/img/logo-256.png" alt="">
+      <div class="quiz-kicker">${again ? 'Repetir test' : `¡Hola, ${esc(user.username)}!`}</div>
+      <h1 class="quiz-title">¿Qué color<br><em>te representa?</em></h1>
+      <p class="muted">5 preguntas sobre nuestros animes. Al final sabrás tu color y a qué personaje te pareces. Lo podrás cambiar cuando quieras en tu perfil.</p>
+      <button class="btn primary block" data-start>Empezar el test</button>
+      ${again ? '<button class="btn ghost block" data-skip>Volver al perfil</button>' : ''}
+    </div>`;
+    $('[data-start]', app).addEventListener('click', () => step(0));
+    $('[data-skip]', app)?.addEventListener('click', () => go('#/perfil'));
+  };
+  const step = (i) => {
+    const q = QUIZ[i];
+    app.innerHTML = `<div class="quiz fade-in">
+      <div class="quiz-progress">${QUIZ.map((_, k) => `<i class="${k < i ? 'done' : k === i ? 'now' : ''}"></i>`).join('')}</div>
+      <div class="quiz-kicker">Pregunta ${i + 1} de ${QUIZ.length} · <span class="chip orange">${esc(q.anime)}</span></div>
+      <h2 class="quiz-q">${esc(q.q)}</h2>
+      <div class="quiz-options">${q.a.map(([t], k) => `<button class="quiz-opt" data-a="${k}"><b>${'ABCD'[k]}</b><span>${esc(t)}</span></button>`).join('')}</div>
+      ${i > 0 ? '<button class="btn ghost" data-back>← Anterior</button>' : ''}
+    </div>`;
+    $$('[data-a]', app).forEach((b) => b.addEventListener('click', () => {
+      b.classList.add('picked');
+      answers[i] = Number(b.dataset.a);
+      setTimeout(() => (i + 1 < QUIZ.length ? step(i + 1) : result()), 220);
+    }));
+    $('[data-back]', app)?.addEventListener('click', () => step(i - 1));
+  };
+  const result = async () => {
+    const key = quizResult(answers, user);
+    const ch = CHARACTERS[key];
+    const keep = user.color && user.color !== ch.color ? user.color : null;
+    app.innerHTML = `<div class="quiz result fade-in" style="--c:${ch.color}">
+      <div class="quiz-kicker">Tu color es</div>
+      <h1 class="quiz-title color-name">${esc(colorName(ch.color))}</h1>
+      <div class="result-card">
+        <div class="result-poster"><span class="ph"></span></div>
+        <div class="result-txt">
+          <small>Te pareces a</small>
+          <b>${esc(ch.name)}</b>
+          <span class="chip">${esc(ch.anime)}</span>
+          <p>${esc(ch.why)}</p>
+        </div>
+      </div>
+      <button class="btn primary block" data-use style="background:${ch.color};color:#111">Usar el ${esc(colorName(ch.color).toLowerCase())}</button>
+      ${keep ? `<button class="btn block" data-keep><i class="swatch" style="background:${keep}"></i> Mantener mi ${esc(colorName(keep).toLowerCase())}</button>` : ''}
+      <button class="btn ghost block" data-other>Elegir otro color</button>
+    </div>`;
+    animePoster(ch.jw).then((src) => { if (src && $('.result-poster', app)) $('.result-poster', app).innerHTML = `<img src="${esc(src)}" alt="" referrerpolicy="no-referrer">`; });
+    const finish = async (color) => {
+      try {
+        state.user = (await api('/me', { method: 'PATCH', body: { quizResult: key, color } })).user;
+        toast(`¡Listo! Tu color es el ${colorName(color).toLowerCase()}`);
+        go(again ? '#/perfil' : '#/tablas');
+      } catch (e) { fail(e); }
+    };
+    $('[data-use]', app).addEventListener('click', () => finish(ch.color));
+    $('[data-keep]', app)?.addEventListener('click', () => finish(keep));
+    $('[data-other]', app).addEventListener('click', async () => {
+      const c = await colorSheet(ch.color);
+      if (c) finish(c);
+    });
+  };
+  intro();
+}
+
+function colorSheet(current) {
+  return new Promise((resolve) => {
+    let done = false;
+    const s = openSheet(`
+      <h3>Elige tu color</h3>
+      <p class="muted" style="margin-top:-8px;font-size:14px">Es el color de tu columna de check y nota en todas las tablas.</p>
+      <div class="swatches">${COLORS.map((c) => {
+        const taken = isReservedFor(c, state.user);
+        return `<button class="sw ${c.hex === current ? 'on' : ''}" data-c="${c.hex}" style="--c:${c.hex}" ${taken ? 'disabled' : ''}>
+          <i></i><span>${c.name}</span>${taken ? '<small>Reservado</small>' : ''}</button>`;
+      }).join('')}</div>
+      <div class="actions"><button class="btn" data-close>Cancelar</button></div>`, { onClose: () => !done && resolve(null) });
+    $$('[data-c]', s).forEach((b) => b.addEventListener('click', () => { done = true; s.close(); resolve(b.dataset.c); }));
+  });
+}
+
 // ───────────── Tablas ─────────────
 function topbar(title, { back, right = '', sub = '' } = {}) {
   return `<header class="topbar">
@@ -291,31 +452,34 @@ async function renderList(id) {
   drawList();
   // Sincroniza con los cambios de las otras personas de la tabla
   pollTimer = setInterval(async () => {
-    if (document.visibilityState !== 'visible' || $('.sheet') || location.hash !== '#/tabla/' + id) return;
+    if (document.visibilityState !== 'visible' || $('.sheet') || state.dragging || location.hash !== '#/tabla/' + id) return;
     const prev = state.list.list.updated_at;
     try { await loadList(id); if (state.list.list.updated_at !== prev) drawList(true); } catch { /* reintenta luego */ }
   }, 8000);
 }
 
-// Ranking: podio por persona y, si hay varias, por media
-function rankingFor(key, people, entries) {
+// Ranking: podio por persona (o media) y por tipo (series / películas)
+function rankingFor(key, kind, people, entries) {
   const score = (e) => {
     if (key !== 'avg') return e.marks[key]?.rating ?? null;
     const rs = people.map((p) => e.marks[p.id]?.rating).filter((r) => r != null);
     return rs.length ? Math.round((rs.reduce((a, b) => a + b, 0) / rs.length) * 100) / 100 : null;
   };
-  return entries.map((e) => ({ e, r: score(e) })).filter((x) => x.r != null).sort((a, b) => b.r - a.r).slice(0, 3);
+  return entries.filter((e) => (e.kind === 'movie' ? 'movie' : 'show') === kind)
+    .map((e) => ({ e, r: score(e) })).filter((x) => x.r != null).sort((a, b) => b.r - a.r).slice(0, 3);
 }
 
 const LANG_FLAG = { 'Español': '🇪🇸', 'Japonés': '🇯🇵', 'Inglés': '🇬🇧', 'Catalán': '🏴', 'Francés': '🇫🇷', 'Italiano': '🇮🇹', 'Alemán': '🇩🇪', 'Portugués': '🇵🇹', 'Coreano': '🇰🇷', 'Chino': '🇨🇳' };
+const isMine = (p) => p.user_id === state.user.id;
 
 function podiumHtml() {
   const { people, entries } = state.list;
   const tabs = [...people.map((p) => ({ key: p.id, name: p.name, color: p.color })), ...(people.length > 1 ? [{ key: 'avg', name: 'Media', color: 'var(--orange)' }] : [])];
-  if (!tabs.some((t) => t.key === state.rankKey)) state.rankKey = tabs[0]?.key;
+  if (!tabs.some((t) => t.key === state.rankKey)) state.rankKey = people.find(isMine)?.id ?? tabs[0]?.key;
   const tab = tabs.find((t) => t.key === state.rankKey);
   if (!tab) return '';
-  const top = rankingFor(tab.key, people, entries);
+  const kind = state.rankKind;
+  const top = rankingFor(tab.key, kind, people, entries);
   const slot = (place) => {
     const x = top[place - 1];
     const medal = ['', 'gold', 'silver', 'bronze'][place];
@@ -328,13 +492,15 @@ function podiumHtml() {
       <div class="pod-base"><span>${place}</span></div>
     </div>`;
   };
+  const who = tab.key === 'avg' ? 'pongáis' : isMine(people.find((p) => p.id === tab.key) || {}) ? 'pongas' : `${tab.name} ponga`;
   return `
     <div class="rank-head">
       <h2>🏆 Ranking</h2>
       <div class="rank-tabs" role="tablist">${tabs.map((t) => `<button role="tab" data-rank="${t.key}" class="${t.key === tab.key ? 'on' : ''}" style="--c:${t.color}">${esc(t.name)}</button>`).join('')}</div>
     </div>
+    <div class="kind-tabs">${[['show', '📺 Series'], ['movie', '🎬 Películas']].map(([k, t]) => `<button data-kind="${k}" class="${kind === k ? 'on' : ''}">${t}</button>`).join('')}</div>
     ${top.length ? `<div class="podium">${slot(2)}${slot(1)}${slot(3)}</div>`
-      : `<div class="empty" style="padding:14px 8px">Cuando ${esc(tab.key === 'avg' ? 'pongáis' : tab.name + ' ponga')} notas, aquí saldrá el podio.</div>`}`;
+      : `<div class="empty" style="padding:18px 8px 22px">Cuando ${esc(who)} notas a ${kind === 'movie' ? 'alguna película' : 'alguna serie'}, aquí saldrá el podio.</div>`}`;
 }
 
 function progressHtml() {
@@ -342,15 +508,15 @@ function progressHtml() {
   if (!entries.length) return '';
   return `<div class="progress">${people.map((p) => {
     const n = entries.filter((e) => e.marks[p.id]?.seen).length;
-    return `<div class="prog" style="--c:${p.color}"><div class="prog-top"><span><i class="dot"></i>${esc(p.name)}</span><b>${n}<small>/${entries.length}</small></b></div>
+    return `<div class="prog" style="--c:${p.color}"><div class="prog-top"><span><i class="dot"></i>${esc(p.name)}${isMine(p) ? ' <small class="muted">(tú)</small>' : ''}</span><b>${n}<small>/${entries.length}</small></b></div>
       <div class="bar"><i style="width:${(n / entries.length) * 100}%"></i></div></div>`;
   }).join('')}</div>`;
 }
 
 function visibleEntries() {
-  const { entries, people } = state.list;
+  const { entries, people, pendingOrder } = state.list;
   const q = state.query.trim().toLowerCase();
-  return entries.filter((e) => {
+  const rows = entries.filter((e) => {
     if (q && !e.title.toLowerCase().includes(q)) return false;
     const seenAll = people.length && people.every((p) => e.marks[p.id]?.seen);
     const seenAny = people.some((p) => e.marks[p.id]?.seen);
@@ -358,17 +524,23 @@ function visibleEntries() {
     if (state.filter === 'seen') return seenAny;
     return true;
   });
+  if (state.filter !== 'pending') return rows;
+  // En «Pendientes» manda tu orden personal; lo nuevo va al final
+  const pos = new Map((pendingOrder || []).map((id, i) => [id, i]));
+  return rows.map((e, i) => ({ e, k: pos.has(e.id) ? pos.get(e.id) : 1e6 + i })).sort((a, b) => a.k - b.k).map((x) => x.e);
 }
 
 function drawList(keepScroll = false) {
   const { list, people, entries, members } = state.list;
   const scroll = keepScroll ? $('.table-wrap')?.scrollLeft : 0;
   const owner = list.role === 'owner';
-  const shared = members.length > 1;
+  const others = members.filter((m) => m.id !== state.user.id);
+  const head = (p, label) => `<th class="p" style="--c:${p.color}"><span class="ph-head" title="${esc(p.name)}"><i>${esc(p.name[0]?.toUpperCase() || '?')}</i>${label}</span>
+    <small class="ph-name">${isMine(p) ? 'Tú' : esc(p.name)}${p.user_id ? '' : ' · sin unir'}</small></th>`;
 
   app.innerHTML = topbar(list.name, {
     back: '#/tablas',
-    sub: `${entries.length} animes${shared ? ` · compartida con ${members.filter((m) => m.id !== state.user.id).map((m) => '@' + esc(m.username)).join(', ')}` : ''}`,
+    sub: `${entries.length} animes${others.length ? ` · con ${others.map((m) => '@' + esc(m.username)).join(', ')}` : ''}`,
     right: `${owner ? `<button class="iconbtn" data-share aria-label="Compartir">${ICON.share}</button>` : ''}<button class="iconbtn" data-menu aria-label="Opciones">${ICON.dots}</button>`,
   }) + `
   <div class="fade-in">
@@ -382,12 +554,13 @@ function drawList(keepScroll = false) {
           `<button data-f="${k}" class="${state.filter === k ? 'on' : ''}">${t}</button>`).join('')}
       </div>
     </div>
+    <div class="order-hint" data-hint ${state.filter === 'pending' ? '' : 'hidden'}>${ICON.grip} Arrastra desde las rayas para ordenar qué ver primero. Este orden es solo tuyo.</div>
 
     <div class="table-wrap"><table class="anime">
       <thead><tr>
-        ${people.map((p) => `<th class="p" style="--c:${p.color}"><span class="ph-head"><i>${esc(p.name[0]?.toUpperCase() || '?')}</i>Visto</span></th>`).join('')}
+        ${people.map((p) => head(p, 'Visto')).join('')}
         <th class="name">Anime</th><th>Plataforma</th><th>Idioma</th>
-        ${people.map((p) => `<th class="p" style="--c:${p.color}"><span class="ph-head"><i>${esc(p.name[0]?.toUpperCase() || '?')}</i>Nota</span></th>`).join('')}
+        ${people.map((p) => head(p, 'Nota')).join('')}
       </tr></thead>
       <tbody></tbody>
     </table></div>
@@ -406,17 +579,19 @@ function drawList(keepScroll = false) {
   $$('[data-f]', app).forEach((b) => b.addEventListener('click', () => {
     state.filter = b.dataset.f;
     $$('[data-f]', app).forEach((x) => x.classList.toggle('on', x === b));
+    $('[data-hint]', app).hidden = state.filter !== 'pending';
     drawRows();
   }));
 }
 
 function bindPodium() {
   const box = $('[data-podium]', app);
+  const redraw = () => { box.innerHTML = podiumHtml(); bindPodium(); };
   $$('[data-rank]', box).forEach((b) => b.addEventListener('click', () => {
     state.rankKey = b.dataset.rank === 'avg' ? 'avg' : Number(b.dataset.rank);
-    box.innerHTML = podiumHtml();
-    bindPodium();
+    redraw();
   }));
+  $$('[data-kind]', box).forEach((b) => b.addEventListener('click', () => { state.rankKind = b.dataset.kind; redraw(); }));
   $$('[data-open-entry]', box).forEach((b) => b.addEventListener('click', () =>
     entrySheet(state.list.entries.find((e) => e.id === Number(b.dataset.openEntry)))));
 }
@@ -424,6 +599,7 @@ function bindPodium() {
 function drawRows() {
   const { people } = state.list;
   const rows = visibleEntries();
+  const sortable = state.filter === 'pending' && !state.query.trim();
   const tbody = $('table.anime tbody', app);
   const cols = people.length * 2 + 3;
   tbody.innerHTML = rows.length ? rows.map((e) => {
@@ -431,9 +607,11 @@ function drawRows() {
     const done = people.length && people.every((p) => e.marks[p.id]?.seen);
     const kind = e.kind === 'movie' ? 'Película' : 'Serie';
     const dur = e.duration && e.duration !== 'Película' ? e.duration : '';
+    const lock = (p) => (isMine(p) ? '' : 'locked');
     return `<tr data-id="${e.id}" class="${done ? 'done' : ''}">
-      ${people.map((p) => `<td class="p" style="--c:${p.color}"><button class="check ${e.marks[p.id]?.seen ? 'on' : ''}" data-seen="${p.id}" aria-label="Visto por ${esc(p.name)}" aria-pressed="${!!e.marks[p.id]?.seen}">${ICON.check}</button></td>`).join('')}
+      ${people.map((p) => `<td class="p" style="--c:${p.color}"><button class="check ${e.marks[p.id]?.seen ? 'on' : ''} ${lock(p)}" data-seen="${p.id}" aria-label="Visto por ${esc(p.name)}" aria-pressed="${!!e.marks[p.id]?.seen}">${ICON.check}</button></td>`).join('')}
       <td class="name" data-open><div class="wrap">
+        ${sortable ? `<span class="grip" data-grip aria-label="Arrastrar para ordenar">${ICON.grip}</span>` : ''}
         <span class="poster">${e.poster ? `<img src="${esc(e.poster)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<span class="ph">${esc(e.title[0] || '?')}</span>`}${done ? `<i class="done-badge">${ICON.check}</i>` : ''}</span>
         <div class="txt"><span class="t">${esc(e.title)}</span><span class="meta-line">${kind}${dur ? ` · ${esc(dur)}` : ''}</span></div></div></td>
       <td>${e.platform ? platBadge(pk, e.platform) : '<span class="muted">—</span>'}</td>
@@ -441,21 +619,73 @@ function drawRows() {
       ${people.map((p) => {
         const r = e.marks[p.id]?.rating;
         return `<td class="p" style="--c:${p.color}">${r == null
-          ? `<button class="rate empty-r" data-rate="${p.id}" aria-label="Poner nota de ${esc(p.name)}">+ nota</button>`
-          : `<button class="rate" data-rate="${p.id}" style="--pct:${r * 10}%" aria-label="Nota de ${esc(p.name)}: ${fmtRating(r)}"><b>${fmtRating(r)}</b><small>/10</small><i class="rbar"></i></button>`}</td>`;
+          ? `<button class="rate empty-r ${lock(p)}" data-rate="${p.id}" aria-label="Nota de ${esc(p.name)}">${isMine(p) ? '+ nota' : '—'}</button>`
+          : `<button class="rate ${lock(p)}" data-rate="${p.id}" style="--pct:${r * 10}%" aria-label="Nota de ${esc(p.name)}: ${fmtRating(r)}"><b>${fmtRating(r)}</b><small>/10</small><i class="rbar"></i></button>`}</td>`;
       }).join('')}
     </tr>`;
-  }).join('') : `<tr class="empty-row"><td colspan="${cols}" class="empty">${state.list.entries.length ? 'Nada coincide con el filtro' : 'Tabla vacía. Pulsa «Añadir anime» para empezar.'}</td></tr>`;
+  }).join('') : `<tr class="empty-row"><td colspan="${cols}" class="empty">${state.list.entries.length ? (state.filter === 'pending' ? '¡No queda nada pendiente! 🎉' : 'Nada coincide con el filtro') : 'Tabla vacía. Pulsa «Añadir anime» para empezar.'}</td></tr>`;
 
   $$('tr[data-id]', tbody).forEach((tr) => {
     const entry = state.list.entries.find((x) => x.id === Number(tr.dataset.id));
     $('[data-open]', tr).addEventListener('click', () => entrySheet(entry));
     $$('[data-seen]', tr).forEach((b) => b.addEventListener('click', () => toggleSeen(entry, Number(b.dataset.seen), b)));
     $$('[data-rate]', tr).forEach((b) => b.addEventListener('click', () => ratingSheet(entry, Number(b.dataset.rate))));
+    const grip = $('[data-grip]', tr);
+    if (grip) grip.addEventListener('pointerdown', (ev) => startDrag(ev, tr));
+    grip?.addEventListener('click', (ev) => ev.stopPropagation());
   });
 }
 
+// Arrastrar filas en «Pendientes» (ratón y dedo)
+function startDrag(ev, tr) {
+  ev.preventDefault();
+  ev.stopPropagation();
+  const tbody = tr.parentElement;
+  state.dragging = true;
+  tr.classList.add('dragging');
+  let y0 = ev.pageY;
+  const move = (e) => {
+    let dy = e.pageY - y0;
+    const prev = tr.previousElementSibling, next = tr.nextElementSibling;
+    const swap = (other, after) => {
+      const before = tr.getBoundingClientRect().top;
+      if (after) other.after(tr); else other.before(tr);
+      y0 += tr.getBoundingClientRect().top - before;
+      dy = e.pageY - y0;
+      navigator.vibrate?.(8);
+    };
+    if (next && dy > next.offsetHeight / 2) swap(next, true);
+    else if (prev && dy < -prev.offsetHeight / 2) swap(prev, false);
+    tr.style.transform = `translateY(${dy}px)`;
+    if (e.clientY < 90) scrollBy(0, -12);
+    else if (e.clientY > innerHeight - 140) scrollBy(0, 12);
+  };
+  const end = async () => {
+    removeEventListener('pointermove', move);
+    removeEventListener('pointerup', end);
+    removeEventListener('pointercancel', end);
+    tr.classList.remove('dragging');
+    tr.style.transform = '';
+    state.dragging = false;
+    const visible = $$('tr[data-id]', tbody).map((x) => Number(x.dataset.id));
+    const rest = (state.list.pendingOrder || []).filter((id) => !visible.includes(id));
+    state.list.pendingOrder = [...visible, ...rest];
+    try { await api(`/lists/${state.list.list.id}/pending-order`, { method: 'PUT', body: { ids: state.list.pendingOrder } }); } catch (e) { fail(e); }
+  };
+  addEventListener('pointermove', move);
+  addEventListener('pointerup', end);
+  addEventListener('pointercancel', end);
+}
+
+function lockedToast(personId) {
+  const p = state.list.people.find((x) => x.id === personId);
+  if (!p || isMine(p)) return false;
+  toast(p.user_id ? `Solo ${p.name} puede cambiar su check y su nota` : `${p.name} aún no se ha unido a la tabla`, true);
+  return true;
+}
+
 async function toggleSeen(entry, personId, btn) {
+  if (lockedToast(personId)) return;
   const cur = entry.marks[personId] || { seen: false, rating: null };
   const seen = !cur.seen;
   entry.marks[personId] = { ...cur, seen };
@@ -477,6 +707,7 @@ async function toggleSeen(entry, personId, btn) {
 }
 
 function ratingSheet(entry, personId) {
+  if (lockedToast(personId)) return;
   const person = state.list.people.find((p) => p.id === personId);
   const cur = entry.marks[personId]?.rating;
   let val = cur ?? 7;
@@ -743,14 +974,16 @@ function entrySheet(entry = null) {
 
 // ───────────── Opciones de tabla, columnas y compartir ─────────────
 function listMenu() {
-  const { list } = state.list;
+  const { list, people } = state.list;
   const owner = list.role === 'owner';
+  const free = people.filter((p) => !p.user_id);
   const s = openSheet(`
     <h3>${esc(list.name)}</h3>
     <div style="display:grid;gap:8px">
       <button class="btn block" data-a="rename" style="justify-content:flex-start">${ICON.pencil} Cambiar nombre</button>
-      <button class="btn block" data-a="people" style="justify-content:flex-start">${ICON.columns} Personas / columnas de check y nota</button>
       ${owner ? `<button class="btn block" data-a="share" style="justify-content:flex-start">${ICON.share} Compartir con un amigo</button>` : ''}
+      ${owner && free.length ? `<button class="btn block" data-a="people" style="justify-content:flex-start">${ICON.columns} Columnas sin unir (${free.length})</button>` : ''}
+      <button class="btn block" data-a="color" style="justify-content:flex-start">${ICON.palette} Cambiar mi color</button>
       <button class="btn block" data-a="delete" style="justify-content:flex-start;color:var(--red)">${ICON.trash} ${owner ? 'Eliminar tabla' : 'Salir de la tabla'}</button>
     </div>`);
   $$('[data-a]', s).forEach((b) => b.addEventListener('click', async () => {
@@ -762,83 +995,103 @@ function listMenu() {
       try { await api('/lists/' + list.id, { method: 'PATCH', body: { name: r.value } }); await loadList(list.id); drawList(); toast('Nombre cambiado'); } catch (e) { fail(e); }
     } else if (a === 'people') peopleSheet();
     else if (a === 'share') shareSheet();
-    else if (a === 'delete') {
+    else if (a === 'color') {
+      if (await changeColor()) { await loadList(list.id); drawList(true); }
+    } else if (a === 'delete') {
       const ok = await confirmSheet(owner
         ? { title: '¿Eliminar tabla?', text: `Se borrará <b>${esc(list.name)}</b> para todos. No se puede deshacer.` }
-        : { title: '¿Salir de la tabla?', text: `Dejarás de ver <b>${esc(list.name)}</b>.`, ok: 'Salir' });
+        : { title: '¿Salir de la tabla?', text: `Dejarás de ver <b>${esc(list.name)}</b>. Tus checks y notas se quedan en la tabla.`, ok: 'Salir' });
       if (!ok) return;
       try { await api('/lists/' + list.id, { method: 'DELETE' }); toast(owner ? 'Tabla eliminada' : 'Has salido'); go('#/tablas'); } catch (e) { fail(e); }
     }
   }));
 }
 
+// Columnas que aún no son de nadie (p. ej. «Marta» antes de que se una)
 function peopleSheet() {
   const { list, people } = state.list;
+  const free = people.filter((p) => !p.user_id);
   const s = openSheet(`
-    <h3>Personas de la tabla</h3>
-    <p class="muted" style="margin-top:-8px;font-size:14px">Cada persona tiene su columna de <b>check</b> y de <b>nota</b>, con su color.</p>
-    <div class="people-edit">${people.map((p) => `
+    <h3>Columnas sin unir</h3>
+    <p class="muted" style="margin-top:-8px;font-size:14px">Guardan los checks y notas de alguien que todavía no está en la tabla. Al compartirle la tabla podrás darle su columna.</p>
+    <div class="people-edit">${free.map((p) => `
       <div class="person" data-pid="${p.id}">
-        <input type="color" value="${p.color}" data-color aria-label="Color">
-        <input class="input" value="${esc(p.name)}" maxlength="24" data-name>
+        <i class="swatch big" style="background:${p.color}"></i>
+        <input class="input" value="${esc(p.name)}" maxlength="24" data-name aria-label="Nombre de la columna">
         <button class="iconbtn danger" data-rm aria-label="Quitar">${ICON.trash}</button>
-      </div>`).join('')}</div>
-    <form class="row" data-add style="margin-top:12px">
-      <input class="input" name="n" placeholder="Nueva persona" maxlength="24" required>
-      <button class="btn primary" style="flex:0 0 auto">${ICON.plus}</button>
-    </form>
+      </div>`).join('') || '<div class="empty">No hay columnas sin unir</div>'}</div>
     <div class="actions"><button class="btn primary" data-close>Listo</button></div>`, { onClose: async () => { await loadList(list.id); drawList(); } });
-
   $$('[data-pid]', s).forEach((row) => {
     const pid = row.dataset.pid;
-    const save = (body) => api('/people/' + pid, { method: 'PATCH', body }).catch(fail);
-    $('[data-name]', row).addEventListener('change', (e) => e.target.value.trim() && save({ name: e.target.value.trim() }));
-    $('[data-color]', row).addEventListener('change', (e) => save({ color: e.target.value }));
+    $('[data-name]', row).addEventListener('change', (e) => e.target.value.trim() && api('/people/' + pid, { method: 'PATCH', body: { name: e.target.value.trim() } }).catch(fail));
     $('[data-rm]', row).addEventListener('click', async () => {
       const name = $('[data-name]', row).value;
       s.close();
-      if (!(await confirmSheet({ title: `¿Quitar a ${name}?`, text: 'Se borrarán sus checks y notas de esta tabla.' }))) return;
-      try { await api('/people/' + pid, { method: 'DELETE' }); await loadList(list.id); peopleSheet(); } catch (e) { fail(e); }
+      if (!(await confirmSheet({ title: `¿Quitar la columna de ${name}?`, text: 'Se borrarán sus checks y notas de esta tabla.' }))) return;
+      try { await api('/people/' + pid, { method: 'DELETE' }); await loadList(list.id); drawList(); } catch (e) { fail(e); }
     });
   });
-  $('[data-add]', s).addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const name = e.target.n.value.trim();
-    if (!name) return;
-    const color = PERSON_COLORS[people.length % PERSON_COLORS.length];
-    try { await api(`/lists/${list.id}/people`, { body: { name, color } }); s.close(); await loadList(list.id); peopleSheet(); } catch (ex) { fail(ex); }
+}
+
+function pickColumnSheet(friend, free) {
+  return new Promise((resolve) => {
+    let done = false;
+    const s = openSheet(`
+      <h3>¿Cuál será la columna de @${esc(friend.username)}?</h3>
+      <p class="muted" style="margin-top:-8px;font-size:14px">Si eliges una columna existente, se queda con sus checks y notas.</p>
+      <div style="display:grid;gap:8px">
+        ${free.map((p) => `<button class="btn block col-pick" data-p="${p.id}"><i class="swatch" style="background:${p.color}"></i> «${esc(p.name)}» <small class="muted">con sus notas</small></button>`).join('')}
+        <button class="btn block col-pick" data-p="">${ICON.plus} Una columna nueva</button>
+      </div>
+      <div class="actions"><button class="btn" data-close>Cancelar</button></div>`, { onClose: () => !done && resolve(undefined) });
+    $$('[data-p]', s).forEach((b) => b.addEventListener('click', () => { done = true; s.close(); resolve(b.dataset.p ? Number(b.dataset.p) : null); }));
   });
 }
 
 async function shareSheet() {
-  const { list, members } = state.list;
+  const { list, members, invites, people } = state.list;
   let friends;
   try { ({ friends } = await api('/friends')); } catch (e) { return fail(e); }
   const memberIds = new Set(members.map((m) => m.id));
+  const invited = new Map(invites.map((i) => [i.to_user, i]));
   const s = openSheet(`
     <h3>Compartir «${esc(list.name)}»</h3>
-    <p class="muted" style="margin-top:-8px;font-size:14px">Las personas con las que la compartas podrán verla y editarla. Se les añade su columna de check y nota.</p>
-    ${friends.length ? friends.map((f) => `
-      <div class="person">
-        <div class="avatar" style="${avatarStyle(f.username)}">${esc(f.username[0].toUpperCase())}</div>
-        <div class="name">@${esc(f.username)}${memberIds.has(f.id) ? '<small>Puede editar esta tabla</small>' : ''}</div>
-        ${memberIds.has(f.id)
-          ? `<button class="small-btn danger" data-unshare="${f.id}">Dejar de compartir</button>`
-          : `<button class="small-btn primary" data-share="${f.id}">Compartir</button>`}
-      </div>`).join('')
+    <p class="muted" style="margin-top:-8px;font-size:14px">Le llegará una invitación en <b>Amigos</b>. Cuando la acepte, verá la tabla y podrá marcar sus checks y notas (solo los suyos).</p>
+    ${friends.length ? friends.map((f) => {
+      let action = `<button class="small-btn primary" data-share="${f.id}">Compartir</button>`;
+      let sub = '';
+      if (memberIds.has(f.id)) { action = `<button class="small-btn danger" data-unshare="${f.id}">Sacar</button>`; sub = 'Está en la tabla'; }
+      else if (invited.has(f.id)) { action = `<button class="small-btn" data-unshare="${f.id}">Cancelar</button>`; sub = 'Invitación enviada'; }
+      return `<div class="person">${avatarHtml(f)}<div class="name">@${esc(f.username)}${sub ? `<small>${sub}</small>` : ''}</div>${action}</div>`;
+    }).join('')
       : `<div class="empty">Todavía no tienes amigos agregados.<br><br><a class="btn primary" href="#/amigos">Buscar amigos</a></div>`}
     <div class="actions"><button class="btn" data-close>Cerrar</button></div>`);
   $$('[data-share]', s).forEach((b) => b.addEventListener('click', async () => {
-    b.disabled = true;
-    try { await api(`/lists/${list.id}/share`, { body: { userId: Number(b.dataset.share) } }); toast('¡Tabla compartida!'); s.close(); await loadList(list.id); drawList(); } catch (e) { fail(e); b.disabled = false; }
+    const friend = friends.find((f) => f.id === Number(b.dataset.share));
+    const free = people.filter((p) => !p.user_id);
+    s.close();
+    const personId = free.length ? await pickColumnSheet(friend, free) : null;
+    if (personId === undefined) return;
+    try {
+      await api(`/lists/${list.id}/share`, { body: { userId: friend.id, personId } });
+      toast(`Invitación enviada a @${friend.username}`);
+      await loadList(list.id); drawList(true);
+    } catch (e) { fail(e); }
   }));
   $$('[data-unshare]', s).forEach((b) => b.addEventListener('click', async () => {
-    try { await api(`/lists/${list.id}/share/${b.dataset.unshare}`, { method: 'DELETE' }); toast('Ya no está compartida con esa persona'); s.close(); await loadList(list.id); drawList(); } catch (e) { fail(e); }
+    const f = friends.find((x) => x.id === Number(b.dataset.unshare));
+    if (memberIds.has(f.id)) {
+      s.close();
+      if (!(await confirmSheet({ title: `¿Sacar a @${f.username}?`, text: 'Dejará de ver la tabla. Sus checks y notas se quedan en su columna.', ok: 'Sacar' }))) return;
+    }
+    try { await api(`/lists/${list.id}/share/${f.id}`, { method: 'DELETE' }); toast(memberIds.has(f.id) ? 'Ya no está en la tabla' : 'Invitación cancelada'); s.close(); await loadList(list.id); drawList(true); } catch (e) { fail(e); }
   }));
   $('[href="#/amigos"]', s)?.addEventListener('click', () => s.close());
 }
 
 // ───────────── Amigos ─────────────
+const avatarHtml = (u, cls = '') => `<div class="avatar ${cls}" style="${avatarStyle(u.username, u.color)}">${esc(u.username[0].toUpperCase())}</div>`;
+
 async function renderFriends() {
   app.innerHTML = topbar('Amigos') + `
     <div class="card section">
@@ -865,7 +1118,7 @@ async function renderFriends() {
           if (status === 'accepted') action = '<span class="chip">✓ Amigos</span>';
           else if (status === 'pending' && dir === 'out') action = '<span class="chip">Enviada</span>';
           else if (status === 'pending' && dir === 'in') action = `<button class="small-btn primary" data-req="${esc(u.username)}">Aceptar</button>`;
-          return `<div class="person"><div class="avatar" style="${avatarStyle(u.username)}">${esc(u.username[0].toUpperCase())}</div><div class="name">@${esc(u.username)}</div>${action}</div>`;
+          return `<div class="person">${avatarHtml(u)}<div class="name">@${esc(u.username)}</div>${action}</div>`;
         }).join('') : '<div class="empty">No hay nadie con ese nombre de usuario</div>';
         $$('[data-req]', resBox).forEach((b) => b.addEventListener('click', async () => {
           b.disabled = true;
@@ -887,15 +1140,25 @@ async function drawFriendLists() {
   if (!box) return;
   let data;
   try { data = await api('/friends'); } catch (e) { return fail(e); }
-  const { friends, incoming, outgoing } = data;
-  const person = (u, actions, sub = '') => `<div class="person"><div class="avatar" style="${avatarStyle(u.username)}">${esc(u.username[0].toUpperCase())}</div><div class="name">@${esc(u.username)}${sub ? `<small>${sub}</small>` : ''}</div>${actions}</div>`;
+  const { friends, incoming, outgoing, invites } = data;
+  const person = (u, actions, sub = '') => `<div class="person">${avatarHtml(u)}<div class="name">@${esc(u.username)}${sub ? `<small>${sub}</small>` : ''}</div>${actions}</div>`;
+  const total = incoming.length + invites.length;
   box.innerHTML = `
     <div class="card section">
-      <h2>Solicitudes ${incoming.length ? `<span class="count">${incoming.length}</span>` : ''}</h2>
-      ${incoming.length ? incoming.map((r) => person(r, `
+      <h2>Solicitudes ${total ? `<span class="count">${total}</span>` : ''}</h2>
+      ${invites.map((i) => `
+        <div class="invite">
+          ${avatarHtml({ username: i.fromName, color: i.fromColor })}
+          <div class="name"><small>@${esc(i.fromName)} te ha compartido una lista</small>
+            <span class="inv-list">${ICON.film} ${esc(i.listName)}</span>
+            <small>${i.count} anime${i.count === 1 ? '' : 's'}</small></div>
+          <button class="round ok" data-iacc="${i.inviteId}" aria-label="Aceptar lista">${ICON.check}</button>
+          <button class="round no" data-irej="${i.inviteId}" aria-label="Rechazar lista">${ICON.x}</button>
+        </div>`).join('')}
+      ${incoming.map((r) => person(r, `
         <button class="round ok" data-acc="${r.requestId}" aria-label="Aceptar">${ICON.check}</button>
-        <button class="round no" data-rej="${r.requestId}" aria-label="Rechazar">${ICON.x}</button>`, 'Quiere ser tu amigo/a')).join('')
-        : '<div class="empty">No tienes solicitudes pendientes</div>'}
+        <button class="round no" data-rej="${r.requestId}" aria-label="Rechazar">${ICON.x}</button>`, 'Quiere ser tu amigo/a')).join('')}
+      ${total ? '' : '<div class="empty">No tienes solicitudes pendientes</div>'}
       ${outgoing.length ? `<div class="muted" style="font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin:14px 0 2px">Enviadas</div>
         ${outgoing.map((r) => person(r, `<button class="small-btn" data-cancel="${r.requestId}">Cancelar</button>`, 'Pendiente de aceptar')).join('')}` : ''}
     </div>
@@ -905,8 +1168,13 @@ async function drawFriendLists() {
         : '<div class="empty">Busca a alguien por su nombre de usuario para empezar</div>'}
     </div>`;
   const act = async (path, msg) => {
-    try { await api(path, { method: 'POST' }); toast(msg); drawFriendLists(); refreshBadge(); } catch (e) { fail(e); }
+    try { const r = await api(path, { method: 'POST' }); toast(msg); drawFriendLists(); refreshBadge(); return r; } catch (e) { fail(e); return null; }
   };
+  $$('[data-iacc]', box).forEach((b) => b.addEventListener('click', async () => {
+    const inv = invites.find((i) => i.inviteId === Number(b.dataset.iacc));
+    await act(`/invites/${inv.inviteId}/accept`, `«${inv.listName}» ya está en tus tablas`);
+  }));
+  $$('[data-irej]', box).forEach((b) => b.addEventListener('click', () => act(`/invites/${b.dataset.irej}/reject`, 'Lista rechazada')));
   $$('[data-acc]', box).forEach((b) => b.addEventListener('click', () => act(`/friends/requests/${b.dataset.acc}/accept`, '¡Solicitud aceptada!')));
   $$('[data-rej]', box).forEach((b) => b.addEventListener('click', () => act(`/friends/requests/${b.dataset.rej}/reject`, 'Solicitud rechazada')));
   $$('[data-cancel]', box).forEach((b) => b.addEventListener('click', () => act(`/friends/requests/${b.dataset.cancel}/cancel`, 'Solicitud cancelada')));
@@ -917,16 +1185,28 @@ async function drawFriendLists() {
 }
 
 // ───────────── Perfil ─────────────
+async function changeColor() {
+  const c = await colorSheet(state.user.color);
+  if (!c || c === state.user.color) return false;
+  try {
+    state.user = (await api('/me', { method: 'PATCH', body: { color: c } })).user;
+    toast(`Ahora tu color es el ${colorName(c).toLowerCase()}`);
+    return true;
+  } catch (e) { fail(e); return false; }
+}
+
 async function renderProfile() {
   let me;
   try { me = await api('/me'); } catch (e) { return fail(e); }
   const { user, stats } = me;
+  state.user = { ...state.user, ...user };
   const since = new Date(user.createdAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+  const ch = CHARACTERS[user.quizResult];
   let meta = null;
   try { meta = await api('/meta'); } catch { /* opcional */ }
   app.innerHTML = topbar('Perfil') + `
-    <div class="card profile-hero fade-in">
-      <div class="avatar" style="${avatarStyle(user.username)}">${esc(user.username[0].toUpperCase())}</div>
+    <div class="card profile-hero fade-in" style="--c:${user.color || 'var(--orange)'}">
+      ${avatarHtml(user)}
       <h2>@${esc(user.username)}</h2>
       <div class="muted">Miembro desde el ${since}</div>
       <div class="stats">
@@ -935,12 +1215,25 @@ async function renderProfile() {
         <div><b>${stats.requests}</b><span>Solicitudes</span></div>
       </div>
     </div>
+    <div class="card section me-color" style="--c:${user.color || 'var(--orange)'}">
+      <h2>Tu color</h2>
+      <div class="me-color-row">
+        <i class="swatch big"></i>
+        <div class="name"><b>${esc(user.color ? colorName(user.color) : 'Sin elegir')}</b>
+          ${ch ? `<small>Te pareces a <b>${esc(ch.name)}</b> · ${esc(ch.anime)}</small>` : ''}</div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn" data-color>${ICON.palette} Cambiar color</button>
+        <a class="btn" href="#/test">Repetir el test</a>
+      </div>
+    </div>
     <div class="card section">
       <h2>Dónde ver</h2>
       <div class="plat-list" style="justify-content:flex-start">${Object.keys(PLATFORMS).map((k) => platBadge(k)).join('')}</div>
       <p class="muted" style="font-size:13px;margin:10px 0 0">Disponibilidad e idiomas para <b>España</b> 🇪🇸${meta?.catalog?.count ? ` · ${meta.catalog.count} animes en el catálogo` : ''}. Se consulta en directo al elegir un anime.</p>
     </div>
     <button class="btn danger block" data-logout>${ICON.logout} Cerrar sesión</button>`;
+  $('[data-color]', app).addEventListener('click', async () => { if (await changeColor()) renderProfile(); });
   $('[data-logout]', app).addEventListener('click', async () => {
     if (!(await confirmSheet({ title: '¿Cerrar sesión?', text: 'Tendrás que volver a entrar con tu usuario y contraseña.', ok: 'Cerrar sesión', icon: ICON.logout }))) return;
     try { await api('/auth/logout', { method: 'POST' }); } catch { /* da igual */ }

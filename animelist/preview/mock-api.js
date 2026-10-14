@@ -1,18 +1,20 @@
 // Vista previa sin servidor: emula la API de /api en el navegador (datos en este dispositivo).
 // La inyecta scripts/build-preview.mjs junto con CATALOG, TEMPLATE y POSTERS.
 (() => {
-  const KEY = 'animelist-preview-v1';
+  const KEY = 'animelist-preview-v2';
   let mem = null;
   const load = () => {
     if (mem) return mem;
     try { mem = JSON.parse(localStorage.getItem(KEY)); } catch { mem = null; }
-    mem ||= { seq: 1, users: [], session: null, friendships: [], lists: [], members: [], people: [], entries: [], marks: [] };
+    mem ||= { seq: 1, users: [], session: null, friendships: [], lists: [], members: [], people: [], entries: [], marks: [], invites: [], orders: [] };
     return mem;
   };
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(mem)); } catch { /* solo en memoria */ } };
   const id = () => load().seq++;
   const now = () => Date.now();
-  const PALETTE = ['#8bc34a', '#5b9bd5', '#ff8a3d', '#e05b8f', '#b38cff', '#ffd54f', '#4dd0c4'];
+  const COLORS = ['#8bc34a', '#ff4d5e', '#a77bff', '#ff8a1f', '#ff6fb5', '#4aa8ff', '#ffd23f', '#2ed3c6'];
+  const QUIZ_RESULTS = ['rengoku', 'jinwoo', 'hinata', 'anya', 'kageyama', 'zenitsu', 'tanjiro'];
+  const FALLBACK = '#9aa0b4';
 
   class E extends Error { constructor(s, m) { super(m); this.status = s; } }
   const fail = (s, m) => { throw new E(s, m); };
@@ -48,7 +50,7 @@
   // ── Helpers de datos ──
   const db = () => load();
   const me = (req) => { const u = db().users.find((x) => x.id === db().session); if (!u && req) fail(401, 'Inicia sesión para continuar'); return u; };
-  const pub = (u) => ({ id: u.id, username: u.username });
+  const pub = (u) => ({ id: u.id, username: u.username, color: u.color || null, quizDone: !!u.quiz_done, quizResult: u.quiz_result || null });
   const userByName = (n) => db().users.find((u) => u.username.toLowerCase() === String(n).trim().toLowerCase());
   const membership = (listId, uid) => {
     const m = db().members.find((x) => x.list_id === listId && x.user_id === uid);
@@ -62,6 +64,18 @@
     const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('animelist:' + pw));
     return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
   }
+  const unlink = (lid, uid) => {
+    const u = db().users.find((x) => x.id === uid);
+    db().people.forEach((p) => { if (p.list_id === lid && p.user_id === uid) { p.user_id = null; p.name = u?.username || 'Antiguo miembro'; if (u?.color) p.color = u.color; } });
+    db().orders = db().orders.filter((o) => !(o.list_id === lid && o.user_id === uid));
+  };
+  const freeColumn = (pid) => {
+    const u = me(true), p = db().people.find((x) => x.id === pid);
+    if (!p) fail(404, 'Columna no encontrada');
+    if (membership(p.list_id, u.id).role !== 'owner') fail(403, 'Solo quien creó la tabla puede cambiar las columnas');
+    if (p.user_id) fail(400, 'Esa columna es de una persona de la tabla');
+    return p;
+  };
   const deleteEntry = (eid) => { db().marks = db().marks.filter((k) => k.entry_id !== eid); db().entries = db().entries.filter((e) => e.id !== eid); };
   const ENTRY = ['title', 'jw_id', 'poster', 'kind', 'duration', 'platform', 'language', 'availability'];
   const pick = (b, partial) => {
@@ -77,7 +91,7 @@
       if (!/^[a-zA-Z0-9_.]{3,20}$/.test(username)) fail(400, 'El usuario debe tener 3-20 caracteres: letras, números, "_" o "."');
       if (String(b.password || '').length < 6) fail(400, 'La contraseña debe tener al menos 6 caracteres');
       if (userByName(username)) fail(409, 'Ese nombre de usuario ya existe');
-      const u = { id: id(), username, pass: await hash(b.password), created_at: now() };
+      const u = { id: id(), username, pass: await hash(b.password), created_at: now(), color: username.toLowerCase() === 'yhm' ? '#8bc34a' : null, quiz_done: 0, quiz_result: null };
       db().users.push(u); db().session = u.id;
       return { user: pub(u) };
     }],
@@ -97,9 +111,23 @@
         stats: {
           lists: d.members.filter((m) => m.user_id === u.id).length,
           friends: d.friendships.filter((f) => f.status === 'accepted' && (f.requester_id === u.id || f.addressee_id === u.id)).length,
-          requests: d.friendships.filter((f) => f.status === 'pending' && f.addressee_id === u.id).length,
+          requests: d.friendships.filter((f) => f.status === 'pending' && f.addressee_id === u.id).length + d.invites.filter((i) => i.to_user === u.id).length,
         },
       };
+    }],
+    ['PATCH', /^\/me$/, (b) => {
+      const u = me(true);
+      if ('color' in b) {
+        const c = String(b.color || '').toLowerCase();
+        if (!COLORS.includes(c)) fail(400, 'Ese color no está disponible');
+        if (c === '#8bc34a' && u.username.toLowerCase() !== 'yhm') fail(403, 'El verde está reservado para otra persona');
+        u.color = c;
+      }
+      if ('quizResult' in b) {
+        if (!QUIZ_RESULTS.includes(b.quizResult)) fail(400, 'Resultado no válido');
+        u.quiz_result = b.quizResult; u.quiz_done = 1;
+      }
+      return { user: pub(u) };
     }],
     ['GET', /^\/meta$/, () => ({ catalog: { count: CATALOG.count, builtAt: CATALOG.builtAt } })],
     ['GET', /^\/backdrop$/, () => ({ posters: Object.values(POSTERS) })],
@@ -127,28 +155,33 @@
       const l = { id: id(), owner_id: u.id, name, created_at: now(), updated_at: now() };
       d.lists.push(l); d.members.push({ list_id: l.id, user_id: u.id, role: 'owner' });
       if (b.template === 'my') {
-        const pids = TEMPLATE.people.map((p, i) => { const pid = id(); d.people.push({ id: pid, list_id: l.id, name: p.name, color: p.color, position: i }); return pid; });
+        const pids = TEMPLATE.people.map((p, i) => { const pid = id(); d.people.push({ id: pid, list_id: l.id, name: p.name, color: p.color, position: i, user_id: p.owner ? u.id : null }); return pid; });
         TEMPLATE.rows.forEach(([title, duration, platform, language, mk, yk, jw], pos) => {
           const cat = byId[jw];
           const eid = id();
           d.entries.push({ id: eid, list_id: l.id, position: pos, title, jw_id: jw, poster: poster(cat), kind: duration === 'Película' ? 'movie' : 'show', duration, platform, language, availability: cat?.platforms || null, created_at: now() });
           [mk, yk].forEach(([seen, rating], k) => d.marks.push({ entry_id: eid, person_id: pids[k], seen: !!seen, rating }));
         });
-      } else d.people.push({ id: id(), list_id: l.id, name: u.username, color: PALETTE[0], position: 0 });
+      } else d.people.push({ id: id(), list_id: l.id, name: '', color: FALLBACK, position: 0, user_id: u.id });
       return { id: l.id };
     }],
     ['GET', /^\/lists\/(\d+)$/, (_b, m) => {
       const u = me(true), d = db(), lid = +m[1];
       const mem_ = membership(lid, u.id);
       const l = d.lists.find((x) => x.id === lid);
-      const people = d.people.filter((p) => p.list_id === lid).sort((a, b) => a.position - b.position || a.id - b.id);
+      const people = d.people.filter((p) => p.list_id === lid).sort((a, b) => a.position - b.position || a.id - b.id).map((p) => {
+        const owner = p.user_id && d.users.find((x) => x.id === p.user_id);
+        return { id: p.id, position: p.position, user_id: p.user_id || null, name: owner ? owner.username : p.name, color: (owner && owner.color) || p.color };
+      });
       const entries = d.entries.filter((e) => e.list_id === lid).sort((a, b) => a.position - b.position || a.id - b.id).map((e) => {
         const marks = {};
         d.marks.filter((k) => k.entry_id === e.id).forEach((k) => (marks[k.person_id] = { seen: !!k.seen, rating: k.rating }));
         return { ...e, marks };
       });
       const members = d.members.filter((x) => x.list_id === lid).map((x) => ({ ...pub(d.users.find((uu) => uu.id === x.user_id)), role: x.role }));
-      return { list: { id: l.id, name: l.name, owner_id: l.owner_id, updated_at: l.updated_at, role: mem_.role }, people, members, entries };
+      const invites = mem_.role === 'owner' ? d.invites.filter((i) => i.list_id === lid).map((i) => ({ id: i.id, to_user: i.to_user, person_id: i.person_id, username: d.users.find((x) => x.id === i.to_user)?.username })) : [];
+      const order = d.orders.find((o) => o.list_id === lid && o.user_id === u.id);
+      return { list: { id: l.id, name: l.name, owner_id: l.owner_id, updated_at: l.updated_at, role: mem_.role }, people, members, invites, pendingOrder: order ? order.ids : [], entries };
     }],
     ['PATCH', /^\/lists\/(\d+)$/, (b, m) => {
       const u = me(true), lid = +m[1]; membership(lid, u.id);
@@ -159,33 +192,24 @@
     ['DELETE', /^\/lists\/(\d+)$/, (_b, m) => {
       const u = me(true), d = db(), lid = +m[1];
       const mm = membership(lid, u.id);
-      if (mm.role !== 'owner') { d.members = d.members.filter((x) => !(x.list_id === lid && x.user_id === u.id)); return { ok: true, left: true }; }
+      if (mm.role !== 'owner') { unlink(lid, u.id); d.members = d.members.filter((x) => !(x.list_id === lid && x.user_id === u.id)); touch(lid); return { ok: true, left: true }; }
       d.entries.filter((e) => e.list_id === lid).forEach((e) => deleteEntry(e.id));
       d.people = d.people.filter((p) => p.list_id !== lid);
       d.members = d.members.filter((x) => x.list_id !== lid);
+      d.invites = d.invites.filter((x) => x.list_id !== lid);
+      d.orders = d.orders.filter((x) => x.list_id !== lid);
       d.lists = d.lists.filter((x) => x.id !== lid);
       return { ok: true, deleted: true };
     }],
-    ['POST', /^\/lists\/(\d+)\/people$/, (b, m) => {
-      const u = me(true), d = db(), lid = +m[1]; membership(lid, u.id);
-      const name = clean(b.name, 24); if (!name) fail(400, 'Pon un nombre');
-      const count = d.people.filter((p) => p.list_id === lid).length;
-      if (count >= 8) fail(400, 'Máximo 8 personas por tabla');
-      const p = { id: id(), list_id: lid, name, color: /^#[0-9a-f]{6}$/i.test(b.color || '') ? b.color : PALETTE[count % PALETTE.length], position: count };
-      d.people.push(p); touch(lid);
-      return { id: p.id };
-    }],
     ['PATCH', /^\/people\/(\d+)$/, (b, m) => {
-      const u = me(true), p = db().people.find((x) => x.id === +m[1]); if (!p) fail(404, 'Columna no encontrada');
-      membership(p.list_id, u.id);
-      if (clean(b.name, 24)) p.name = clean(b.name, 24);
-      if (/^#[0-9a-f]{6}$/i.test(b.color || '')) p.color = b.color;
-      touch(p.list_id); return { ok: true };
+      const p = freeColumn(+m[1]);
+      if (!clean(b.name, 24)) fail(400, 'Pon un nombre');
+      p.name = clean(b.name, 24); touch(p.list_id); return { ok: true };
     }],
     ['DELETE', /^\/people\/(\d+)$/, (_b, m) => {
-      const u = me(true), d = db(), p = d.people.find((x) => x.id === +m[1]); if (!p) fail(404, 'Columna no encontrada');
-      membership(p.list_id, u.id);
+      const d = db(), p = freeColumn(+m[1]);
       d.marks = d.marks.filter((k) => k.person_id !== p.id); d.people = d.people.filter((x) => x.id !== p.id);
+      d.invites.forEach((i) => { if (i.person_id === p.id) i.person_id = null; });
       touch(p.list_id); return { ok: true };
     }],
     ['POST', /^\/lists\/(\d+)\/entries$/, (b, m) => {
@@ -207,10 +231,19 @@
       const u = me(true), ent = db().entries.find((x) => x.id === +m[1]); if (!ent) fail(404, 'Anime no encontrado');
       membership(ent.list_id, u.id); deleteEntry(ent.id); touch(ent.list_id); return { ok: true };
     }],
+    ['PUT', /^\/lists\/(\d+)\/pending-order$/, (b, m) => {
+      const u = me(true), d = db(), lid = +m[1]; membership(lid, u.id);
+      const ids = Array.isArray(b.ids) ? b.ids.map(Number).filter(Number.isInteger) : [];
+      const o = d.orders.find((x) => x.list_id === lid && x.user_id === u.id);
+      if (o) o.ids = ids; else d.orders.push({ list_id: lid, user_id: u.id, ids });
+      return { ok: true };
+    }],
     ['PUT', /^\/entries\/(\d+)\/marks\/(\d+)$/, (b, m) => {
       const u = me(true), d = db(), ent = d.entries.find((x) => x.id === +m[1]); if (!ent) fail(404, 'Anime no encontrado');
       membership(ent.list_id, u.id);
-      const pid = +m[2]; if (!d.people.some((p) => p.id === pid && p.list_id === ent.list_id)) fail(404, 'Columna no encontrada');
+      const pid = +m[2], person = d.people.find((p) => p.id === pid && p.list_id === ent.list_id);
+      if (!person) fail(404, 'Columna no encontrada');
+      if (person.user_id !== u.id) fail(403, 'Solo puedes cambiar tu propio check y tu nota');
       let k = d.marks.find((x) => x.entry_id === ent.id && x.person_id === pid);
       if (!k) { k = { entry_id: ent.id, person_id: pid, seen: false, rating: null }; d.marks.push(k); }
       if ('seen' in b) k.seen = !!b.seen;
@@ -229,18 +262,43 @@
       if (membership(lid, u.id).role !== 'owner') fail(403, 'Solo quien creó la tabla puede compartirla');
       const f = d.users.find((x) => x.id === +b.userId);
       if (!f || !areFriends(u.id, f.id)) fail(400, 'Solo puedes compartir con tus amigos');
-      if (!d.members.some((x) => x.list_id === lid && x.user_id === f.id)) d.members.push({ list_id: lid, user_id: f.id, role: 'editor' });
-      const ppl = d.people.filter((p) => p.list_id === lid);
-      if (!ppl.some((p) => p.name.toLowerCase() === f.username.toLowerCase()) && ppl.length < 8) {
-        d.people.push({ id: id(), list_id: lid, name: f.username, color: PALETTE[ppl.length % PALETTE.length], position: ppl.length });
+      if (d.members.some((x) => x.list_id === lid && x.user_id === f.id)) fail(409, 'Ya está en la tabla');
+      let personId = null;
+      if (b.personId) {
+        const p = d.people.find((x) => x.id === +b.personId && x.list_id === lid && !x.user_id);
+        if (!p) fail(400, 'Esa columna ya no está libre');
+        personId = p.id;
       }
-      touch(lid); return { ok: true };
+      const ex = d.invites.find((i) => i.list_id === lid && i.to_user === f.id);
+      if (ex) { ex.person_id = personId; ex.created_at = now(); }
+      else d.invites.push({ id: id(), list_id: lid, from_user: u.id, to_user: f.id, person_id: personId, created_at: now() });
+      return { ok: true };
     }],
     ['DELETE', /^\/lists\/(\d+)\/share\/(\d+)$/, (_b, m) => {
-      const u = me(true), d = db(), lid = +m[1];
+      const u = me(true), d = db(), lid = +m[1], uid = +m[2];
       if (membership(lid, u.id).role !== 'owner') fail(403, 'Solo quien creó la tabla puede gestionar con quién se comparte');
-      d.members = d.members.filter((x) => !(x.list_id === lid && x.user_id === +m[2] && x.role !== 'owner'));
+      if (uid === u.id) fail(400, 'No puedes sacarte de tu propia tabla');
+      d.invites = d.invites.filter((i) => !(i.list_id === lid && i.to_user === uid));
+      if (d.members.some((x) => x.list_id === lid && x.user_id === uid)) {
+        unlink(lid, uid);
+        d.members = d.members.filter((x) => !(x.list_id === lid && x.user_id === uid));
+        touch(lid);
+      }
       return { ok: true };
+    }],
+    ['POST', /^\/invites\/(\d+)\/(accept|reject)$/, (_b, m) => {
+      const u = me(true), d = db(), inv = d.invites.find((i) => i.id === +m[1] && i.to_user === u.id);
+      if (!inv) fail(404, 'Invitación no encontrada');
+      d.invites = d.invites.filter((i) => i !== inv);
+      if (m[2] === 'reject') return { ok: true };
+      if (!d.members.some((x) => x.list_id === inv.list_id && x.user_id === u.id)) d.members.push({ list_id: inv.list_id, user_id: u.id, role: 'editor' });
+      const free = inv.person_id && d.people.find((p) => p.id === inv.person_id && p.list_id === inv.list_id && !p.user_id);
+      if (free) free.user_id = u.id;
+      else if (!d.people.some((p) => p.list_id === inv.list_id && p.user_id === u.id)) {
+        d.people.push({ id: id(), list_id: inv.list_id, name: '', color: FALLBACK, position: d.people.filter((p) => p.list_id === inv.list_id).length, user_id: u.id });
+      }
+      touch(inv.list_id);
+      return { ok: true, listId: inv.list_id };
     }],
 
     ['GET', /^\/friends$/, () => {
@@ -251,6 +309,10 @@
         friends: rows.filter((f) => f.status === 'accepted').map((f) => ({ ...other(f), since: f.created_at })).sort((a, b) => a.username.localeCompare(b.username)),
         incoming: rows.filter((f) => f.status === 'pending' && f.addressee_id === u.id).map((f) => ({ requestId: f.id, ...other(f), at: f.created_at })),
         outgoing: rows.filter((f) => f.status === 'pending' && f.requester_id === u.id).map((f) => ({ requestId: f.id, ...other(f), at: f.created_at })),
+        invites: d.invites.filter((i) => i.to_user === u.id).sort((a, b) => b.created_at - a.created_at).map((i) => {
+          const l = d.lists.find((x) => x.id === i.list_id), from = d.users.find((x) => x.id === i.from_user);
+          return { inviteId: i.id, at: i.created_at, listId: l.id, listName: l.name, count: d.entries.filter((e) => e.list_id === l.id).length, fromId: from.id, fromName: from.username, fromColor: from.color || null };
+        }),
       };
     }],
     ['GET', /^\/users\/search$/, (_b, _m, qs) => {
@@ -286,6 +348,7 @@
     ['DELETE', /^\/friends\/(\d+)$/, (_b, m) => {
       const u = me(true), o = +m[1];
       db().friendships = db().friendships.filter((f) => !((f.requester_id === u.id && f.addressee_id === o) || (f.requester_id === o && f.addressee_id === u.id)));
+      db().invites = db().invites.filter((i) => !((i.from_user === u.id && i.to_user === o) || (i.from_user === o && i.to_user === u.id)));
       return { ok: true };
     }],
   ];

@@ -299,3 +299,81 @@ input[type=range] { width: 100%; accent-color: var(--orange); height: 30px; }
   table.anime td.name { min-width: 160px; max-width: 180px; }
   table.anime td.name img, table.anime td.name .ph { width: 36px; height: 52px; }
 }
+
+/* ── Test de personalidad ── */
+.quiz { min-height: calc(100vh - 60px); max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; justify-content: center; gap: 14px; padding-block: 12px 24px; }
+.quiz-logo { width: 84px; height: 84px; border-radius: 24px; box-shadow: 0 14px 40px rgba(255, 122, 26, .45); }
+.quiz-kicker { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; color: var(--orange-2); font-weight: 900; font-size: 13px; letter-spacing: 1.4px; text-transform: uppercase; }
+.quiz-kicker .chip { letter-spacing: 0; text-transform: none; }
+.quiz-title { margin: 0; font: 400 clamp(44px, 12vw, 64px)/.95 Bangers, sans-serif; letter-spacing: 1.5px; text-shadow: 3px 3px 0 #000; text-wrap: balance; }
+.quiz-title em { font-style: normal; color: var(--orange); }
+.quiz p { margin: 0; line-height: 1.5; }
+.quiz-progress { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.quiz-progress i { height: 6px; border-radius: 99px; background: rgba(255, 255, 255, .12); }
+.quiz-progress i.done { background: var(--orange); }
+.quiz-progress i.now { background: linear-gradient(90deg, var(--orange) 50%, rgba(255, 255, 255, .12) 50%); }
+.quiz-q { margin: 0; font-size: clamp(22px, 6vw, 28px); line-height: 1.2; font-weight: 900; text-wrap: balance; }
+.quiz-options { display: grid; gap: 10px; }
+.quiz-opt { display: flex; align-items: center; gap: 14px; text-align: left; padding: 14px 16px; border-radius: 18px; border: 1px solid var(--line); background: var(--panel); backdrop-filter: blur(14px); font-weight: 700; font-size: 16px; transition: transform .12s, border-color .12s, background .12s; }
+.quiz-opt b { width: 34px; height: 34px; flex: none; border-radius: 11px; display: grid; place-items: center; background: rgba(255, 122, 26, .16); color: var(--orange-2); font: 400 20px/1 Bangers, sans-serif; }
+.quiz-opt:hover { border-color: var(--orange); }
+.quiz-opt.picked { background: rgba(255, 122, 26, .22); border-color: var(--orange); transform: scale(.98); }
+.quiz-opt.picked b { background: var(--orange); color: #fff; }
+.quiz.result { text-align: center; }
+.quiz.result .quiz-kicker { justify-content: center; }
+.quiz .color-name { color: var(--c); text-shadow: 3px 3px 0 #000, 0 0 40px color-mix(in srgb, var(--c) 60%, transparent); font-size: clamp(56px, 16vw, 84px); }
+.result-card { display: flex; gap: 16px; align-items: center; text-align: left; padding: 16px; border-radius: 22px; background: radial-gradient(120% 120% at 0% 0%, color-mix(in srgb, var(--c) 28%, transparent), transparent 60%), var(--panel); border: 1px solid color-mix(in srgb, var(--c) 45%, transparent); }
+.result-poster { width: 96px; flex: none; aspect-ratio: 2/3; border-radius: 14px; overflow: hidden; box-shadow: 0 0 0 2px var(--c), 0 12px 30px rgba(0, 0, 0, .5); }
+.result-poster img, .result-poster .ph { width: 100%; height: 100%; object-fit: cover; display: block; background: linear-gradient(135deg, #34344a, #1e1e2c); }
+.result-txt { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; min-width: 0; }
+.result-txt small { color: var(--muted); font-weight: 700; }
+.result-txt b { font: 400 30px/1 Bangers, sans-serif; letter-spacing: 1px; color: var(--c); }
+.result-txt p { font-size: 14px; color: var(--text); margin-top: 4px; }
+.swatch { display: inline-block; width: 18px; height: 18px; border-radius: 50%; background: var(--c); flex: none; box-shadow: 0 0 0 2px rgba(255, 255, 255, .15); vertical-align: middle; }
+.swatch.big { width: 42px; height: 42px; box-shadow: 0 0 0 3px rgba(255, 255, 255, .12), 0 0 22px color-mix(in srgb, var(--c, #888) 60%, transparent); }
+
+/* Selector de color */
+.swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.sw { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 4px; border-radius: 16px; border: 1px solid var(--line); background: rgba(255, 255, 255, .04); font-weight: 800; font-size: 12px; }
+.sw i { width: 40px; height: 40px; border-radius: 50%; background: var(--c); box-shadow: 0 0 18px color-mix(in srgb, var(--c) 55%, transparent); }
+.sw.on { border-color: var(--c); background: color-mix(in srgb, var(--c) 16%, transparent); }
+.sw[disabled] { opacity: .4; cursor: not-allowed; }
+.sw small { color: var(--muted); font-size: 10px; margin-top: -4px; }
+
+/* Perfil: color */
+.profile-hero .avatar { box-shadow: 0 14px 40px color-mix(in srgb, var(--c) 45%, transparent); }
+.me-color-row { display: flex; align-items: center; gap: 14px; }
+.me-color-row .swatch { --c: inherit; background: var(--c); }
+.me-color-row .name { display: flex; flex-direction: column; gap: 2px; }
+.me-color-row .name > b { font-size: 18px; color: var(--c); }
+.me-color-row small { color: var(--muted); font-weight: 600; }
+.me-color .row .btn { padding: 12px 10px; white-space: nowrap; font-size: 14px; }
+
+/* Invitación a una lista */
+.invite { display: flex; align-items: center; gap: 12px; padding: 12px; margin-bottom: 8px; border-radius: 16px; background: linear-gradient(135deg, rgba(255, 122, 26, .16), rgba(255, 122, 26, .04)); border: 1px solid rgba(255, 122, 26, .35); }
+.invite .name { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.invite .name small { color: var(--muted); font-weight: 700; }
+.inv-list { display: flex; align-items: center; gap: 6px; font-weight: 900; font-size: 16px; overflow: hidden; text-overflow: ellipsis; }
+.inv-list svg { width: 18px; height: 18px; color: var(--orange-2); }
+.col-pick { justify-content: flex-start; gap: 10px; }
+
+/* Ranking: series / películas */
+.kind-tabs { display: flex; gap: 6px; justify-content: center; margin: 2px 0 8px; }
+.kind-tabs button { border: 1px solid var(--line); background: rgba(0, 0, 0, .25); border-radius: 99px; padding: 6px 14px; font-weight: 800; font-size: 13px; color: var(--muted); }
+.kind-tabs button.on { color: var(--text); border-color: var(--orange-2); background: rgba(255, 176, 46, .14); }
+
+/* Columnas de otras personas: solo lectura */
+.ph-name { display: block; font-size: 10px; letter-spacing: .4px; color: var(--muted); text-transform: none; margin-top: 2px; font-weight: 700; max-width: 92px; overflow: hidden; text-overflow: ellipsis; margin-inline: auto; }
+.check.locked, .rate.locked { cursor: default; }
+.check.locked:not(.on) { border-style: dashed; opacity: .55; }
+.rate.locked.empty-r { border-color: transparent; background: transparent; }
+.check.locked:hover { border-color: color-mix(in srgb, var(--c, var(--green)) 55%, transparent); }
+
+/* Ordenar pendientes */
+.order-hint { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--muted); margin: -4px 2px 10px; }
+.order-hint svg { width: 18px; height: 18px; color: var(--orange-2); }
+.grip { display: grid; place-items: center; width: 30px; height: 44px; margin-left: -4px; border-radius: 10px; color: var(--muted); cursor: grab; touch-action: none; flex: none; }
+.grip:hover { color: var(--orange-2); background: rgba(255, 255, 255, .05); }
+table.anime tbody tr.dragging { position: relative; z-index: 5; }
+table.anime tbody tr.dragging td { --row: rgba(52, 44, 40, .97); box-shadow: 0 16px 34px rgba(0, 0, 0, .55); border-color: rgba(255, 122, 26, .6); }
+table.anime tbody tr.dragging .grip { color: var(--orange); cursor: grabbing; }

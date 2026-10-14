@@ -8,10 +8,10 @@ import {
 } from './auth.js';
 import { searchCatalog, getById, catalogMeta, topPosters, norm } from './catalog.js';
 import { liveSearch, liveDetail, JW_PACKAGES } from './justwatch.js';
-import { TEMPLATE_NAME, TEMPLATE_PEOPLE, TEMPLATE_ROWS } from './template-my.js';
+import { TEMPLATE_PEOPLE, TEMPLATE_ROWS } from './template-my.js';
+import { COLORS, RESERVED, DEFAULT_COLOR, QUIZ_RESULTS, FALLBACK_COLOR } from './profile.js';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
-const PALETTE = ['#8bc34a', '#5b9bd5', '#ff8a3d', '#e05b8f', '#b38cff', '#ffd54f', '#4dd0c4'];
 
 export const app = express();
 app.set('trust proxy', 1);
@@ -28,6 +28,7 @@ app.use('/api', api);
 const USERNAME_RE = /^[a-zA-Z0-9_.]{3,20}$/;
 const cleanText = (v, max = 200) => (v == null ? null : String(v).trim().slice(0, max) || null);
 const intId = (v) => { const n = Number(v); if (!Number.isInteger(n) || n <= 0) fail(400, 'Id no válido'); return n; };
+const publicUser = (u) => ({ id: u.id, username: u.username, color: u.color || null, quizDone: !!u.quiz_done, quizResult: u.quiz_result || null });
 
 // ───────────── Cuenta ─────────────
 api.post('/auth/register', h(async (req, res) => {
@@ -36,11 +37,12 @@ api.post('/auth/register', h(async (req, res) => {
   if (!USERNAME_RE.test(username)) fail(400, 'El usuario debe tener 3-20 caracteres: letras, números, "_" o "."');
   if (password.length < 6) fail(400, 'La contraseña debe tener al menos 6 caracteres');
   if (await one('SELECT 1 FROM users WHERE username = ?', [username])) fail(409, 'Ese nombre de usuario ya existe');
-  const r = await run('INSERT INTO users (username, pass_hash, created_at) VALUES (?, ?, ?)',
-    [username, await hashPassword(password), Date.now()]);
+  const color = DEFAULT_COLOR(username);
+  const r = await run('INSERT INTO users (username, pass_hash, created_at, color, quiz_done) VALUES (?, ?, ?, ?, 0)',
+    [username, await hashPassword(password), Date.now(), color]);
   const id = Number(r.lastInsertRowid);
   setSessionCookie(req, res, await createSession(id));
-  res.status(201).json({ user: { id, username } });
+  res.status(201).json({ user: publicUser({ id, username, color, quiz_done: 0 }) });
 }));
 
 api.post('/auth/login', h(async (req, res) => {
@@ -48,11 +50,11 @@ api.post('/auth/login', h(async (req, res) => {
   const password = String(req.body.password || '');
   const key = `${req.ip}:${username.toLowerCase()}`;
   if (tooManyAttempts(key)) fail(429, 'Demasiados intentos. Espera unos minutos.');
-  const u = await one('SELECT id, username, pass_hash FROM users WHERE username = ?', [username]);
+  const u = await one('SELECT id, username, pass_hash, color, quiz_done, quiz_result FROM users WHERE username = ?', [username]);
   if (!u || !(await verifyPassword(password, u.pass_hash))) fail(401, 'Usuario o contraseña incorrectos');
   clearAttempts(key);
   setSessionCookie(req, res, await createSession(u.id));
-  res.json({ user: { id: u.id, username: u.username } });
+  res.json({ user: publicUser(u) });
 }));
 
 api.post('/auth/logout', h(async (req, res) => {
@@ -63,13 +65,34 @@ api.post('/auth/logout', h(async (req, res) => {
 
 api.get('/me', h(async (req, res) => {
   if (!req.user) return res.json({ user: null });
+  const me = req.user.id;
   const stats = await one(`SELECT
       (SELECT COUNT(*) FROM list_members WHERE user_id = ?) AS lists,
       (SELECT COUNT(*) FROM friendships WHERE status = 'accepted' AND (requester_id = ? OR addressee_id = ?)) AS friends,
-      (SELECT COUNT(*) FROM friendships WHERE status = 'pending' AND addressee_id = ?) AS requests`,
-  [req.user.id, req.user.id, req.user.id, req.user.id]);
-  const created = await one('SELECT created_at FROM users WHERE id = ?', [req.user.id]);
-  res.json({ user: { ...req.user, createdAt: created.created_at }, stats });
+      (SELECT COUNT(*) FROM friendships WHERE status = 'pending' AND addressee_id = ?)
+        + (SELECT COUNT(*) FROM list_invites WHERE to_user = ?) AS requests`,
+  [me, me, me, me, me]);
+  const created = await one('SELECT created_at FROM users WHERE id = ?', [me]);
+  res.json({ user: { ...publicUser(req.user), createdAt: created.created_at }, stats });
+}));
+
+// Color y resultado del test de personalidad
+api.patch('/me', requireUser, h(async (req, res) => {
+  const u = req.user;
+  let { color, quiz_done: quizDone, quiz_result: quizResult } = u;
+  if ('color' in req.body) {
+    const c = String(req.body.color || '').toLowerCase();
+    if (!COLORS[c]) fail(400, 'Ese color no está disponible');
+    if (RESERVED[c] && RESERVED[c] !== u.username.toLowerCase()) fail(403, `El ${COLORS[c].toLowerCase()} está reservado para otra persona`);
+    color = c;
+  }
+  if ('quizResult' in req.body) {
+    if (!QUIZ_RESULTS.includes(req.body.quizResult)) fail(400, 'Resultado no válido');
+    quizResult = req.body.quizResult;
+    quizDone = 1;
+  }
+  await run('UPDATE users SET color = ?, quiz_done = ?, quiz_result = ? WHERE id = ?', [color, quizDone, quizResult, u.id]);
+  res.json({ user: publicUser({ ...u, color, quiz_done: quizDone, quiz_result: quizResult }) });
 }));
 
 api.get('/meta', (_req, res) => res.json({ catalog: catalogMeta(), platforms: JW_PACKAGES.map(({ key, name }) => ({ key, name })) }));
@@ -122,6 +145,19 @@ async function entryInList(entryId, userId) {
   return e;
 }
 
+async function addPersonColumn(listId, userId) {
+  const n = (await one('SELECT COUNT(*) AS n FROM list_people WHERE list_id = ?', [listId])).n;
+  await run('INSERT INTO list_people (list_id, name, color, position, user_id) VALUES (?, ?, ?, ?, ?)', [listId, '', FALLBACK_COLOR, n, userId]);
+}
+
+// Al salir alguien de la tabla, su columna se queda con su nombre pero sin dueño (nadie puede editarla).
+async function unlinkColumns(listId, userId) {
+  const u = await one('SELECT username, color FROM users WHERE id = ?', [userId]);
+  await run('UPDATE list_people SET user_id = NULL, name = ?, color = COALESCE(?, color) WHERE list_id = ? AND user_id = ?',
+    [u?.username || 'Antiguo miembro', u?.color, listId, userId]);
+  await run('DELETE FROM pending_orders WHERE list_id = ? AND user_id = ?', [listId, userId]);
+}
+
 api.get('/lists', requireUser, h(async (req, res) => {
   const lists = await all(`SELECT l.id, l.name, l.owner_id, l.updated_at, m.role, u.username AS owner,
       (SELECT COUNT(*) FROM entries e WHERE e.list_id = l.id) AS count,
@@ -146,15 +182,16 @@ api.post('/lists', requireUser, h(async (req, res) => {
   const r = await run('INSERT INTO lists (owner_id, name, created_at, updated_at) VALUES (?, ?, ?, ?)', [req.user.id, name, now, now]);
   const listId = Number(r.lastInsertRowid);
   await run('INSERT INTO list_members (list_id, user_id, role) VALUES (?, ?, ?)', [listId, req.user.id, 'owner']);
-  if (req.body.template === 'my') await importTemplate(listId);
-  else await run('INSERT INTO list_people (list_id, name, color, position) VALUES (?, ?, ?, 0)', [listId, req.user.username, PALETTE[0]]);
+  if (req.body.template === 'my') await importTemplate(listId, req.user.id);
+  else await addPersonColumn(listId, req.user.id);
   res.status(201).json({ id: listId });
 }));
 
-async function importTemplate(listId) {
+async function importTemplate(listId, ownerId) {
   const peopleIds = [];
   for (const [i, p] of TEMPLATE_PEOPLE.entries()) {
-    const r = await run('INSERT INTO list_people (list_id, name, color, position) VALUES (?, ?, ?, ?)', [listId, p.name, p.color, i]);
+    const r = await run('INSERT INTO list_people (list_id, name, color, position, user_id) VALUES (?, ?, ?, ?, ?)',
+      [listId, p.name, p.color, i, p.owner ? ownerId : null]);
     peopleIds.push(Number(r.lastInsertRowid));
   }
   const now = Date.now();
@@ -165,21 +202,23 @@ async function importTemplate(listId) {
     [listId, pos, title, jwId || null, cat?.poster || null, duration === 'Película' ? 'movie' : 'show',
       duration, platform, language, cat ? JSON.stringify(cat.platforms) : null, now + pos]);
     const entryId = Number(r.lastInsertRowid);
-    const stmts = [mMark, yMark].map(([seen, rating], k) => [
-      'INSERT INTO entry_marks (entry_id, person_id, seen, rating) VALUES (?, ?, ?, ?)', [entryId, peopleIds[k], seen, rating]]);
-    await tx(stmts);
+    await tx([mMark, yMark].map(([seen, rating], k) => [
+      'INSERT INTO entry_marks (entry_id, person_id, seen, rating) VALUES (?, ?, ?, ?)', [entryId, peopleIds[k], seen, rating]]));
   }
 }
 
 api.get('/lists/:id', requireUser, h(async (req, res) => {
   const listId = intId(req.params.id);
   const m = await membership(listId, req.user.id);
-  const [list, people, entries, marks, members] = await Promise.all([
+  const [list, people, entries, marks, members, invites, order] = await Promise.all([
     one('SELECT id, name, owner_id, updated_at FROM lists WHERE id = ?', [listId]),
-    all('SELECT id, name, color, position FROM list_people WHERE list_id = ? ORDER BY position, id', [listId]),
+    all(`SELECT p.id, p.position, p.user_id, COALESCE(u.username, p.name) AS name, COALESCE(u.color, p.color) AS color
+      FROM list_people p LEFT JOIN users u ON u.id = p.user_id WHERE p.list_id = ? ORDER BY p.position, p.id`, [listId]),
     all('SELECT * FROM entries WHERE list_id = ? ORDER BY position, id', [listId]),
     all('SELECT k.entry_id, k.person_id, k.seen, k.rating FROM entry_marks k JOIN entries e ON e.id = k.entry_id WHERE e.list_id = ?', [listId]),
-    all('SELECT u.id, u.username, m.role FROM list_members m JOIN users u ON u.id = m.user_id WHERE m.list_id = ? ORDER BY m.role DESC, u.username', [listId]),
+    all('SELECT u.id, u.username, u.color, m.role FROM list_members m JOIN users u ON u.id = m.user_id WHERE m.list_id = ? ORDER BY m.role DESC, u.username', [listId]),
+    all('SELECT i.id, i.to_user, i.person_id, u.username FROM list_invites i JOIN users u ON u.id = i.to_user WHERE i.list_id = ?', [listId]),
+    one('SELECT ids FROM pending_orders WHERE list_id = ? AND user_id = ?', [listId, req.user.id]),
   ]);
   const byEntry = {};
   for (const k of marks) (byEntry[k.entry_id] ||= {})[k.person_id] = { seen: !!k.seen, rating: k.rating };
@@ -187,6 +226,8 @@ api.get('/lists/:id', requireUser, h(async (req, res) => {
     list: { ...list, role: m.role },
     people,
     members,
+    invites: m.role === 'owner' ? invites : [],
+    pendingOrder: order ? JSON.parse(order.ids) : [],
     entries: entries.map((e) => ({
       ...e,
       availability: e.availability ? JSON.parse(e.availability) : null,
@@ -209,53 +250,47 @@ api.delete('/lists/:id', requireUser, h(async (req, res) => {
   const listId = intId(req.params.id);
   const m = await membership(listId, req.user.id);
   if (m.role !== 'owner') {
+    await unlinkColumns(listId, req.user.id);
     await run('DELETE FROM list_members WHERE list_id = ? AND user_id = ?', [listId, req.user.id]);
+    await touch(listId);
     return res.json({ ok: true, left: true });
   }
   await tx([
     ['DELETE FROM entry_marks WHERE entry_id IN (SELECT id FROM entries WHERE list_id = ?)', [listId]],
     ['DELETE FROM entries WHERE list_id = ?', [listId]],
     ['DELETE FROM list_people WHERE list_id = ?', [listId]],
+    ['DELETE FROM list_invites WHERE list_id = ?', [listId]],
+    ['DELETE FROM pending_orders WHERE list_id = ?', [listId]],
     ['DELETE FROM list_members WHERE list_id = ?', [listId]],
     ['DELETE FROM lists WHERE id = ?', [listId]],
   ]);
   res.json({ ok: true, deleted: true });
 }));
 
-// Columnas de personas (check + nota)
-api.post('/lists/:id/people', requireUser, h(async (req, res) => {
-  const listId = intId(req.params.id);
-  await membership(listId, req.user.id);
-  const name = cleanText(req.body.name, 24);
-  if (!name) fail(400, 'Pon un nombre');
-  const count = (await one('SELECT COUNT(*) AS n FROM list_people WHERE list_id = ?', [listId])).n;
-  if (count >= 8) fail(400, 'Máximo 8 personas por tabla');
-  const color = /^#[0-9a-f]{6}$/i.test(req.body.color || '') ? req.body.color : PALETTE[count % PALETTE.length];
-  const r = await run('INSERT INTO list_people (list_id, name, color, position) VALUES (?, ?, ?, ?)', [listId, name, color, count]);
-  await touch(listId);
-  res.status(201).json({ id: Number(r.lastInsertRowid) });
-}));
-
-async function personInList(personId, userId) {
-  const p = await one('SELECT id, list_id FROM list_people WHERE id = ?', [personId]);
+// Columnas sin dueño (p. ej. «Marta» antes de unirse): solo el creador puede renombrarlas o quitarlas.
+async function freeColumn(personId, user) {
+  const p = await one('SELECT id, list_id, user_id FROM list_people WHERE id = ?', [personId]);
   if (!p) fail(404, 'Columna no encontrada');
-  await membership(p.list_id, userId);
+  const m = await membership(p.list_id, user.id);
+  if (m.role !== 'owner') fail(403, 'Solo quien creó la tabla puede cambiar las columnas');
+  if (p.user_id) fail(400, 'Esa columna es de una persona de la tabla');
   return p;
 }
 
 api.patch('/people/:pid', requireUser, h(async (req, res) => {
-  const p = await personInList(intId(req.params.pid), req.user.id);
+  const p = await freeColumn(intId(req.params.pid), req.user);
   const name = cleanText(req.body.name, 24);
-  const color = /^#[0-9a-f]{6}$/i.test(req.body.color || '') ? req.body.color : null;
-  await run('UPDATE list_people SET name = COALESCE(?, name), color = COALESCE(?, color) WHERE id = ?', [name, color, p.id]);
+  if (!name) fail(400, 'Pon un nombre');
+  await run('UPDATE list_people SET name = ? WHERE id = ?', [name, p.id]);
   await touch(p.list_id);
   res.json({ ok: true });
 }));
 
 api.delete('/people/:pid', requireUser, h(async (req, res) => {
-  const p = await personInList(intId(req.params.pid), req.user.id);
+  const p = await freeColumn(intId(req.params.pid), req.user);
   await tx([
     ['DELETE FROM entry_marks WHERE person_id = ?', [p.id]],
+    ['UPDATE list_invites SET person_id = NULL WHERE person_id = ?', [p.id]],
     ['DELETE FROM list_people WHERE id = ?', [p.id]],
   ]);
   await touch(p.list_id);
@@ -314,20 +349,22 @@ api.delete('/entries/:eid', requireUser, h(async (req, res) => {
   res.json({ ok: true });
 }));
 
-api.post('/lists/:id/reorder', requireUser, h(async (req, res) => {
+// Orden personal de la vista «Pendientes»
+api.put('/lists/:id/pending-order', requireUser, h(async (req, res) => {
   const listId = intId(req.params.id);
   await membership(listId, req.user.id);
-  const ids = Array.isArray(req.body.ids) ? req.body.ids.map(Number).filter(Number.isInteger) : [];
-  await tx(ids.map((id, i) => ['UPDATE entries SET position = ? WHERE id = ? AND list_id = ?', [i, id, listId]]));
-  await touch(listId);
+  const ids = Array.isArray(req.body.ids) ? req.body.ids.map(Number).filter(Number.isInteger).slice(0, 2000) : [];
+  await run(`INSERT INTO pending_orders (list_id, user_id, ids) VALUES (?, ?, ?)
+    ON CONFLICT (list_id, user_id) DO UPDATE SET ids = excluded.ids`, [listId, req.user.id, JSON.stringify(ids)]);
   res.json({ ok: true });
 }));
 
-// Check (visto) y nota de una persona para un anime
+// Check (visto) y nota: cada persona solo puede cambiar los suyos
 api.put('/entries/:eid/marks/:pid', requireUser, h(async (req, res) => {
   const ent = await entryInList(intId(req.params.eid), req.user.id);
-  const person = await one('SELECT id FROM list_people WHERE id = ? AND list_id = ?', [intId(req.params.pid), ent.list_id]);
+  const person = await one('SELECT id, user_id FROM list_people WHERE id = ? AND list_id = ?', [intId(req.params.pid), ent.list_id]);
   if (!person) fail(404, 'Columna no encontrada');
+  if (person.user_id !== req.user.id) fail(403, 'Solo puedes cambiar tu propio check y tu nota');
   const cur = await one('SELECT seen, rating FROM entry_marks WHERE entry_id = ? AND person_id = ?', [ent.id, person.id]) || { seen: 0, rating: null };
   let { seen, rating } = cur;
   if ('seen' in req.body) seen = req.body.seen ? 1 : 0;
@@ -344,32 +381,58 @@ api.put('/entries/:eid/marks/:pid', requireUser, h(async (req, res) => {
   res.json({ seen: !!seen, rating });
 }));
 
-// Compartir tabla con un amigo (solo el creador)
+// ───────────── Compartir: invitación que el amigo acepta o rechaza ─────────────
 api.post('/lists/:id/share', requireUser, h(async (req, res) => {
   const listId = intId(req.params.id);
   const m = await membership(listId, req.user.id);
   if (m.role !== 'owner') fail(403, 'Solo quien creó la tabla puede compartirla');
   const friend = await one('SELECT id, username FROM users WHERE id = ?', [intId(req.body.userId)]);
   if (!friend || !(await areFriends(req.user.id, friend.id))) fail(400, 'Solo puedes compartir con tus amigos');
-  await run('INSERT OR IGNORE INTO list_members (list_id, user_id, role) VALUES (?, ?, ?)', [listId, friend.id, 'editor']);
-  // Le añadimos su columna de check/nota si no hay ya una con su nombre
-  if (req.body.addColumn !== false) {
-    const exists = await one('SELECT 1 FROM list_people WHERE list_id = ? AND lower(name) = lower(?)', [listId, friend.username]);
-    if (!exists) {
-      const count = (await one('SELECT COUNT(*) AS n FROM list_people WHERE list_id = ?', [listId])).n;
-      if (count < 8) await run('INSERT INTO list_people (list_id, name, color, position) VALUES (?, ?, ?, ?)', [listId, friend.username, PALETTE[count % PALETTE.length], count]);
-    }
+  if (await one('SELECT 1 FROM list_members WHERE list_id = ? AND user_id = ?', [listId, friend.id])) fail(409, 'Ya está en la tabla');
+  let personId = null;
+  if (req.body.personId) {
+    const p = await one('SELECT id FROM list_people WHERE id = ? AND list_id = ? AND user_id IS NULL', [intId(req.body.personId), listId]);
+    if (!p) fail(400, 'Esa columna ya no está libre');
+    personId = p.id;
   }
-  await touch(listId);
-  res.json({ ok: true });
+  await run(`INSERT INTO list_invites (list_id, from_user, to_user, person_id, created_at) VALUES (?, ?, ?, ?, ?)
+    ON CONFLICT (list_id, to_user) DO UPDATE SET person_id = excluded.person_id, created_at = excluded.created_at`,
+  [listId, req.user.id, friend.id, personId, Date.now()]);
+  res.status(201).json({ ok: true });
 }));
 
+// Cancelar invitación o sacar a alguien de la tabla (solo el creador)
 api.delete('/lists/:id/share/:userId', requireUser, h(async (req, res) => {
   const listId = intId(req.params.id);
   const m = await membership(listId, req.user.id);
   if (m.role !== 'owner') fail(403, 'Solo quien creó la tabla puede gestionar con quién se comparte');
-  await run("DELETE FROM list_members WHERE list_id = ? AND user_id = ? AND role <> 'owner'", [listId, intId(req.params.userId)]);
+  const uid = intId(req.params.userId);
+  if (uid === req.user.id) fail(400, 'No puedes sacarte de tu propia tabla');
+  await run('DELETE FROM list_invites WHERE list_id = ? AND to_user = ?', [listId, uid]);
+  if (await one('SELECT 1 FROM list_members WHERE list_id = ? AND user_id = ?', [listId, uid])) {
+    await unlinkColumns(listId, uid);
+    await run('DELETE FROM list_members WHERE list_id = ? AND user_id = ?', [listId, uid]);
+    await touch(listId);
+  }
   res.json({ ok: true });
+}));
+
+api.post('/invites/:iid/:action', requireUser, h(async (req, res) => {
+  const inv = await one('SELECT * FROM list_invites WHERE id = ? AND to_user = ?', [intId(req.params.iid), req.user.id]);
+  if (!inv) fail(404, 'Invitación no encontrada');
+  if (req.params.action === 'reject') {
+    await run('DELETE FROM list_invites WHERE id = ?', [inv.id]);
+    return res.json({ ok: true });
+  }
+  if (req.params.action !== 'accept') fail(400, 'Acción no válida');
+  await run('INSERT OR IGNORE INTO list_members (list_id, user_id, role) VALUES (?, ?, ?)', [inv.list_id, req.user.id, 'editor']);
+  const free = inv.person_id && await one('SELECT id FROM list_people WHERE id = ? AND list_id = ? AND user_id IS NULL', [inv.person_id, inv.list_id]);
+  const already = await one('SELECT 1 FROM list_people WHERE list_id = ? AND user_id = ?', [inv.list_id, req.user.id]);
+  if (free) await run('UPDATE list_people SET user_id = ? WHERE id = ?', [req.user.id, free.id]);
+  else if (!already) await addPersonColumn(inv.list_id, req.user.id);
+  await run('DELETE FROM list_invites WHERE id = ?', [inv.id]);
+  await touch(inv.list_id);
+  res.json({ ok: true, listId: inv.list_id });
 }));
 
 // ───────────── Amigos ─────────────
@@ -381,15 +444,22 @@ async function areFriends(a, b) {
 api.get('/friends', requireUser, h(async (req, res) => {
   const me = req.user.id;
   const rows = await all(`SELECT f.id, f.status, f.requester_id, f.addressee_id, f.created_at,
-      ur.username AS requester, ua.username AS addressee
+      ur.username AS requester, ur.color AS rcolor, ua.username AS addressee, ua.color AS acolor
     FROM friendships f JOIN users ur ON ur.id = f.requester_id JOIN users ua ON ua.id = f.addressee_id
     WHERE f.requester_id = ? OR f.addressee_id = ? ORDER BY f.created_at DESC`, [me, me]);
-  const other = (r) => (r.requester_id === me ? { id: r.addressee_id, username: r.addressee } : { id: r.requester_id, username: r.requester });
+  const invites = await all(`SELECT i.id AS inviteId, i.created_at AS at, l.id AS listId, l.name AS listName,
+      (SELECT COUNT(*) FROM entries e WHERE e.list_id = l.id) AS count, u.id AS fromId, u.username AS fromName, u.color AS fromColor
+    FROM list_invites i JOIN lists l ON l.id = i.list_id JOIN users u ON u.id = i.from_user
+    WHERE i.to_user = ? ORDER BY i.created_at DESC`, [me]);
+  const other = (r) => (r.requester_id === me
+    ? { id: r.addressee_id, username: r.addressee, color: r.acolor }
+    : { id: r.requester_id, username: r.requester, color: r.rcolor });
   res.json({
     friends: rows.filter((r) => r.status === 'accepted').map((r) => ({ ...other(r), since: r.created_at }))
       .sort((a, b) => a.username.localeCompare(b.username)),
     incoming: rows.filter((r) => r.status === 'pending' && r.addressee_id === me).map((r) => ({ requestId: r.id, ...other(r), at: r.created_at })),
     outgoing: rows.filter((r) => r.status === 'pending' && r.requester_id === me).map((r) => ({ requestId: r.id, ...other(r), at: r.created_at })),
+    invites,
   });
 }));
 
@@ -397,7 +467,7 @@ api.get('/users/search', requireUser, h(async (req, res) => {
   const q = String(req.query.q || '').trim();
   if (!q) return res.json({ users: [] });
   const like = q.replace(/[%_\\]/g, (c) => '\\' + c) + '%';
-  const users = await all(`SELECT u.id, u.username,
+  const users = await all(`SELECT u.id, u.username, u.color,
       (SELECT f.status || ':' || CASE WHEN f.requester_id = ? THEN 'out' ELSE 'in' END FROM friendships f
         WHERE (f.requester_id = ? AND f.addressee_id = u.id) OR (f.requester_id = u.id AND f.addressee_id = ?)) AS relation
     FROM users u WHERE u.username LIKE ? ESCAPE '\\' AND u.id <> ? ORDER BY length(u.username), u.username LIMIT 15`,
@@ -437,6 +507,8 @@ api.post('/friends/requests/:rid/:action', requireUser, h(async (req, res) => {
 api.delete('/friends/:userId', requireUser, h(async (req, res) => {
   const other = intId(req.params.userId);
   await run(`DELETE FROM friendships WHERE (requester_id = ? AND addressee_id = ?) OR (requester_id = ? AND addressee_id = ?)`,
+    [req.user.id, other, other, req.user.id]);
+  await run('DELETE FROM list_invites WHERE (from_user = ? AND to_user = ?) OR (from_user = ? AND to_user = ?)',
     [req.user.id, other, other, req.user.id]);
   res.json({ ok: true });
 }));

@@ -79,13 +79,39 @@ const SCHEMA = [
     rating REAL,
     PRIMARY KEY (entry_id, person_id)
   )`,
+  `CREATE TABLE IF NOT EXISTS list_invites (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    list_id INTEGER NOT NULL REFERENCES lists(id) ON DELETE CASCADE,
+    from_user INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    to_user INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    person_id INTEGER,
+    created_at INTEGER NOT NULL,
+    UNIQUE (list_id, to_user)
+  )`,
+  `CREATE TABLE IF NOT EXISTS pending_orders (
+    list_id INTEGER NOT NULL REFERENCES lists(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    ids TEXT NOT NULL,
+    PRIMARY KEY (list_id, user_id)
+  )`,
   `CREATE INDEX IF NOT EXISTS idx_entries_list ON entries(list_id, position)`,
   `CREATE INDEX IF NOT EXISTS idx_members_user ON list_members(user_id)`,
+];
+
+// Columnas añadidas después de la primera versión (bases de datos ya existentes)
+const MIGRATIONS = [
+  'ALTER TABLE users ADD COLUMN color TEXT',
+  'ALTER TABLE users ADD COLUMN quiz_done INTEGER NOT NULL DEFAULT 0',
+  'ALTER TABLE users ADD COLUMN quiz_result TEXT',
+  'ALTER TABLE list_people ADD COLUMN user_id INTEGER',
 ];
 
 export async function initDb() {
   await db.execute('PRAGMA foreign_keys = ON');
   await db.batch(SCHEMA, 'write');
+  for (const sql of MIGRATIONS) {
+    try { await db.execute(sql); } catch (e) { if (!/duplicate column/i.test(e.message)) throw e; }
+  }
 }
 
 // Helpers

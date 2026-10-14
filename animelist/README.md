@@ -4,12 +4,15 @@ App web (instalable en el móvil) para llevar nuestras listas de anime: quién l
 
 ## Qué hace
 - **Cuentas** con usuario y contraseña (contraseñas cifradas con scrypt, sesión por cookie).
-- **Tablas**: crear (pide el nombre primero), abrir y eliminar con la papelera roja (pide confirmación). Al crear puedes empezar con nuestros **animes para ver juntos** (los 9 que estaban en negrita en el PDF, con sus checks y notas). El resto de animes van en otras tablas.
-- Cada tabla tiene columnas de **check y nota por persona** (con su color), ranking automático, filtros (pendientes / vistos) y botón **Añadir** al final.
+- **Test de personalidad** al entrar por primera vez: 5 preguntas sobre animes de la lista que te dan tu **color** y el personaje al que te pareces. El color se cambia luego en **Perfil** (también se puede repetir el test). El verde está reservado para `YHM`.
+- **Tablas**: crear (pide el nombre primero), abrir y eliminar con la papelera roja (pide confirmación). Al crear puedes empezar con nuestros **animes para ver juntos** (los 9 que estaban en negrita en el PDF, con sus checks y notas).
+- Cada tabla tiene una columna de **check y nota por persona**, con su nombre de usuario y su color. **Cada uno solo puede cambiar lo suyo.** La columna «Marta» de la plantilla queda libre (con sus notas antiguas) hasta que se le comparte la tabla.
+- **Ranking en podio** por persona o por media, separando **series y películas**.
+- **Pendientes** se puede ordenar arrastrando desde las rayas (≡). Ese orden es personal.
 - **Autocompletado**: al escribir salen los animes que coinciden (entiende títulos en japonés, inglés y español, y erratas como “tokyo goul”). Al elegir uno se rellena solo dónde está disponible en España y en qué **idiomas de audio y subtítulos**.
 - **Amigos**: buscador por nombre de usuario, solicitudes con ✓ verde / ✗ roja, lista de amigos.
-- **Compartir**: el creador de una tabla puede compartirla con un amigo, que podrá editarla.
-- **Perfil** con cerrar sesión.
+- **Compartir**: el creador de una tabla la comparte con un amigo y elige qué columna será la suya (p. ej. «Marta») o una nueva. Al amigo le llega en **Amigos → Solicitudes** «te ha compartido una lista» con ✓ / ✗; al aceptar, la tabla aparece en sus tablas.
+- **Perfil** con tu color, tu personaje y cerrar sesión.
 
 ## Catálogo de anime (España)
 `data/catalog.json` contiene **todo el anime (series y películas) disponible por suscripción en España** en Crunchyroll, Netflix, HBO Max, Prime Video y Disney+ (1663 títulos al generarlo), con idiomas de audio/subtítulos, sacado de JustWatch (país ES) y con títulos alternativos de AniList.

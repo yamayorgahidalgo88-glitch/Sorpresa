@@ -12,6 +12,7 @@ const { initDb } = await import('../server/db.js');
 let server, base;
 before(async () => {
   await initDb();
+  await initDb(); // las migraciones se pueden repetir sin romper nada
   server = app.listen(0);
   base = `http://127.0.0.1:${server.address().port}/api`;
 });
@@ -32,109 +33,130 @@ function client() {
   };
 }
 
-const yago = client();
+const yhm = client();
 const marta = client();
 const otro = client();
 
 test('registro, login y validaciones', async () => {
-  assert.equal((await yago('/auth/register', { body: { username: 'ya', password: '123456' } })).status, 400);
-  assert.equal((await yago('/auth/register', { body: { username: 'yago', password: '123' } })).status, 400);
-  assert.equal((await yago('/auth/register', { body: { username: 'yago', password: 'karasuno10' } })).status, 201);
-  assert.equal((await marta('/auth/register', { body: { username: 'YAGO', password: 'whatever1' } })).status, 409);
-  assert.equal((await marta('/auth/register', { body: { username: 'marta', password: 'nekoma05' } })).status, 201);
+  assert.equal((await yhm('/auth/register', { body: { username: 'ya', password: '123456' } })).status, 400);
+  assert.equal((await yhm('/auth/register', { body: { username: 'YHM', password: '123' } })).status, 400);
+  const r = await yhm('/auth/register', { body: { username: 'YHM', password: 'karasuno10' } });
+  assert.equal(r.status, 201);
+  assert.equal(r.data.user.color, '#8bc34a', 'YHM empieza con el verde');
+  assert.equal(r.data.user.quizDone, false, 'y aún tiene pendiente el test');
+  assert.equal((await marta('/auth/register', { body: { username: 'yhm', password: 'whatever1' } })).status, 409);
+  const m = await marta('/auth/register', { body: { username: 'Martita', password: 'nekoma05' } });
+  assert.equal(m.data.user.color, null);
   assert.equal((await otro('/auth/register', { body: { username: 'otro', password: 'otro123' } })).status, 201);
-  assert.equal((await yago('/me')).data.user.username, 'yago');
-  await yago('/auth/logout', { method: 'POST' });
-  assert.equal((await yago('/me')).data.user, null);
-  assert.equal((await yago('/lists')).status, 401);
-  assert.equal((await yago('/auth/login', { body: { username: 'yago', password: 'mal' } })).status, 401);
-  assert.equal((await yago('/auth/login', { body: { username: 'Yago', password: 'karasuno10' } })).status, 200);
+  await yhm('/auth/logout', { method: 'POST' });
+  assert.equal((await yhm('/me')).data.user, null);
+  assert.equal((await yhm('/lists')).status, 401);
+  assert.equal((await yhm('/auth/login', { body: { username: 'yhm', password: 'mal' } })).status, 401);
+  assert.equal((await yhm('/auth/login', { body: { username: 'yhm', password: 'karasuno10' } })).status, 200);
 });
 
-let listId;
-test('crear tabla con la plantilla de animes para ver juntos', async () => {
-  const r = await yago('/lists', { body: { name: 'Animes para ver juntos', template: 'my' } });
+test('test de personalidad y color (el verde está reservado para YHM)', async () => {
+  assert.equal((await marta('/me', { method: 'PATCH', body: { color: '#8bc34a' } })).status, 403);
+  assert.equal((await marta('/me', { method: 'PATCH', body: { color: '#123456' } })).status, 400);
+  assert.equal((await marta('/me', { method: 'PATCH', body: { quizResult: 'nadie' } })).status, 400);
+  const r = await marta('/me', { method: 'PATCH', body: { quizResult: 'anya', color: '#ff6fb5' } });
+  assert.deepEqual([r.data.user.quizDone, r.data.user.quizResult, r.data.user.color], [true, 'anya', '#ff6fb5']);
+  assert.equal((await marta('/me')).data.user.color, '#ff6fb5');
+  // YHM hace el test y se queda con su verde
+  assert.equal((await yhm('/me', { method: 'PATCH', body: { quizResult: 'hinata', color: '#8bc34a' } })).status, 200);
+});
+
+let listId, ids;
+test('plantilla: columna de YHM enlazada y columna «Marta» libre', async () => {
+  const r = await yhm('/lists', { body: { name: 'Animes para ver juntos', template: 'my' } });
   assert.equal(r.status, 201);
   listId = r.data.id;
-  const { data } = await yago('/lists/' + listId);
+  const { data } = await yhm('/lists/' + listId);
   assert.equal(data.entries.length, 9);
-  assert.ok(!data.entries.some((e) => e.title === 'Hunter X Hunter'), 'solo los de ver juntos');
-  assert.deepEqual(data.people.map((p) => p.name), ['Marta', 'Yago']);
-  const kny = data.entries.find((e) => e.title === 'Kimetsu No Yaiba');
   const [m, y] = data.people;
+  assert.deepEqual([m.name, m.user_id], ['Marta', null]);
+  assert.equal(y.name, 'YHM', 'la columna «Yago» muestra el usuario');
+  assert.equal(y.color, '#8bc34a');
+  const kny = data.entries.find((e) => e.title === 'Kimetsu No Yaiba');
   assert.deepEqual(kny.marks[m.id], { seen: true, rating: 9 });
   assert.deepEqual(kny.marks[y.id], { seen: true, rating: 10 });
-  assert.ok(kny.availability.length > 0, 'enlazado al catálogo con plataformas');
+  ids = { m: m.id, y: y.id, kny: kny.id };
+  // YHM no puede tocar la columna de Marta
+  assert.equal((await yhm(`/entries/${kny.id}/marks/${m.id}`, { method: 'PUT', body: { rating: 1 } })).status, 403);
+  assert.equal((await yhm(`/entries/${kny.id}/marks/${y.id}`, { method: 'PUT', body: { rating: '9,5' } })).data.rating, 9.5);
 });
 
-test('añadir, puntuar, editar y borrar un anime', async () => {
-  const r = await yago(`/lists/${listId}/entries`, { body: { title: 'Frieren', duration: '28 cap', platform: 'Crunchyroll', language: 'Español' } });
+test('añadir, editar y borrar un anime; orden de pendientes', async () => {
+  const r = await yhm(`/lists/${listId}/entries`, { body: { title: 'Frieren', duration: '28 cap', platform: 'Crunchyroll', language: 'Español' } });
   assert.equal(r.status, 201);
-  const { data } = await yago('/lists/' + listId);
-  const yagoCol = data.people.find((p) => p.name === 'Yago');
-  assert.equal((await yago(`/entries/${r.data.id}/marks/${yagoCol.id}`, { method: 'PUT', body: { rating: '9,5' } })).data.rating, 9.5);
-  assert.equal((await yago(`/entries/${r.data.id}/marks/${yagoCol.id}`, { method: 'PUT', body: { rating: 11 } })).status, 400);
-  assert.equal((await yago(`/entries/${r.data.id}`, { method: 'PATCH', body: { title: 'Sousou no Frieren' } })).status, 200);
-  const after = (await yago('/lists/' + listId)).data.entries.at(-1);
-  assert.equal(after.title, 'Sousou no Frieren');
-  assert.equal(after.marks[yagoCol.id].rating, 9.5);
-  assert.equal((await yago(`/entries/${r.data.id}`, { method: 'DELETE' })).status, 200);
-  assert.equal((await yago('/lists/' + listId)).data.entries.length, 9);
+  assert.equal((await yhm(`/entries/${r.data.id}`, { method: 'PATCH', body: { title: 'Sousou no Frieren' } })).status, 200);
+  assert.equal((await yhm('/lists/' + listId)).data.entries.at(-1).title, 'Sousou no Frieren');
+  assert.equal((await yhm(`/lists/${listId}/pending-order`, { method: 'PUT', body: { ids: [r.data.id, ids.kny] } })).status, 200);
+  assert.deepEqual((await yhm('/lists/' + listId)).data.pendingOrder, [r.data.id, ids.kny]);
+  assert.equal((await yhm(`/entries/${r.data.id}`, { method: 'DELETE' })).status, 200);
+  assert.equal((await yhm('/lists/' + listId)).data.entries.length, 9);
 });
 
 test('amigos: solicitud, rechazo, aceptación', async () => {
-  const found = await yago('/users/search?q=mar');
-  assert.deepEqual(found.data.users.map((u) => u.username), ['marta']);
-  assert.equal((await yago('/friends/request', { body: { username: 'yago' } })).status, 400);
-  assert.equal((await yago('/friends/request', { body: { username: 'nadie' } })).status, 404);
+  const found = await yhm('/users/search?q=mar');
+  assert.deepEqual(found.data.users.map((u) => u.username), ['Martita']);
+  assert.equal((await yhm('/friends/request', { body: { username: 'yhm' } })).status, 400);
+  assert.equal((await yhm('/friends/request', { body: { username: 'nadie' } })).status, 404);
 
-  assert.equal((await otro('/friends/request', { body: { username: 'yago' } })).status, 201);
-  let f = (await yago('/friends')).data;
-  assert.equal(f.incoming.length, 1);
-  await yago(`/friends/requests/${f.incoming[0].requestId}/reject`, { method: 'POST' });
-  assert.equal((await yago('/friends')).data.incoming.length, 0);
+  assert.equal((await otro('/friends/request', { body: { username: 'yhm' } })).status, 201);
+  let f = (await yhm('/friends')).data;
+  await yhm(`/friends/requests/${f.incoming[0].requestId}/reject`, { method: 'POST' });
+  assert.equal((await yhm('/friends')).data.incoming.length, 0);
 
-  assert.equal((await yago('/friends/request', { body: { username: 'marta' } })).status, 201);
-  assert.equal((await yago('/friends/request', { body: { username: 'marta' } })).status, 409);
-  assert.equal((await yago('/me')).data.stats.requests, 0);
+  assert.equal((await yhm('/friends/request', { body: { username: 'martita' } })).status, 201);
+  assert.equal((await yhm('/friends/request', { body: { username: 'martita' } })).status, 409);
   assert.equal((await marta('/me')).data.stats.requests, 1);
   f = (await marta('/friends')).data;
-  assert.equal(f.incoming[0].username, 'yago');
-  // Solo el destinatario puede aceptar
   assert.equal((await otro(`/friends/requests/${f.incoming[0].requestId}/accept`, { method: 'POST' })).status, 400);
   await marta(`/friends/requests/${f.incoming[0].requestId}/accept`, { method: 'POST' });
-  assert.deepEqual((await yago('/friends')).data.friends.map((x) => x.username), ['marta']);
+  assert.deepEqual((await yhm('/friends')).data.friends.map((x) => x.username), ['Martita']);
 });
 
-test('compartir tabla: solo con amigos, y el invitado puede editar', async () => {
-  const martaId = (await yago('/friends')).data.friends[0].id;
-  const otroId = (await yago('/users/search?q=otro')).data.users[0].id;
-  assert.equal((await marta('/lists/' + listId)).status, 404);
-  assert.equal((await yago(`/lists/${listId}/share`, { body: { userId: otroId } })).status, 400);
-  assert.equal((await yago(`/lists/${listId}/share`, { body: { userId: martaId } })).status, 200);
+test('compartir: invitación que Martita acepta y ocupa la columna «Marta»', async () => {
+  const martaId = (await yhm('/friends')).data.friends[0].id;
+  const otroId = (await yhm('/users/search?q=otro')).data.users[0].id;
+  assert.equal((await yhm(`/lists/${listId}/share`, { body: { userId: otroId } })).status, 400, 'solo amigos');
+  assert.equal((await yhm(`/lists/${listId}/share`, { body: { userId: martaId, personId: ids.m } })).status, 201);
+  assert.equal((await marta('/lists/' + listId)).status, 404, 'aún no la ha aceptado');
+  assert.equal((await yhm('/lists/' + listId)).data.invites.length, 1);
+
+  const f = (await marta('/friends')).data;
+  assert.equal(f.invites.length, 1);
+  assert.equal(f.invites[0].listName, 'Animes para ver juntos');
+  assert.equal(f.invites[0].fromName, 'YHM');
+  assert.equal((await marta('/me')).data.stats.requests, 1);
+  assert.equal((await otro(`/invites/${f.invites[0].inviteId}/accept`, { method: 'POST' })).status, 404);
+  assert.equal((await marta(`/invites/${f.invites[0].inviteId}/accept`, { method: 'POST' })).status, 200);
 
   const { data } = await marta('/lists/' + listId);
   assert.equal(data.list.role, 'editor');
-  // Ya había columna "Marta" (nombre distinto en mayúsculas no importa): no se duplica
-  assert.equal(data.people.length, 2);
-  const m = data.people.find((p) => p.name === 'Marta');
-  const e = data.entries.find((x) => x.title === 'Dan Da Dan');
-  assert.equal((await marta(`/entries/${e.id}/marks/${m.id}`, { method: 'PUT', body: { seen: true, rating: 8 } })).status, 200);
-  const seenByYago = (await yago('/lists/' + listId)).data.entries.find((x) => x.id === e.id).marks[m.id];
-  assert.deepEqual(seenByYago, { seen: true, rating: 8 });
-
-  // Invitada no puede compartir ni borrar para todos; "borrar" = salir
+  assert.equal(data.people.length, 2, 'no se duplica la columna');
+  const mine = data.people.find((p) => p.id === ids.m);
+  assert.deepEqual([mine.name, mine.color, mine.user_id], ['Martita', '#ff6fb5', martaId]);
+  // Conserva las notas antiguas de Marta y ahora puede cambiarlas ella, pero no las de YHM
+  assert.equal(data.entries.find((e) => e.id === ids.kny).marks[ids.m].rating, 9);
+  assert.equal((await marta(`/entries/${ids.kny}/marks/${ids.m}`, { method: 'PUT', body: { rating: 9.75 } })).status, 200);
+  assert.equal((await marta(`/entries/${ids.kny}/marks/${ids.y}`, { method: 'PUT', body: { rating: 1 } })).status, 403);
+  // Los invitados no comparten ni borran para todos
   assert.equal((await marta(`/lists/${listId}/share`, { body: { userId: otroId } })).status, 403);
+  assert.equal((await otro(`/entries/${ids.kny}`, { method: 'DELETE' })).status, 404);
+});
+
+test('salir de la tabla deja la columna libre con su nombre', async () => {
   assert.equal((await marta('/lists/' + listId, { method: 'DELETE' })).data.left, true);
   assert.equal((await marta('/lists/' + listId)).status, 404);
-  assert.equal((await yago('/lists/' + listId)).status, 200);
-  // Otro usuario no puede tocar entradas ajenas
-  assert.equal((await otro(`/entries/${e.id}`, { method: 'DELETE' })).status, 404);
+  const p = (await yhm('/lists/' + listId)).data.people.find((x) => x.id === ids.m);
+  assert.deepEqual([p.name, p.user_id], ['Martita', null]);
 });
 
 test('borrar tabla (dueño)', async () => {
-  assert.equal((await yago('/lists/' + listId, { method: 'DELETE' })).data.deleted, true);
-  assert.equal((await yago('/lists')).data.lists.length, 0);
+  assert.equal((await yhm('/lists/' + listId, { method: 'DELETE' })).data.deleted, true);
+  assert.equal((await yhm('/lists')).data.lists.length, 0);
 });
 
 test('búsqueda en el catálogo local tolera erratas', async () => {

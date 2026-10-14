@@ -1,9 +1,10 @@
 // Animes para ver juntos (los que estaban en negrita en el PDF "ANIME LIST: M&Y").
-// Columnas: Marta (azul) y Yago (verde). m/y = [visto, nota] de Marta / Yago.
+// Columnas: Marta (queda libre hasta que se le comparta la tabla) y Yago (= quien crea la tabla).
+// m/y = [visto, nota] de Marta / Yago.
 export const TEMPLATE_NAME = 'Animes para ver juntos';
 export const TEMPLATE_PEOPLE = [
-  { name: 'Marta', color: '#5b9bd5' },
-  { name: 'Yago', color: '#8bc34a' },
+  { name: 'Marta', color: '#ff6fb5' },
+  { name: 'Yago', color: '#8bc34a', owner: true },
 ];
 
 const S = 'Crunchyroll', N = 'Netflix', ES = 'Español', JA = 'Japonés';
