@@ -126,7 +126,7 @@ function promptSheet({ title, label, value = '', ok = 'Guardar', placeholder = '
 }
 
 // ───────────── Estado y router ─────────────
-const state = { user: null, list: null, filter: 'all', query: '', friendsBadge: 0 };
+const state = { user: null, list: null, filter: 'all', query: '', friendsBadge: 0, rankKey: null };
 let pollTimer = null;
 
 function go(hash) { if (location.hash !== hash) location.hash = hash; else route(); }
@@ -297,12 +297,54 @@ async function renderList(id) {
   }, 8000);
 }
 
-function computeRanking(people, entries) {
-  return people.map((p) => ({
-    p,
-    top: entries.filter((e) => e.marks[p.id]?.rating != null)
-      .sort((a, b) => b.marks[p.id].rating - a.marks[p.id].rating).slice(0, 3),
-  })).filter((r) => r.top.length);
+// Ranking: podio por persona y, si hay varias, por media
+function rankingFor(key, people, entries) {
+  const score = (e) => {
+    if (key !== 'avg') return e.marks[key]?.rating ?? null;
+    const rs = people.map((p) => e.marks[p.id]?.rating).filter((r) => r != null);
+    return rs.length ? Math.round((rs.reduce((a, b) => a + b, 0) / rs.length) * 100) / 100 : null;
+  };
+  return entries.map((e) => ({ e, r: score(e) })).filter((x) => x.r != null).sort((a, b) => b.r - a.r).slice(0, 3);
+}
+
+const LANG_FLAG = { 'Español': '🇪🇸', 'Japonés': '🇯🇵', 'Inglés': '🇬🇧', 'Catalán': '🏴', 'Francés': '🇫🇷', 'Italiano': '🇮🇹', 'Alemán': '🇩🇪', 'Portugués': '🇵🇹', 'Coreano': '🇰🇷', 'Chino': '🇨🇳' };
+
+function podiumHtml() {
+  const { people, entries } = state.list;
+  const tabs = [...people.map((p) => ({ key: p.id, name: p.name, color: p.color })), ...(people.length > 1 ? [{ key: 'avg', name: 'Media', color: 'var(--orange)' }] : [])];
+  if (!tabs.some((t) => t.key === state.rankKey)) state.rankKey = tabs[0]?.key;
+  const tab = tabs.find((t) => t.key === state.rankKey);
+  if (!tab) return '';
+  const top = rankingFor(tab.key, people, entries);
+  const slot = (place) => {
+    const x = top[place - 1];
+    const medal = ['', 'gold', 'silver', 'bronze'][place];
+    return `<div class="pod pod-${place} ${medal}">
+      ${x ? `<button class="pod-card" data-open-entry="${x.e.id}">
+          <span class="pod-poster">${x.e.poster ? `<img src="${esc(x.e.poster)}" alt="" referrerpolicy="no-referrer">` : `<span class="ph">${esc(x.e.title[0] || '?')}</span>`}<i class="medal">${place}</i></span>
+          <span class="pod-title">${esc(x.e.title)}</span>
+          <span class="pod-score">${fmtRating(x.r)}</span>
+        </button>` : '<div class="pod-card empty"><span class="pod-poster"><span class="ph">?</span></span><span class="pod-title muted">Sin nota</span></div>'}
+      <div class="pod-base"><span>${place}</span></div>
+    </div>`;
+  };
+  return `
+    <div class="rank-head">
+      <h2>🏆 Ranking</h2>
+      <div class="rank-tabs" role="tablist">${tabs.map((t) => `<button role="tab" data-rank="${t.key}" class="${t.key === tab.key ? 'on' : ''}" style="--c:${t.color}">${esc(t.name)}</button>`).join('')}</div>
+    </div>
+    ${top.length ? `<div class="podium">${slot(2)}${slot(1)}${slot(3)}</div>`
+      : `<div class="empty" style="padding:14px 8px">Cuando ${esc(tab.key === 'avg' ? 'pongáis' : tab.name + ' ponga')} notas, aquí saldrá el podio.</div>`}`;
+}
+
+function progressHtml() {
+  const { people, entries } = state.list;
+  if (!entries.length) return '';
+  return `<div class="progress">${people.map((p) => {
+    const n = entries.filter((e) => e.marks[p.id]?.seen).length;
+    return `<div class="prog" style="--c:${p.color}"><div class="prog-top"><span><i class="dot"></i>${esc(p.name)}</span><b>${n}<small>/${entries.length}</small></b></div>
+      <div class="bar"><i style="width:${(n / entries.length) * 100}%"></i></div></div>`;
+  }).join('')}</div>`;
 }
 
 function visibleEntries() {
@@ -322,7 +364,6 @@ function drawList(keepScroll = false) {
   const { list, people, entries, members } = state.list;
   const scroll = keepScroll ? $('.table-wrap')?.scrollLeft : 0;
   const owner = list.role === 'owner';
-  const ranking = computeRanking(people, entries);
   const shared = members.length > 1;
 
   app.innerHTML = topbar(list.name, {
@@ -331,15 +372,8 @@ function drawList(keepScroll = false) {
     right: `${owner ? `<button class="iconbtn" data-share aria-label="Compartir">${ICON.share}</button>` : ''}<button class="iconbtn" data-menu aria-label="Opciones">${ICON.dots}</button>`,
   }) + `
   <div class="fade-in">
-    <div class="card section">
-      <div class="legend">
-        ${people.map((p) => `<span class="chip"><i class="dot" style="background:${p.color}"></i>${esc(p.name)}</span>`).join('')}
-      </div>
-      ${ranking.length ? `<div class="rank-grid">${ranking.map(({ p, top }) => `
-        <div class="rank-col" style="--c:${p.color}"><b>Top de ${esc(p.name)}</b>
-          <ol>${top.map((e) => `<li>${esc(e.title)} <span>· ${fmtRating(e.marks[p.id].rating)}</span></li>`).join('')}</ol></div>`).join('')}</div>`
-        : '<div class="muted" style="font-size:14px">Poned notas para ver vuestro ranking aquí.</div>'}
-    </div>
+    <div class="card section rank-card" data-podium>${podiumHtml()}</div>
+    ${progressHtml()}
 
     <div class="toolbar">
       <label class="search">${ICON.search}<input class="input" type="search" placeholder="Buscar en la tabla…" value="${esc(state.query)}" data-q></label>
@@ -349,11 +383,11 @@ function drawList(keepScroll = false) {
       </div>
     </div>
 
-    <div class="card table-wrap"><table class="anime">
+    <div class="table-wrap"><table class="anime">
       <thead><tr>
-        ${people.map((p) => `<th class="p" style="--c:${p.color}">Check<br><small>${esc(p.name)}</small></th>`).join('')}
-        <th class="name">Nombre</th><th>Duración</th><th>Plataforma</th><th>Idioma</th>
-        ${people.map((p) => `<th class="p" style="--c:${p.color}">Nota<br><small>${esc(p.name)}</small></th>`).join('')}
+        ${people.map((p) => `<th class="p" style="--c:${p.color}"><span class="ph-head"><i>${esc(p.name[0]?.toUpperCase() || '?')}</i>Visto</span></th>`).join('')}
+        <th class="name">Anime</th><th>Plataforma</th><th>Idioma</th>
+        ${people.map((p) => `<th class="p" style="--c:${p.color}"><span class="ph-head"><i>${esc(p.name[0]?.toUpperCase() || '?')}</i>Nota</span></th>`).join('')}
       </tr></thead>
       <tbody></tbody>
     </table></div>
@@ -363,6 +397,7 @@ function drawList(keepScroll = false) {
 
   drawRows();
   if (scroll) $('.table-wrap').scrollLeft = scroll;
+  bindPodium();
 
   $('[data-add]', app).addEventListener('click', () => entrySheet());
   $('[data-menu]', app).addEventListener('click', listMenu);
@@ -375,26 +410,42 @@ function drawList(keepScroll = false) {
   }));
 }
 
+function bindPodium() {
+  const box = $('[data-podium]', app);
+  $$('[data-rank]', box).forEach((b) => b.addEventListener('click', () => {
+    state.rankKey = b.dataset.rank === 'avg' ? 'avg' : Number(b.dataset.rank);
+    box.innerHTML = podiumHtml();
+    bindPodium();
+  }));
+  $$('[data-open-entry]', box).forEach((b) => b.addEventListener('click', () =>
+    entrySheet(state.list.entries.find((e) => e.id === Number(b.dataset.openEntry)))));
+}
+
 function drawRows() {
   const { people } = state.list;
   const rows = visibleEntries();
   const tbody = $('table.anime tbody', app);
-  const cols = people.length * 2 + 4;
+  const cols = people.length * 2 + 3;
   tbody.innerHTML = rows.length ? rows.map((e) => {
     const pk = platKey(e.platform);
-    return `<tr data-id="${e.id}">
+    const done = people.length && people.every((p) => e.marks[p.id]?.seen);
+    const kind = e.kind === 'movie' ? 'Película' : 'Serie';
+    const dur = e.duration && e.duration !== 'Película' ? e.duration : '';
+    return `<tr data-id="${e.id}" class="${done ? 'done' : ''}">
       ${people.map((p) => `<td class="p" style="--c:${p.color}"><button class="check ${e.marks[p.id]?.seen ? 'on' : ''}" data-seen="${p.id}" aria-label="Visto por ${esc(p.name)}" aria-pressed="${!!e.marks[p.id]?.seen}">${ICON.check}</button></td>`).join('')}
-      <td class="name" data-open><div class="wrap">${e.poster ? `<img src="${esc(e.poster)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : '<span class="ph"></span>'}
-        <div><span class="t">${esc(e.title)}</span></div></div></td>
-      <td>${esc(e.duration || '—')}</td>
-      <td>${e.platform ? platBadge(pk, e.platform) : '—'}</td>
-      <td>${esc(e.language || '—')}</td>
+      <td class="name" data-open><div class="wrap">
+        <span class="poster">${e.poster ? `<img src="${esc(e.poster)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<span class="ph">${esc(e.title[0] || '?')}</span>`}${done ? `<i class="done-badge">${ICON.check}</i>` : ''}</span>
+        <div class="txt"><span class="t">${esc(e.title)}</span><span class="meta-line">${kind}${dur ? ` · ${esc(dur)}` : ''}</span></div></div></td>
+      <td>${e.platform ? platBadge(pk, e.platform) : '<span class="muted">—</span>'}</td>
+      <td>${e.language ? `<span class="lang">${LANG_FLAG[e.language] ? `<span class="flag">${LANG_FLAG[e.language]}</span>` : ''}${esc(e.language)}</span>` : '<span class="muted">—</span>'}</td>
       ${people.map((p) => {
         const r = e.marks[p.id]?.rating;
-        return `<td class="p" style="--c:${p.color}"><button class="rate ${r == null ? 'empty-r' : ''}" data-rate="${p.id}">${r == null ? '— / 10' : fmtRating(r) + ' / 10'}</button></td>`;
+        return `<td class="p" style="--c:${p.color}">${r == null
+          ? `<button class="rate empty-r" data-rate="${p.id}" aria-label="Poner nota de ${esc(p.name)}">+ nota</button>`
+          : `<button class="rate" data-rate="${p.id}" style="--pct:${r * 10}%" aria-label="Nota de ${esc(p.name)}: ${fmtRating(r)}"><b>${fmtRating(r)}</b><small>/10</small><i class="rbar"></i></button>`}</td>`;
       }).join('')}
     </tr>`;
-  }).join('') : `<tr><td colspan="${cols}" class="empty">${state.list.entries.length ? 'Nada coincide con el filtro' : 'Tabla vacía. Pulsa «Añadir anime» para empezar.'}</td></tr>`;
+  }).join('') : `<tr class="empty-row"><td colspan="${cols}" class="empty">${state.list.entries.length ? 'Nada coincide con el filtro' : 'Tabla vacía. Pulsa «Añadir anime» para empezar.'}</td></tr>`;
 
   $$('tr[data-id]', tbody).forEach((tr) => {
     const entry = state.list.entries.find((x) => x.id === Number(tr.dataset.id));
@@ -413,6 +464,11 @@ async function toggleSeen(entry, personId, btn) {
   try {
     await api(`/entries/${entry.id}/marks/${personId}`, { method: 'PUT', body: { seen } });
     state.list.list.updated_at = Date.now();
+    const people = state.list.people;
+    btn.closest('tr')?.classList.toggle('done', people.every((p) => entry.marks[p.id]?.seen));
+    const prog = $('.progress', app);
+    if (prog) prog.outerHTML = progressHtml();
+    if (seen) btn.animate?.([{ transform: 'scale(.6)' }, { transform: 'scale(1.15)' }, { transform: 'scale(1)' }], { duration: 300, easing: 'ease-out' });
   } catch (e) {
     entry.marks[personId] = cur;
     btn.classList.toggle('on', cur.seen);
