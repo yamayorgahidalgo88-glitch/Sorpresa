@@ -8,8 +8,16 @@ const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 // Local: fichero SQLite en data/. En la nube: DATABASE_URL=libsql://... (Turso) + DATABASE_TOKEN.
 // La integración de Turso en Vercel crea TURSO_DATABASE_URL y TURSO_AUTH_TOKEN.
 function makeClient() {
-  const url = process.env.DATABASE_URL || process.env.TURSO_DATABASE_URL;
-  if (url) return createClient({ url, authToken: process.env.DATABASE_TOKEN || process.env.TURSO_AUTH_TOKEN });
+  const env = process.env;
+  // Con «Custom Prefix» las variables cambian de nombre (p. ej. STORAGE_DATABASE_URL): buscamos cualquier libsql://
+  const urlKey = ['DATABASE_URL', 'TURSO_DATABASE_URL'].find((k) => env[k]) ||
+    Object.keys(env).find((k) => /^(libsql|https?):\/\/.+turso\.io/.test(env[k] || '') || /^libsql:\/\//.test(env[k] || ''));
+  if (urlKey) {
+    const prefix = urlKey.replace(/_?(DATABASE_)?URL$/, '');
+    const authToken = env.DATABASE_TOKEN || env.TURSO_AUTH_TOKEN || env[`${prefix}_AUTH_TOKEN`] || env[`${prefix}_TOKEN`] ||
+      env[Object.keys(env).find((k) => k.endsWith('AUTH_TOKEN')) || ''];
+    return createClient({ url: env[urlKey], authToken });
+  }
   // En Vercel el disco no es permanente: sin base de datos externa se perderían las cuentas.
   if (process.env.VERCEL) throw new Error('Falta la base de datos: conecta Turso al proyecto (TURSO_DATABASE_URL / TURSO_AUTH_TOKEN)');
   const file = process.env.DB_FILE || path.join(ROOT, 'data', 'app.db');
