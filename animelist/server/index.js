@@ -9,6 +9,7 @@ import {
 import { searchCatalog, getById, catalogMeta, topPosters, topTitles, norm } from './catalog.js';
 import { TRIVIA_COUNT, TRIVIA_SECONDS, dedupeSeen, buildTrivia, publicQuestion, sortBest } from './trivia-shared.js';
 import { aiTrivia, aiEnabled } from './trivia-ai.js';
+import { TRIVIA_BANK } from './trivia-bank.js';
 import { liveSearch, liveDetail, JW_PACKAGES } from './justwatch.js';
 import { TEMPLATE_PEOPLE, TEMPLATE_ROWS } from './template-my.js';
 import { COLORS, QUIZ_RESULTS, FALLBACK_COLOR } from './profile.js';
@@ -605,7 +606,8 @@ async function seenAnimes(userId) {
     ORDER BY e.id`, [userId]);
   return dedupeSeen(rows).map((r) => {
     const cat = r.jw_id ? getById(r.jw_id) : null;
-    return { title: r.title, jw_id: r.jw_id, poster: r.poster, kind: r.kind, year: cat?.year || null, search: cat?.aka?.[0] || cat?.original || r.title };
+    return { title: r.title, jw_id: r.jw_id, poster: r.poster, kind: r.kind, year: cat?.year || null, search: cat?.aka?.[0] || cat?.original || r.title,
+      names: cat ? [cat.title, cat.original, ...(cat.aka || [])].filter(Boolean) : [] };
   });
 }
 
@@ -624,7 +626,7 @@ api.get('/trivia', requireUser, h(async (req, res) => {
 api.post('/trivia', requireUser, h(async (req, res) => {
   const seen = await seenAnimes(req.user.id);
   if (!seen.length) fail(400, 'Marca como visto algún anime en tus tablas para poder jugar');
-  const { questions, source } = await buildTrivia(seen, { ai: aiTrivia, extraTitles: topTitles(60) });
+  const { questions, source } = await buildTrivia(seen, { ai: aiTrivia, extraTitles: topTitles(60), bank: TRIVIA_BANK });
   if (questions.length < TRIVIA_COUNT) fail(503, 'No se han podido preparar las preguntas. Inténtalo otra vez en un momento.');
   const r = await run('INSERT INTO trivia_games (user_id, created_at, source, questions) VALUES (?, ?, ?, ?)',
     [req.user.id, Date.now(), source, JSON.stringify(questions)]);

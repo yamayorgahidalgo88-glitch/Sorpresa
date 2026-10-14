@@ -83,7 +83,8 @@
     const ids = new Set(d.marks.filter((k) => myCols.has(k.person_id) && k.seen).map((k) => k.entry_id));
     return dedupeSeen(d.entries.filter((e) => ids.has(e.id)).sort((a, b) => a.id - b.id)).map((e) => {
       const cat = e.jw_id ? byId[e.jw_id] : null;
-      return { title: e.title, jw_id: e.jw_id, poster: e.poster, kind: e.kind, year: cat?.year || null, search: cat?.aka?.[0] || cat?.original || e.title };
+      return { title: e.title, jw_id: e.jw_id, poster: e.poster, kind: e.kind, year: cat?.year || null, search: cat?.aka?.[0] || cat?.original || e.title,
+        names: cat ? [cat.title, cat.original, ...(cat.aka || [])].filter(Boolean) : [] };
     });
   };
   const gameRow = ({ id: gid, score, total_ms, finished_at, source }) => ({ id: gid, score, total_ms, finished_at, source });
@@ -426,7 +427,7 @@
       const u = me(true);
       const seen = seenAnimes(u.id);
       if (!seen.length) fail(400, 'Marca como visto algún anime en tus tablas para poder jugar');
-      const { questions, source } = await buildTrivia(seen, { fetchFn: realFetch, extraTitles: CATALOG.items.slice(0, 60).map((i) => i.title) });
+      const { questions, source } = await buildTrivia(seen, { fetchFn: realFetch, extraTitles: CATALOG.items.slice(0, 60).map((i) => i.title), bank: TRIVIA_BANK });
       if (questions.length < TRIVIA_COUNT) fail(503, 'No se han podido preparar las preguntas. Inténtalo otra vez en un momento.');
       const g = { id: id(), user_id: u.id, created_at: now(), source, questions, answers: [], score: null, total_ms: null, finished_at: null };
       db().trivia.push(g);

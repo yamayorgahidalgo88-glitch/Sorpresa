@@ -379,3 +379,20 @@ test('quiz: datos de los personajes (solo lo que es seguro y sin spoilers)', asy
   assert.deepEqual(keys('__Quirk:__ Half-Cold Half-Hot'), ['quirk:Medio frío, medio caliente']);
   assert.deepEqual(keys('__Rank:__ Captain of the 10th Division'), ['division:el capitán de la 10.ª División']);
 });
+
+test('quiz: banco de preguntas de la trama (formato y que cada anime se encuentre)', async () => {
+  const { TRIVIA_BANK } = await import('../server/trivia-bank.js');
+  const { bankFor, validQuestion } = await import('../server/trivia-shared.js');
+  const { getById } = await import('../server/catalog.js');
+  for (const b of TRIVIA_BANK) {
+    assert.ok(b.questions.length >= 4, b.names[0]);
+    for (const q of b.questions) assert.ok(validQuestion({ question: q.q, options: [q.a, ...q.w], correct: 0 }), q.q);
+  }
+  // Por id del catálogo, por título, y sin mezclar la serie con sus películas
+  assert.match(bankFor({ title: 'Lo que sea', jw_id: 'ts87466' }, TRIVIA_BANK)[0].q, /Nezuko/);
+  assert.ok(bankFor({ title: 'BLUELOCK' }, TRIVIA_BANK).length > 0);
+  assert.equal(bankFor({ title: 'Kimetsu no Yaiba: Infinity Castle', jw_id: 'tm1572695' }, TRIVIA_BANK).some((q) => /Nezuko al principio/.test(q.q)), false);
+  assert.equal(bankFor({ title: 'Naruto' }, TRIVIA_BANK).some((q) => /Jiraiya\?$/.test(q.q)), false, 'Naruto no trae preguntas de Shippuden');
+  assert.deepEqual(bankFor({ title: 'Un anime que no está' }, TRIVIA_BANK), []);
+  for (const b of TRIVIA_BANK) for (const id of b.ids) assert.ok(getById(id) || id === 'ts359486', `${id} está en el catálogo`);
+});
