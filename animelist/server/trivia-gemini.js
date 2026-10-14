@@ -3,7 +3,8 @@
 import { validQuestion } from './trivia-shared.js';
 
 const BASE = () => process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com';
-const MODELS = () => [process.env.GEMINI_MODEL, 'gemini-flash-latest', 'gemini-2.5-flash'].filter(Boolean);
+// Si uno está saturado o no existe, se prueba el siguiente (todos están en el plan gratuito)
+const MODELS = () => [...new Set([process.env.GEMINI_MODEL, 'gemini-flash-latest', 'gemini-2.5-flash', 'gemini-flash-lite-latest', 'gemini-2.5-flash-lite'].filter(Boolean))];
 export const geminiEnabled = () => !!process.env.GEMINI_API_KEY;
 // Último fallo de Gemini (sin la clave), para poder ver qué pasa desde la app
 export let geminiLastError = null;
@@ -50,7 +51,7 @@ function prompt(anime, info) {
 }
 
 /** Pide a Gemini las preguntas de un anime (formato del banco: { q, a, w }). [] = no conoce el anime; null = error (se reintenta). */
-export async function geminiQuestions(anime, info, { timeoutMs = 25_000 } = {}) {
+export async function geminiQuestions(anime, info, { timeoutMs = 20_000 } = {}) {
   if (!geminiEnabled()) return null;
   const body = JSON.stringify({
     systemInstruction: { parts: [{ text: SYSTEM }] },
@@ -71,11 +72,12 @@ export async function geminiQuestions(anime, info, { timeoutMs = 25_000 } = {}) 
       geminiLastError = `Sin respuesta: ${e?.message || e}`.slice(0, 300);
       return null;
     }
-    if (res.status === 404) continue; // ese modelo ya no existe: probamos el siguiente
     if (!res.ok) {
       const txt = (await res.text()).slice(0, 300);
-      console.error('Quiz: Gemini ha fallado', res.status, txt);
+      console.error('Quiz: Gemini ha fallado', model, res.status, txt);
       geminiLastError = `${model} → ${res.status}: ${txt}`;
+      // No existe, saturado o límite de ese modelo: probamos el siguiente
+      if ([404, 429, 500, 503].includes(res.status)) continue;
       return null;
     }
     let parsed;
@@ -88,6 +90,5 @@ export async function geminiQuestions(anime, info, { timeoutMs = 25_000 } = {}) 
       .filter((x) => validQuestion({ question: x.q, options: [x.a, ...x.w], correct: 0 }))
       .slice(0, 20);
   }
-  geminiLastError = 'Ningún modelo disponible (404)';
   return null;
 }
