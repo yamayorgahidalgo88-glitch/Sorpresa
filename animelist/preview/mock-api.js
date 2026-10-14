@@ -427,7 +427,8 @@
       const u = me(true);
       const seen = seenAnimes(u.id);
       if (!seen.length) fail(400, 'Marca como visto algún anime en tus tablas para poder jugar');
-      const { questions, source } = await buildTrivia(seen, { fetchFn: realFetch, extraTitles: CATALOG.items.slice(0, 60).map((i) => i.title), bank: TRIVIA_BANK });
+      const { questions, source } = await buildTrivia(seen, { fetchFn: realFetch, extraTitles: CATALOG.items.slice(0, 60).map((i) => i.title), bank: TRIVIA_BANK,
+        avoid: new Set(db().trivia.filter((g) => g.user_id === u.id).slice(-6).flatMap((g) => g.questions.map((q) => q.question))) });
       if (questions.length < TRIVIA_COUNT) fail(503, 'No se han podido preparar las preguntas. Inténtalo otra vez en un momento.');
       const g = { id: id(), user_id: u.id, created_at: now(), source, questions, answers: [], score: null, total_ms: null, finished_at: null };
       db().trivia.push(g);

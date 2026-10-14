@@ -252,8 +252,9 @@ function options4(correct, pool, rnd, backup = [], similarCheck = false) {
 /** Preguntas del banco para un anime visto: por su id del catálogo o por alguno de sus títulos. */
 export function bankFor(anime, bank = []) {
   const names = new Set([anime.title, ...(anime.names || [])].filter(Boolean).map(simpleKey));
-  const hit = bank.find((b) => (anime.jw_id && b.ids?.includes(anime.jw_id)) || b.names.some((n) => names.has(simpleKey(n))));
-  return hit ? hit.questions : [];
+  const hits = bank.filter((b) => (anime.jw_id && b.ids?.includes(anime.jw_id)) || b.names.some((n) => names.has(simpleKey(n))));
+  const seenQ = new Set();
+  return hits.flatMap((b) => b.questions).filter((q) => !seenQ.has(simpleKey(q.q)) && seenQ.add(simpleKey(q.q)));
 }
 
 // Foto de AniList para un nombre del banco («Kakashi Hatake» ↔ «Kakashi Hatake», «Giyu Tomioka» ↔ «Giyuu Tomioka»)
@@ -268,11 +269,12 @@ function faceOf(info, name) {
  * Genera preguntas con los datos de AniList: personajes (con su foto), estudio y año.
  * extraTitles: títulos populares del catálogo para tener opciones aunque hayas visto pocos animes.
  */
-export function localTrivia(animes, infos, plan, { extraTitles = [], bank = [], rnd = Math.random, count = TRIVIA_COUNT } = {}) {
+export function localTrivia(animes, infos, plan, { extraTitles = [], bank = [], avoid = new Set(), rnd = Math.random, count = TRIVIA_COUNT } = {}) {
   const used = new Set();
   // Preguntas de la trama escritas a mano
   const fromBank = (a, info) => {
-    const q = triviaShuffle(bankFor(a, bank), rnd).find((x) => !used.has(x.q));
+    const pool = triviaShuffle(bankFor(a, bank), rnd).filter((x) => !used.has(x.q));
+    const q = pool.find((x) => !avoid.has(x.q)) || pool[0]; // primero las que no te han salido en tus últimas partidas
     if (!q) return null;
     used.add(q.q);
     const options = triviaShuffle([q.a, ...q.w], rnd);
@@ -370,20 +372,19 @@ export function localTrivia(animes, infos, plan, { extraTitles = [], bank = [], 
  * Prepara una partida: elige animes, trae AniList y pide las preguntas a la IA (si hay);
  * lo que falte hasta 10 se completa con preguntas locales.
  */
-export async function buildTrivia(seen, { fetchFn = fetch, ai = null, extraTitles = [], bank = [], moreBank = null, rnd = Math.random } = {}) {
+export async function buildTrivia(seen, { fetchFn = fetch, ai = null, extraTitles = [], bank = [], moreBank = null, avoid = new Set(), rnd = Math.random } = {}) {
   const { animes, plan } = planTrivia(seen, rnd);
   const infos = await fetchAniList(animes, fetchFn);
-  // Preguntas de la trama que no están escritas a mano (las genera y guarda el servidor con IA gratuita)
+  // Preguntas de la trama generadas por la IA gratuita y guardadas por el servidor (se amplían con el tiempo)
   if (moreBank) {
-    const without = animes.map((a, i) => i).filter((i) => !bankFor(animes[i], bank).length);
-    try { bank = bank.concat(await moreBank(without.map((i) => animes[i]), without.map((i) => infos[i]))); } catch { /* sin IA: seguimos */ }
+    try { bank = bank.concat(await moreBank(animes, infos, bank)); } catch { /* sin IA: seguimos */ }
   }
   let questions = [];
   if (ai) { try { questions = await ai(animes, infos, plan); } catch { questions = []; } }
   const fromAi = questions.length;
   if (questions.length < TRIVIA_COUNT) {
     const missing = plan.slice(questions.length);
-    questions = questions.concat(localTrivia(animes, infos, missing, { extraTitles, bank, rnd, count: TRIVIA_COUNT - questions.length }));
+    questions = questions.concat(localTrivia(animes, infos, missing, { extraTitles, bank, avoid, rnd, count: TRIVIA_COUNT - questions.length }));
   }
   questions = questions.filter(validQuestion).slice(0, TRIVIA_COUNT);
   return { questions, source: fromAi ? 'ai' : 'local' };

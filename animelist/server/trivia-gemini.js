@@ -39,7 +39,7 @@ const SCHEMA = {
   required: ['questions'],
 };
 
-function prompt(anime, info) {
+function prompt(anime, info, existing = []) {
   const names = (info?.characters || []).slice(0, 20).map((c) => c.name);
   return [
     `Anime: ${anime.title}`,
@@ -47,16 +47,19 @@ function prompt(anime, info) {
     `Tipo: ${anime.kind === 'movie' ? 'película' : 'serie'}${info?.year || anime.year ? ` (${info?.year || anime.year})` : ''}`,
     names.length ? `Personajes: ${names.join(', ')}` : '',
     '',
-    'Escribe 15 preguntas distintas sobre la trama de este anime. Si no conoces bien este anime, devuelve la lista vacía.',
+    existing.length
+      ? `Ya existen estas preguntas (no las repitas ni preguntes lo mismo con otras palabras; busca otros momentos, personajes y escenas):\n${existing.slice(0, 80).map((q) => `- ${q}`).join('\n')}\n`
+      : '',
+    `Escribe 15 preguntas ${existing.length ? 'NUEVAS ' : ''}distintas sobre la trama de este anime. Si no conoces bien este anime, devuelve la lista vacía.`,
   ].filter((x) => x !== '').join('\n');
 }
 
 /** Pide a Gemini las preguntas de un anime (formato del banco: { q, a, w }). [] = no conoce el anime; null = error (se reintenta). */
-export async function geminiQuestions(anime, info, { timeoutMs = 15_000 } = {}) {
+export async function geminiQuestions(anime, info, { timeoutMs = 15_000, existing = [] } = {}) {
   if (!geminiEnabled()) return null;
   const body = JSON.stringify({
     systemInstruction: { parts: [{ text: SYSTEM }] },
-    contents: [{ role: 'user', parts: [{ text: prompt(anime, info) }] }],
+    contents: [{ role: 'user', parts: [{ text: prompt(anime, info, existing) }] }],
     generationConfig: { responseMimeType: 'application/json', responseSchema: SCHEMA, temperature: 0.4 },
   });
   for (const model of MODELS()) {

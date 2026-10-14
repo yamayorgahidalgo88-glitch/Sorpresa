@@ -7,7 +7,7 @@ import {
   loadUser, requireUser, tooManyAttempts, clearAttempts,
 } from './auth.js';
 import { searchCatalog, getById, catalogMeta, topPosters, topTitles, norm } from './catalog.js';
-import { TRIVIA_COUNT, TRIVIA_SECONDS, dedupeSeen, buildTrivia, publicQuestion, sortBest } from './trivia-shared.js';
+import { TRIVIA_COUNT, TRIVIA_SECONDS, dedupeSeen, buildTrivia, bankFor, publicQuestion, sortBest } from './trivia-shared.js';
 import { aiTrivia, aiEnabled } from './trivia-ai.js';
 import { TRIVIA_BANK } from './trivia-bank.js';
 import * as gemini from './trivia-gemini.js';
@@ -619,33 +619,70 @@ async function bestGames(userId) {
   return sortBest(games);
 }
 
-// Preguntas de la trama con IA para los animes sin banco escrito a mano: se generan una vez y se guardan
+// Preguntas de la trama con IA (Gemini, gratis): se generan una vez por anime y se guardan; luego se amplían poco a poco
 const aiBankKey = (a) => a.jw_id || 'title:' + a.title.toLowerCase().trim();
 const AI_BANK_PER_GAME = 4; // como mucho 4 animes nuevos por partida (límite del plan gratuito)
 const AI_RETRY_MS = 24 * 3600 * 1000; // si la IA no conocía el anime, se vuelve a probar al día siguiente
-async function aiBank(animes, infos) {
-  try { return await aiBankInner(animes, infos); } catch (e) { gemini.noteGeminiError(`Servidor: ${e?.message || e}`); throw e; }
+const AI_TARGET = 60; // objetivo de preguntas guardadas por anime (además de las escritas a mano)
+const AI_TOPUP_GAP_MS = 30 * 60 * 1000; // entre una ampliación y la siguiente de un mismo anime
+const AI_TOPUPS_PER_GAME = 2; // ampliaciones por partida (se hacen en segundo plano)
+const qKey = (t) => norm(t);
+let waitUntilFn = null;
+try { ({ waitUntil: waitUntilFn } = await import('@vercel/functions')); } catch { /* en local no hace falta */ }
+// Termina el trabajo pendiente después de contestar a la partida (en Vercel con waitUntil, en local sin más)
+function runAfterResponse(jobs) {
+  if (!jobs.length) return;
+  const p = Promise.allSettled(jobs.map((f) => f()));
+  try { if (waitUntilFn && process.env.VERCEL) waitUntilFn(p); } catch { /* da igual */ }
 }
-async function aiBankInner(animes, infos) {
+
+async function aiBank(animes, infos, handBank, later = []) {
+  try { return await aiBankInner(animes, infos, handBank, later); } catch (e) { gemini.noteGeminiError(`Servidor: ${e?.message || e}`); throw e; }
+}
+async function aiBankInner(animes, infos, handBank = [], later = []) {
   if (!animes.length) return [];
   const keys = animes.map(aiBankKey);
-  const rows = await all(`SELECT key, questions, created_at FROM trivia_ai_bank WHERE key IN (${keys.map(() => '?').join(',')})`, keys);
-  const saved = new Map(rows.map((r) => [r.key, r]));
-  const todo = geminiEnabled()
-    ? animes.map((a, i) => i).filter((i) => { const r = saved.get(keys[i]); return !r || (r.questions === '[]' && Date.now() - r.created_at > AI_RETRY_MS); }).slice(0, AI_BANK_PER_GAME)
-    : [];
-  await Promise.all(todo.map(async (i) => {
-    const qs = await geminiQuestions(animes[i], infos[i]);
-    if (!qs) return; // error puntual (límite, red…): se vuelve a intentar en la próxima partida
-    const json = JSON.stringify(qs);
-    await run(`INSERT INTO trivia_ai_bank (key, title, questions, created_at) VALUES (?, ?, ?, ?)
-      ON CONFLICT (key) DO UPDATE SET questions = excluded.questions, created_at = excluded.created_at`, [keys[i], animes[i].title, json, Date.now()]);
-    saved.set(keys[i], { key: keys[i], questions: json });
-  }));
+  const rows = await all(`SELECT key, questions, removed, created_at FROM trivia_ai_bank WHERE key IN (${keys.map(() => '?').join(',')})`, keys);
+  const saved = new Map(rows.map((r) => [r.key, { ...r, list: JSON.parse(r.questions), removed: r.removed ? JSON.parse(r.removed) : [] }]));
+  const save = (key, title, list) => run(`INSERT INTO trivia_ai_bank (key, title, questions, created_at) VALUES (?, ?, ?, ?)
+      ON CONFLICT (key) DO UPDATE SET questions = excluded.questions, created_at = excluded.created_at`, [key, title, JSON.stringify(list), Date.now()]);
+  // Texto de las preguntas que ya existen de un anime (las escritas a mano y las guardadas), para no repetirlas
+  const existingOf = (i) => [...bankFor({ ...animes[i], jw_id: animes[i].jw_id }, handBank).map((q) => q.q), ...(saved.get(keys[i])?.list || []).map((q) => q.q), ...(saved.get(keys[i])?.removed || [])];
+  if (geminiEnabled()) {
+    const hand = animes.map((a) => bankFor(a, handBank).length);
+    const count = (i) => hand[i] + (saved.get(keys[i])?.list.length || 0);
+    const retryable = (r) => !r || (!r.list.length && Date.now() - r.created_at > AI_RETRY_MS);
+    // 1) Animes sin ninguna pregunta de trama: se generan ahora (la partida las usa ya)
+    const first = animes.map((a, i) => i).filter((i) => count(i) === 0 && retryable(saved.get(keys[i]))).slice(0, AI_BANK_PER_GAME);
+    await Promise.all(first.map(async (i) => {
+      const qs = await geminiQuestions(animes[i], infos[i], { existing: existingOf(i) });
+      if (!qs) return; // error puntual (límite, red…): se vuelve a intentar en la próxima partida
+      await save(keys[i], animes[i].title, qs);
+      saved.set(keys[i], { key: keys[i], created_at: Date.now(), list: qs });
+    }));
+    // 2) Los que ya tienen pero pocas (también los de mi banco escrito a mano): se amplían en segundo plano, para próximas partidas
+    const grow = animes.map((a, i) => i).filter((i) => {
+      const r = saved.get(keys[i]);
+      if (first.includes(i) || (r?.list.length || 0) >= AI_TARGET) return false;
+      return r ? Date.now() - r.created_at > AI_TOPUP_GAP_MS : hand[i] > 0;
+    }).sort((a, b) => count(a) - count(b)).slice(0, AI_TOPUPS_PER_GAME);
+    for (const i of grow) {
+      const existing = existingOf(i);
+      later.push(async () => {
+        const qs = await geminiQuestions(animes[i], infos[i], { existing });
+        if (!qs) return;
+        // Puede haberse ampliado mientras tanto: se vuelve a leer antes de guardar
+        const row = await one('SELECT questions, removed FROM trivia_ai_bank WHERE key = ?', [keys[i]]);
+        const cur = row ? JSON.parse(row.questions) : [];
+        const have = new Set([...existing, ...cur.map((q) => q.q), ...(row?.removed ? JSON.parse(row.removed) : [])].map(qKey));
+        const fresh = qs.filter((q) => !have.has(qKey(q.q)));
+        await save(keys[i], animes[i].title, [...cur, ...fresh].slice(0, 200));
+      });
+    }
+  }
   return animes.map((a, i) => {
     const r = saved.get(keys[i]);
-    const qs = r ? JSON.parse(r.questions) : [];
-    return { ids: a.jw_id ? [a.jw_id] : [], names: [a.title], questions: qs.map((q) => ({ ...q, k: keys[i] })) };
+    return { ids: a.jw_id ? [a.jw_id] : [], names: [a.title], questions: (r?.list || []).map((q) => ({ ...q, k: keys[i] })) };
   }).filter((b) => b.questions.length);
 }
 
@@ -658,11 +695,19 @@ api.get('/trivia', requireUser, h(async (req, res) => {
 api.post('/trivia', requireUser, h(async (req, res) => {
   const seen = await seenAnimes(req.user.id);
   if (!seen.length) fail(400, 'Marca como visto algún anime en tus tablas para poder jugar');
-  const { questions, source } = await buildTrivia(seen, { ai: aiTrivia, extraTitles: topTitles(60), bank: TRIVIA_BANK, moreBank: aiBank });
+  // Preguntas que te han salido en tus últimas partidas: se prefieren otras
+  const recent = await all('SELECT questions FROM trivia_games WHERE user_id = ? ORDER BY id DESC LIMIT 6', [req.user.id]);
+  const avoid = new Set(recent.flatMap((g) => JSON.parse(g.questions).map((q) => q.question)));
+  const later = []; // ampliaciones del banco de la IA: se hacen después de contestar
+  const { questions, source } = await buildTrivia(seen, {
+    ai: aiTrivia, extraTitles: topTitles(60), bank: TRIVIA_BANK, avoid,
+    moreBank: (animes, infos, handBank) => aiBank(animes, infos, handBank, later),
+  });
   if (questions.length < TRIVIA_COUNT) fail(503, 'No se han podido preparar las preguntas. Inténtalo otra vez en un momento.');
   const r = await run('INSERT INTO trivia_games (user_id, created_at, source, questions) VALUES (?, ?, ?, ?)',
     [req.user.id, Date.now(), source, JSON.stringify(questions)]);
   res.status(201).json({ id: Number(r.lastInsertRowid), source, seconds: TRIVIA_SECONDS, questions: questions.map(publicQuestion) });
+  runAfterResponse(later);
 }));
 
 // Responder una pregunta (en orden). Devuelve cuál era la buena; con la última, la nota final y el ranking.
@@ -704,10 +749,11 @@ api.post('/trivia/:id/report', requireUser, h(async (req, res) => {
   const q = JSON.parse(g.questions)[qi];
   if (!q || qi >= JSON.parse(g.answers).length) fail(400, 'Primero responde la pregunta');
   if (!q.bankKey) fail(400, 'Esta pregunta no se puede quitar');
-  const row = await one('SELECT questions FROM trivia_ai_bank WHERE key = ?', [q.bankKey]);
+  const row = await one('SELECT questions, removed FROM trivia_ai_bank WHERE key = ?', [q.bankKey]);
   if (row) {
     const left = JSON.parse(row.questions).filter((x) => x.q !== q.question);
-    await run('UPDATE trivia_ai_bank SET questions = ? WHERE key = ?', [JSON.stringify(left), q.bankKey]);
+    const removed = [...(row.removed ? JSON.parse(row.removed) : []), q.question].slice(-100); // para que la IA no la vuelva a escribir
+    await run('UPDATE trivia_ai_bank SET questions = ?, removed = ? WHERE key = ?', [JSON.stringify(left), JSON.stringify(removed), q.bankKey]);
   }
   res.json({ ok: true });
 }));

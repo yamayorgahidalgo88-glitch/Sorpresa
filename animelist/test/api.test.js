@@ -400,12 +400,15 @@ test('quiz: banco de preguntas de la trama (formato y que cada anime se encuentr
 test('quiz: animes nuevos → preguntas de la trama con Gemini (gratis), generadas una vez y guardadas', async () => {
   const http = await import('node:http');
   let calls = 0, fail429 = false, lastBody = null;
+  const calledFor = {}; // llamadas a Gemini por anime
   const fake = http.createServer((req, res) => {
     let body = '';
     req.on('data', (c) => (body += c));
     req.on('end', () => {
       calls++;
       lastBody = JSON.parse(body);
+      const who = (lastBody.contents[0].parts[0].text.match(/^Anime: (.+)$/m) || [])[1];
+      calledFor[who] = (calledFor[who] || 0) + 1;
       if (fail429) { res.statusCode = 429; return res.end('{"error":"quota"}'); }
       const questions = Array.from({ length: 15 }, (_, i) => ({ q: `¿Qué hace Sakamoto en la escena ${i}?`, a: 'Protege a su familia', w: ['Huye', 'Duerme', 'Canta'] }));
       res.setHeader('content-type', 'application/json');
@@ -427,8 +430,7 @@ test('quiz: animes nuevos → preguntas de la trama con Gemini (gratis), generad
       const i = game.questions.findIndex((q) => q.reportable);
       if (i >= 0) found = i;
     }
-    assert.equal(calls, 1, 'se pide a Gemini una sola vez; luego se reutiliza');
-    assert.match(lastBody.contents[0].parts[0].text, /Sakamoto Days/);
+    assert.equal(calledFor['Sakamoto Days'], 1, 'se pide a Gemini una sola vez por anime; luego se reutiliza');
     assert.equal(lastBody.generationConfig.responseMimeType, 'application/json');
     assert.ok(found != null, 'salen preguntas de la IA para el anime nuevo');
     const { db } = await import('../server/db.js');
@@ -451,4 +453,79 @@ test('quiz: animes nuevos → preguntas de la trama con Gemini (gratis), generad
     delete process.env.GEMINI_BASE_URL;
     fake.close();
   }
+});
+
+test('quiz: el banco de la IA crece en segundo plano, sin repetir preguntas', async () => {
+  const http = await import('node:http');
+  const prompts = [];
+  let round = 0, dupQ = '', removedQ = '¿Pregunta quitada de prueba?';
+  const fake = http.createServer((req, res) => {
+    let body = '';
+    req.on('data', (c) => (body += c));
+    req.on('end', () => {
+      prompts.push(JSON.parse(body).contents[0].parts[0].text);
+      round++;
+      // Mezcla una pregunta que ya existe, otra que se quitó por estar mal, y cinco nuevas
+      const questions = [
+        { q: dupQ, a: 'Protege a su familia', w: ['Huye', 'Duerme', 'Canta'] },
+        { q: removedQ, a: 'Protege a su familia', w: ['Huye', 'Duerme', 'Canta'] },
+        ...Array.from({ length: 5 }, (_, i) => ({ q: `Pregunta nueva ${round}-${i} de Sakamoto`, a: 'Sí', w: ['No', 'Quizá', 'Nunca'] })),
+      ];
+      res.setHeader('content-type', 'application/json');
+      res.end(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify({ questions }) }] } }] }));
+    });
+  }).listen(0);
+  process.env.GEMINI_API_KEY = 'test';
+  process.env.GEMINI_BASE_URL = `http://127.0.0.1:${fake.address().port}`;
+  try {
+    const { db } = await import('../server/db.js');
+    const count = async () => JSON.parse((await db.execute("SELECT questions FROM trivia_ai_bank WHERE key = 'title:sakamoto days'")).rows[0].questions).length;
+    const before = await count();
+    dupQ = JSON.parse((await db.execute("SELECT questions FROM trivia_ai_bank WHERE key = 'title:sakamoto days'")).rows[0].questions)[0].q;
+    await db.execute({ sql: "UPDATE trivia_ai_bank SET removed = ? WHERE key = 'title:sakamoto days'", args: [JSON.stringify([removedQ])] });
+    // Una ampliación reciente todavía no toca: se espera un rato entre ampliaciones
+    await yhm('/trivia', { method: 'POST' });
+    await new Promise((r) => setTimeout(r, 300));
+    assert.equal(await count(), before, 'no se amplía si hace poco que se hizo');
+    // Pasado el rato, se amplía después de contestar a la partida
+    await db.execute("UPDATE trivia_ai_bank SET created_at = created_at - 3600000 WHERE key = 'title:sakamoto days'");
+    prompts.length = 0;
+    const t0 = Date.now();
+    const g = await yhm('/trivia', { method: 'POST' });
+    assert.equal(g.status, 201);
+    let n = before;
+    for (let i = 0; i < 40 && n === before; i++) { await new Promise((r) => setTimeout(r, 100)); n = await count(); }
+    assert.ok(n > before, 'el banco ha crecido');
+    assert.equal(n, before + 5, 'ni la repetida ni la quitada se guardan');
+    const list = JSON.parse((await db.execute("SELECT questions FROM trivia_ai_bank WHERE key = 'title:sakamoto days'")).rows[0].questions).map((x) => x.q);
+    assert.equal(list.includes(removedQ), false, 'una pregunta quitada no vuelve');
+    assert.equal(list.filter((x) => x === dupQ).length, 1);
+    const mine = prompts.find((p) => /Sakamoto Days/.test(p));
+    assert.match(mine, /Ya existen estas preguntas/);
+    assert.ok(mine.includes(dupQ), 'le dice a la IA qué preguntas ya hay');
+    assert.ok(mine.includes(removedQ), 'y cuáles se quitaron por estar mal');
+    assert.ok(t0 > 0);
+  } finally {
+    delete process.env.GEMINI_API_KEY;
+    delete process.env.GEMINI_BASE_URL;
+    fake.close();
+  }
+});
+
+test('quiz: se prefieren preguntas que no te han salido en tus últimas partidas', async () => {
+  const { buildTrivia } = await import('../server/trivia-shared.js');
+  const questions = Array.from({ length: 24 }, (_, i) => ({ q: `Pregunta ${i}`, a: 'Sí', w: ['No', 'Quizá', 'Nunca'] }));
+  const bank = [{ ids: [], names: ['Anime de prueba'], questions }];
+  const noAniList = async () => new Response(JSON.stringify({ data: {} }), { headers: { 'content-type': 'application/json' } });
+  const avoid = new Set(questions.slice(0, 14).map((q) => q.q)); // 14 ya vistas, quedan 10 nuevas
+  for (let k = 0; k < 15; k++) {
+    const r = await buildTrivia([{ title: 'Anime de prueba', kind: 'show' }], { fetchFn: noAniList, bank, avoid, extraTitles: ['Otro 1', 'Otro 2', 'Otro 3'] });
+    const asked = r.questions.map((q) => q.question).filter((q) => q.startsWith('Pregunta '));
+    assert.ok(asked.length >= 8, 'sale sobre todo el banco');
+    assert.equal(asked.filter((q) => avoid.has(q)).length, 0, 'ninguna de las ya vistas mientras queden nuevas');
+  }
+  // Si ya las has visto todas, se repiten antes que quedarse sin preguntas
+  const all = new Set(questions.map((q) => q.q));
+  const r = await buildTrivia([{ title: 'Anime de prueba', kind: 'show' }], { fetchFn: noAniList, bank, avoid: all, extraTitles: ['Otro 1', 'Otro 2', 'Otro 3'] });
+  assert.equal(r.questions.length, 10);
 });

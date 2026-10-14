@@ -145,6 +145,8 @@ const MIGRATIONS = [
   'ALTER TABLE lists ADD COLUMN pending_order TEXT',
   // Foto de perfil (personaje de anime)
   'ALTER TABLE users ADD COLUMN avatar TEXT',
+  // Preguntas del quiz que se han quitado por estar mal: la IA no puede volver a meterlas
+  'ALTER TABLE trivia_ai_bank ADD COLUMN removed TEXT',
 ];
 
 export async function initDb() {
