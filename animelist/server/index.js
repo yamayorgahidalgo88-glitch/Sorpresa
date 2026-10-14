@@ -526,8 +526,12 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ error: 'Error del servidor' });
 });
 
+// Prepara la base de datos una sola vez (también en Vercel, en la primera petición)
+let initPromise = null;
+export const ready = () => (initPromise ||= initDb().catch((e) => { initPromise = null; throw e; }));
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  await initDb();
+  await ready();
   const port = Number(process.env.PORT) || 3000;
   app.listen(port, () => console.log(`Anime List M&Y → http://localhost:${port}`));
 }

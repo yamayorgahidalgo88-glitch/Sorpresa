@@ -1,0 +1,7 @@
+{
+  "rewrites": [{ "source": "/(.*)", "destination": "/api" }],
+  "functions": {
+    "api/index.js": { "includeFiles": "{public,data}/**", "maxDuration": 15 }
+  },
+  "regions": ["cdg1"]
+}

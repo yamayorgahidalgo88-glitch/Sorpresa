@@ -32,10 +32,14 @@ npm start          # http://localhost:3000
 npm test
 ```
 
-## Publicarla (para usarla desde los dos móviles)
-Es un servidor Node (Express). La base de datos es SQLite:
-- Por defecto usa el fichero `data/app.db` (sirve en un servidor con disco persistente).
-- En la nube gratis: crea una base de datos en [Turso](https://turso.tech) y define `DATABASE_URL=libsql://...` y `DATABASE_TOKEN=...`. Así puedes desplegar en Render, Railway, Fly.io, etc. sin perder datos.
+## Publicarla en Vercel (gratis)
+La app ya está preparada para Vercel (`vercel.json` + `api/index.js`): API y web corren en una sola función.
 
-`render.yaml` deja lista la configuración para Render (servicio web, `rootDir: animelist`).
-Una vez publicada, en el móvil: abre la web → “Añadir a pantalla de inicio” y aparecerá con el logo como una app.
+1. En Vercel: **Add New → Project** → importar el repositorio de GitHub → **Root Directory: `animelist`** → Deploy.
+2. En el proyecto: **Storage → Create Database → Turso** (plan gratis, región Europa) y conectarla al proyecto. Eso crea `TURSO_DATABASE_URL` y `TURSO_AUTH_TOKEN`.
+3. **Redeploy**. Las tablas de la base de datos se crean solas en la primera visita.
+
+Sin la base de datos, la app en Vercel se niega a arrancar a propósito: el disco de Vercel no es permanente y se perderían las cuentas.
+
+En local, sin variables, usa el fichero `data/app.db`. También acepta `DATABASE_URL` / `DATABASE_TOKEN` (cualquier base libsql/Turso).
+Una vez publicada, en el móvil: abre la web → «Añadir a pantalla de inicio» y aparecerá con el logo como una app.

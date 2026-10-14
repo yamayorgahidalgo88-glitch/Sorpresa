@@ -6,10 +6,12 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 // Local: fichero SQLite en data/. En la nube: DATABASE_URL=libsql://... (Turso) + DATABASE_TOKEN.
+// La integración de Turso en Vercel crea TURSO_DATABASE_URL y TURSO_AUTH_TOKEN.
 function makeClient() {
-  if (process.env.DATABASE_URL) {
-    return createClient({ url: process.env.DATABASE_URL, authToken: process.env.DATABASE_TOKEN });
-  }
+  const url = process.env.DATABASE_URL || process.env.TURSO_DATABASE_URL;
+  if (url) return createClient({ url, authToken: process.env.DATABASE_TOKEN || process.env.TURSO_AUTH_TOKEN });
+  // En Vercel el disco no es permanente: sin base de datos externa se perderían las cuentas.
+  if (process.env.VERCEL) throw new Error('Falta la base de datos: conecta Turso al proyecto (TURSO_DATABASE_URL / TURSO_AUTH_TOKEN)');
   const file = process.env.DB_FILE || path.join(ROOT, 'data', 'app.db');
   mkdirSync(path.dirname(file), { recursive: true });
   return createClient({ url: 'file:' + file });
