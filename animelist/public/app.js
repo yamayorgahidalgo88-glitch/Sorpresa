@@ -68,6 +68,7 @@ const avatarStyle = (name, color) => {
   for (const c of name) h = (h * 31 + c.charCodeAt(0)) % 360;
   return `--a1:hsl(${h} 90% 55%);--a2:hsl(${(h + 50) % 360} 80% 42%)`;
 };
+const avatarImg = (key) => `/img/avatars/${key}.jpg`;
 const platKey = (name) => PLATFORM_BY_NAME[(name || '').toLowerCase()] || null;
 const platBadge = (key, label) => {
   const p = PLATFORMS[key];
@@ -144,12 +145,15 @@ async function route() {
   if (hash === '#/test') return renderQuiz({ again: true });
   document.body.classList.remove('auth');
   $('#tabbar').hidden = false;
-  const [, section, id] = hash.split('/');
-  $$('#tabbar a').forEach((a) => a.classList.toggle('on', a.dataset.tab === (section === 'tabla' ? 'tablas' : section)));
+  const [, section, id, sub, subId] = hash.split('/');
+  const tab = section === 'tabla' ? 'tablas' : section === 'amigo' ? 'amigos' : section;
+  $$('#tabbar a').forEach((a) => a.classList.toggle('on', a.dataset.tab === tab));
   refreshBadge();
   if (section === 'perfil') return renderProfile();
   if (section === 'amigos') return renderFriends();
   if (section === 'tabla' && id) return renderList(Number(id));
+  if (section === 'amigo' && id && sub === 'tabla' && subId) return renderList(Number(subId), Number(id));
+  if (section === 'amigo' && id) return renderFriendProfile(Number(id));
   if (section !== 'tablas') return go('#/tablas');
   return renderLists();
 }
@@ -457,21 +461,26 @@ async function newListFlow() {
 }
 
 // ───────────── Vista de una tabla ─────────────
-async function loadList(id) {
-  const data = await api('/lists/' + id);
+async function loadList(id, friendId = state.viewOf) {
+  const data = await api(friendId ? `/friends/${friendId}/lists/${id}` : '/lists/' + id);
   state.list = data;
   return data;
 }
 
-async function renderList(id) {
-  app.innerHTML = topbar('Cargando…', { back: '#/tablas' }) + '<div class="skeleton" style="height:320px"></div>';
-  try { await loadList(id); } catch (e) { fail(e); return go('#/tablas'); }
+async function renderList(id, friendId = null) {
+  state.viewOf = friendId;
+  const back = friendId ? `#/amigo/${friendId}` : '#/tablas';
+  app.innerHTML = topbar('Cargando…', { back }) + '<div class="skeleton" style="height:320px"></div>';
+  try { await loadList(id); } catch (e) { fail(e); return go(back); }
+  // Si la tabla del amigo también es tuya, mejor abrirla como tuya (ahí puedes editar lo tuyo)
+  if (friendId && state.list.list.role !== 'viewer') return go('#/tabla/' + id);
   drawList();
+  if (friendId) { state.syncNow = null; return; }
   // Sincroniza con los cambios de las otras personas de la tabla: pregunta cada 2,5 s si algo ha cambiado
   // (consulta muy ligera) y solo entonces vuelve a cargar la tabla.
   let checking = false;
   const sync = async () => {
-    if (checking || document.visibilityState !== 'visible' || location.hash !== '#/tabla/' + id || !state.list) return;
+    if (checking || document.visibilityState !== 'visible' || location.hash !== '#/tabla/' + id || !state.list || state.viewOf) return;
     // No repintar mientras escribes, arrastras o tienes una ventana abierta
     if ($('.sheet') || state.dragging || (document.activeElement && app.contains(document.activeElement) && document.activeElement.matches('input'))) return;
     checking = true;
@@ -562,15 +571,21 @@ function drawList(keepScroll = false) {
   const { list, people, entries, members } = state.list;
   const scroll = keepScroll ? $('.table-wrap')?.scrollLeft : 0;
   const owner = list.role === 'owner';
+  const viewer = list.role === 'viewer';
   const others = members.filter((m) => m.id !== state.user.id);
-  const head = (p, label) => `<th class="p" style="--c:${p.color}"><span class="ph-head" title="${esc(p.name)}"><i>${esc(p.name[0]?.toUpperCase() || '?')}</i>${label}</span>
+  const ownerName = members.find((m) => m.id === list.owner_id)?.username || '';
+  const head = (p, label) => `<th class="p" style="--c:${p.color}"><span class="ph-head" title="${esc(p.name)}"><i>${p.avatar ? `<img src="${avatarImg(p.avatar)}" alt="">` : esc(p.name[0]?.toUpperCase() || '?')}</i>${label}</span>
     <small class="ph-name">${isMine(p) ? 'Tú' : esc(p.name)}${p.user_id ? '' : ' · sin unir'}</small></th>`;
 
-  app.innerHTML = topbar(list.name, {
+  app.innerHTML = topbar(list.name, viewer ? {
+    back: `#/amigo/${state.viewOf}`,
+    sub: `${entries.length} animes · tabla de @${esc(ownerName)}`,
+  } : {
     back: '#/tablas',
     sub: `${entries.length} animes${others.length ? ` · con ${others.map((m) => '@' + esc(m.username)).join(', ')}` : ''}`,
     right: `${owner ? `<button class="iconbtn" data-share aria-label="Compartir">${ICON.share}</button>` : ''}<button class="iconbtn" data-menu aria-label="Opciones">${ICON.dots}</button>`,
   }) + `
+  ${viewer ? `<div class="viewer-note">👀 Solo puedes mirar esta tabla. Pulsa un anime para ver dónde verlo y <b>añadirlo a una de tus listas</b>.</div>` : ''}
   <div class="fade-in">
     <div class="card section rank-card" data-podium>${podiumHtml()}</div>
     ${progressHtml()}
@@ -582,7 +597,7 @@ function drawList(keepScroll = false) {
           `<button data-f="${k}" class="${state.filter === k ? 'on' : ''}">${t}</button>`).join('')}
       </div>
     </div>
-    <div class="order-hint" data-hint ${state.filter === 'pending' ? '' : 'hidden'}>${ICON.grip} Arrastra desde las rayas para ordenar qué ver primero. El orden lo veis todos los de la tabla.</div>
+    <div class="order-hint" data-hint ${state.filter === 'pending' && !viewer ? '' : 'hidden'}>${ICON.grip} Arrastra desde las rayas para ordenar qué ver primero. El orden lo veis todos los de la tabla.</div>
 
     <div class="table-wrap"><table class="anime">
       <thead><tr>
@@ -593,21 +608,21 @@ function drawList(keepScroll = false) {
       <tbody></tbody>
     </table></div>
 
-    <div class="add-row"><button class="btn primary block" data-add>${ICON.plus} Añadir anime</button></div>
+    ${viewer ? '' : `<div class="add-row"><button class="btn primary block" data-add>${ICON.plus} Añadir anime</button></div>`}
   </div>`;
 
   drawRows();
   if (scroll) $('.table-wrap').scrollLeft = scroll;
   bindPodium();
 
-  $('[data-add]', app).addEventListener('click', () => entrySheet());
-  $('[data-menu]', app).addEventListener('click', listMenu);
+  $('[data-add]', app)?.addEventListener('click', () => entrySheet());
+  $('[data-menu]', app)?.addEventListener('click', listMenu);
   $('[data-share]', app)?.addEventListener('click', shareSheet);
   $('[data-q]', app).addEventListener('input', (e) => { state.query = e.target.value; drawRows(); });
   $$('[data-f]', app).forEach((b) => b.addEventListener('click', () => {
     state.filter = b.dataset.f;
     $$('[data-f]', app).forEach((x) => x.classList.toggle('on', x === b));
-    $('[data-hint]', app).hidden = state.filter !== 'pending';
+    $('[data-hint]', app).hidden = state.filter !== 'pending' || viewer;
     drawRows();
   }));
 }
@@ -621,13 +636,13 @@ function bindPodium() {
   }));
   $$('[data-kind]', box).forEach((b) => b.addEventListener('click', () => { state.rankKind = b.dataset.kind; redraw(); }));
   $$('[data-open-entry]', box).forEach((b) => b.addEventListener('click', () =>
-    entrySheet(state.list.entries.find((e) => e.id === Number(b.dataset.openEntry)))));
+    openEntry(state.list.entries.find((e) => e.id === Number(b.dataset.openEntry)))));
 }
 
 function drawRows() {
   const { people } = state.list;
   const rows = visibleEntries();
-  const sortable = state.filter === 'pending' && !state.query.trim();
+  const sortable = state.filter === 'pending' && !state.query.trim() && state.list.list.role !== 'viewer';
   const tbody = $('table.anime tbody', app);
   const cols = people.length * 2 + 3;
   tbody.innerHTML = rows.length ? rows.map((e) => {
@@ -655,7 +670,7 @@ function drawRows() {
 
   $$('tr[data-id]', tbody).forEach((tr) => {
     const entry = state.list.entries.find((x) => x.id === Number(tr.dataset.id));
-    $('[data-open]', tr).addEventListener('click', () => entrySheet(entry));
+    $('[data-open]', tr).addEventListener('click', () => openEntry(entry));
     $$('[data-seen]', tr).forEach((b) => b.addEventListener('click', () => toggleSeen(entry, Number(b.dataset.seen), b)));
     $$('[data-rate]', tr).forEach((b) => b.addEventListener('click', () => ratingSheet(entry, Number(b.dataset.rate))));
     const grip = $('[data-grip]', tr);
@@ -705,7 +720,10 @@ function startDrag(ev, tr) {
   addEventListener('pointercancel', end);
 }
 
+const openEntry = (entry) => (state.list.list.role === 'viewer' ? viewEntrySheet(entry) : entrySheet(entry));
+
 function lockedToast(personId) {
+  if (state.list.list.role === 'viewer') { toast('Es una tabla de tu amigo: solo puedes mirarla', true); return true; }
   const p = state.list.people.find((x) => x.id === personId);
   if (!p || isMine(p)) return false;
   toast(p.user_id ? `Solo ${p.name} puede cambiar su check y su nota` : `${p.name} aún no se ha unido a la tabla`, true);
@@ -1118,7 +1136,9 @@ async function shareSheet() {
 }
 
 // ───────────── Amigos ─────────────
-const avatarHtml = (u, cls = '') => `<div class="avatar ${cls}" style="${avatarStyle(u.username, u.color)}">${esc(u.username[0].toUpperCase())}</div>`;
+const avatarHtml = (u, cls = '') => (u.avatar
+  ? `<div class="avatar pic ${cls}" style="--ring:${u.color || 'rgba(255,255,255,.25)'}"><img src="${avatarImg(u.avatar)}" alt="" loading="lazy"></div>`
+  : `<div class="avatar ${cls}" style="${avatarStyle(u.username, u.color)}">${esc(u.username[0].toUpperCase())}</div>`);
 
 async function renderFriends() {
   app.innerHTML = topbar('Amigos') + `
@@ -1192,7 +1212,9 @@ async function drawFriendLists() {
     </div>
     <div class="card section">
       <h2>Mis amigos ${friends.length ? `<span class="count">${friends.length}</span>` : ''}</h2>
-      ${friends.length ? friends.map((f) => person(f, `<button class="iconbtn danger" data-unf="${f.id}" data-name="${esc(f.username)}" aria-label="Eliminar amigo">${ICON.trash}</button>`)).join('')
+      ${friends.length ? friends.map((f) => `<div class="person friend-row">
+          <a class="friend-link" href="#/amigo/${f.id}">${avatarHtml(f)}<div class="name">@${esc(f.username)}<small>Ver sus tablas y notas ›</small></div></a>
+          <button class="iconbtn danger" data-unf="${f.id}" data-name="${esc(f.username)}" aria-label="Eliminar amigo">${ICON.trash}</button></div>`).join('')
         : '<div class="empty">Busca a alguien por su nombre de usuario para empezar</div>'}
     </div>`;
   const act = async (path, msg) => {
@@ -1234,9 +1256,10 @@ async function renderProfile() {
   try { meta = await api('/meta'); } catch { /* opcional */ }
   app.innerHTML = topbar('Perfil') + `
     <div class="card profile-hero fade-in" style="--c:${user.color || 'var(--orange)'}">
-      ${avatarHtml(user)}
+      <button class="avatar-edit" data-avatar aria-label="Cambiar foto de perfil">${avatarHtml(user)}<span class="avatar-cam">${ICON.pencil}</span></button>
       <h2>@${esc(user.username)}</h2>
       <div class="muted">Miembro desde el ${since}</div>
+      <button class="btn avatar-btn" data-avatar2>${ICON.pencil} Cambiar foto de perfil</button>
       <div class="stats">
         <div><b>${stats.lists}</b><span>Tablas</span></div>
         <div><b>${stats.friends}</b><span>Amigos</span></div>
@@ -1270,12 +1293,136 @@ async function renderProfile() {
     </div>
     <button class="btn danger block" data-logout>${ICON.logout} Cerrar sesión</button>`;
   $('[data-color]', app).addEventListener('click', async () => { if (await changeColor()) renderProfile(); });
+  const pickAvatar = async () => { if (await changeAvatar()) renderProfile(); };
+  $('[data-avatar]', app).addEventListener('click', pickAvatar);
+  $('[data-avatar2]', app).addEventListener('click', pickAvatar);
   $('[data-logout]', app).addEventListener('click', async () => {
     if (!(await confirmSheet({ title: '¿Cerrar sesión?', text: `Tendrás que volver a entrar con tu contraseña en ${esc(deviceName())}.`, ok: 'Cerrar sesión', icon: ICON.logout }))) return;
     try { await api('/auth/logout', { method: 'POST' }); } catch { /* da igual */ }
     state.user = null;
     location.hash = '#/login';
   });
+}
+
+// ───────────── Foto de perfil ─────────────
+let avatarsCache = null;
+async function changeAvatar() {
+  try { avatarsCache ||= (await api('/avatars')).avatars; } catch (e) { fail(e); return false; }
+  const groups = [];
+  for (const a of avatarsCache) {
+    let g = groups.find((x) => x.anime === a.anime);
+    if (!g) groups.push((g = { anime: a.anime, items: [] }));
+    g.items.push(a);
+  }
+  const current = state.user.avatar;
+  return new Promise((resolve) => {
+    let done = false;
+    const s = openSheet(`
+      <h3>Elige tu foto de perfil</h3>
+      <p class="muted" style="margin-top:-8px;font-size:14px">La verán tus amigos y quien te busque.</p>
+      <div class="av-groups">${groups.map((g) => `
+        <div class="av-group"><div class="av-anime">${esc(g.anime)}</div>
+          <div class="av-grid">${g.items.map((a) => `<button class="av ${a.key === current ? 'on' : ''}" data-av="${a.key}" title="${esc(a.name)}" aria-label="${esc(a.name)}">
+            <img src="${avatarImg(a.key)}" alt="" loading="lazy"><span>${esc(a.name.split(' ')[0])}</span></button>`).join('')}</div>
+        </div>`).join('')}</div>
+      <div class="actions">${current ? '<button class="btn" data-none>Quitar foto</button>' : ''}<button class="btn" data-close>Cancelar</button></div>`,
+    { onClose: () => !done && resolve(false) });
+    const save = async (avatar) => {
+      done = true;
+      try {
+        state.user = { ...state.user, ...(await api('/me', { method: 'PATCH', body: { avatar } })).user };
+        s.close();
+        toast(avatar ? `Foto cambiada: ${avatarsCache.find((a) => a.key === avatar).name}` : 'Foto quitada');
+        resolve(true);
+      } catch (e) { done = false; fail(e); }
+    };
+    $$('[data-av]', s).forEach((b) => b.addEventListener('click', () => save(b.dataset.av)));
+    $('[data-none]', s)?.addEventListener('click', () => save(null));
+  });
+}
+
+// ───────────── Perfil de un amigo ─────────────
+async function renderFriendProfile(id) {
+  app.innerHTML = topbar('Amigo', { back: '#/amigos' }) + '<div class="skeleton" style="height:260px"></div>';
+  let data;
+  try { data = await api(`/friends/${id}/profile`); } catch (e) { fail(e); return go('#/amigos'); }
+  const { user, stats, lists } = data;
+  const ch = CHARACTERS[user.quizResult];
+  app.innerHTML = topbar('@' + user.username, { back: '#/amigos', sub: 'Amigo' }) + `
+    <div class="card profile-hero fade-in" style="--c:${user.color || 'var(--orange)'}">
+      ${avatarHtml(user)}
+      <h2>@${esc(user.username)}</h2>
+      ${ch ? `<div class="muted">Se parece a <b style="color:var(--c)">${esc(ch.name)}</b> · ${esc(ch.anime)}</div>` : ''}
+      <div class="stats" style="grid-template-columns:repeat(2,1fr)">
+        <div><b>${stats.lists}</b><span>Tablas</span></div>
+        <div><b>${stats.seen}</b><span>Animes vistos</span></div>
+      </div>
+    </div>
+    <div class="card section">
+      <h2>Sus tablas</h2>
+      <p class="muted" style="margin:-4px 0 12px;font-size:14px">Puedes mirar sus notas y llevarte a tus listas lo que te guste. No puedes cambiar nada de sus tablas.</p>
+      <div class="lists-grid">${lists.map((l) => `
+        <a class="card list-card" href="${l.mine ? `#/tabla/${l.id}` : `#/amigo/${user.id}/tabla/${l.id}`}">
+          <div class="covers">${l.covers.map((c) => `<img src="${esc(c)}" alt="" loading="lazy" referrerpolicy="no-referrer">`).join('')}</div>
+          <h3 style="margin-right:0">${esc(l.name)}</h3>
+          <div class="meta">
+            <span class="chip orange">${ICON.film}${l.count} anime${l.count === 1 ? '' : 's'}</span>
+            ${l.mine ? '<span class="chip">✓ También es tuya</span>' : '<span class="chip">👀 Solo mirar</span>'}
+          </div>
+        </a>`).join('') || '<div class="empty">Todavía no tiene tablas</div>'}</div>
+    </div>`;
+}
+
+// ───────────── Ficha de un anime de otra persona: mirar y «Añadir a mi lista» ─────────────
+function viewEntrySheet(entry) {
+  const { people } = state.list;
+  const kind = entry.kind === 'movie' ? 'Película' : 'Serie';
+  const s = openSheet(`
+    <div class="anime-head">
+      ${entry.poster ? `<img src="${esc(entry.poster)}" alt="" referrerpolicy="no-referrer">` : '<span class="ph"></span>'}
+      <div><h4>${esc(entry.title)}</h4>
+        <div class="muted" style="font-size:13px">${kind}${entry.duration && entry.duration !== 'Película' ? ' · ' + esc(entry.duration) : ''}</div>
+        <div class="their-marks">${people.map((p) => {
+          const m = entry.marks[p.id] || {};
+          return `<span class="chip" style="--c:${p.color}"><i class="dot" style="background:${p.color}"></i>${esc(p.name)}: ${m.seen ? '✓ visto' : 'sin ver'}${m.rating != null ? ` · <b>${fmtRating(m.rating)}</b>/10` : ''}</span>`;
+        }).join('')}</div>
+      </div>
+    </div>
+    <div class="avail" data-avail>${availabilityHtml(entry.availability || [])}</div>
+    <div class="actions"><button class="btn" data-close>Cerrar</button><button class="btn primary" data-add-mine>${ICON.plus} Añadir a mi lista</button></div>`);
+  if (entry.jw_id) {
+    api('/anime/' + entry.jw_id).then(({ item }) => { const box = $('[data-avail]', s); if (box) box.innerHTML = availabilityHtml(item.platforms); }).catch(() => {});
+  }
+  $('[data-add-mine]', s).addEventListener('click', () => { s.close(); addToMyListSheet(entry); });
+}
+
+async function addToMyListSheet(entry) {
+  let lists;
+  try { ({ lists } = await api('/lists')); } catch (e) { return fail(e); }
+  // Comprueba en qué tablas ya está (por id del catálogo o por nombre)
+  const has = {};
+  await Promise.all(lists.map(async (l) => {
+    try {
+      const d = await api('/lists/' + l.id);
+      has[l.id] = d.entries.some((e) => (entry.jw_id && e.jw_id === entry.jw_id) || e.title.trim().toLowerCase() === entry.title.trim().toLowerCase());
+    } catch { has[l.id] = false; }
+  }));
+  const s = openSheet(`
+    <h3>¿A qué lista lo añades?</h3>
+    <p class="muted" style="margin-top:-8px;font-size:14px">«${esc(entry.title)}» se añadirá sin notas ni checks, para que pongáis los vuestros.</p>
+    <div style="display:grid;gap:8px">${lists.map((l) => `
+      <button class="btn block col-pick" data-l="${l.id}" ${has[l.id] ? 'disabled' : ''}>${ICON.film} ${esc(l.name)}
+        <small class="muted" style="margin-left:auto">${has[l.id] ? 'Ya está' : `${l.count} animes`}</small></button>`).join('') || '<div class="empty">Aún no tienes tablas. Crea una en «Tablas».</div>'}</div>
+    <div class="actions"><button class="btn" data-close>Cancelar</button></div>`);
+  $$('[data-l]', s).forEach((b) => b.addEventListener('click', async () => {
+    b.disabled = true;
+    const { title, jw_id, poster, kind, duration, platform, language, availability } = entry;
+    try {
+      await api(`/lists/${b.dataset.l}/entries`, { body: { title, jw_id, poster, kind, duration, platform, language, availability } });
+      s.close();
+      toast(`«${title}» añadido a «${lists.find((l) => l.id === Number(b.dataset.l)).name}»`);
+    } catch (e) { fail(e); b.disabled = false; }
+  }));
 }
 
 // ───────────── Arranque ─────────────

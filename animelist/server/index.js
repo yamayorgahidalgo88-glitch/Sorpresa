@@ -10,6 +10,7 @@ import { searchCatalog, getById, catalogMeta, topPosters, norm } from './catalog
 import { liveSearch, liveDetail, JW_PACKAGES } from './justwatch.js';
 import { TEMPLATE_PEOPLE, TEMPLATE_ROWS } from './template-my.js';
 import { COLORS, RESERVED, DEFAULT_COLOR, QUIZ_RESULTS, FALLBACK_COLOR } from './profile.js';
+import { AVATARS, AVATAR_KEYS } from './avatars.js';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -28,7 +29,7 @@ app.use('/api', api);
 const USERNAME_RE = /^[a-zA-Z0-9_.]{3,20}$/;
 const cleanText = (v, max = 200) => (v == null ? null : String(v).trim().slice(0, max) || null);
 const intId = (v) => { const n = Number(v); if (!Number.isInteger(n) || n <= 0) fail(400, 'Id no válido'); return n; };
-const publicUser = (u) => ({ id: u.id, username: u.username, color: u.color || null, quizDone: !!u.quiz_done, quizResult: u.quiz_result || null });
+const publicUser = (u) => ({ id: u.id, username: u.username, color: u.color || null, avatar: u.avatar || null, quizDone: !!u.quiz_done, quizResult: u.quiz_result || null });
 
 // ───────────── Cuenta ─────────────
 api.post('/auth/register', h(async (req, res) => {
@@ -50,7 +51,7 @@ api.post('/auth/login', h(async (req, res) => {
   const password = String(req.body.password || '');
   const key = `${req.ip}:${username.toLowerCase()}`;
   if (tooManyAttempts(key)) fail(429, 'Demasiados intentos. Espera unos minutos.');
-  const u = await one('SELECT id, username, pass_hash, color, quiz_done, quiz_result FROM users WHERE username = ?', [username]);
+  const u = await one('SELECT id, username, pass_hash, color, avatar, quiz_done, quiz_result FROM users WHERE username = ?', [username]);
   if (!u || !(await verifyPassword(password, u.pass_hash))) fail(401, 'Usuario o contraseña incorrectos');
   clearAttempts(key);
   setSessionCookie(req, res, await createSession(u.id), { persistent: req.body.remember !== false });
@@ -79,7 +80,11 @@ api.get('/me', h(async (req, res) => {
 // Color y resultado del test de personalidad
 api.patch('/me', requireUser, h(async (req, res) => {
   const u = req.user;
-  let { color, quiz_done: quizDone, quiz_result: quizResult } = u;
+  let { color, avatar, quiz_done: quizDone, quiz_result: quizResult } = u;
+  if ('avatar' in req.body) {
+    if (req.body.avatar !== null && !AVATAR_KEYS.has(req.body.avatar)) fail(400, 'Esa foto no está disponible');
+    avatar = req.body.avatar;
+  }
   if ('color' in req.body) {
     const c = String(req.body.color || '').toLowerCase();
     if (!COLORS[c]) fail(400, 'Ese color no está disponible');
@@ -91,9 +96,11 @@ api.patch('/me', requireUser, h(async (req, res) => {
     quizResult = req.body.quizResult;
     quizDone = 1;
   }
-  await run('UPDATE users SET color = ?, quiz_done = ?, quiz_result = ? WHERE id = ?', [color, quizDone, quizResult, u.id]);
-  res.json({ user: publicUser({ ...u, color, quiz_done: quizDone, quiz_result: quizResult }) });
+  await run('UPDATE users SET color = ?, avatar = ?, quiz_done = ?, quiz_result = ? WHERE id = ?', [color, avatar, quizDone, quizResult, u.id]);
+  res.json({ user: publicUser({ ...u, color, avatar, quiz_done: quizDone, quiz_result: quizResult }) });
 }));
+
+api.get('/avatars', (_req, res) => { res.set('Cache-Control', 'public, max-age=86400'); res.json({ avatars: AVATARS }); });
 
 api.get('/meta', (_req, res) => res.json({ catalog: catalogMeta(), platforms: JW_PACKAGES.map(({ key, name }) => ({ key, name })) }));
 
@@ -207,16 +214,15 @@ async function importTemplate(listId, ownerId) {
   }
 }
 
-api.get('/lists/:id', requireUser, h(async (req, res) => {
-  const listId = intId(req.params.id);
-  const m = await membership(listId, req.user.id);
+// Todo lo necesario para pintar una tabla. role = 'owner' | 'editor' | 'viewer' (amigo que solo mira)
+async function listPayload(listId, role) {
   const [list, people, entries, marks, members, invites, order] = await Promise.all([
     one('SELECT id, name, owner_id, updated_at, pending_order FROM lists WHERE id = ?', [listId]),
-    all(`SELECT p.id, p.position, p.user_id, COALESCE(u.username, p.name) AS name, COALESCE(u.color, p.color) AS color
+    all(`SELECT p.id, p.position, p.user_id, COALESCE(u.username, p.name) AS name, COALESCE(u.color, p.color) AS color, u.avatar
       FROM list_people p LEFT JOIN users u ON u.id = p.user_id WHERE p.list_id = ? ORDER BY p.position, p.id`, [listId]),
     all('SELECT * FROM entries WHERE list_id = ? ORDER BY position, id', [listId]),
     all('SELECT k.entry_id, k.person_id, k.seen, k.rating FROM entry_marks k JOIN entries e ON e.id = k.entry_id WHERE e.list_id = ?', [listId]),
-    all('SELECT u.id, u.username, u.color, m.role FROM list_members m JOIN users u ON u.id = m.user_id WHERE m.list_id = ? ORDER BY m.role DESC, u.username', [listId]),
+    all('SELECT u.id, u.username, u.color, u.avatar, m.role FROM list_members m JOIN users u ON u.id = m.user_id WHERE m.list_id = ? ORDER BY m.role DESC, u.username', [listId]),
     all('SELECT i.id, i.to_user, i.person_id, u.username FROM list_invites i JOIN users u ON u.id = i.to_user WHERE i.list_id = ?', [listId]),
     // Orden antiguo (personal) solo como respaldo: primero el del creador, si no el de cualquiera
     one('SELECT ids FROM pending_orders WHERE list_id = ? ORDER BY (user_id = (SELECT owner_id FROM lists WHERE id = ?)) DESC LIMIT 1', [listId, listId]),
@@ -224,18 +230,24 @@ api.get('/lists/:id', requireUser, h(async (req, res) => {
   const byEntry = {};
   for (const k of marks) (byEntry[k.entry_id] ||= {})[k.person_id] = { seen: !!k.seen, rating: k.rating };
   const { pending_order: shared, ...listInfo } = list;
-  res.json({
-    list: { ...listInfo, role: m.role },
+  return {
+    list: { ...listInfo, role },
     people,
     members,
-    invites: m.role === 'owner' ? invites : [],
+    invites: role === 'owner' ? invites : [],
     pendingOrder: shared ? JSON.parse(shared) : order ? JSON.parse(order.ids) : [],
     entries: entries.map((e) => ({
       ...e,
       availability: e.availability ? JSON.parse(e.availability) : null,
       marks: byEntry[e.id] || {},
     })),
-  });
+  };
+}
+
+api.get('/lists/:id', requireUser, h(async (req, res) => {
+  const listId = intId(req.params.id);
+  const m = await membership(listId, req.user.id);
+  res.json(await listPayload(listId, m.role));
 }));
 
 api.patch('/lists/:id', requireUser, h(async (req, res) => {
@@ -454,16 +466,16 @@ async function areFriends(a, b) {
 api.get('/friends', requireUser, h(async (req, res) => {
   const me = req.user.id;
   const rows = await all(`SELECT f.id, f.status, f.requester_id, f.addressee_id, f.created_at,
-      ur.username AS requester, ur.color AS rcolor, ua.username AS addressee, ua.color AS acolor
+      ur.username AS requester, ur.color AS rcolor, ur.avatar AS ravatar, ua.username AS addressee, ua.color AS acolor, ua.avatar AS aavatar
     FROM friendships f JOIN users ur ON ur.id = f.requester_id JOIN users ua ON ua.id = f.addressee_id
     WHERE f.requester_id = ? OR f.addressee_id = ? ORDER BY f.created_at DESC`, [me, me]);
   const invites = await all(`SELECT i.id AS inviteId, i.created_at AS at, l.id AS listId, l.name AS listName,
-      (SELECT COUNT(*) FROM entries e WHERE e.list_id = l.id) AS count, u.id AS fromId, u.username AS fromName, u.color AS fromColor
+      (SELECT COUNT(*) FROM entries e WHERE e.list_id = l.id) AS count, u.id AS fromId, u.username AS fromName, u.color AS fromColor, u.avatar AS fromAvatar
     FROM list_invites i JOIN lists l ON l.id = i.list_id JOIN users u ON u.id = i.from_user
     WHERE i.to_user = ? ORDER BY i.created_at DESC`, [me]);
   const other = (r) => (r.requester_id === me
-    ? { id: r.addressee_id, username: r.addressee, color: r.acolor }
-    : { id: r.requester_id, username: r.requester, color: r.rcolor });
+    ? { id: r.addressee_id, username: r.addressee, color: r.acolor, avatar: r.aavatar }
+    : { id: r.requester_id, username: r.requester, color: r.rcolor, avatar: r.ravatar });
   res.json({
     friends: rows.filter((r) => r.status === 'accepted').map((r) => ({ ...other(r), since: r.created_at }))
       .sort((a, b) => a.username.localeCompare(b.username)),
@@ -477,12 +489,45 @@ api.get('/users/search', requireUser, h(async (req, res) => {
   const q = String(req.query.q || '').trim();
   if (!q) return res.json({ users: [] });
   const like = q.replace(/[%_\\]/g, (c) => '\\' + c) + '%';
-  const users = await all(`SELECT u.id, u.username, u.color,
+  const users = await all(`SELECT u.id, u.username, u.color, u.avatar,
       (SELECT f.status || ':' || CASE WHEN f.requester_id = ? THEN 'out' ELSE 'in' END FROM friendships f
         WHERE (f.requester_id = ? AND f.addressee_id = u.id) OR (f.requester_id = u.id AND f.addressee_id = ?)) AS relation
     FROM users u WHERE u.username LIKE ? ESCAPE '\\' AND u.id <> ? ORDER BY length(u.username), u.username LIMIT 15`,
   [req.user.id, req.user.id, req.user.id, like, req.user.id]);
   res.json({ users });
+}));
+
+// Perfil de un amigo con sus tablas, y ver una de ellas sin poder cambiar nada
+async function friendOf(me, otherId) {
+  if (!(await areFriends(me, otherId))) fail(404, 'Solo puedes ver las tablas de tus amigos');
+  return one('SELECT id, username, color, avatar, quiz_result, created_at FROM users WHERE id = ?', [otherId]);
+}
+
+api.get('/friends/:userId/profile', requireUser, h(async (req, res) => {
+  const f = await friendOf(req.user.id, intId(req.params.userId));
+  const lists = await all(`SELECT l.id, l.name, l.updated_at, u.username AS owner,
+      (SELECT COUNT(*) FROM entries e WHERE e.list_id = l.id) AS count,
+      (SELECT COUNT(*) FROM list_members x WHERE x.list_id = l.id) AS members,
+      EXISTS (SELECT 1 FROM list_members y WHERE y.list_id = l.id AND y.user_id = ?) AS mine
+    FROM lists l JOIN list_members m ON m.list_id = l.id AND m.user_id = ?
+    JOIN users u ON u.id = l.owner_id ORDER BY l.updated_at DESC`, [req.user.id, f.id]);
+  const covers = await all(`SELECT e.list_id, e.poster FROM entries e JOIN list_members m ON m.list_id = e.list_id AND m.user_id = ?
+    WHERE e.poster IS NOT NULL ORDER BY e.position`, [f.id]);
+  const seen = await one(`SELECT COUNT(DISTINCT k.entry_id) AS n FROM entry_marks k JOIN list_people p ON p.id = k.person_id
+    WHERE p.user_id = ? AND k.seen = 1`, [f.id]);
+  res.json({
+    user: { id: f.id, username: f.username, color: f.color || null, avatar: f.avatar || null, quizResult: f.quiz_result || null, createdAt: f.created_at },
+    stats: { lists: lists.length, seen: seen.n },
+    lists: lists.map((l) => ({ ...l, mine: !!l.mine, covers: covers.filter((c) => c.list_id === l.id).slice(0, 4).map((c) => c.poster) })),
+  });
+}));
+
+api.get('/friends/:userId/lists/:listId', requireUser, h(async (req, res) => {
+  const f = await friendOf(req.user.id, intId(req.params.userId));
+  const listId = intId(req.params.listId);
+  if (!(await one('SELECT 1 FROM list_members WHERE list_id = ? AND user_id = ?', [listId, f.id]))) fail(404, 'Tabla no encontrada');
+  const mine = await one('SELECT role FROM list_members WHERE list_id = ? AND user_id = ?', [listId, req.user.id]);
+  res.json(await listPayload(listId, mine ? mine.role : 'viewer'));
 }));
 
 api.post('/friends/request', requireUser, h(async (req, res) => {

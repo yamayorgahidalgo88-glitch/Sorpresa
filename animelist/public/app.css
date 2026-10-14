@@ -383,3 +383,32 @@ table.anime tbody tr.dragging .grip { color: var(--orange); cursor: grabbing; }
 .toggle.remember small { color: var(--muted); font-weight: 600; font-size: 12.5px; }
 .device-ico { width: 42px; height: 42px; flex: none; display: grid; place-items: center; font-size: 26px; border-radius: 14px; background: rgba(255, 255, 255, .06); }
 .auth-title small { font-size: .66em; letter-spacing: 1px; }
+
+/* Fotos de perfil */
+.avatar.pic { padding: 0; overflow: hidden; background: #222; box-shadow: 0 0 0 2px var(--ring); }
+.avatar.pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.profile-hero .avatar.pic { box-shadow: 0 0 0 3px var(--ring), 0 14px 40px color-mix(in srgb, var(--c) 45%, transparent); }
+.avatar-edit { position: relative; display: block; margin: 0 auto 12px; border: 0; background: none; padding: 0; width: 96px; }
+.avatar-edit .avatar { margin: 0; }
+.avatar-cam { position: absolute; right: -6px; bottom: -6px; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--orange); color: #fff; border: 3px solid var(--panel-solid); }
+.avatar-cam svg { width: 15px; height: 15px; }
+.avatar-btn { margin-top: 12px; padding: 9px 14px; font-size: 14px; }
+.av-groups { display: grid; gap: 14px; }
+.av-anime { font-size: 12px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; color: var(--orange-2); margin-bottom: 6px; }
+.av-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 8px; }
+.av { border: 2px solid transparent; background: rgba(255, 255, 255, .04); border-radius: 16px; padding: 4px 4px 6px; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; font-weight: 800; color: var(--muted); }
+.av img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 12px; display: block; }
+.av span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.av:hover { border-color: rgba(255, 255, 255, .25); }
+.av.on { border-color: var(--orange); background: rgba(255, 122, 26, .14); color: var(--text); }
+.ph-head i { overflow: hidden; }
+.ph-head i img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* Amigos y tablas de otros */
+.friend-row .friend-link { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+.friend-row .friend-link .name small { color: var(--orange-2); }
+.viewer-note { margin: -6px 0 14px; padding: 10px 14px; border-radius: 14px; background: rgba(77, 208, 196, .1); border: 1px solid rgba(77, 208, 196, .35); font-size: 14px; }
+.their-marks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.their-marks .chip { font-size: 12px; }
+.their-marks .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.col-pick[disabled] { opacity: .5; }

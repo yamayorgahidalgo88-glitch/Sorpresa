@@ -47,7 +47,7 @@ export async function loadUser(req, _res, next) {
     const token = readCookie(req);
     req.sessionToken = token;
     req.user = token
-      ? await one('SELECT u.id, u.username, u.color, u.quiz_done, u.quiz_result FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token = ?', [token])
+      ? await one('SELECT u.id, u.username, u.color, u.avatar, u.quiz_done, u.quiz_result FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token = ?', [token])
       : null;
     next();
   } catch (e) {

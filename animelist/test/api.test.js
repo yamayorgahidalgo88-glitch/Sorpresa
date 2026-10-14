@@ -161,6 +161,49 @@ test('compartir: invitación que Martita acepta y ocupa la columna «Marta»', a
   assert.equal((await otro(`/entries/${ids.kny}`, { method: 'DELETE' })).status, 404);
 });
 
+test('foto de perfil: se guarda y la ven los amigos', async () => {
+  assert.equal((await yhm('/me', { method: 'PATCH', body: { avatar: 'no-existe' } })).status, 400);
+  assert.equal((await yhm('/me', { method: 'PATCH', body: { avatar: 'tanjiro' } })).data.user.avatar, 'tanjiro');
+  assert.equal((await yhm('/me')).data.user.avatar, 'tanjiro');
+  assert.equal((await yhm('/me')).data.user.color, '#8bc34a', 'cambiar la foto no toca el color');
+  assert.equal((await marta('/friends')).data.friends[0].avatar, 'tanjiro');
+  assert.equal((await marta('/users/search?q=yh')).data.users[0].avatar, 'tanjiro');
+  const people = (await marta('/lists/' + listId)).data.people;
+  assert.equal(people.find((p) => p.name === 'YHM').avatar, 'tanjiro');
+  assert.ok((await yhm('/avatars')).data.avatars.length >= 60);
+});
+
+test('ver las tablas de un amigo (solo mirar) y llevarte un anime a la tuya', async () => {
+  const yhmId = (await marta('/friends')).data.friends[0].id;
+  const otroId = (await yhm('/users/search?q=otro')).data.users[0].id;
+  // Martita crea una tabla propia y YHM la mira
+  const { id: suya } = (await marta('/lists', { body: { name: 'Lo de Marta' } })).data;
+  await marta(`/lists/${suya}/entries`, { body: { title: 'Frieren', jw_id: 'ts330489', kind: 'show', duration: '28 cap', platform: 'Crunchyroll', language: 'Español' } });
+  const martaId = (await yhm('/friends')).data.friends[0].id;
+  const prof = (await yhm(`/friends/${martaId}/profile`)).data;
+  assert.equal(prof.user.username, 'Martita');
+  assert.ok(prof.lists.some((l) => l.name === 'Lo de Marta' && !l.mine));
+  const view = (await yhm(`/friends/${martaId}/lists/${suya}`)).data;
+  assert.equal(view.list.role, 'viewer');
+  assert.equal(view.entries[0].title, 'Frieren');
+  // Mirar no da permiso para cambiar nada
+  const e = view.entries[0], col = view.people[0];
+  assert.equal((await yhm(`/entries/${e.id}/marks/${col.id}`, { method: 'PUT', body: { rating: 1 } })).status, 404);
+  assert.equal((await yhm(`/entries/${e.id}`, { method: 'PATCH', body: { title: 'x' } })).status, 404);
+  assert.equal((await yhm(`/lists/${suya}/entries`, { body: { title: 'x' } })).status, 404);
+  assert.equal((await yhm(`/lists/${suya}/pending-order`, { method: 'PUT', body: { ids: [] } })).status, 404);
+  // Solo amigos
+  assert.equal((await otro(`/friends/${martaId}/profile`)).status, 404);
+  assert.equal((await otro(`/friends/${yhmId}/lists/${listId}`)).status, 404);
+  // «Añadir a mi lista»: es un anime nuevo en la tabla de YHM, sin las notas de Martita
+  const before = (await yhm('/lists/' + listId)).data.entries.length;
+  const { title, jw_id, poster, kind, duration, platform, language, availability } = e;
+  assert.equal((await yhm(`/lists/${listId}/entries`, { body: { title, jw_id, poster, kind, duration, platform, language, availability } })).status, 201);
+  const after = (await yhm('/lists/' + listId)).data.entries;
+  assert.equal(after.length, before + 1);
+  assert.deepEqual(after.at(-1).marks, {});
+});
+
 test('salir de la tabla deja la columna libre con su nombre', async () => {
   assert.equal((await marta('/lists/' + listId, { method: 'DELETE' })).data.left, true);
   assert.equal((await marta('/lists/' + listId)).status, 404);

@@ -66,7 +66,7 @@
     try { if (remember === false) sessionStorage.setItem(SKEY, uid); else sessionStorage.removeItem(SKEY); } catch { db().tempSession = remember === false ? uid : null; }
   };
   const me = (req) => { const uid = db().session || tempSession(); const u = db().users.find((x) => x.id === uid); if (!u && req) fail(401, 'Inicia sesión para continuar'); return u; };
-  const pub = (u) => ({ id: u.id, username: u.username, color: u.color || null, quizDone: !!u.quiz_done, quizResult: u.quiz_result || null });
+  const pub = (u) => ({ id: u.id, username: u.username, color: u.color || null, avatar: u.avatar || null, quizDone: !!u.quiz_done, quizResult: u.quiz_result || null });
   const userByName = (n) => db().users.find((u) => u.username.toLowerCase() === String(n).trim().toLowerCase());
   const membership = (listId, uid) => {
     const m = db().members.find((x) => x.list_id === listId && x.user_id === uid);
@@ -92,6 +92,26 @@
     if (p.user_id) fail(400, 'Esa columna es de una persona de la tabla');
     return p;
   };
+  const friendOf = (me_, other) => {
+    if (!areFriends(me_, other)) fail(404, 'Solo puedes ver las tablas de tus amigos');
+    return db().users.find((x) => x.id === other);
+  };
+  function listPayload(lid, role) {
+    const d = db(), l = d.lists.find((x) => x.id === lid);
+    const people = d.people.filter((p) => p.list_id === lid).sort((a, b) => a.position - b.position || a.id - b.id).map((p) => {
+      const owner = p.user_id && d.users.find((x) => x.id === p.user_id);
+      return { id: p.id, position: p.position, user_id: p.user_id || null, name: owner ? owner.username : p.name, color: (owner && owner.color) || p.color, avatar: (owner && owner.avatar) || null };
+    });
+    const entries = d.entries.filter((e) => e.list_id === lid).sort((a, b) => a.position - b.position || a.id - b.id).map((e) => {
+      const marks = {};
+      d.marks.filter((k) => k.entry_id === e.id).forEach((k) => (marks[k.person_id] = { seen: !!k.seen, rating: k.rating }));
+      return { ...e, marks };
+    });
+    const members = d.members.filter((x) => x.list_id === lid).map((x) => ({ ...pub(d.users.find((uu) => uu.id === x.user_id)), role: x.role }));
+    const invites = role === 'owner' ? d.invites.filter((i) => i.list_id === lid).map((i) => ({ id: i.id, to_user: i.to_user, person_id: i.person_id, username: d.users.find((x) => x.id === i.to_user)?.username })) : [];
+    const order = l.pending_order ? { ids: l.pending_order } : d.orders.find((o) => o.list_id === lid && o.user_id === l.owner_id) || d.orders.find((o) => o.list_id === lid);
+    return { list: { id: l.id, name: l.name, owner_id: l.owner_id, updated_at: l.updated_at, role }, people, members, invites, pendingOrder: order ? order.ids : [], entries };
+  }
   const deleteEntry = (eid) => { db().marks = db().marks.filter((k) => k.entry_id !== eid); db().entries = db().entries.filter((e) => e.id !== eid); };
   const ENTRY = ['title', 'jw_id', 'poster', 'kind', 'duration', 'platform', 'language', 'availability'];
   const pick = (b, partial) => {
@@ -140,6 +160,10 @@
         if (c === '#8bc34a' && u.username.toLowerCase() !== 'yhm') fail(403, 'El verde está reservado para otra persona');
         u.color = c;
       }
+      if ('avatar' in b) {
+        if (b.avatar !== null && !AVATARS.some((a) => a.key === b.avatar)) fail(400, 'Esa foto no está disponible');
+        u.avatar = b.avatar;
+      }
       if ('quizResult' in b) {
         if (!QUIZ_RESULTS.includes(b.quizResult)) fail(400, 'Resultado no válido');
         u.quiz_result = b.quizResult; u.quiz_done = 1;
@@ -183,24 +207,29 @@
       return { id: l.id };
     }],
     ['GET', /^\/lists\/(\d+)$/, (_b, m) => {
-      const u = me(true), d = db(), lid = +m[1];
-      const mem_ = membership(lid, u.id);
-      const l = d.lists.find((x) => x.id === lid);
-      const people = d.people.filter((p) => p.list_id === lid).sort((a, b) => a.position - b.position || a.id - b.id).map((p) => {
-        const owner = p.user_id && d.users.find((x) => x.id === p.user_id);
-        return { id: p.id, position: p.position, user_id: p.user_id || null, name: owner ? owner.username : p.name, color: (owner && owner.color) || p.color };
-      });
-      const entries = d.entries.filter((e) => e.list_id === lid).sort((a, b) => a.position - b.position || a.id - b.id).map((e) => {
-        const marks = {};
-        d.marks.filter((k) => k.entry_id === e.id).forEach((k) => (marks[k.person_id] = { seen: !!k.seen, rating: k.rating }));
-        return { ...e, marks };
-      });
-      const members = d.members.filter((x) => x.list_id === lid).map((x) => ({ ...pub(d.users.find((uu) => uu.id === x.user_id)), role: x.role }));
-      const invites = mem_.role === 'owner' ? d.invites.filter((i) => i.list_id === lid).map((i) => ({ id: i.id, to_user: i.to_user, person_id: i.person_id, username: d.users.find((x) => x.id === i.to_user)?.username })) : [];
-      // Orden compartido; el antiguo (personal) solo como respaldo, primero el del creador
-      const order = l.pending_order ? { ids: l.pending_order } : d.orders.find((o) => o.list_id === lid && o.user_id === l.owner_id) || d.orders.find((o) => o.list_id === lid);
-      return { list: { id: l.id, name: l.name, owner_id: l.owner_id, updated_at: l.updated_at, role: mem_.role }, people, members, invites, pendingOrder: order ? order.ids : [], entries };
+      const u = me(true), lid = +m[1];
+      return listPayload(lid, membership(lid, u.id).role);
     }],
+    ['GET', /^\/friends\/(\d+)\/profile$/, (_b, m) => {
+      const u = me(true), d = db(), f = friendOf(u.id, +m[1]);
+      const lists = d.members.filter((x) => x.user_id === f.id).map((x) => {
+        const l = d.lists.find((y) => y.id === x.list_id);
+        const entries = d.entries.filter((e) => e.list_id === l.id).sort((a, b) => a.position - b.position);
+        return { id: l.id, name: l.name, updated_at: l.updated_at, owner: d.users.find((y) => y.id === l.owner_id)?.username, count: entries.length,
+          members: d.members.filter((y) => y.list_id === l.id).length, mine: d.members.some((y) => y.list_id === l.id && y.user_id === u.id),
+          covers: entries.map((e) => e.poster).filter(Boolean).slice(0, 4) };
+      }).sort((a, b) => b.updated_at - a.updated_at);
+      const myCols = new Set(d.people.filter((p) => p.user_id === f.id).map((p) => p.id));
+      const seen = new Set(d.marks.filter((k) => myCols.has(k.person_id) && k.seen).map((k) => k.entry_id)).size;
+      return { user: { id: f.id, username: f.username, color: f.color || null, avatar: f.avatar || null, quizResult: f.quiz_result || null, createdAt: f.created_at }, stats: { lists: lists.length, seen }, lists };
+    }],
+    ['GET', /^\/friends\/(\d+)\/lists\/(\d+)$/, (_b, m) => {
+      const u = me(true), d = db(), f = friendOf(u.id, +m[1]), lid = +m[2];
+      if (!d.members.some((x) => x.list_id === lid && x.user_id === f.id)) fail(404, 'Tabla no encontrada');
+      const mine = d.members.find((x) => x.list_id === lid && x.user_id === u.id);
+      return listPayload(lid, mine ? mine.role : 'viewer');
+    }],
+    ['GET', /^\/avatars$/, () => ({ avatars: AVATARS })],
     ['PATCH', /^\/lists\/(\d+)$/, (b, m) => {
       const u = me(true), lid = +m[1]; membership(lid, u.id);
       const name = clean(b.name, 60); if (!name) fail(400, 'Nombre vacío');
@@ -332,7 +361,7 @@
         outgoing: rows.filter((f) => f.status === 'pending' && f.requester_id === u.id).map((f) => ({ requestId: f.id, ...other(f), at: f.created_at })),
         invites: d.invites.filter((i) => i.to_user === u.id).sort((a, b) => b.created_at - a.created_at).map((i) => {
           const l = d.lists.find((x) => x.id === i.list_id), from = d.users.find((x) => x.id === i.from_user);
-          return { inviteId: i.id, at: i.created_at, listId: l.id, listName: l.name, count: d.entries.filter((e) => e.list_id === l.id).length, fromId: from.id, fromName: from.username, fromColor: from.color || null };
+          return { inviteId: i.id, at: i.created_at, listId: l.id, listName: l.name, count: d.entries.filter((e) => e.list_id === l.id).length, fromId: from.id, fromName: from.username, fromColor: from.color || null, fromAvatar: from.avatar || null };
         }),
       };
     }],

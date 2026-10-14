@@ -116,6 +116,8 @@ const MIGRATIONS = [
   'ALTER TABLE list_people ADD COLUMN user_id INTEGER',
   // Orden de «Pendientes» compartido por toda la tabla (antes era uno por persona)
   'ALTER TABLE lists ADD COLUMN pending_order TEXT',
+  // Foto de perfil (personaje de anime)
+  'ALTER TABLE users ADD COLUMN avatar TEXT',
 ];
 
 export async function initDb() {
