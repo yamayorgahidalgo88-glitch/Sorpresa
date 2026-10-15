@@ -131,13 +131,6 @@ background:rgba(13,8,28,.95);border:3px solid rgba(255,255,255,.16);text-align:c
 #g2stage{position:relative;width:min(100vw,150vh);aspect-ratio:3/2;overflow:hidden;background:#1a0f0a;touch-action:none}
 #g2stage>*{position:absolute}
 .g2bg{left:0;top:0;width:100%;height:100%;display:block}
-#g2back,#g2wood{position:absolute;display:none;pointer-events:none}
-#g2back{inset:-30px;background:center top/cover no-repeat;filter:blur(7px) brightness(.5) saturate(1.1)}
-#g2wood{left:0;right:0;bottom:0;background-repeat:repeat-y;image-rendering:pixelated;z-index:1}
-#game2.portrait{display:block}
-#game2.portrait #g2back,#game2.portrait #g2wood{display:block}
-#game2.portrait #g2stage{position:absolute;overflow:visible;background:transparent}
-#game2.portrait .g2bg{-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 22%);mask-image:linear-gradient(to bottom,transparent 0,#000 22%)}
 .g2obj,.g2cup{display:block;pointer-events:none;will-change:transform}
 .g2cup{width:18.148%;z-index:5}
 .g2obj{z-index:3}
@@ -263,7 +256,6 @@ text-align:center;opacity:0;pointer-events:none;transition:opacity .25s,transfor
 
 <!-- JUEGO 2 -->
 <section id="game2" class="screen">
-  <div id="g2back"></div><div id="g2wood"></div>
   <div id="g2stage">
     <img class="g2bg" id="g2bg" alt="">
     <div class="g2shadow" id="sh0"></div><div class="g2shadow" id="sh1"></div><div class="g2shadow" id="sh2"></div>
@@ -478,24 +470,7 @@ $('g2bg').src=IMG.kitchen;cupEl.forEach(function(c){c.src=IMG.cup});
 var cups=[],g2Round=0,g2Points=0,g2Phase="idle",g2Timers=[],g2Raf=0,g2Token=0;
 function g2After(ms,fn){var tk=g2Token;g2Timers.push(setTimeout(function(){if(tk===g2Token)fn()},ms))}
 function stop2(){g2Token++;g2Timers.forEach(clearTimeout);g2Timers=[];g2Phase="idle"}
-/* Portrait phones: zoom so the three cups fill the width, let the table continue down to the
-   bottom edge and show the kitchen blurred behind the HUD at the top. */
-var g2sec=$('game2'),g2back=$('g2back'),g2wood=$('g2wood'),hudL=$('g2hudL'),hudR=$('g2hudR');
-g2back.style.backgroundImage='url("'+IMG.kitchen+'")';g2wood.style.backgroundImage='url("'+IMG.wood+'")';
-function sizeStage(){
-  var W=innerWidth,H=innerHeight,portrait=H>W*1.1;
-  g2sec.classList.toggle('portrait',portrait);
-  if(portrait){
-    var sw=W*SW/780,sh=sw*SH/SW,left=(W-sw)/2,top=Math.round(Math.max(H*.70-REST_BOTTOM/SH*sh,H-sh*690/SH-H*.12));
-    stage.style.width=sw+'px';stage.style.height=sh+'px';stage.style.left=left+'px';stage.style.top=top+'px';
-    g2wood.style.top=Math.round(top+sh*684/SH)+'px';g2wood.style.backgroundSize=sw+'px auto';g2wood.style.backgroundPosition=left+'px 0';
-    hudL.style.left=(-left+12)+'px';hudL.style.top=(-top+14)+'px';hudR.style.left='auto';hudR.style.right=(-left+12)+'px';hudR.style.top=(-top+14)+'px';
-  }else{
-    ['width','height','left','top'].forEach(function(k){stage.style[k]=''});
-    ['left','top','right'].forEach(function(k){hudL.style[k]='';hudR.style[k]=''});
-  }
-  stage.style.fontSize=(stage.clientWidth/SW*21)+'px';
-}
+function sizeStage(){var w=stage.clientWidth;stage.style.fontSize=(w/SW*21)+'px'}
 addEventListener('resize',sizeStage);
 function pct(v,t){return (v/t*100)+'%'}
 function renderCups(){
@@ -992,10 +967,15 @@ window.addEventListener('message',function(e){
   var a=e.data.action;
   if(a==='home')show('welcome');else if(a==='menu')openMenu();else if(a==='game1')game1();else if(a==='game2')game2();else if(a==='game3')launch3();else if(a==='game4')show('instructions4');
 });
-if(location.hash==='#game1')setTimeout(game1,30);
-if(location.hash==='#game2')setTimeout(game2,30);
-if(location.hash==='#game3')setTimeout(launch3,30);
-if(location.hash==='#game4')setTimeout(function(){show('instructions4')},30);
+/* a fresh start always lands on the welcome screen: the #gameN shortcuts are used once and dropped from the URL,
+   and a page the browser restores from memory goes back to the start too */
+var startHash=location.hash;
+if(startHash&&history.replaceState)history.replaceState(null,'',location.pathname+location.search);
+addEventListener('pageshow',function(e){if(e.persisted)show('welcome')});
+if(startHash==='#game1')setTimeout(game1,30);
+if(startHash==='#game2')setTimeout(game2,30);
+if(startHash==='#game3')setTimeout(launch3,30);
+if(startHash==='#game4')setTimeout(function(){show('instructions4')},30);
 window.__g1dbg=function(){return current1&&current1.n};window.__g2dbg=function(){return g2Lv};window.__g4dbg={g4:g4,PAN:PAN,K:K,P:function(){return P4},pour:pourPoint,home:function(){return JUG_HOME},bowl:function(){return BOWL}};
 })();
 </script>
