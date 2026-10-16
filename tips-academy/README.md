@@ -3,8 +3,7 @@
 Rediseño de [tipsacademy.es](https://tipsacademy.es) (academia de apoyo en Alcorcón) con estética de **pizarra**: textos
 que se escriben a mano, tiza, notas adhesivas arrastrables y un avión de papel que vuela con el scroll.
 
-- **Stack:** Next.js 16 · Tailwind 4 · shadcn/ui · **GSAP 3.15** (ScrollTrigger, SplitText, DrawSVG, MotionPath,
-  Draggable) · **Lenis** · **React Bits** (TextType, CountUp) · Magic UI (Marquee) · Motion · Lucide
+- **Stack:** Next.js 16 · Tailwind 4 · shadcn/ui · **GSAP 3.15** (ScrollTrigger, SplitText, DrawSVG, MotionPath) · **Lenis** · **React Bits** (TextType, CountUp) · Magic UI (Marquee) · Motion · Lucide
 - **Diseño:** [`DESIGN.md`](./DESIGN.md), basado en el DESIGN.md de Miro de `VoltAgent/awesome-design-md` (MIT)
 
 ## Apartados
