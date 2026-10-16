@@ -38,13 +38,23 @@ export function ChalkWrite({ children, as: Tag = "p", className, speed = 0.035, 
         const box = wrap.current!.getBoundingClientRect()
         chars.forEach((c, idx) => {
           const r = c.getBoundingClientRect()
+          // La caja de cada letra lleva relleno (ver .chalk-char): se descuenta para
+          // situar la punta de la tiza sobre la propia letra, a media altura.
+          const fs = parseFloat(getComputedStyle(c).fontSize)
+          const right = r.right - 0.32 * fs
+          const top = r.top + 0.45 * fs
+          const bottom = r.bottom - 0.35 * fs
           const at = idx * speed
           tl.to(c, { clipPath: "inset(0 0% 0 0)", duration: speed * 2.2, ease: "none" }, at)
           if (showChalk) {
-            tl.set(chalk.current, { autoAlpha: 1, x: r.right - box.left, y: r.bottom - box.top, rotate: gsap.utils.random(-14, -6) }, at)
+            tl.set(
+              chalk.current,
+              { autoAlpha: 1, x: right - box.left, y: top + (bottom - top) * 0.55 - box.top, rotate: gsap.utils.random(-42, -32) },
+              at
+            )
           }
         })
-        if (showChalk) tl.to(chalk.current, { autoAlpha: 0, y: "+=20", duration: 0.4 })
+        if (showChalk) tl.to(chalk.current, { autoAlpha: 0, x: "+=16", y: "-=16", duration: 0.4 })
         // Sin recorte al terminar: ninguna letra queda cortada
         tl.set(chars, { clipPath: "none" })
       }
@@ -67,7 +77,7 @@ export function ChalkWrite({ children, as: Tag = "p", className, speed = 0.035, 
         <span
           ref={chalk}
           aria-hidden="true"
-          className="pointer-events-none absolute top-0 left-0 block h-2.5 w-9 origin-left -translate-y-1 rounded-[3px] bg-gradient-to-r from-white to-[#e9e4d4] shadow-[0_2px_4px_rgb(0_0_0/0.35)] opacity-0"
+          className="pointer-events-none absolute top-0 left-0 -mt-[5px] block h-2.5 w-10 origin-[0_50%] rounded-[3px] bg-gradient-to-r from-white to-[#e9e4d4] shadow-[0_2px_4px_rgb(0_0_0/0.35)] opacity-0"
         />
       )}
     </div>

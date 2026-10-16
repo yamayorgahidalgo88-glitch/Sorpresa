@@ -5,7 +5,7 @@ import TextType from "@/components/reactbits/TextType"
 /** Lápiz que "escribe": va al final del texto y se mueve como en una mano. */
 function Pencil() {
   return (
-    <span className="pencil-writing relative -ml-1 inline-block h-[1.3em] w-[1.3em] origin-bottom-left translate-y-[0.32em]">
+    <span className="pencil-writing relative -ml-[calc(0.25rem+0.18em)] inline-block h-[1.3em] w-[1.3em] origin-bottom-left">
       <svg viewBox="0 0 40 40" className="absolute bottom-0 left-0 size-full drop-shadow-[1px_2px_1px_rgb(0_0_0/0.18)]" aria-hidden="true">
         {/* cuerpo inclinado: la punta queda abajo a la izquierda, como al escribir */}
         <g transform="rotate(-50 6 34)">
@@ -28,9 +28,9 @@ export function HeroSlogans() {
       <TextType
         as="span"
         text={[
-          "A estudiar también se aprende.",
+          "Aprender también puede ser divertido.",
           "Prepara la EvAU de la mejor manera posible.",
-          "Hacer del juego una profesión.",
+          "Cada alumno, a su ritmo.",
           "Nunca es tarde para mejorar tu futuro.",
           "Entre todos hacemos TIPS.",
         ]}

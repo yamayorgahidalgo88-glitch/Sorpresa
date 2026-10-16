@@ -43,22 +43,20 @@ export function Hero() {
           </p>
 
           <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-start">
-            <div className="flex flex-col items-start">
+            <div className="flex flex-col items-center self-start">
               <Button asChild size="xl">
                 <Link href={site.links.matricula}>Reservar mi plaza</Link>
               </Button>
-              {/* La flecha sale de la frase y apunta al botón */}
-              <p className="relative mt-3 ml-14 font-hand text-2xl text-marker-red">
-                <Scribble
-                  kind="arrowUp"
-                  className="absolute -top-5 -left-14 h-11 w-14"
-                  color="var(--marker-red)"
-                  strokeWidth={2.6}
-                  trigger="load"
-                  delay={2.2}
-                />
-                ¡Gratis y sin compromiso!
-              </p>
+              {/* Flecha centrada que sale de la frase y señala el centro del botón, con margen */}
+              <Scribble
+                kind="arrowUp"
+                className="mt-3 h-10 w-8"
+                color="var(--marker-red)"
+                strokeWidth={2.6}
+                trigger="load"
+                delay={2.2}
+              />
+              <p className="font-hand text-2xl leading-none text-marker-red">¡Gratis y sin compromiso!</p>
             </div>
             <Button asChild size="xl" variant="outline" className="self-start">
               <Link href="/contacto">Pide información</Link>

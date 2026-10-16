@@ -16,7 +16,7 @@ export function Services() {
           <div className="max-w-2xl">
             <p className="text-sm font-semibold text-sky-dark">Servicios</p>
             <h2 id="servicios-title" className="mt-3 text-4xl leading-[1.1] font-bold tracking-[-0.02em] text-ink sm:text-5xl">
-              Todo lo que necesitas para <Mark kind="underline" color="var(--sky)">aprobar</Mark> (y disfrutarlo)
+              Todo lo que necesitas para <Mark kind="underline" color="var(--sky)">aprobar</Mark>
             </h2>
           </div>
           <Button asChild variant="outline" className="self-start md:self-auto">

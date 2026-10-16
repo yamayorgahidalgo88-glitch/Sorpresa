@@ -86,7 +86,7 @@ export const slogans = {
   together: "Entre todos hacemos TIPS",
   yours: "¡Tu academia de apoyo!",
   never: "Nunca es tarde para mejorar tu futuro",
-  learn: "A estudiar también se aprende",
+  learn: "Aprender también puede ser divertido",
 }
 
 export type Sticky = "yellow" | "rose" | "teal" | "orange" | "sky" | "mint" | "coral"
@@ -175,7 +175,7 @@ export const services: Service[] = [
   {
     slug: "tecnicas-de-estudio",
     title: "Técnicas de estudio",
-    slogan: "A estudiar también se aprende",
+    slogan: "Estudia mejor, no más",
     text: "Periódicamente convocamos talleres para mejorar las capacidades de estudio y aprendizaje de nuestros alumnos.",
     color: "teal",
     icon: "brain",
@@ -196,7 +196,7 @@ export const services: Service[] = [
   {
     slug: "robotica",
     title: "Cursos de robótica",
-    slogan: "Hacer del juego una profesión",
+    slogan: "Aprende jugando con la tecnología",
     text: "Damos a los alumnos las herramientas que necesitarán en una de las profesiones con más proyección del mercado.",
     color: "orange",
     icon: "bot",

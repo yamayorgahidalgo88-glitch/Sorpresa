@@ -13,7 +13,7 @@ const NOTES: { text: string; sub: string; color: Sticky; pos: string; r: number 
   { text: "EvAU", sub: "Intensivo 10 días", color: "rose", pos: "left-[20%] top-[36%]", r: -2 },
   { text: "Robótica", sub: "¡Aprender jugando!", color: "orange", pos: "left-[2%] bottom-[8%]", r: 4 },
   { text: "Física y Química", sub: "Grupos reducidos", color: "teal", pos: "right-[2%] top-[44%]", r: -5 },
-  { text: "Técnicas de estudio", sub: "A estudiar también se aprende", color: "mint", pos: "right-[20%] bottom-[0%]", r: 3 },
+  { text: "Técnicas de estudio", sub: "Estudia mejor, no más", color: "mint", pos: "right-[20%] bottom-[0%]", r: 3 },
 ]
 
 /**

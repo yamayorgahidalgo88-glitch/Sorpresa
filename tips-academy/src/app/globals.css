@@ -279,12 +279,14 @@ html.js [data-hw="wait"] .hw-char {
 
 /* Lápiz del hero: pequeño vaivén, como una mano escribiendo */
 @keyframes pencil-write {
-  0%, 100% { transform: translateY(0.32em) rotate(0deg); }
-  25% { transform: translate(1px, 0.26em) rotate(-5deg); }
-  50% { transform: translate(-1px, 0.36em) rotate(3deg); }
-  75% { transform: translate(1px, 0.3em) rotate(-3deg); }
+  /* La punta queda a media altura de las letras y el lápiz por encima, como sostenido en la mano */
+  0%, 100% { transform: translateY(-0.28em) rotate(0deg); }
+  25% { transform: translate(1px, -0.33em) rotate(-5deg); }
+  50% { transform: translate(-1px, -0.24em) rotate(3deg); }
+  75% { transform: translate(1px, -0.3em) rotate(-3deg); }
 }
 .pencil-writing {
+  transform: translateY(-0.28em);
   animation: pencil-write 0.42s ease-in-out infinite;
 }
 

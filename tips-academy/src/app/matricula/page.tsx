@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export default function MatriculaPage() {
   return (
     <>
-      <PageHero title="Reserva tu plaza" hand="¡en dos minutos!">
+      <PageHero title="Reserva tus clases de apoyo" hand="¡en dos minutos!">
         <p>Rellena el formulario y te llamaremos para confirmar el grupo y los horarios que mejor te vengan.</p>
       </PageHero>
       <section className="whiteboard py-12 sm:py-16">
