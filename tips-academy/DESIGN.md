@@ -36,12 +36,12 @@ rounded: { pill: 9999px, sticky: 4px, card: 28px }
 | Texto escrito a mano letra a letra | Titulares y eslóganes | CSS (sin esperar a JS) |
 | Tiza que escribe con la tiza visible | Pizarras | GSAP SplitText + ScrollTrigger |
 | Círculos, subrayados, flechas, estrellas | Palabras clave | GSAP DrawSVGPlugin |
-| Notas arrastrables con inercia | Hero | GSAP Draggable + InertiaPlugin |
+| Notas que se pegan y flotan | Hero | GSAP |
+| Regadera que hace crecer una flor | Cita de C. S. Lewis | GSAP DrawSVG |
 | Avión de papel que vuela con el scroll | Hero | GSAP MotionPathPlugin + DrawSVG |
-| Barras de porcentaje de éxito | Quiénes somos | GSAP ScrollTrigger |
-| Eslóganes que se teclean y borran | Hero | React Bits · TextType |
+| Barras de porcentaje (rayas en movimiento) | Quiénes somos | GSAP ScrollTrigger + CSS |
+| Eslóganes que escribe un lápiz | Hero | React Bits · TextType |
 | Contadores | Cifras | React Bits · CountUp |
-| Botón magnético | CTA del hero | React Bits · Magnet |
-| Cintas de etiquetas y opiniones | Servicios, opiniones | Magic UI · Marquee |
+| Cintas de etiquetas y opiniones (se paran al pasar el ratón) | Servicios, opiniones | Magic UI · Marquee |
 
 Con `prefers-reduced-motion` todo aparece escrito y quieto, sin scroll suave.

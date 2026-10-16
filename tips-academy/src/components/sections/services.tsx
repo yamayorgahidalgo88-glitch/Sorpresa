@@ -10,7 +10,7 @@ const ROT = [-2, 1.5, -1, 2, -1.5, 1]
 
 export function Services() {
   return (
-    <section id="servicios" aria-labelledby="servicios-title" className="whiteboard py-24 sm:py-32">
+    <section id="servicios" aria-labelledby="servicios-title" className="whiteboard py-14 sm:py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-8">
         <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div className="max-w-2xl">
@@ -30,8 +30,8 @@ export function Services() {
           ))}
         </ul>
 
-        <div className="mt-24">
-          <QuoteMarker {...quotes.lewis} />
+        <div className="mt-14">
+          <QuoteMarker {...quotes.lewis} decoration="watering" />
         </div>
       </div>
     </section>

@@ -4,21 +4,25 @@ Rediseño de [tipsacademy.es](https://tipsacademy.es) (academia de apoyo en Alco
 que se escriben a mano, tiza, notas adhesivas arrastrables y un avión de papel que vuela con el scroll.
 
 - **Stack:** Next.js 16 · Tailwind 4 · shadcn/ui · **GSAP 3.15** (ScrollTrigger, SplitText, DrawSVG, MotionPath,
-  Draggable, Inertia) · **Lenis** · **React Bits** (TextType, CountUp, Magnet) · Magic UI (Marquee) · Motion · Lucide
+  Draggable) · **Lenis** · **React Bits** (TextType, CountUp) · Magic UI (Marquee) · Motion · Lucide
 - **Diseño:** [`DESIGN.md`](./DESIGN.md), basado en el DESIGN.md de Miro de `VoltAgent/awesome-design-md` (MIT)
 
 ## Apartados
 
-Se mantienen los de la web actual:
+Todas las secciones de la web actual tienen su página en esta web, con el mismo diseño (ya no se enlaza a la antigua):
 
-- **Portada:** barra superior (dirección, teléfono, contactar, reservar plaza), bienvenida, academia de inglés y apoyo
-  (método + cita de Benjamin Franklin), cifras (4221 alumnos, 18 asignaturas, 932 aprobados EvAU, 43 talleres), 6
-  servicios + cita de C. S. Lewis, recursos (+1000 archivos), equipo, opiniones de Google (5,0 · 177), t-Blog, contacto
-  (horarios, mapa con consentimiento, formulario) y chat de WhatsApp con temas.
-- **Páginas:** Quiénes somos (pilares, equipo, cursos, porcentaje de éxito, testimonios), Metodología (aula invertida),
-  Servicios (10 servicios), Contacto, Aviso legal, Privacidad y Cookies.
-- **Enlazan a la web actual** (contenido dinámico de WordPress): Recursos por curso, fichas de servicios, t-Blog,
-  TIPS Foro, Aula Virtual y formulario de matriculación.
+- **Portada:** bienvenida, método (pizarra + cita de Franklin), cifras (enlazan a su apartado), servicios + cita de
+  C. S. Lewis, recursos, equipo, opiniones de Google, t-Blog y contacto.
+- **Nosotros:** Quiénes somos, Metodología y Asignaturas (las 18).
+- **Servicios:** listado + una página por servicio (Intensivo de Selectividad con calendario 2026, clases grupales,
+  particulares, técnicas de estudio, robótica, julio, Cambridge, informática, educación financiera, Club de Rol y Tips
+  Software), cada una con su cita en la pizarra.
+- **Recursos:** listado de cursos + una página por curso (apuntes, ejercicios y exámenes).
+- **t-Blog** con sus entradas, **TIPS Foro**, **Aula Virtual**, **Reservar mi plaza** (formulario de matrícula),
+  **Contacto** y páginas legales.
+
+Pendiente de conectar (solo diseño): archivos descargables de Recursos, acceso del Aula Virtual y Foro (requieren el
+sistema de usuarios de la academia).
 
 Todo el contenido se edita en **`src/lib/site.ts`**.
 
@@ -41,7 +45,9 @@ En Vercel: Root Directory `tips-academy`. Variables opcionales:
 ## Antes de publicar
 
 - [ ] Fotos reales del equipo (ahora, avatares con iniciales) y logotipo oficial si se prefiere al recreado.
-- [ ] Revisar textos de «Educación financiera» e «Informática» (resumidos) y cifras/porcentajes actualizados.
+- [ ] Confirmar la lista de las 18 asignaturas y las asignaturas por curso de Recursos (propuestas).
+- [ ] Texto de «Cursos de robótica» y «Club de Rol» (la web actual no tiene texto; lo hemos redactado).
+- [ ] Revisar cifras/porcentajes actualizados.
 - [ ] Conectar las opiniones con un widget de Google o actualizarlas (son extractos públicos con nombre abreviado).
 - [ ] Completar datos legales (titular, NIF) y revisión jurídica.
 - [ ] Activar `NEXT_PUBLIC_ALLOW_INDEXING=true` solo cuando sustituya a la web actual.

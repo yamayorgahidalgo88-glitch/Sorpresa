@@ -1,12 +1,27 @@
 import { Handwrite } from "@/components/board/handwrite"
 import { Scribble } from "@/components/board/scribble"
+import { WateringDoodle } from "@/components/board/watering-doodle"
 
 /** Cita escrita con rotulador en la pizarra blanca. */
-export function QuoteMarker({ text, author, role }: { text: string; author: string; role: string }) {
+export function QuoteMarker({
+  text,
+  author,
+  role,
+  decoration,
+}: {
+  text: string
+  author: string
+  role: string
+  decoration?: "watering"
+}) {
   return (
     <figure className="relative mx-auto max-w-4xl px-2 text-center">
       <Scribble kind="sparkle" className="absolute -top-6 left-0 size-10 sm:left-6" color="#f5a524" strokeWidth={3} />
-      <Scribble kind="swirl" className="absolute -right-2 -bottom-6 h-10 w-24 sm:right-6" color="var(--sky)" strokeWidth={3} />
+      {decoration === "watering" ? (
+        <WateringDoodle className="pointer-events-none mx-auto mt-6 block h-24 w-40 md:absolute md:-right-4 md:-bottom-16 md:mt-0 md:h-32 md:w-52 lg:-right-28" />
+      ) : (
+        <Scribble kind="swirl" className="absolute -right-2 -bottom-6 h-10 w-24 sm:right-6" color="var(--sky)" strokeWidth={3} />
+      )}
       <blockquote>
         <Handwrite as="p" text={`«${text}»`} className="font-hand text-[2.2rem] leading-[1.15] font-semibold text-ink-deep sm:text-5xl" speed={38} />
       </blockquote>

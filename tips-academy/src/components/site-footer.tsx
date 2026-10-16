@@ -15,21 +15,19 @@ export function SiteFooter() {
             className="font-hand text-5xl leading-none text-sky sm:text-6xl"
             speed={60}
           />
-          <a
+          <Link
             href={site.links.matricula}
-            target="_blank"
-            rel="noopener noreferrer"
             className="inline-flex h-12 items-center self-start rounded-full bg-white px-6 font-semibold text-ink-deep transition-colors hover:bg-sky-light"
           >
             Reservar mi plaza
-          </a>
+          </Link>
         </div>
 
         <div className="grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <Logo tone="light" />
             <p className="mt-4 max-w-xs text-sm leading-relaxed">
-              Tus academias de apoyo en Alcorcón: clases grupales y particulares, EvAU, Cambridge, técnicas de estudio,
+              Tu academia de apoyo en Alcorcón: clases grupales y particulares, EvAU, Cambridge, técnicas de estudio,
               robótica e informática.
             </p>
           </div>
@@ -39,15 +37,9 @@ export function SiteFooter() {
             <ul className="mt-4 space-y-2.5 text-sm">
               {nav.map((n) => (
                 <li key={n.label}>
-                  {n.external ? (
-                    <a href={n.href} target="_blank" rel="noopener noreferrer" className="hover:text-white hover:underline">
-                      {n.label}
-                    </a>
-                  ) : (
-                    <Link href={n.href} className="hover:text-white hover:underline">
-                      {n.label}
-                    </Link>
-                  )}
+                  <Link href={n.href} className="hover:text-white hover:underline">
+                    {n.label}
+                  </Link>
                 </li>
               ))}
             </ul>

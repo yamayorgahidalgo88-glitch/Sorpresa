@@ -25,14 +25,14 @@ const STEPS = [
 export default function Metodologia() {
   return (
     <>
-      <PageHero eyebrow="Metodología" title="Flipped classroom:" hand="¡el aula invertida!">
+      <PageHero title="Flipped classroom:" hand="¡el aula invertida!">
         <p>
           El aprendizaje se convierte en un proceso <strong className="text-ink">activo y no pasivo</strong>. Las clases sirven
           para aplicar los conceptos, resolver dudas y trabajar los retos concretos a los que se enfrentarán los alumnos.
         </p>
       </PageHero>
 
-      <section aria-labelledby="como" className="bg-white py-24">
+      <section aria-labelledby="como" className="bg-white py-14 sm:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-8">
           <h2 id="como" className="text-4xl font-bold tracking-tight text-ink sm:text-5xl">
             ¿Cómo <Mark kind="circle" color="var(--marker-red)">funciona</Mark>?
@@ -49,7 +49,7 @@ export default function Metodologia() {
         </div>
       </section>
 
-      <section aria-labelledby="ventajas" className="whiteboard py-24">
+      <section aria-labelledby="ventajas" className="whiteboard py-14 sm:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-8">
           <Chalkboard>
             <h2 id="ventajas" className="sr-only">Ventajas del aula invertida</h2>
@@ -88,7 +88,7 @@ export default function Metodologia() {
         </div>
       </section>
 
-      <section className="bg-white py-20 text-center">
+      <section className="bg-white py-14 text-center">
         <Handwrite as="p" text="¿Lo probamos juntos?" className="font-hand text-5xl font-bold text-ink" />
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Button asChild size="lg">

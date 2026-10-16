@@ -45,6 +45,8 @@ export function ChalkWrite({ children, as: Tag = "p", className, speed = 0.035, 
           }
         })
         if (showChalk) tl.to(chalk.current, { autoAlpha: 0, y: "+=20", duration: 0.4 })
+        // Sin recorte al terminar: ninguna letra queda cortada
+        tl.set(chars, { clipPath: "none" })
       }
       ScrollTrigger.create({ trigger: wrap.current, start, once: true, onEnter: play })
       return () => split.revert()

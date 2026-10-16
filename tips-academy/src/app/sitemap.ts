@@ -1,11 +1,25 @@
 import type { MetadataRoute } from "next"
 
-import { site } from "@/lib/site"
+import { courses, posts, services, site } from "@/lib/site"
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  return ["", "/quienes-somos", "/metodologia", "/servicios", "/contacto", "/aviso-legal", "/privacidad", "/cookies"].map((p) => ({
-    url: `${site.url}${p || "/"}`,
-    changeFrequency: p ? "monthly" : "weekly",
-    priority: p ? 0.6 : 1,
-  }))
+  const pages = [
+    "",
+    "/quienes-somos",
+    "/metodologia",
+    "/asignaturas",
+    "/servicios",
+    ...services.map((s) => `/servicios/${s.slug}`),
+    "/recursos",
+    ...courses.map((c) => `/recursos/${c.slug}`),
+    "/t-blog",
+    ...posts.map((p) => `/t-blog/${p.slug}`),
+    "/foro",
+    "/matricula",
+    "/contacto",
+    "/aviso-legal",
+    "/privacidad",
+    "/cookies",
+  ]
+  return pages.map((p) => ({ url: `${site.url}${p || "/"}`, priority: p ? 0.6 : 1 }))
 }

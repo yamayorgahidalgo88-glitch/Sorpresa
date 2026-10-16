@@ -16,22 +16,21 @@ const POINTS = [
 
 export function MethodBoard() {
   return (
-    <section id="metodo" aria-labelledby="metodo-title" className="whiteboard py-24 sm:py-32">
+    <section id="metodo" aria-labelledby="metodo-title" className="whiteboard py-14 sm:py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-8">
         <div className="max-w-3xl">
-          <p className="text-sm font-semibold text-sky-dark">Academia de inglés y apoyo en Alcorcón</p>
-          <h2 id="metodo-title" className="mt-3 text-4xl leading-[1.1] font-bold tracking-[-0.02em] text-ink sm:text-5xl">
+          <h2 id="metodo-title" className="text-4xl leading-[1.1] font-bold tracking-[-0.02em] text-ink sm:text-5xl">
             No damos la misma clase <Mark kind="strike" color="var(--marker-red)">para todos</Mark>{" "}
             <Handwrite text="¡a cada uno la suya!" className="font-hand text-[1.15em] text-marker-blue" speed={40} />
           </h2>
           <p className="mt-5 text-lg leading-relaxed text-slate">
             Nuestros profesores dan a cada estudiante las explicaciones que necesita para entender lo que le cuesta y
             llegar con confianza a sus exámenes. Puedes elegir clases particulares (online o presenciales) o grupales en
-            nuestras academias de Alcorcón.
+            nuestra academia.
           </p>
         </div>
 
-        <Chalkboard className="mt-14">
+        <Chalkboard className="mt-10">
           <div className="grid gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
             <div>
               <ChalkWrite as="h3" className="text-4xl leading-tight sm:text-5xl">

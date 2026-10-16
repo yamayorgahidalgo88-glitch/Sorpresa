@@ -16,7 +16,7 @@ const ROT = [-2, 1.5, -1, 2, -1.5, 1]
 export default function Servicios() {
   return (
     <>
-      <PageHero eyebrow="Servicios" title="Bienvenido a TIPS," hand="tu academia de refuerzo escolar">
+      <PageHero title="Bienvenido a TIPS," hand="tu academia de refuerzo escolar">
         <p>
           Las clases grupales se imparten en nuestra academia de Alcorcón y las particulares a domicilio, en el centro o
           online. Encuentra la formación que mejor se adapte a ti; y si echas algo de menos, cuéntanoslo:{" "}
@@ -24,15 +24,15 @@ export default function Servicios() {
         </p>
       </PageHero>
 
-      <section aria-label="Todos los servicios" className="whiteboard py-24">
+      <section aria-label="Todos los servicios" className="whiteboard py-14 sm:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-8">
           <ul className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {services.map((s, i) => (
               <ServiceCard key={s.slug} service={s} rotate={ROT[i % ROT.length]} />
             ))}
           </ul>
-          <div className="mt-24">
-            <QuoteMarker {...quotes.lewis} />
+          <div className="mt-14">
+            <QuoteMarker {...quotes.lewis} decoration="watering" />
           </div>
         </div>
       </section>

@@ -6,7 +6,7 @@ import { StickyNote } from "@/components/board/sticky-note"
 import { PageHero } from "@/components/page-hero"
 import { SuccessRates } from "@/components/sections/success-rates"
 import { Team } from "@/components/sections/team"
-import { slogans, testimonials } from "@/lib/site"
+import { testimonials } from "@/lib/site"
 
 export const metadata: Metadata = {
   title: "Quiénes somos",
@@ -42,14 +42,13 @@ const COURSES = [
 export default function QuienesSomos() {
   return (
     <>
-      <PageHero eyebrow="Nosotros" title="¡Bienvenido a TIPS," hand="tu academia de Alcorcón!">
+      <PageHero title="¡Bienvenido a TIPS," hand="tu academia de Alcorcón!">
         <p>
-          <Handwrite text={slogans.tips} className="font-hand text-3xl font-bold text-ink" /> Eso queremos ser para ti: esa
-          ayuda, ese apoyo extra que necesitas para alcanzar tus objetivos y construir tu futuro.
+          Queremos ser esa ayuda, ese apoyo extra que necesitas para alcanzar tus objetivos y construir tu futuro.
         </p>
       </PageHero>
 
-      <section aria-labelledby="pilares" className="bg-white py-24">
+      <section aria-labelledby="pilares" className="bg-white py-14 sm:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-8">
           <h2 id="pilares" className="text-4xl font-bold tracking-tight text-ink sm:text-5xl">
             Lo que nos hace <Mark kind="underline" color="var(--sky)">diferentes</Mark>
@@ -62,7 +61,7 @@ export default function QuienesSomos() {
               </StickyNote>
             ))}
           </ul>
-          <p className="mt-12 max-w-3xl text-lg leading-relaxed text-slate">
+          <p className="mt-10 max-w-3xl text-lg leading-relaxed text-slate">
             Ofrecemos clases grupales y particulares, talleres de técnicas de estudio, cursos de robótica e informática y
             nuestro Club de Rol y Juegos de Mesa. Nuestra metodología se basa en el <strong className="text-ink">aula invertida</strong>:
             el alumno trabaja los contenidos antes de clase y en clase los afianzamos con práctica, adaptándonos a cada uno.
@@ -72,7 +71,7 @@ export default function QuienesSomos() {
 
       <Team />
 
-      <section aria-labelledby="cursos" className="bg-white py-24">
+      <section aria-labelledby="cursos" className="bg-white py-14 sm:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-8">
           <h2 id="cursos" className="text-4xl font-bold tracking-tight text-ink sm:text-5xl">Las mejores clases y cursos</h2>
           <ul className="mt-12 grid gap-8 lg:grid-cols-3">
@@ -89,9 +88,9 @@ export default function QuienesSomos() {
 
       <SuccessRates />
 
-      <section aria-labelledby="testimonios" className="whiteboard py-24">
+      <section id="testimonios" aria-labelledby="testimonios-title" className="whiteboard py-14 sm:py-20">
         <div className="mx-auto max-w-5xl px-4 sm:px-8">
-          <h2 id="testimonios" className="text-4xl font-bold tracking-tight text-ink sm:text-5xl">Testimonios de nuestros alumnos</h2>
+          <h2 id="testimonios-title" className="text-4xl font-bold tracking-tight text-ink sm:text-5xl">Testimonios de nuestros alumnos</h2>
           <ul className="mt-12 grid gap-8 md:grid-cols-2">
             {testimonials.map((t, i) => (
               <StickyNote as="li" key={t.author} color={i ? "sky" : "mint"} rotate={i ? 1.5 : -1.5}>

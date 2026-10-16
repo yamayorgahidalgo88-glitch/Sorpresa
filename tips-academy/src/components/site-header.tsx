@@ -3,23 +3,16 @@
 import { useEffect, useId, useRef, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ChevronDown, ExternalLink, Menu, Phone } from "lucide-react"
+import { ArrowRight, ChevronDown, Clock, MapPin, Menu, Phone } from "lucide-react"
 
 import { Logo } from "@/components/logo"
+import { OpenStatus } from "@/components/open-status"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { nav, site, type NavItem } from "@/lib/site"
 import { cn } from "@/lib/utils"
 
 function NavLink({ item, className, children }: { item: NavItem; className?: string; children?: React.ReactNode }) {
-  if (item.external) {
-    return (
-      <a href={item.href} target="_blank" rel="noopener noreferrer" className={className}>
-        {children ?? item.label}
-        <span className="sr-only"> (se abre en una pestaña nueva)</span>
-      </a>
-    )
-  }
   return (
     <Link href={item.href} className={className}>
       {children ?? item.label}
@@ -63,7 +56,7 @@ function Dropdown({ item, active }: { item: NavItem; active: boolean }) {
       <div
         id={id}
         hidden={!open}
-        className="absolute top-full left-0 z-50 w-72 pt-2"
+        className="absolute top-full left-0 z-50 w-80 pt-2"
       >
         <ul className="rounded-2xl border border-hairline bg-white p-2 shadow-[0_18px_40px_-16px_rgb(12_31_51/0.35)]">
           {item.children!.map((c) => (
@@ -73,7 +66,6 @@ function Dropdown({ item, active }: { item: NavItem; active: boolean }) {
                 className="flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-sm text-ink hover:bg-sky-light"
               >
                 <span>{c.label}</span>
-                {c.external && <ExternalLink className="size-3.5 shrink-0 text-steel" aria-hidden="true" />}
               </NavLink>
             </li>
           ))}
@@ -96,25 +88,30 @@ export function SiteHeader() {
 
   return (
     <>
-      {/* Miro · banda promocional superior (en el azul cielo de Tips) */}
-      <div className="bg-sky text-ink-deep">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-5 gap-y-1 px-4 py-2 text-center text-[0.8rem] font-medium sm:px-8">
-          <span className="hidden md:inline">{site.address.street}, {site.address.city} (Madrid)</span>
-          <a href={site.phone.href} className="font-semibold underline-offset-4 hover:underline">
-            Tlf: {site.phone.display}
-          </a>
-          <span className="hidden sm:inline">
-            ¿En qué podemos ayudarte?{" "}
-            <Link href="/contacto" className="font-semibold underline underline-offset-4">
-              Contactar
-            </Link>
-          </span>
-          <span>
-            Matriculación:{" "}
-            <a href={site.links.matricula} target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-4">
-              Reservar mi plaza
+      {/* Barra superior: datos útiles en un formato compacto */}
+      <div className="bg-ink-deep text-white/85">
+        <div className="mx-auto flex h-10 max-w-7xl items-center justify-between gap-4 px-4 text-[0.8rem] sm:px-8">
+          <div className="flex items-center gap-5">
+            <a href={site.phone.href} className="inline-flex items-center gap-1.5 font-semibold text-white hover:text-sky">
+              <Phone className="size-3.5 text-sky" aria-hidden="true" />
+              {site.phone.display}
             </a>
-          </span>
+            <span className="hidden items-center gap-1.5 md:inline-flex">
+              <MapPin className="size-3.5 text-sky" aria-hidden="true" />
+              {site.address.street}, {site.address.city}
+            </span>
+            <span className="hidden items-center gap-1.5 lg:inline-flex">
+              <Clock className="size-3.5 text-sky" aria-hidden="true" />
+              <OpenStatus className="text-[0.8rem] font-normal text-white/85" />
+            </span>
+          </div>
+          <Link
+            href={site.links.matricula}
+            className="group inline-flex items-center gap-1.5 rounded-full bg-sky px-3 py-1 text-[0.78rem] font-semibold text-ink-deep transition-colors hover:bg-white"
+          >
+            Reservar mi plaza
+            <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+          </Link>
         </div>
       </div>
 
@@ -124,7 +121,7 @@ export function SiteHeader() {
           scrolled ? "border-hairline bg-white/90 shadow-[0_8px_30px_-20px_rgb(12_31_51/0.4)] backdrop-blur-xl" : "border-transparent bg-white"
         )}
       >
-        <div className="mx-auto flex h-[4.5rem] max-w-7xl items-center justify-between gap-4 px-4 sm:px-8">
+        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-4 px-4 sm:px-8">
           <Link href="/" className="rounded-xl">
             <Logo />
           </Link>
@@ -150,18 +147,11 @@ export function SiteHeader() {
           </nav>
 
           <div className="flex items-center gap-2">
-            <a
-              href={site.links.aulaVirtual}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hidden rounded-full px-3 py-2 text-sm font-medium text-sky-dark hover:underline lg:inline"
-            >
+            <Link href={site.links.aulaVirtual} className="hidden rounded-full px-3 py-2 text-sm font-medium text-sky-dark hover:underline lg:inline">
               Aula Virtual
-            </a>
+            </Link>
             <Button asChild size="sm" className="hidden h-10 sm:inline-flex">
-              <a href={site.links.matricula} target="_blank" rel="noopener noreferrer">
-                Reservar mi plaza
-              </a>
+              <Link href={site.links.matricula}>Reservar mi plaza</Link>
             </Button>
             <Sheet>
               <SheetTrigger asChild>
@@ -203,18 +193,20 @@ export function SiteHeader() {
                       </li>
                     ))}
                     <li>
-                      <a href={site.links.aulaVirtual} target="_blank" rel="noopener noreferrer" className="flex min-h-12 items-center rounded-2xl px-3 text-lg font-semibold text-sky-dark">
-                        Aula Virtual
-                      </a>
+                      <SheetClose asChild>
+                        <Link href={site.links.aulaVirtual} className="flex min-h-12 items-center rounded-2xl px-3 text-lg font-semibold text-sky-dark">
+                          Aula Virtual
+                        </Link>
+                      </SheetClose>
                     </li>
                   </ul>
                 </nav>
                 <div className="flex flex-col gap-3 border-t border-hairline p-5">
-                  <Button asChild size="xl">
-                    <a href={site.links.matricula} target="_blank" rel="noopener noreferrer">
-                      Reservar mi plaza
-                    </a>
-                  </Button>
+                  <SheetClose asChild>
+                    <Button asChild size="xl">
+                      <Link href={site.links.matricula}>Reservar mi plaza</Link>
+                    </Button>
+                  </SheetClose>
                   <Button asChild size="xl" variant="outline">
                     <a href={site.phone.href}>
                       <Phone aria-hidden="true" />

@@ -10,17 +10,16 @@ import { site, waHref } from "@/lib/site"
 export function Contact({ headingLevel = "h2" }: { headingLevel?: "h1" | "h2" }) {
   const H = headingLevel
   return (
-    <section id="contacto" aria-labelledby="contacto-title" className="bg-sky-light/60 py-24 sm:py-32">
+    <section id="contacto" aria-labelledby="contacto-title" className="bg-sky-light/60 py-12 sm:py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-8">
         <div className="max-w-2xl">
-          <p className="text-sm font-semibold text-sky-dark">Contacto</p>
-          <H id="contacto-title" className="mt-3 text-4xl leading-[1.1] font-bold tracking-[-0.02em] text-ink sm:text-5xl">
+          <H id="contacto-title" className="text-4xl leading-[1.1] font-bold tracking-[-0.02em] text-ink sm:text-5xl">
             Pide información{" "}
             <Handwrite text="gratis y sin compromiso" className="font-hand text-[1.15em] text-marker-blue" speed={40} />
           </H>
         </div>
 
-        <div className="mt-14 grid gap-10 lg:grid-cols-[0.9fr_1.1fr]">
+        <div className="mt-10 grid gap-10 lg:grid-cols-[0.9fr_1.1fr]">
           <div className="space-y-6">
             <ul className="space-y-4 rounded-[28px] border border-hairline bg-white p-6 sm:p-8">
               <li className="flex gap-4">

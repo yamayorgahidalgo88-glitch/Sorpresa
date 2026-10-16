@@ -1,4 +1,4 @@
-import { Bot, Brain, Dice5, GraduationCap, Languages, Laptop, PiggyBank, Sun, User, Users, type LucideIcon } from "lucide-react"
+import { Bot, Brain, Code2, Dice5, GraduationCap, Languages, Laptop, PiggyBank, Sun, User, Users, type LucideIcon } from "lucide-react"
 
 const ICONS: Record<string, LucideIcon> = {
   users: Users,
@@ -11,6 +11,7 @@ const ICONS: Record<string, LucideIcon> = {
   dice: Dice5,
   laptop: Laptop,
   piggy: PiggyBank,
+  code: Code2,
 }
 
 export function ServiceIcon({ name, className }: { name: string; className?: string }) {

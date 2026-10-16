@@ -1,6 +1,5 @@
 import type { Metadata } from "next"
 
-import { PageHero } from "@/components/page-hero"
 import { Contact } from "@/components/sections/contact"
 
 export const metadata: Metadata = {
@@ -10,10 +9,5 @@ export const metadata: Metadata = {
 }
 
 export default function ContactoPage() {
-  return (
-    <>
-      <PageHero eyebrow="Contacto" title="¿En qué podemos" hand="ayudarte?" />
-      <Contact />
-    </>
-  )
+  return <Contact headingLevel="h1" />
 }

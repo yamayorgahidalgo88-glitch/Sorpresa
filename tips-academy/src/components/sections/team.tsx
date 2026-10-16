@@ -13,7 +13,7 @@ const initials = (name: string) =>
 
 export function Team() {
   return (
-    <section id="equipo" aria-labelledby="equipo-title" className="whiteboard py-24 sm:py-32">
+    <section id="equipo" aria-labelledby="equipo-title" className="whiteboard py-14 sm:py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-8">
         <div className="max-w-2xl">
           <p className="text-sm font-semibold text-sky-dark">Nuestro equipo</p>

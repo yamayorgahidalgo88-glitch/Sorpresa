@@ -1,8 +1,9 @@
-import { ArrowUpRight } from "lucide-react"
+import Link from "next/link"
+import { ArrowRight } from "lucide-react"
 
 import { StickyNote } from "@/components/board/sticky-note"
 import { ServiceIcon } from "@/components/service-icon"
-import type { Service } from "@/lib/site"
+import { serviceHref, type Service } from "@/lib/site"
 
 export function ServiceCard({ service, rotate = 0 }: { service: Service; rotate?: number }) {
   return (
@@ -18,15 +19,13 @@ export function ServiceCard({ service, rotate = 0 }: { service: Service; rotate?
       <h3 className="mt-5 text-xl font-bold tracking-tight text-ink">{service.title}</h3>
       <p className="mt-1 font-hand text-2xl leading-tight text-sky-dark">{service.slogan}</p>
       <p className="mt-3 text-[0.95rem] leading-relaxed text-ink/80">{service.text}</p>
-      <a
-        href={service.href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mt-auto inline-flex items-center gap-1 pt-6 text-sm font-semibold text-ink underline-offset-4 hover:underline"
+      <Link
+        href={serviceHref(service.slug)}
+        className="mt-auto inline-flex items-center gap-1 pt-6 text-sm font-semibold text-ink underline-offset-4 after:absolute after:inset-0 hover:underline"
       >
-        Saber más <span className="sr-only">sobre {service.title} (se abre en una pestaña nueva)</span>
-        <ArrowUpRight className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" aria-hidden="true" />
-      </a>
+        Saber más <span className="sr-only">sobre {service.title}</span>
+        <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+      </Link>
     </StickyNote>
   )
 }

@@ -194,16 +194,20 @@
   from {
     clip-path: inset(0 100% 0 0);
   }
-  to {
+  99% {
     clip-path: inset(0 0 0 0);
+  }
+  /* Al terminar se quita el recorte: nada de la letra queda cortado */
+  to {
+    clip-path: none;
   }
 }
 /* La caja de cada letra se amplía (relleno + margen negativo) para no recortar
    ascendentes y descendentes de la letra manuscrita: Chrome ignora los recortes negativos. */
 .hw-char,
 .chalk-char {
-  padding: 0.4em 0.08em 0.3em;
-  margin: -0.4em -0.08em -0.3em;
+  padding: 0.45em 0.32em 0.35em;
+  margin: -0.45em -0.32em -0.35em;
 }
 .hw-char {
   display: inline-block;
@@ -271,4 +275,25 @@ html.js [data-hw="wait"] .hw-char {
   55% { rotate: -2.5deg; }
   80% { rotate: 1deg; }
   100% { rotate: 0deg; }
+}
+
+/* Lápiz del hero: pequeño vaivén, como una mano escribiendo */
+@keyframes pencil-write {
+  0%, 100% { transform: translateY(0.32em) rotate(0deg); }
+  25% { transform: translate(1px, 0.26em) rotate(-5deg); }
+  50% { transform: translate(-1px, 0.36em) rotate(3deg); }
+  75% { transform: translate(1px, 0.3em) rotate(-3deg); }
+}
+.pencil-writing {
+  animation: pencil-write 0.42s ease-in-out infinite;
+}
+
+/* Barras de porcentaje: rayas que avanzan suavemente */
+@keyframes stripes-move {
+  to { background-position: 28.28px 0; }
+}
+.rate-stripes {
+  background-image: repeating-linear-gradient(-45deg, #36a9e1 0 10px, #5cc0f0 10px 20px);
+  background-size: 28.28px 28.28px;
+  animation: stripes-move 0.9s linear infinite;
 }

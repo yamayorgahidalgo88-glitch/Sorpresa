@@ -26,7 +26,7 @@ export function SuccessRates() {
   )
 
   return (
-    <section ref={ref} aria-labelledby="exito" className="bg-white py-24">
+    <section ref={ref} aria-labelledby="exito" className="bg-white py-14 sm:py-20">
       <div className="mx-auto max-w-4xl px-4 sm:px-8">
         <h2 id="exito" className="text-center">
           <Handwrite text="Porcentaje de éxito" className="font-hand text-5xl font-bold text-ink sm:text-6xl" speed={55} />
@@ -39,7 +39,7 @@ export function SuccessRates() {
                 <span className="font-hand text-3xl font-bold text-marker-blue">{r.value}%</span>
               </div>
               <div className="mt-2 h-5 overflow-hidden rounded-full border-2 border-ink bg-white" role="img" aria-label={`${r.value} %`}>
-                <div className="rate-fill h-full rounded-full bg-[repeating-linear-gradient(-45deg,#36a9e1_0_10px,#5cc0f0_10px_20px)]" style={{ width: `${r.value}%` }} />
+                <div className="rate-fill rate-stripes h-full rounded-full" style={{ width: `${r.value}%` }} />
               </div>
             </li>
           ))}

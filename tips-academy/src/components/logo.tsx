@@ -4,10 +4,10 @@ import { cn } from "@/lib/utils"
 export function Logo({ className, tone = "dark" }: { className?: string; tone?: "dark" | "light" }) {
   return (
     <span className={cn("inline-flex items-center gap-2", className)}>
-      <LogoCloud className="h-9 w-auto shrink-0" />
+      <LogoCloud className="h-12 w-auto shrink-0" />
       <span className="flex flex-col leading-none">
-        <span className={cn("text-[1.45rem] font-extrabold tracking-tight", tone === "dark" ? "text-ink" : "text-white")}>tips</span>
-        <span className={cn("-mt-0.5 text-[0.72rem] font-semibold", tone === "dark" ? "text-slate" : "text-white/70")}>Academy</span>
+        <span className={cn("text-[1.9rem] font-extrabold tracking-tight", tone === "dark" ? "text-ink" : "text-white")}>tips</span>
+        <span className={cn("-mt-1 text-[0.85rem] font-semibold", tone === "dark" ? "text-slate" : "text-white/70")}>Academy</span>
       </span>
     </span>
   )
