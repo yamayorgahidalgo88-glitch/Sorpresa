@@ -1,0 +1,274 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "lenis/dist/lenis.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Sistema visual basado en el DESIGN.md de Miro (VoltAgent/awesome-design-md, MIT),
+ * adaptado a la identidad de Tips Academy:
+ *  - Lienzo blanco tipo pizarra blanca con rejilla de puntos.
+ *  - Azul cielo del logotipo (#36a9e1) en el papel del amarillo de Miro: marca, barra superior y etiquetas.
+ *  - Botones píldora en azul marino (#1d3b5a, de la barra superior actual) en el papel del negro de Miro.
+ *  - Notas adhesivas pastel (amarillo, rosa, turquesa, naranja, cielo, menta) como tarjetas.
+ *  - Pizarra verde de tiza para los momentos "escritos a mano".
+ */
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-hand: var(--font-hand);
+  --font-heading: var(--font-sans);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+
+  --color-ink: var(--ink);
+  --color-ink-deep: var(--ink-deep);
+  --color-slate: var(--slate);
+  --color-steel: var(--steel);
+  --color-hairline: var(--hairline);
+  --color-surface: var(--surface);
+  --color-navy: var(--navy);
+  --color-sky: var(--sky);
+  --color-sky-light: var(--sky-light);
+  --color-sky-dark: var(--sky-dark);
+  --color-marker-red: var(--marker-red);
+  --color-marker-blue: var(--marker-blue);
+
+  --color-note-yellow: #fff1a8;
+  --color-note-rose: #ffd8f4;
+  --color-note-teal: #c3faf5;
+  --color-note-orange: #ffe0bd;
+  --color-note-sky: #d6ecff;
+  --color-note-mint: #d2f6dc;
+  --color-note-coral: #ffc6c6;
+
+  --color-board: var(--board);
+  --color-board-deep: var(--board-deep);
+  --color-chalk: var(--chalk);
+  --color-wood: var(--wood);
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-3xl: 28px;
+
+  --animate-marquee: marquee var(--duration) linear infinite;
+
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(calc(-100% - var(--gap)));
+    }
+  }
+}
+
+:root {
+  --ink: #1c1c1e;
+  --ink-deep: #0c1f33;
+  --slate: #4f5566;
+  --steel: #626879;
+  --hairline: #e0e2e8;
+  --surface: #f7f8fa;
+  --navy: #1d3b5a;
+  --sky: #36a9e1;
+  --sky-light: #e3f4fd;
+  --sky-dark: #0b5d8a;
+  --marker-red: #e5484d;
+  --marker-blue: #1f6feb;
+  --board: #24443a;
+  --board-deep: #1a3029;
+  --chalk: #f4f1e6;
+  --wood: #a86f3d;
+
+  --background: #ffffff;
+  --foreground: var(--ink);
+  --card: #ffffff;
+  --card-foreground: var(--ink);
+  --popover: #ffffff;
+  --popover-foreground: var(--ink);
+  --primary: var(--navy);
+  --primary-foreground: #ffffff;
+  --secondary: var(--sky-light);
+  --secondary-foreground: var(--ink-deep);
+  --muted: var(--surface);
+  --muted-foreground: var(--slate);
+  --accent: var(--sky-light);
+  --accent-foreground: var(--ink-deep);
+  --destructive: #c62828;
+  --border: var(--hairline);
+  --input: #c7cad5;
+  --ring: var(--marker-blue);
+  --radius: 12px;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-background text-foreground;
+    text-rendering: optimizeLegibility;
+  }
+  :target {
+    scroll-margin-top: 6rem;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+  }
+  ::selection {
+    background: var(--note-sel, #fff1a8);
+    color: var(--ink);
+  }
+}
+
+/* Lienzo de pizarra blanca con rejilla de puntos (como un tablero de Miro) */
+@utility whiteboard {
+  background-color: #fff;
+  background-image: radial-gradient(circle at 1px 1px, rgb(28 28 30 / 0.13) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+/* Pizarra de tiza: verde con textura sutil */
+@utility chalkboard {
+  background-color: var(--board);
+  background-image:
+    radial-gradient(120% 80% at 20% 10%, rgb(255 255 255 / 0.07), transparent 60%),
+    radial-gradient(90% 70% at 85% 90%, rgb(255 255 255 / 0.05), transparent 60%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Texto de tiza: borde irregular y leve resplandor */
+@utility chalk-text {
+  color: var(--chalk);
+  text-shadow:
+    0 0 1px rgb(244 241 230 / 0.9),
+    0 0 6px rgb(244 241 230 / 0.25);
+  filter: url(#chalk-rough);
+}
+
+/* Papel de cuaderno */
+@utility notebook {
+  background-color: #fffdf7;
+  background-image:
+    linear-gradient(90deg, transparent 2.6rem, rgb(229 72 77 / 0.35) 2.6rem, rgb(229 72 77 / 0.35) calc(2.6rem + 1px), transparent calc(2.6rem + 1px)),
+    repeating-linear-gradient(transparent, transparent 1.95rem, rgb(54 169 225 / 0.28) 1.95rem, rgb(54 169 225 / 0.28) 2rem);
+}
+
+@utility font-hand {
+  font-family: var(--font-hand);
+  letter-spacing: 0;
+}
+
+/* Escritura a mano (CSS): cada letra se "dibuja" de izquierda a derecha */
+@keyframes write-in {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+/* La caja de cada letra se amplía (relleno + margen negativo) para no recortar
+   ascendentes y descendentes de la letra manuscrita: Chrome ignora los recortes negativos. */
+.hw-char,
+.chalk-char {
+  padding: 0.4em 0.08em 0.3em;
+  margin: -0.4em -0.08em -0.3em;
+}
+.hw-char {
+  display: inline-block;
+  clip-path: inset(0 100% 0 0);
+  animation: write-in 0.16s cubic-bezier(0.4, 0, 0.6, 1) forwards;
+  animation-delay: calc(var(--d, 0s) + var(--i) * var(--speed, 45ms));
+}
+
+/* Con JS, las escrituras "al entrar en pantalla" esperan; sin JS se escriben al cargar */
+html.js [data-hw="wait"] .hw-char {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0s !important;
+    transition-duration: 0.01ms !important;
+  }
+  .hw-char {
+    clip-path: none;
+    animation: none;
+  }
+}
+
+/* Contenido de las páginas legales */
+@utility prose-legal {
+  & h2 {
+    @apply mt-10 mb-3 text-2xl font-semibold tracking-tight text-ink;
+  }
+  & h3 {
+    @apply mt-6 mb-2 font-semibold text-ink;
+  }
+  & p,
+  & li {
+    @apply leading-relaxed text-slate;
+  }
+  & p {
+    @apply mb-4;
+  }
+  & ul {
+    @apply mb-4 list-disc space-y-1 pl-5;
+  }
+  & a {
+    @apply font-semibold text-sky-dark underline underline-offset-4;
+  }
+  & table {
+    @apply mb-6 w-full border-collapse text-left text-sm;
+  }
+  & th,
+  & td {
+    @apply border border-hairline p-3 align-top;
+  }
+  & th {
+    @apply bg-surface font-semibold text-ink;
+  }
+}
+
+@keyframes swing {
+  0% { rotate: var(--r, 0deg); }
+  30% { rotate: 4deg; }
+  55% { rotate: -2.5deg; }
+  80% { rotate: 1deg; }
+  100% { rotate: 0deg; }
+}
