@@ -14,7 +14,7 @@ type SpotlightCardProps = React.ComponentPropsWithoutRef<"div"> & {
 export function SpotlightCard({
   children,
   className,
-  spotlightColor = "rgb(172 255 54 / 0.28)",
+  spotlightColor = "rgb(221 170 97 / 0.22)",
   ...props
 }: SpotlightCardProps) {
   const ref = useRef<HTMLDivElement>(null)

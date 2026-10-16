@@ -28,29 +28,29 @@ export function MapEmbed() {
   }
 
   return (
-    <div className="relative flex size-full flex-col items-center justify-center gap-4 overflow-hidden bg-[linear-gradient(135deg,#e6f1e3,#f4f8f2)] p-6 text-center">
+    <div className="relative flex size-full flex-col items-center justify-center gap-4 overflow-hidden bg-[linear-gradient(135deg,#e7e6d6,#f3ede2)] p-6 text-center">
       <div
         aria-hidden="true"
-        className="absolute inset-0 opacity-60 [background-image:linear-gradient(rgb(46_125_50/0.08)_2px,transparent_2px),linear-gradient(90deg,rgb(46_125_50/0.08)_2px,transparent_2px)] [background-size:48px_48px]"
+        className="absolute inset-0 opacity-60 [background-image:linear-gradient(rgb(74_71_65/0.07)_2px,transparent_2px),linear-gradient(90deg,rgb(74_71_65/0.07)_2px,transparent_2px)] [background-size:48px_48px]"
       />
-      <span className="relative grid size-14 place-items-center rounded-full bg-primary text-white shadow-lg shadow-primary/30">
+      <span className="relative grid size-14 place-items-center rounded-full bg-stone text-white shadow-lg shadow-stone/30">
         <MapPin className="size-7" aria-hidden="true" />
       </span>
       <div className="relative max-w-sm">
-        <p className="font-semibold text-brand-deep">Ver el mapa interactivo</p>
+        <p className="font-semibold text-ink">Ver el mapa interactivo</p>
         <p className="mt-1 text-sm text-muted-foreground">
           Al cargarlo, Google Maps puede instalar cookies propias. Más información en la{" "}
-          <a href="/cookies" className="font-medium text-primary underline underline-offset-4">
+          <a href="/cookies" className="font-semibold text-ink underline underline-offset-4">
             política de cookies
           </a>
           .
         </p>
       </div>
       <div className="relative flex flex-col gap-2 sm:flex-row">
-        <Button size="pill" onClick={() => setExternalConsent("granted")}>
+        <Button variant="secondary" onClick={() => setExternalConsent("granted")}>
           Cargar mapa
         </Button>
-        <Button asChild size="pill" variant="outline" className="bg-white">
+        <Button asChild variant="outline">
           <a href={mapsLinkHref} target="_blank" rel="noopener noreferrer">
             <Navigation aria-hidden="true" />
             Abrir en Google Maps

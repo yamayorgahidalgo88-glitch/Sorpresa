@@ -58,7 +58,7 @@ export function ContactForm() {
 
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label="Nombre" required error={errors.name} htmlFor={`${uid}-name`} errorId={`${uid}-name-error`}>
-          <Input {...field("name")} autoComplete="name" required defaultValue={values.name} className="h-12 text-base" />
+          <Input {...field("name")} autoComplete="name" required defaultValue={values.name} className="h-12 rounded-[12px] bg-surface px-4 text-base" />
         </Field>
         <Field label="Teléfono" required error={errors.phone} htmlFor={`${uid}-phone`} errorId={`${uid}-phone-error`}>
           <Input
@@ -68,21 +68,21 @@ export function ContactForm() {
             autoComplete="tel"
             required
             defaultValue={values.phone}
-            className="h-12 text-base"
+            className="h-12 rounded-[12px] bg-surface px-4 text-base"
           />
         </Field>
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label="Email (opcional)" error={errors.email} htmlFor={`${uid}-email`} errorId={`${uid}-email-error`}>
-          <Input {...field("email")} type="email" autoComplete="email" defaultValue={values.email} className="h-12 text-base" />
+          <Input {...field("email")} type="email" autoComplete="email" defaultValue={values.email} className="h-12 rounded-[12px] bg-surface px-4 text-base" />
         </Field>
         <Field label="Servicio" required error={errors.service} htmlFor={`${uid}-service`} errorId={`${uid}-service-error`}>
           <select
             {...field("service")}
             required
             defaultValue={values.service ?? ""}
-            className="h-12 w-full rounded-lg border border-input bg-transparent px-3 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive"
+            className="h-12 w-full rounded-[12px] border border-input bg-surface px-4 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive"
           >
             <option value="" disabled>
               Selecciona una opción
@@ -100,7 +100,7 @@ export function ContactForm() {
       </div>
 
       <fieldset className="grid gap-2">
-        <legend className="mb-2 text-sm font-medium">Preferencia horaria</legend>
+        <legend className="mb-2 text-sm font-semibold text-ink">Preferencia horaria</legend>
         <div className="flex flex-wrap gap-2">
           {[
             ["manana", "Mañana"],
@@ -109,14 +109,14 @@ export function ContactForm() {
           ].map(([value, label]) => (
             <label
               key={value}
-              className="flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-input px-4 text-sm has-checked:border-primary has-checked:bg-secondary has-checked:text-secondary-foreground has-focus-visible:ring-3 has-focus-visible:ring-ring/50"
+              className="flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-input px-4 text-sm has-checked:border-stone has-checked:bg-surface has-checked:text-ink has-checked:ring-1 has-checked:ring-stone has-focus-visible:ring-3 has-focus-visible:ring-ring/50"
             >
               <input
                 type="radio"
                 name="preference"
                 value={value}
                 defaultChecked={(values.preference ?? "indiferente") === value}
-                className="size-4 accent-primary"
+                className="size-4 accent-[#4a4741]"
               />
               {label}
             </label>
@@ -131,7 +131,7 @@ export function ContactForm() {
         htmlFor={`${uid}-message`}
         errorId={`${uid}-message-error`}
       >
-        <Textarea {...field("message")} rows={4} maxLength={800} defaultValue={values.message} className="text-base" />
+        <Textarea {...field("message")} rows={4} maxLength={800} defaultValue={values.message} className="rounded-[12px] bg-surface px-4 py-3 text-base" />
       </Field>
 
       {/* Honeypot anti-spam */}
@@ -150,11 +150,11 @@ export function ContactForm() {
             required
             aria-invalid={errors.privacy ? true : undefined}
             aria-describedby={errors.privacy ? `${uid}-privacy-error` : `${uid}-privacy-info`}
-            className="mt-0.5 size-5 shrink-0 accent-primary"
+            className="mt-0.5 size-5 shrink-0 accent-[#4a4741]"
           />
           <span>
             He leído y acepto la{" "}
-            <Link href="/privacidad" className="font-medium text-primary underline underline-offset-4">
+            <Link href="/privacidad" className="font-semibold text-ink underline underline-offset-4">
               política de privacidad
             </Link>
             . <span aria-hidden="true">*</span>
@@ -175,7 +175,7 @@ export function ContactForm() {
         aria-live="polite"
         className={cn(
           "rounded-2xl text-sm outline-none",
-          state.status === "success" && "flex items-start gap-3 border border-primary/30 bg-secondary p-4 text-secondary-foreground",
+          state.status === "success" && "flex items-start gap-3 border border-forest/20 bg-sage-pale p-4 text-forest",
           state.status === "error" && "flex items-start gap-3 border border-destructive/30 bg-destructive/5 p-4 text-destructive"
         )}
       >
@@ -184,7 +184,7 @@ export function ContactForm() {
         {state.status !== "idle" && <p>{state.message}</p>}
       </div>
 
-      <Button type="submit" size="xl" disabled={pending} className="w-full sm:w-auto sm:justify-self-start">
+      <Button type="submit" disabled={pending} size="xl" className="w-full sm:w-auto sm:justify-self-start">
         {pending ? <LoaderCircle className="animate-spin" aria-hidden="true" /> : <Send aria-hidden="true" />}
         {pending ? "Enviando…" : "Solicitar cita"}
       </Button>
@@ -211,7 +211,7 @@ function Field({
 }) {
   return (
     <div className="grid gap-2">
-      <Label htmlFor={htmlFor} className="text-sm font-medium">
+      <Label htmlFor={htmlFor} className="text-sm font-semibold text-ink">
         {label}
         {required && <span aria-hidden="true">*</span>}
       </Label>

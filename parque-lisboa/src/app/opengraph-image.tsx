@@ -17,8 +17,8 @@ export default function OpengraphImage() {
           flexDirection: "column",
           justifyContent: "space-between",
           padding: 72,
-          background: "linear-gradient(135deg, #10331a 0%, #1f5a27 60%, #2e7d32 100%)",
-          color: "white",
+          background: "#f7f1e8",
+          color: "#1c1b1a",
           fontFamily: "sans-serif",
         }}
       >
@@ -39,15 +39,16 @@ export default function OpengraphImage() {
             </svg>
           </div>
           <div style={{ display: "flex", flexDirection: "column" }}>
-            <span style={{ fontSize: 34, fontWeight: 700 }}>Centro Clínico</span>
-            <span style={{ fontSize: 22, letterSpacing: 8, color: "#acff36" }}>PARQUE LISBOA</span>
+            <span style={{ fontSize: 34, fontWeight: 700, color: "#4a4741" }}>Centro Clínico</span>
+            <span style={{ fontSize: 22, letterSpacing: 8, color: "#6b665f" }}>PARQUE LISBOA</span>
           </div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          <span style={{ fontSize: 68, fontWeight: 700, lineHeight: 1.05, maxWidth: 950 }}>
-            Fisioterapia, rehabilitación y podología en Alcorcón
+          <span style={{ fontSize: 22, fontWeight: 700, letterSpacing: 3, color: "#1c1b1a" }}>FISIOTERAPIA · REHABILITACIÓN · PODOLOGÍA</span>
+          <span style={{ fontSize: 92, lineHeight: 1.02, maxWidth: 1000, fontFamily: "serif" }}>
+            Cuidamos de cómo te mueves, en Alcorcón.
           </span>
-          <span style={{ fontSize: 30, color: "rgba(255,255,255,0.8)" }}>
+          <span style={{ fontSize: 30, color: "#4a4741" }}>
             {site.address.street} · Tel. {site.phone.display}
           </span>
         </div>

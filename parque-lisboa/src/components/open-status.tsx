@@ -56,7 +56,7 @@ export function OpenStatus({ className }: { className?: string }) {
         aria-hidden="true"
         className={cn(
           "size-2 rounded-full",
-          status === null ? "bg-muted-foreground/40" : status.open ? "bg-primary shadow-[0_0_0_4px_rgb(46_125_50/0.18)]" : "bg-brand-olive/60"
+          status === null ? "bg-ash/40" : status.open ? "bg-primary shadow-[0_0_0_4px_rgb(46_125_50/0.18)]" : "bg-ash/60"
         )}
       />
       <span>{status?.label ?? site.hours.summary}</span>

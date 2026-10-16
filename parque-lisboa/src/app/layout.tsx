@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next"
-import { DM_Sans, Forum } from "next/font/google"
+import { DM_Sans, Fraunces } from "next/font/google"
 
 import { Providers } from "@/components/providers"
 import { SiteFooter } from "@/components/site-footer"
@@ -10,7 +10,17 @@ import { clinicJsonLd, jsonLd } from "@/lib/structured-data"
 import "./globals.css"
 
 const sans = DM_Sans({ subsets: ["latin"], variable: "--font-sans", display: "swap" })
-const display = Forum({ subsets: ["latin"], weight: "400", variable: "--font-display", display: "swap" })
+// Fraunces sustituye a Editorial New (Oura) — serif fina de alto contraste.
+// Solo el peso 300; la cursiva (énfasis) no se precarga para aligerar la carga inicial.
+const display = Fraunces({ subsets: ["latin"], weight: "300", variable: "--font-display", display: "swap" })
+const displayItalic = Fraunces({
+  subsets: ["latin"],
+  weight: "300",
+  style: "italic",
+  variable: "--font-display-italic",
+  display: "swap",
+  preload: false,
+})
 
 const title = "Fisioterapia, rehabilitación y podología en Alcorcón | Centro Clínico Parque Lisboa"
 
@@ -46,18 +56,18 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: "#2e7d32",
+  themeColor: "#f7f1e8",
   width: "device-width",
   initialScale: 1,
 }
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="es" className={`${sans.variable} ${display.variable} antialiased`}>
+    <html lang="es" className={`${sans.variable} ${display.variable} ${displayItalic.variable} antialiased`}>
       <body className="flex min-h-dvh flex-col">
         <a
           href="#contenido"
-          className="sr-only z-[60] rounded-full bg-primary px-4 py-2 text-primary-foreground focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
+          className="sr-only z-[60] rounded-full bg-stone px-5 py-3 text-white focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
         >
           Saltar al contenido
         </a>

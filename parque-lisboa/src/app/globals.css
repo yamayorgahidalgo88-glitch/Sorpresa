@@ -1,17 +1,19 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "lenis/dist/lenis.css";
 
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Identidad tomada de centroclinicoparquelisboa.com:
- *  - Verde del logotipo  #2e7d32  →  primario
- *  - Lima del degradado  #acff36  →  acento (solo sobre fondos oscuros o como relleno)
- *  - Oliva del tema      #536942  →  apoyo
- *  - Amarillo del tema   #ffd936  →  detalle puntual
- *  - Fondo claro         #f6f8f5
- *  - Tipografías: DM Sans (texto) y Forum (display)
+ * Sistema visual basado en el DESIGN.md de Oura (VoltAgent/awesome-design-md, MIT),
+ * adaptado a la identidad de Centro Clínico Parque Lisboa:
+ *
+ *  - Canvas crema "papel cálido" como superficie por defecto (nunca blanco de fondo).
+ *  - Serif fina para titulares (Fraunces ≈ Editorial New) + sans para leer (DM Sans, tipografía actual de la clínica).
+ *  - UN solo color de acción: el verde del logotipo de la clínica (#2e7d32) en lugar del azul de Oura.
+ *  - Rampas tierra (oliva/salvia y dorado) solo para bandas, ilustración y fondos; nunca para botones.
+ *  - Píldoras totalmente redondas, tarjetas 24px, medios grandes 40px. Sombras suaves y cálidas.
  */
 
 @theme inline {
@@ -19,7 +21,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
   --font-display: var(--font-display);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-display);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -37,19 +39,31 @@
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
 
-  --color-brand-deep: var(--brand-deep);
-  --color-brand-olive: var(--brand-olive);
+  /* Oura · superficies y texto */
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-band: var(--ink-band);
+  --color-stone: var(--stone);
+  --color-ash: var(--ash);
+  --color-hairline: var(--hairline);
+  /* Oura · rampa oliva/salvia (encaja con el oliva #536942 de la web actual) */
+  --color-forest: var(--forest);
+  --color-olive: var(--olive);
+  --color-sage: var(--sage);
+  --color-sage-pale: var(--sage-pale);
+  /* Oura · rampa dorada (encaja con el amarillo #ffd936 de la web actual) */
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-gold-pale: var(--gold-pale);
+  --color-clay: var(--clay);
+  /* Identidad clínica */
   --color-brand-lime: var(--brand-lime);
-  --color-brand-sun: var(--brand-sun);
-  --color-brand-mint: var(--brand-mint);
 
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 24px;
+  --radius-xl: 40px;
 
   --animate-marquee: marquee var(--duration) linear infinite;
 
@@ -64,31 +78,42 @@
 }
 
 :root {
-  --background: #f7f9f5;
-  --foreground: #13261a;
-  --card: #ffffff;
-  --card-foreground: #13261a;
-  --popover: #ffffff;
-  --popover-foreground: #13261a;
+  --canvas: #f7f1e8;
+  --surface: #ffffff;
+  --ink: #1c1b1a;
+  --ink-band: #19191c;
+  --stone: #4a4741;
+  --ash: #6b665f; /* más oscuro que el ash de Oura para cumplir contraste AA sobre crema */
+  --hairline: #e1dcd3;
+  --forest: #224228;
+  --olive: #5c6f5d;
+  --sage: #849671;
+  --sage-pale: #ced4b8;
+  --gold: #af751b;
+  --gold-soft: #ddaa61;
+  --gold-pale: #ddbe78;
+  --clay: #6b443d;
+  --brand-lime: #acff36;
+
+  --background: var(--canvas);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--canvas);
+  --popover-foreground: var(--ink);
   --primary: #2e7d32;
   --primary-foreground: #ffffff;
-  --secondary: #e8f5e9;
-  --secondary-foreground: #1b4d20;
-  --muted: #eef3ec;
-  --muted-foreground: #4b5b4e;
-  --accent: #acff36;
-  --accent-foreground: #13261a;
-  --destructive: #b42318;
-  --border: #dbe5d8;
-  --input: #c9d6c5;
+  --secondary: var(--stone);
+  --secondary-foreground: #ffffff;
+  --muted: #efe8dc;
+  --muted-foreground: var(--ash);
+  --accent: #efe8dc;
+  --accent-foreground: var(--ink);
+  --destructive: #c4321c;
+  --border: var(--hairline);
+  --input: #cfc7ba;
   --ring: #2e7d32;
-  --radius: 0.75rem;
-
-  --brand-deep: #10331a;
-  --brand-olive: #536942;
-  --brand-lime: #acff36;
-  --brand-sun: #ffd936;
-  --brand-mint: #e8f5e9;
+  --radius: 24px;
 }
 
 @layer base {
@@ -97,15 +122,15 @@
   }
   html {
     @apply font-sans;
-    scroll-behavior: smooth;
     -webkit-tap-highlight-color: transparent;
   }
   body {
     @apply bg-background text-foreground;
+    font-size: 1.0625rem;
     text-rendering: optimizeLegibility;
   }
   :target {
-    scroll-margin-top: 5rem;
+    scroll-margin-top: 6rem;
   }
   button:not(:disabled),
   [role="button"]:not(:disabled) {
@@ -113,18 +138,35 @@
   }
   :focus-visible {
     outline: 2px solid var(--ring);
-    outline-offset: 2px;
+    outline-offset: 3px;
   }
   ::selection {
-    background: var(--brand-lime);
-    color: var(--brand-deep);
+    background: var(--sage-pale);
+    color: var(--ink);
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
+@utility font-display {
+  font-family: var(--font-display);
+  font-weight: 300;
+
+  & em,
+  & i {
+    font-family: var(--font-display-italic);
+    font-style: italic;
   }
+}
+
+/* Overline Oura: 12px, 700, mayúsculas con tracking ligero */
+@utility eyebrow {
+  font-size: 0.75rem;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+@media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
@@ -137,14 +179,14 @@
 /* Contenido de las páginas legales */
 @utility prose-legal {
   & h2 {
-    @apply mt-10 mb-3 text-xl font-semibold tracking-tight text-foreground;
+    @apply mt-12 mb-3 font-display text-2xl font-light text-ink;
   }
   & h3 {
-    @apply mt-6 mb-2 font-semibold text-foreground;
+    @apply mt-6 mb-2 font-semibold text-ink;
   }
   & p,
   & li {
-    @apply leading-relaxed text-muted-foreground;
+    @apply leading-relaxed text-stone;
   }
   & p {
     @apply mb-4;
@@ -153,16 +195,16 @@
     @apply mb-4 list-disc space-y-1 pl-5;
   }
   & a {
-    @apply font-medium text-primary underline underline-offset-4;
+    @apply font-medium text-ink underline underline-offset-4;
   }
   & table {
     @apply mb-6 w-full border-collapse text-left text-sm;
   }
   & th,
   & td {
-    @apply border border-border p-2 align-top;
+    @apply border border-hairline p-3 align-top;
   }
   & th {
-    @apply bg-muted font-semibold text-foreground;
+    @apply bg-surface font-semibold text-ink;
   }
 }

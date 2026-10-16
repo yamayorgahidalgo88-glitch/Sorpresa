@@ -2,25 +2,20 @@ import { cn } from "@/lib/utils"
 
 /**
  * Marcador del logotipo (cruz con el degradado de la marca + nombre).
- * Sustituir por el archivo oficial del logotipo cuando la clínica lo facilite.
+ * Sustituir por el archivo oficial cuando la clínica lo facilite.
  */
 export function Logo({ className, tone = "dark" }: { className?: string; tone?: "dark" | "light" }) {
   return (
     <span className={cn("inline-flex items-center gap-2.5", className)}>
-      <LogoMark className="size-9 shrink-0" />
+      <LogoMark className="size-8 shrink-0" />
       <span className="flex flex-col leading-none">
-        <span
-          className={cn(
-            "text-[0.95rem] font-semibold tracking-tight",
-            tone === "dark" ? "text-primary" : "text-white"
-          )}
-        >
+        <span className={cn("text-[0.95rem] font-semibold tracking-tight", tone === "dark" ? "text-stone" : "text-white")}>
           Centro Clínico
         </span>
         <span
           className={cn(
-            "mt-1 text-[0.68rem] font-medium uppercase tracking-[0.28em]",
-            tone === "dark" ? "text-brand-olive" : "text-brand-lime"
+            "mt-1 text-[0.62rem] font-medium uppercase tracking-[0.3em]",
+            tone === "dark" ? "text-ash" : "text-white/60"
           )}
         >
           Parque Lisboa
