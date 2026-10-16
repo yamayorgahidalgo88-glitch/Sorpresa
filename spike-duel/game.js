@@ -1168,7 +1168,7 @@
     // A watched video doubles the coins of the match (not the tour champion prize). A loss earns
     // nothing, so there is nothing to double and the usual between-matches ad is shown instead.
     lastResult.bonus = kind === 'tour' || kind === 'career' ? Math.min(coins, matchCoins) : 0;
-    const offerReward = lastResult.bonus > 0;
+    const offerReward = lastResult.bonus > 0 && !Platform.adsDisabled;
     if (!offerReward) await runAd('midgame');
     if (champion) showTrophy(); else showResult(offerReward);
   }
@@ -1273,7 +1273,7 @@
     document.getElementById('boxNote').textContent = q.kind === 'coins' ? t('prizeCoins', { n: q.n })
       : t('prizeItem', { type: t(q.label), name: prizeName(q) });
     confetti = [];
-    if (boxOpened.filter(Boolean).length === 1) {
+    if (boxOpened.filter(Boolean).length === 1 && !Platform.adsDisabled) {
       // first pick: offer a video to pick a second box
       document.getElementById('boxes').classList.add('done');
       document.getElementById('boxAdRow').classList.remove('hidden');
@@ -3387,7 +3387,7 @@
         save.coins += lastResult.bonus; persist();
         document.getElementById('resCoins').textContent = t('coinsEarned', { n: lastResult.coins + lastResult.bonus });
         Sound.win();
-      } else {
+      } else if (!Platform.adsDisabled) {
         toast(t('adUnavailable'));
       }
       afterRewardChoice();
@@ -3402,7 +3402,7 @@
         document.getElementById('boxes').classList.remove('done');
         document.getElementById('boxNote').textContent = t('pickAnother');
       } else {
-        toast(t('adUnavailable'));
+        if (!Platform.adsDisabled) toast(t('adUnavailable'));
         endBoxes();
       }
     });

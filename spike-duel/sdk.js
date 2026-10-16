@@ -50,6 +50,9 @@
     gameplayStop() { call(s => s.game.gameplayStop()); },
     happytime() { call(s => s.game.happytime()); },
 
+    // True once CrazyGames reports ads are off for this game (Basic Launch): the game then hides its video buttons.
+    adsDisabled: false,
+
     // Resolves true only when the ad finished; false on error or without SDK.
     // onStart lets the game pause and mute while the ad plays.
     showAd(type, onStart) {
@@ -59,7 +62,11 @@
           sdk.ad.requestAd(type, {
             adStarted: () => { if (onStart) onStart(); },
             adFinished: () => resolve(true),
-            adError: () => resolve(false),
+            adError: err => {
+              const code = err && (err.code || err.message || err);
+              if (String(code).indexOf('adsDisabledBasicLaunch') >= 0) Platform.adsDisabled = true;
+              resolve(false);
+            },
           });
         } catch (e) { resolve(false); }
       });

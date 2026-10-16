@@ -65,3 +65,4 @@ No necesita compilar nada: son archivos estáticos (`index.html`, `style.css`, `
 El partido nunca enseña los dos tipos de anuncio en la misma transición, y la recompensa solo se da si el anuncio termina. Así se cumplen las normas de anuncios de CrazyGames. El progreso se guarda con el módulo de datos del SDK y, si no está disponible, en `localStorage`.
 
 Para el lanzamiento básico, que no admite anuncios, basta con subir la carpeta tal cual: sin el entorno de CrazyGames, el SDK no muestra anuncios.
+- **Basic Launch de CrazyGames:** durante esa fase los anuncios están desactivados (error `adsDisabledBasicLaunch`). Al detectarlo, el juego oculta los botones de vídeo (duplicar monedas y segunda caja) y no muestra avisos de «anuncio no disponible»; en el lanzamiento completo vuelven a aparecer solos.
