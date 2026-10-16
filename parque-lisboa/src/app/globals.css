@@ -1,0 +1,168 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Identidad tomada de centroclinicoparquelisboa.com:
+ *  - Verde del logotipo  #2e7d32  →  primario
+ *  - Lima del degradado  #acff36  →  acento (solo sobre fondos oscuros o como relleno)
+ *  - Oliva del tema      #536942  →  apoyo
+ *  - Amarillo del tema   #ffd936  →  detalle puntual
+ *  - Fondo claro         #f6f8f5
+ *  - Tipografías: DM Sans (texto) y Forum (display)
+ */
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-display: var(--font-display);
+  --font-heading: var(--font-sans);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+
+  --color-brand-deep: var(--brand-deep);
+  --color-brand-olive: var(--brand-olive);
+  --color-brand-lime: var(--brand-lime);
+  --color-brand-sun: var(--brand-sun);
+  --color-brand-mint: var(--brand-mint);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+
+  --animate-marquee: marquee var(--duration) linear infinite;
+
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(calc(-100% - var(--gap)));
+    }
+  }
+}
+
+:root {
+  --background: #f7f9f5;
+  --foreground: #13261a;
+  --card: #ffffff;
+  --card-foreground: #13261a;
+  --popover: #ffffff;
+  --popover-foreground: #13261a;
+  --primary: #2e7d32;
+  --primary-foreground: #ffffff;
+  --secondary: #e8f5e9;
+  --secondary-foreground: #1b4d20;
+  --muted: #eef3ec;
+  --muted-foreground: #4b5b4e;
+  --accent: #acff36;
+  --accent-foreground: #13261a;
+  --destructive: #b42318;
+  --border: #dbe5d8;
+  --input: #c9d6c5;
+  --ring: #2e7d32;
+  --radius: 0.75rem;
+
+  --brand-deep: #10331a;
+  --brand-olive: #536942;
+  --brand-lime: #acff36;
+  --brand-sun: #ffd936;
+  --brand-mint: #e8f5e9;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-background text-foreground;
+    text-rendering: optimizeLegibility;
+  }
+  :target {
+    scroll-margin-top: 5rem;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: var(--brand-lime);
+    color: var(--brand-deep);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Contenido de las páginas legales */
+@utility prose-legal {
+  & h2 {
+    @apply mt-10 mb-3 text-xl font-semibold tracking-tight text-foreground;
+  }
+  & h3 {
+    @apply mt-6 mb-2 font-semibold text-foreground;
+  }
+  & p,
+  & li {
+    @apply leading-relaxed text-muted-foreground;
+  }
+  & p {
+    @apply mb-4;
+  }
+  & ul {
+    @apply mb-4 list-disc space-y-1 pl-5;
+  }
+  & a {
+    @apply font-medium text-primary underline underline-offset-4;
+  }
+  & table {
+    @apply mb-6 w-full border-collapse text-left text-sm;
+  }
+  & th,
+  & td {
+    @apply border border-border p-2 align-top;
+  }
+  & th {
+    @apply bg-muted font-semibold text-foreground;
+  }
+}
