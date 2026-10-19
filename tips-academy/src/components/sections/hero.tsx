@@ -14,12 +14,7 @@ export function Hero() {
       <PaperPlane />
       <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-4 pt-8 pb-14 sm:px-8 lg:grid-cols-[1.1fr_0.9fr] lg:pt-12 lg:pb-20">
         <div className="relative z-10">
-          <p className="inline-flex items-center gap-2 rounded-full bg-sky-light px-3.5 py-1.5 text-[0.8rem] font-semibold text-ink-deep">
-            <span className="size-2 rounded-full bg-sky" aria-hidden="true" />
-            Academia de apoyo en Alcorcón · +15 años
-          </p>
-
-          <h1 id="hero-title" className="mt-6 text-[2.6rem] leading-[1.08] font-bold tracking-[-0.03em] text-ink sm:text-6xl lg:text-[4.2rem]">
+          <h1 id="hero-title" className="text-[2.6rem] leading-[1.08] font-bold tracking-[-0.03em] text-ink sm:text-6xl lg:text-[4.2rem]">
             ¡Bienvenidos a{" "}
             <Mark kind="circle" color="var(--marker-red)" trigger="load" delay={1.2}>
               TIPS ACADEMY

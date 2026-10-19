@@ -12,15 +12,23 @@ import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle, SheetTri
 import { nav, site, type NavItem } from "@/lib/site"
 import { cn } from "@/lib/utils"
 
+/** ¿Está la página actual dentro de este apartado del menú? (incluye sus subpáginas) */
+function isActive(item: NavItem, pathname: string): boolean {
+  if (item.href === "/") return pathname === "/"
+  if (pathname === item.href || pathname.startsWith(item.href + "/")) return true
+  return !!item.children?.some((c) => isActive(c, pathname))
+}
+
 function NavLink({ item, className, children }: { item: NavItem; className?: string; children?: React.ReactNode }) {
+  const pathname = usePathname()
   return (
-    <Link href={item.href} className={className}>
+    <Link href={item.href} className={className} aria-current={pathname === item.href ? "page" : undefined}>
       {children ?? item.label}
     </Link>
   )
 }
 
-function Dropdown({ item, active }: { item: NavItem; active: boolean }) {
+function Dropdown({ item, active, pathname }: { item: NavItem; active: boolean; pathname: string }) {
   const [open, setOpen] = useState(false)
   const id = useId()
   const ref = useRef<HTMLLIElement>(null)
@@ -47,7 +55,7 @@ function Dropdown({ item, active }: { item: NavItem; active: boolean }) {
         onClick={(e) => setOpen((o) => (e.detail === 0 ? !o : true))}
         className={cn(
           "inline-flex items-center gap-1 rounded-full px-3.5 py-2 text-sm font-medium transition-colors hover:bg-surface",
-          active ? "text-ink" : "text-slate"
+          active ? "bg-sky-light text-ink" : "text-slate"
         )}
       >
         {item.label}
@@ -63,7 +71,10 @@ function Dropdown({ item, active }: { item: NavItem; active: boolean }) {
             <li key={c.href}>
               <NavLink
                 item={c}
-                className="flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-sm text-ink hover:bg-sky-light"
+                className={cn(
+                  "flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-sm text-ink hover:bg-sky-light",
+                  pathname === c.href && "bg-sky-light font-semibold"
+                )}
               >
                 <span>{c.label}</span>
               </NavLink>
@@ -135,14 +146,14 @@ export function SiteHeader() {
             <ul className="flex items-center gap-0.5">
               {nav.map((item) =>
                 item.children ? (
-                  <Dropdown key={item.label} item={item} active={pathname.startsWith(item.href)} />
+                  <Dropdown key={item.label} item={item} active={isActive(item, pathname)} pathname={pathname} />
                 ) : (
                   <li key={item.label}>
                     <NavLink
                       item={item}
                       className={cn(
                         "inline-flex rounded-full px-3.5 py-2 text-sm font-medium transition-colors hover:bg-surface",
-                        pathname === item.href ? "bg-sky-light text-ink" : "text-slate"
+                        isActive(item, pathname) ? "bg-sky-light text-ink" : "text-slate"
                       )}
                     />
                   </li>
@@ -152,7 +163,14 @@ export function SiteHeader() {
           </nav>
 
           <div className="flex items-center gap-2">
-            <Link href={site.links.aulaVirtual} className="hidden rounded-full px-3 py-2 text-sm font-medium text-sky-dark hover:underline lg:inline">
+            <Link
+              href={site.links.aulaVirtual}
+              aria-current={pathname === site.links.aulaVirtual ? "page" : undefined}
+              className={cn(
+                "hidden rounded-full px-3 py-2 text-sm font-medium text-sky-dark hover:underline lg:inline",
+                pathname === site.links.aulaVirtual && "bg-sky-light"
+              )}
+            >
               Aula Virtual
             </Link>
             <Button asChild size="sm" className="hidden h-10 sm:inline-flex">
@@ -175,8 +193,13 @@ export function SiteHeader() {
                     {nav.map((item) => (
                       <li key={item.label}>
                         {item.children ? (
-                          <details className="group rounded-2xl">
-                            <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between rounded-2xl px-3 text-lg font-semibold text-ink hover:bg-surface">
+                          <details className="group rounded-2xl" open={isActive(item, pathname) || undefined}>
+                            <summary
+                              className={cn(
+                                "flex min-h-12 cursor-pointer list-none items-center justify-between rounded-2xl px-3 text-lg font-semibold text-ink hover:bg-surface",
+                                isActive(item, pathname) && "bg-sky-light"
+                              )}
+                            >
                               {item.label}
                               <ChevronDown className="size-5 transition-transform group-open:rotate-180" aria-hidden="true" />
                             </summary>
@@ -184,7 +207,13 @@ export function SiteHeader() {
                               {item.children.map((c) => (
                                 <li key={c.href}>
                                   <SheetClose asChild>
-                                    <NavLink item={c} className="flex min-h-11 items-center text-[0.95rem] text-slate hover:text-ink" />
+                                    <NavLink
+                                      item={c}
+                                      className={cn(
+                                        "flex min-h-11 items-center text-[0.95rem] text-slate hover:text-ink",
+                                        pathname === c.href && "font-semibold text-ink"
+                                      )}
+                                    />
                                   </SheetClose>
                                 </li>
                               ))}
@@ -192,14 +221,26 @@ export function SiteHeader() {
                           </details>
                         ) : (
                           <SheetClose asChild>
-                            <NavLink item={item} className="flex min-h-12 items-center rounded-2xl px-3 text-lg font-semibold text-ink hover:bg-surface" />
+                            <NavLink
+                              item={item}
+                              className={cn(
+                                "flex min-h-12 items-center rounded-2xl px-3 text-lg font-semibold text-ink hover:bg-surface",
+                                isActive(item, pathname) && "bg-sky-light"
+                              )}
+                            />
                           </SheetClose>
                         )}
                       </li>
                     ))}
                     <li>
                       <SheetClose asChild>
-                        <Link href={site.links.aulaVirtual} className="flex min-h-12 items-center rounded-2xl px-3 text-lg font-semibold text-sky-dark">
+                        <Link
+                          href={site.links.aulaVirtual}
+                          className={cn(
+                            "flex min-h-12 items-center rounded-2xl px-3 text-lg font-semibold text-sky-dark",
+                            pathname === site.links.aulaVirtual && "bg-sky-light"
+                          )}
+                        >
                           Aula Virtual
                         </Link>
                       </SheetClose>
