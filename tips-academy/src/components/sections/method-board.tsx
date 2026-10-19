@@ -49,10 +49,9 @@ export function MethodBoard() {
             </div>
 
             <figure className="relative flex flex-col justify-center lg:border-l lg:border-dashed lg:border-chalk/25 lg:pl-14">
-              <span aria-hidden="true" className="chalk-text font-hand text-8xl leading-[0.5] text-note-yellow">“</span>
               <blockquote>
                 <ChalkWrite className="text-[2rem] leading-[1.25] sm:text-[2.5rem]" speed={0.04}>
-                  {quotes.franklin.text}
+                  {`«${quotes.franklin.text}»`}
                 </ChalkWrite>
               </blockquote>
               <figcaption className="chalk-text mt-6 font-hand text-2xl text-note-yellow">

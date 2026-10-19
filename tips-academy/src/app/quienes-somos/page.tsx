@@ -6,7 +6,7 @@ import { StickyNote } from "@/components/board/sticky-note"
 import { PageHero } from "@/components/page-hero"
 import { SuccessRates } from "@/components/sections/success-rates"
 import { Team } from "@/components/sections/team"
-import { testimonials } from "@/lib/site"
+import { Reviews } from "@/components/sections/reviews"
 
 export const metadata: Metadata = {
   title: "Quiénes somos",
@@ -88,21 +88,7 @@ export default function QuienesSomos() {
 
       <SuccessRates />
 
-      <section id="testimonios" aria-labelledby="testimonios-title" className="whiteboard py-14 sm:py-20">
-        <div className="mx-auto max-w-5xl px-4 sm:px-8">
-          <h2 id="testimonios-title" className="text-4xl font-bold tracking-tight text-ink sm:text-5xl">Testimonios de nuestros alumnos</h2>
-          <ul className="mt-12 grid gap-8 md:grid-cols-2">
-            {testimonials.map((t, i) => (
-              <StickyNote as="li" key={t.author} color={i ? "sky" : "mint"} rotate={i ? 1.5 : -1.5}>
-                <blockquote className="font-hand text-2xl leading-snug text-ink">«{t.text}»</blockquote>
-                <p className="mt-4 text-sm">
-                  <strong className="text-ink">{t.author}</strong> <span className="text-slate">· {t.role}</span>
-                </p>
-              </StickyNote>
-            ))}
-          </ul>
-        </div>
-      </section>
+      <Reviews id="testimonios" title="Testimonios de nuestros alumnos" />
     </>
   )
 }

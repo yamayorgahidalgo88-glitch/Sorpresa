@@ -9,17 +9,17 @@ import { reviews, site, type Sticky } from "@/lib/site"
 
 const COLORS: Sticky[] = ["yellow", "rose", "teal", "orange", "sky", "mint"]
 
-export function Reviews() {
+export function Reviews({ id = "opiniones", title = "Lo dicen nuestros alumnos y familias" }: { id?: string; title?: string }) {
   const half = Math.ceil(reviews.items.length / 2)
   const rows = [reviews.items.slice(0, half), reviews.items.slice(half)]
 
   return (
-    <section id="opiniones" aria-labelledby="opiniones-title" className="overflow-hidden bg-white py-14 sm:py-20">
+    <section id={id} aria-labelledby={`${id}-title`} className="overflow-hidden bg-white py-14 sm:py-20">
       <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 sm:px-8 md:flex-row md:items-end md:justify-between">
         <div className="max-w-2xl">
           <p className="text-sm font-semibold text-sky-dark">Opiniones en Google</p>
-          <h2 id="opiniones-title" className="mt-3 text-4xl leading-[1.1] font-bold tracking-[-0.02em] text-ink sm:text-5xl">
-            Lo dicen nuestros alumnos y familias
+          <h2 id={`${id}-title`} className="mt-3 text-4xl leading-[1.1] font-bold tracking-[-0.02em] text-ink sm:text-5xl">
+            {title}
           </h2>
           <p className="mt-5 flex items-center gap-3 text-lg text-slate">
             <span className="text-5xl leading-none font-extrabold tracking-tight text-ink">{reviews.rating}</span>
