@@ -11,7 +11,6 @@ const schema = z.object({
   phone: z.string().trim().regex(/^(\+?\d[\d\s-]{7,16}\d)$/, "Introduce un teléfono válido."),
   course: z.string().trim().max(60).optional().default(""),
   hours: z.union([z.literal(""), z.coerce.number().int().min(1).max(15)]).optional().default(""),
-  subjects: z.string().max(600).optional().default(""),
   message: z.string().trim().max(800).optional().default(""),
   privacy: z.literal("on", { error: "Debes aceptar la política de privacidad." }),
 })
@@ -26,8 +25,6 @@ export async function sendMatricula(_prev: MatriculaState, formData: FormData): 
   const values = Object.fromEntries(
     ["student", "email", "phone", "course", "hours", "message"].map((k) => [k, String(formData.get(k) ?? "")])
   )
-  // Las asignaturas llegan como varios valores; se guardan unidas por «|».
-  values.subjects = formData.getAll("subjects").map(String).slice(0, 30).join("|")
   if (String(formData.get("website") ?? "") !== "") return { status: "success", message: "¡Gracias!" }
 
   const parsed = schema.safeParse({ ...values, privacy: formData.get("privacy") ?? undefined })
@@ -46,7 +43,6 @@ export async function sendMatricula(_prev: MatriculaState, formData: FormData): 
       ["Teléfono", d.phone],
       ["Asignatura / taller", d.course || "—"],
       ["Horas/semana", d.hours === "" ? "—" : String(d.hours)],
-      ["Asignaturas", d.subjects ? d.subjects.split("|").join(", ") : "—"],
       ["Mensaje", d.message || "—"],
     ],
   })
