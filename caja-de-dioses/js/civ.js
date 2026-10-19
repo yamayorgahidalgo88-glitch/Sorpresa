@@ -14,7 +14,7 @@ function newKingdom(race, founder) {
   k.res.madera = 12; k.res.piedra = 6;
   nameKingdom(k);
   kingdoms.push(k);
-  if (founder) { founder.name = founder.name || mkName(race); k.king = founder; }
+  if (founder) { founder.name = founder.name || mkName(race); k.king = founder; founder.prof = 'ruler'; }
   return k;
 }
 function nameKingdom(k) {
@@ -49,7 +49,14 @@ function foundVillage(race, x, y) {
   if (!leader) return;
   const c = foundCity(leader, true);
   if (!c) return;
-  for (let n = 0; n < 9; n++) { const u = spawn(race, c.x + .5 + ri(-2, 2), c.y + .5 + ri(-2, 2), c.k, c.id); if (u && n < 3) u.age = ri(3, 10); }
+  leader.fam = mkName(race);
+  const fams = [leader.fam, mkName(race), mkName(race)];
+  for (let n = 0; n < 9; n++) { const u = spawn(race, c.x + .5 + ri(-2, 2), c.y + .5 + ri(-2, 2), c.k, c.id); if (!u) continue; u.fam = fams[n % 3]; u.sex = n % 2 ? 'm' : 'f'; if (n < 3) { u.age = ri(3, 10); u.prof = 'child'; } }
+  { // los adultos fundadores llegan emparejados
+    const ad = units.filter(o => o.city === c.id && o.age >= 16);
+    const ms = ad.filter(o => o.sex === 'm'), fs = ad.filter(o => o.sex === 'f');
+    for (let n = 0; n < Math.min(ms.length, fs.length) - 1; n++) { ms[n].partner = fs[n].id; fs[n].partner = ms[n].id; fs[n].fam = ms[n].fam; }
+  }
   for (let n = 0; n < 4; n++) { const p = pickTile(c.x, c.y, 2, j => owner[j] === c.id + 1 && !bld[j] && TILE[tile[j]].build); if (p) bld[p[1] * W + p[0]] = 1; }
   scanCity(c);
   toast(`${c.k.name}: 10 habitantes. Dales rasgos en la pestaña Rasgos.`);
@@ -83,7 +90,7 @@ function tryCapture(u, c) {
   if (old.capital === c.id) old.capital = -1;
 }
 function scanCity(c) {
-  let houses = 0, fields = 0, owned = 0, food = 0;
+  let houses = 0, fields = 0, owned = 0, food = 0, coast = false;
   const r = Math.ceil(c.radius) + 4, id1 = c.id + 1;
   c.ores = [];
   for (let y = Math.max(0, c.y - r); y <= Math.min(H - 1, c.y + r); y++) for (let x = Math.max(0, c.x - r); x <= Math.min(W - 1, c.x + r); x++) {
@@ -93,9 +100,9 @@ function scanCity(c) {
     owned++; if (bld[i] === 1) houses++;
     const t = tile[i]; if (t === T.FIELD) fields++;
     food += TILE[t].food || 0;
-    if ((x > 0 && isWater(tile[i - 1])) || (x < W - 1 && isWater(tile[i + 1]))) food += .25;
+    if ((x > 0 && isWater(tile[i - 1])) || (x < W - 1 && isWater(tile[i + 1])) || (i >= W && isWater(tile[i - W])) || (i < N - W && isWater(tile[i + W]))) { food += .25; coast = true; }
   }
-  c.houses = houses; c.fields = fields; c.owned = owned; c.foodYield = food;
+  c.houses = houses; c.fields = fields; c.owned = owned; c.foodYield = food; c.coast = coast;
   const ht = modOn('tecnologia') ? c.k.house : 0;
   c.cap = 5 + Math.floor(houses * (1.5 + ht * .5));
 }
@@ -105,34 +112,51 @@ function cityUpdate(c) {
   const id1 = c.id + 1, k = c.k, race = k.race, sp = SP[race];
   if (!bld[c.y * W + c.x] || bld[c.y * W + c.x] === 4) bld[c.y * W + c.x] = 2;
   if (!sp.noFood && LAWS.hambre.on) {
-    c.food += c.foodYield * .16 * kmul(k, 'food') - c.pop * .09;
-    if (c.food < 0) { c.food = 0; if (c.pop > 2 && rnd() < .25) { const v = units.find(o => o.city === c.id && !o.dead); if (v) kill(v, null, 'hambre'); } }
-    c.food = Math.min(c.food, 60 + c.pop * 2);
+    c.food += c.foodYield * .035 * kmul(k, 'food') * (season() === 3 ? .4 : 1);
+    if (c.food < 0) c.food = 0;
+    c.food = Math.min(c.food, 80 + c.pop * 4 + (c.granary ? 120 : 0));
   } else c.food = 20;
-  // nacimientos con herencia
+  // nacimientos: hacen falta parejas; los hijos heredan rasgos y apellido
   const members = units.filter(o => o.city === c.id && !o.dead && o.def.civ && o.age >= 14);
   const fert = members.length ? members.reduce((s, o) => s + tmul(o, 'fert'), 0) / members.length : 0;
-  const birth = (sp.noFood ? .15 : .38) * fert * kmul(k, 'birth');
-  if (members.length >= 2 && c.pop < c.cap && c.food > 1.5 && rnd() < birth) {
-    const fertile = members.filter(o => tmul(o, 'fert') > 0);
-    const pa = pick(fertile.length ? fertile : members), pb = pick(members);
-    let traits = [];
-    if (LAWS.herencia.on) {
-      const pool = new Set([...pa.traits, ...pb.traits]);
-      for (const t of pool) {
-        const both = pa.traits.includes(t) && pb.traits.includes(t);
-        const inh = TRAITS[t].inh ?? 1;
-        if (rnd() < (both ? .8 : .45) * inh) traits.push(t);
+  c.mood = members.length ? members.reduce((s, o) => s + o.mood, 0) / members.length : 60;
+  const birth = (sp.noFood ? .2 : .55) * fert * kmul(k, 'birth') * (.6 + c.mood / 120);
+  if (members.length >= 2 && c.pop < c.cap && (c.food > 2 || sp.noFood) && rnd() < birth) {
+    const mothers = members.filter(o => o.partner && o.sex === 'f' && o.age < SP[o.type].age[0] * .75 && tmul(o, 'fert') > 0 && tickN - (o.lastBirth || -9999) > YEAR * 1.6);
+    let pa = null, pb = null;
+    if (mothers.length) { pa = pick(mothers); pb = unitById(pa.partner); }
+    if (!pb && members.length >= 4 && rnd() < .2) { pa = pick(members); pb = pick(members); } // algún hijo fuera de pareja
+    if (pa && pb && pa !== pb) {
+      let traits = [];
+      if (LAWS.herencia.on) {
+        const pool = new Set([...pa.traits, ...pb.traits]);
+        for (const t of pool) {
+          const both = pa.traits.includes(t) && pb.traits.includes(t);
+          const inh = TRAITS[t]?.inh ?? 1;
+          if (rnd() < (both ? .8 : .45) * inh) traits.push(t);
+        }
+      }
+      if (LAWS.mutacion.on && rnd() < .06) {
+        const pool = Object.keys(TRAITS).filter(t => modOn(TRAITS[t].mod) && t !== 'inmortal');
+        const t = pick(pool); if (!traits.includes(t)) traits.push(t);
+      }
+      const clean = [];
+      for (const t of traits) { if (OPPOSITE[t] && clean.includes(OPPOSITE[t])) continue; if (!clean.includes(t)) clean.push(t); }
+      const b = spawn(race, pa.x, pa.y, k, c.id, { age: 0, traits: clean });
+      if (b) {
+        if (!sp.noFood) c.food -= 1.5;
+        b.parents = [pa.id, pb.id]; b.fam = (pa.sex === 'm' ? pa.fam : pb.fam) || pa.fam || pb.fam || mkName(race); b.home = pa.home;
+        pa.lastBirth = tickN; pa.mood = Math.min(100, pa.mood + 10); pb.mood = Math.min(100, pb.mood + 10);
+        pa.kids = (pa.kids || 0) + 1; pb.kids = (pb.kids || 0) + 1;
       }
     }
-    if (LAWS.mutacion.on && rnd() < .06) {
-      const pool = Object.keys(TRAITS).filter(t => modOn(TRAITS[t].mod) && t !== 'inmortal');
-      const t = pick(pool); if (!traits.includes(t)) traits.push(t);
-    }
-    const clean = [];
-    for (const t of traits) { if (OPPOSITE[t] && clean.includes(OPPOSITE[t])) continue; if (!clean.includes(t)) clean.push(t); }
-    const b = spawn(race, c.x + .5, c.y + .5, k, c.id, { age: 0, traits: clean });
-    if (b) c.food -= 1.5;
+  }
+  assignJobs(c, members.filter(o => !o.settler && o.age >= 12));
+  // emparejamientos: solteros compatibles de la misma ciudad
+  if (rnd() < .35) {
+    const single = members.filter(o => !o.partner && adult(o) && o.age < SP[o.type].age[0] * .8 && !o.settler && tmul(o, 'fert') > 0);
+    const a = pick(single || []);
+    if (a) { const b = single.find(o => canCouple(a, o)); if (b) marry(a, b); }
   }
   // territorio
   c.radius = Math.min(15, 3 + Math.sqrt(c.pop) * 1.35);
@@ -156,26 +180,21 @@ function cityUpdate(c) {
         if (x < 2 || y < 2 || x >= W - 2 || y >= H - 2) continue;
         const i = y * W + x;
         if (!owner[i] && region[i] === reg && TILE[tile[i]].build && canStand(sp, x, y) && !nearCity(x, y, 11)) {
-          s.settler = { x, y, t: 0 }; s.city = -1; s.tx = x + .5; s.ty = y + .5; s.job = { type: 'settle', x, y };
+          s.settler = { x, y, t: 0 }; s.city = -1; s.task = null; s.think = 0; s.prof = null; s.food = 100; s.energy = Math.max(s.energy, 80);
           let n = 0;
-          for (const o of members) { if (n >= 4) break; if (o === s || o.army || o.settler || o === k.king) continue; o.settler = { x: x + ri(-1, 1), y: y + ri(-1, 1), follow: 1, t: 0 }; o.city = -1; n++; }
+          for (const o of members) { if (n >= 4) break; if (o === s || o.army || o.settler || o === k.king) continue; o.settler = { x: x + ri(-1, 1), y: y + ri(-1, 1), follow: 1, t: 0 }; o.city = -1; o.task = null; o.think = ri(0, 5); o.prof = null; o.food = 100; o.energy = Math.max(o.energy, 80); n++; }
           break;
         }
       }
     }
   }
-  // ejército
-  if (k.wars.size) {
-    const share = (.3 + (sp.war ? .15 : 0) + (k.aggr || 0) * .2);
-    for (const o of members) if (!o.settler && o !== k.king && !o.army && rnd() < share * .35 * (hasTrait(o, 'cobarde') ? .2 : 1)) o.army = true;
-  } else for (const o of members) o.army = false;
   if (c.pop === 0) { if (++c.empty > 10) destroyCity(c, 'queda abandonada'); } else c.empty = 0;
   // rebelión
   if (LAWS.rebelion.on && modOn('diplomacia') && k.capital !== c.id && c.pop > 10 && year() - k.born > 15) {
     const cap = cities[k.capital];
     const far = cap ? Math.sqrt(dist2(cap.x, cap.y, c.x, c.y)) : 50;
     const kc = cities.filter(o => o && o.alive && o.k === k).length;
-    if (kc > 4 && year() - k.born > 30 && rnd() < .0007 * (far / 25) * (1 + k.wars.size) / (1 + (k.leaders || 0) * .5)) rebel(c);
+    if (kc > 4 && year() - k.born > 30 && rnd() < .0007 * (far / 25) * (1 + k.wars.size) * (1.6 - c.mood / 100) / (1 + (k.leaders || 0) * .5)) rebel(c);
   }
 }
 function rebel(c) {
@@ -274,7 +293,7 @@ function kingdomUpdate() {
     if (!k.king || k.king.dead || k.king.k !== k) {
       const score = u => u.level + (u.hero ? 5 : 0) + (hasTrait(u, 'lider') ? 6 : 0);
       const cand = members.slice().sort((a, b) => score(b) - score(a))[0];
-      if (cand) { k.king = cand; cand.name = cand.name || mkName(k.race); if (modOn('diplomacia')) addLog(`${cand.name} es coronado soberano ${del(k)}.`, 'peace'); }
+      if (cand) { k.king = cand; cand.name = cand.name || mkName(k.race); cand.prof = 'ruler'; cand.task = null; if (modOn('diplomacia')) addLog(`${cand.name} es coronado soberano ${del(k)}.`, 'peace'); }
     }
     for (const w of k.wars) k.warYears[w] = (k.warYears[w] || 0) + .5;
   }

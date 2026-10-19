@@ -191,16 +191,9 @@ function renderSide() {
   } else {
     if (selected && !selected.dead) {
       const u = selected;
-      const tr = u.traits.filter(t => modOn(TRAITS[t].mod)).map(t => `<span class="chip ${TRAITS[t].magic ? 'm' : TRAITS[t].bad ? 'r' : ''}" title="${esc(TRAITS[t].d)}">${TRAITS[t].g} ${TRAITS[t].n}</span>`).join('');
-      const k = u.k;
-      sideBody.innerHTML = `<div class="ins"><h3>${esc(displayName(u))}</h3>
-        <div class="sub">${u.def.n}${k ? ' · ' + esc(k.name) : ' · sin pueblo'}${u.city >= 0 && cities[u.city] ? ' · ' + esc(cities[u.city].name) : ''}</div>
-        <div class="chips">${k && k.king === u ? '<span class="chip g">Soberano</span>' : ''}${u.hero ? '<span class="chip g">Héroe</span>' : ''}${u.army ? '<span class="chip r">Soldado</span>' : ''}${u.settler ? '<span class="chip">Colono</span>' : ''}${u.plague ? '<span class="chip r">Con plaga</span>' : ''}${u.age < 12 && u.def.civ ? '<span class="chip">Niño</span>' : ''}</div>
-        <h4>Rasgos</h4>${tr ? `<div class="chips">${tr}</div>` : '<p class="empty">Ninguno. Ve a la pestaña Rasgos y pasa el pincel por encima.</p>'}
-        <dl><dt>Vida</dt><dd>${Math.ceil(u.hp)} / ${Math.ceil(u.maxHp)}</dd><dt>Ataque</dt><dd>${atkOf(u).toFixed(1)}</dd>${u.def.civ && modOn('tecnologia') && k ? `<dt>Arma</dt><dd>${esc(u.item && modOn('heroes') ? u.item[0] : k.weapon.n)}</dd><dt>Armadura</dt><dd>${esc(k.armor.n)}</dd>` : ''}<dt>Nivel</dt><dd>${u.level}${modOn('heroes') ? ' · ' + rankOf(u.level) : ''}</dd><dt>Bajas</dt><dd>${u.kills}</dd><dt>Edad</dt><dd>${Math.floor(u.age)} / ${u.maxAge > 5000 ? '∞' : Math.floor(u.maxAge * kmul(k, 'age'))} años</dd></dl>
-        ${k ? `<button class="tbtn" data-a="kingdom">Ver ${esc(k.name)}</button>` : ''}
-        ${modOn('trucos') ? `<div class="acts"><button data-a="heal">Curar</button><button data-a="lvl">+5 niveles</button>${modOn('heroes') && u.def.civ ? '<button data-a="hero">Hacer héroe</button>' : ''}${k ? '<button data-a="king">Coronar</button>' : ''}<button data-a="follow">Centrar cámara</button><button data-a="kill" class="bad">Fulminar</button></div>` : ''}</div>`;
+      sideBody.innerHTML = unitPanel(u);
       sideBody.querySelectorAll('[data-a]').forEach(b => b.onclick = () => unitAct(u, b.dataset.a));
+      sideBody.querySelectorAll('[data-u]').forEach(b => b.onclick = () => { const o = unitById(+b.dataset.u); if (o) select(o); });
     } else if (selectedCity && selectedCity.alive) {
       const c = selectedCity, k = c.k;
       sideBody.innerHTML = `<div class="ins"><h3>${esc(c.name)}</h3><div class="sub">${k.capital === c.id ? 'Capital ' : 'Ciudad '}${esc(del(k))} · fundada en el año ${c.born}</div>
@@ -218,6 +211,47 @@ function renderSide() {
   sideBody.querySelectorAll('[data-ka]').forEach(b => b.onclick = () => kingdomAct(selectedKingdom, b.dataset.ka));
   sideDirty = false;
 }
+function needBar(label, v, col) {
+  return `<div class="need"><span>${label}</span><i><b style="width:${clamp(v, 0, 100).toFixed(0)}%;background:${col}"></b></i><em>${Math.round(v)}</em></div>`;
+}
+function linkU(id) { const o = unitById(id); return o ? `<button class="ulink" data-u="${o.id}">${esc(displayName(o))}</button>` : null; }
+function taskText(u) {
+  if (u.target && !u.target.dead) return (u.hunting ? 'Cazando: ' : 'Luchando contra ') + esc(displayName(u.target).toLowerCase());
+  const t = u.task; if (!t) return u.def.civ ? 'Pensando qué hacer' : 'Deambulando';
+  const ph = t.ph === 'go' ? 'de camino' : t.ph === 'back' ? 'volviendo con ' + (u.carry ? RESNAME[u.carry.r]?.toLowerCase() || u.carry.r : 'la carga') : t.k === 'sleep' ? 'durmiendo' : 'en ello';
+  return `${esc(t.n)} <span class="muted">· ${ph}</span>`;
+}
+function unitPanel(u) {
+  const def = u.def, k = u.k, c = cities[u.city];
+  const tr = u.traits.filter(t => TRAITS[t] && modOn(TRAITS[t].mod)).map(t => `<span class="chip ${TRAITS[t].magic ? 'm' : TRAITS[t].bad ? 'r' : ''}" title="${esc(TRAITS[t].d)}">${TRAITS[t].g} ${TRAITS[t].n}</span>`).join('');
+  const pr = u.prof && PROFS[u.prof] && u.prof !== 'ruler' ? `<span class="chip ok">${PROFS[u.prof].g} ${PROFS[u.prof].n}</span>` : '';
+  let civ = '';
+  if (def.civ) {
+    const dec = (u.dec || []).slice(0, 7), mx = Math.max(1, ...dec.map(d => d.s));
+    const kids = units.filter(o => o.parents && o.parents.includes(u.id)).length;
+    const fr = Object.keys(u.friends || {}).length;
+    civ = `<h4>Necesidades</h4>
+      ${def.noFood ? '' : needBar('Comida', u.food, u.food > 40 ? '#6ad074' : u.food > 15 ? '#e8b64c' : '#e0584b')}
+      ${needBar('Energía', u.energy, '#5aa6d6')}
+      ${needBar('Ánimo', u.mood, u.mood > 55 ? '#c2b0f5' : '#e0584b')}
+      <h4>Ahora</h4><div class="next">${taskText(u)}${u.carry ? `<div class="muted" style="margin-top:3px">Lleva ${u.carry.n.toFixed(1)} de ${esc((RESNAME[u.carry.r] || u.carry.r).toLowerCase())}</div>` : ''}</div>
+      ${dec.length ? `<h4>Decisiones de la IA</h4><div class="decs">${dec.map(d => `<div class="${d.id === u.decPick ? 'on' : ''}"><span>${d.id === u.decPick ? '▸ ' : ''}${esc(d.n)}</span><i><b style="width:${(d.s / mx * 100).toFixed(0)}%"></b></i><em>${d.s}</em></div>`).join('')}</div>` : ''}
+      <h4>Familia</h4><dl>
+        ${u.fam ? `<dt>Linaje</dt><dd>Casa ${esc(u.fam)}</dd>` : ''}
+        <dt>Pareja</dt><dd>${linkU(u.partner) || (u.widow ? 'viudo/a de ' + esc(u.widow) : 'ninguna')}</dd>
+        ${u.parents ? `<dt>Padres</dt><dd>${u.parents.map(linkU).filter(Boolean).join(' y ') || 'fallecidos'}</dd>` : ''}
+        <dt>Hijos</dt><dd>${kids}${u.kids && u.kids > kids ? ` (${u.kids} en total)` : ''}</dd><dt>Amigos</dt><dd>${fr}</dd></dl>`;
+  }
+  return `<div class="ins"><h3>${esc(displayName(u))}</h3>
+    <div class="sub">${def.n}${def.civ ? (u.sex === 'f' ? ' · ♀' : ' · ♂') : ''} · ${Math.floor(u.age)} años${k ? ' · ' + esc(k.name) : def.civ ? ' · sin pueblo' : ''}${c ? ' · ' + esc(c.name) : ''}</div>
+    <div class="chips">${k && k.king === u ? '<span class="chip g">♛ Soberano</span>' : ''}${u.hero ? '<span class="chip g">Héroe</span>' : ''}${pr}${u.settler ? '<span class="chip">Colono</span>' : ''}${u.plague ? '<span class="chip r">Con plaga</span>' : ''}</div>
+    ${civ}
+    <h4>Rasgos</h4>${tr ? `<div class="chips">${tr}</div>` : '<p class="empty">Ninguno. Ve a la pestaña Rasgos y pasa el pincel por encima.</p>'}
+    <h4>Combate</h4><dl><dt>Vida</dt><dd>${Math.ceil(u.hp)} / ${Math.ceil(u.maxHp)}</dd><dt>Ataque</dt><dd>${atkOf(u).toFixed(1)}</dd>${def.civ && modOn('tecnologia') && k ? `<dt>Arma</dt><dd>${esc(u.item && modOn('heroes') ? u.item[0] : k.weapon.n)}</dd><dt>Armadura</dt><dd>${esc(k.armor.n)}</dd>` : ''}<dt>Nivel</dt><dd>${u.level}${modOn('heroes') ? ' · ' + rankOf(u.level) : ''}</dd><dt>Bajas</dt><dd>${u.kills}</dd><dt>Vida máx.</dt><dd>${u.maxAge > 5000 ? '∞' : Math.floor(u.maxAge * kmul(k, 'age'))} años</dd></dl>
+    <div class="acts"><button data-a="follow">${followSel === u ? 'Dejar de seguir' : 'Seguir con la cámara'}</button>${k ? `<button data-a="kingdom">Ver su pueblo</button>` : ''}</div>
+    ${modOn('trucos') ? `<div class="acts"><button data-a="heal">Curar</button><button data-a="lvl">+5 niveles</button>${modOn('heroes') && def.civ ? '<button data-a="hero">Hacer héroe</button>' : ''}${k ? '<button data-a="king">Coronar</button>' : ''}<button data-a="kill" class="bad">Fulminar</button></div>` : ''}</div>`;
+}
+let followSel = null;
 function showKingdom(k) { selectedKingdom = k; openSide('kingdoms'); }
 function kingdomAct(k, a) {
   if (!k) return;
@@ -233,7 +267,7 @@ function unitAct(u, a) {
   if (a === 'lvl') { for (let i = 0; i < 5; i++) gainXp(u, u.level * 2); if (!modOn('heroes')) { u.level += 5; u.maxHp = maxHpOf(u); u.hp = u.maxHp; } }
   if (a === 'hero') { if (!u.hero) { u.level = Math.max(5, u.level); makeHero(u); } }
   if (a === 'king' && u.k) { u.k.king = u; u.name = u.name || mkName(u.k.race); addLog(`Por voluntad divina, ${u.name} es coronado soberano ${del(u.k)}.`, 'peace'); }
-  if (a === 'follow') { cam.x = u.x - VW / cam.z / 2; cam.y = u.y - VH / cam.z / 2; clampCam(); }
+  if (a === 'follow') { followSel = followSel === u ? null : u; if (followSel && cam.z < 10) cam.z = 14; }
   if (a === 'kill') { lightning(u.x | 0, u.y | 0); kill(u, null, 'castigo divino'); }
   renderSide();
 }

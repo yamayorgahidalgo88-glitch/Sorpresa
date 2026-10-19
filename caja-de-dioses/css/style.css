@@ -160,3 +160,14 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
   #hint{display:none}
 }
 @media (prefers-reduced-motion:reduce){#toast{transition:none}.rot{animation:none}}
+
+/* inspector de la IA */
+.muted{color:var(--muted)}
+.need,.decs>div{display:grid;grid-template-columns:64px minmax(0,1fr) 28px;gap:8px;align-items:center;font-size:12px;margin-bottom:4px}
+.need i,.decs i{display:block;height:7px;background:var(--bg);border-radius:4px;overflow:hidden}
+.need b,.decs b{display:block;height:100%;border-radius:4px}
+.need em,.decs em{font-style:normal;font-family:var(--f-mono);font-size:11px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.decs>div{grid-template-columns:104px minmax(0,1fr) 28px;color:var(--muted)}
+.decs b{background:#4b5d6a}
+.decs>div.on{color:var(--fg)} .decs>div.on b{background:var(--gold)}
+.ulink{border:0;background:none;color:var(--gold);cursor:pointer;padding:0;font:inherit;text-decoration:underline;text-underline-offset:2px}

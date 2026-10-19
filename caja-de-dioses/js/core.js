@@ -45,7 +45,7 @@ const MODS = {
   clima:      { n: 'Clima y Estaciones', d: 'Día y noche con luces en las ciudades, e inviernos nevados.', on: true },
   trucos:     { n: 'Modo Dios', d: 'Velocidad x10 y x25, editar unidades y pueblos, mapas gigantes y botones de caos.', on: true },
 };
-const modOn = id => !id || MODS[id].on;
+const modOn = id => !id || !!(MODS[id] && MODS[id].on);
 const LAWS = {
   guerras:   { n: 'Guerras automáticas', d: 'Los pueblos que se tocan pueden declararse la guerra solos. Si la apagas, solo hay guerra cuando tú la declaras.', on: true },
   mutacion:  { n: 'Mutaciones', d: 'Algunos bebés nacen con un rasgo nuevo al azar.', on: true },

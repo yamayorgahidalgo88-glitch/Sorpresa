@@ -376,8 +376,10 @@ function render() {
 }
 function roundRect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
 
+const RESCOL = Object.fromEntries(RESLIST.map(r => [r[0], css(r[2])]));
 function drawUnit(ctx, u, sx, sy, z) {
   const def = u.def;
+  if (u.asleep && bld[(u.y | 0) * W + (u.x | 0)]) return; // duerme dentro de casa
   const size = (def.size || 1) * tmul(u, 'size') * (def.civ && u.age < 12 ? .72 : 1);
   const moving = u.tx !== null || u.target;
   const frame = moving ? ((tickN + u.id * 3) >> 3) & 1 : 0;
@@ -399,6 +401,8 @@ function drawUnit(ctx, u, sx, sy, z) {
     else if (rangeOf(u) > 2) { ctx.strokeStyle = css(u.k.weapon.c); ctx.lineWidth = px * .8; ctx.beginPath(); ctx.arc(w * .34, h * .5, px * 2.4, -1.3, 1.3); ctx.stroke(); }
     else ctx.fillRect(w * .36, h * .12, px, px * 5);
   }
+  if (u.carry) { ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.fillRect(w * .14 - px * .3, h * .38 - px * .3, px * 3.6, px * 3.1); ctx.fillStyle = RESCOL[u.carry.r] || '#c9a060'; ctx.fillRect(w * .14, h * .38, px * 3, px * 2.5); }
+  if (u.asleep) ctx.globalAlpha = 1;
   ctx.restore();
   const top = sy - h + px + bob;
   const crown = (u.k && u.k.king === u) ? 'king' : u.hero ? 'hero' : null;

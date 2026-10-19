@@ -51,9 +51,10 @@ function loop(now) {
     if (loop.acc > 30) loop.acc = 0;
   }
   heldTool(now); keyPan();
+  if (followSel) { if (followSel.dead) followSel = null; else { cam.x += (followSel.x - VW / cam.z / 2 - cam.x) * .12; cam.y += (followSel.y - VH / cam.z / 2 - cam.y) * .12; clampCam(); } }
   render();
   loop.f = (loop.f || 0) + 1;
-  if (loop.f % 15 === 0) { renderStats(); if (sideDirty || (loop.f % 45 === 0 && !paused && sidePane !== 'log')) renderSide(); }
+  if (loop.f % 15 === 0) { renderStats(); if (sideDirty || (loop.f % (sidePane === 'ins' ? 15 : 45) === 0 && !paused && sidePane !== 'log')) renderSide(); }
   requestAnimationFrame(loop);
 }
 window.addEventListener('resize', () => { resize(); clampCam(); checkRotate(); });

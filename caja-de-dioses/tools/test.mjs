@@ -50,6 +50,8 @@ await page.evaluate(() => { const c = cities.find(c => c && c.alive); if (c) { c
 await page.screenshot({ path: path.join(out, 'city.png') });
 await page.evaluate(() => { const c = cities.find(c => c && c.alive); if (c) { cam.z = 26; cam.x = c.x - VW / cam.z / 2; cam.y = c.y - VH / cam.z / 2; } render(); });
 await page.screenshot({ path: path.join(out, 'close.png') });
+await page.evaluate(() => { const u = units.find(u => u.def.civ && u.partner && u.dec && u.age > 16) || units.find(u => u.def.civ); if (u) { select(u); cam.z = 22; cam.x = u.x - VW / cam.z / 2; cam.y = u.y - VH / cam.z / 2; } render(); renderSide(); });
+await page.screenshot({ path: path.join(out, 'inspector.png') });
 
 await browser.close();
 if (errors.length) { console.error('ERRORES:\n' + errors.join('\n')); process.exit(1); }
