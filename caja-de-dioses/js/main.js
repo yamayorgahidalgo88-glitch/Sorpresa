@@ -13,6 +13,8 @@ function renderSlots() {
 }
 document.getElementById('menuBtn').onclick = () => { document.getElementById('mSize').querySelector('[value="384x224"]').disabled = !modOn('trucos'); renderSlots(); document.getElementById('achList').innerHTML = achHtml(); modal.hidden = false; };
 document.getElementById('mExport').onclick = exportGame;
+if (framed) document.getElementById('mExport').textContent = 'Copiar partida';
+document.getElementById('modal').addEventListener('paste', e => { const t = e.clipboardData?.getData('text'); if (t && t.startsWith('{') && t.includes('"tile"')) { let d = null; try { d = JSON.parse(t); } catch (er) { } if (deserialize(d)) { modal.hidden = true; toast('Partida pegada y cargada'); } } });
 document.getElementById('mImport').onchange = e => { const f = e.target.files[0]; if (f) importGame(f); e.target.value = ''; };
 document.getElementById('mClose').onclick = () => modal.hidden = true;
 modal.addEventListener('click', e => { if (e.target === modal) modal.hidden = true; });

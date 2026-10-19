@@ -79,7 +79,13 @@ function loadSlot(slot) {
   toast('Partida cargada. El tiempo está parado.');
   return true;
 }
+const framed = (() => { try { return window.top !== window; } catch (e) { return true; } })();
 function exportGame() {
+  if (framed) { // dentro de un marco las descargas no funcionan: se copia al portapapeles
+    const txt = JSON.stringify(serialize());
+    navigator.clipboard.writeText(txt).then(() => toast('Partida copiada al portapapeles. Pégala en un archivo .json para guardarla.'), () => toast('No se pudo copiar. Usa las ranuras de guardado.'));
+    return;
+  }
   const blob = new Blob([JSON.stringify(serialize())], { type: 'application/json' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
   a.download = `caja-de-dioses-año-${year()}.json`; document.body.appendChild(a); a.click(); a.remove();
