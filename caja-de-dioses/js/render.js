@@ -92,7 +92,7 @@ function paintChunk(ch, cx, cy) {
     const y = cy * CH + ty;
     for (let tx = 0; tx < CH; tx++) {
       const x = cx * CH + tx, ox = tx * TS, oy = ty * TS;
-      if (x >= W || y >= H) { for (let py = 0; py < TS; py++) for (let px = 0; px < TS; px++) { const p = (oy + py) * stride + (ox + px) * 4; d[p] = 6; d[p + 1] = 9; d[p + 2] = 12; d[p + 3] = 255; } continue; }
+      if (x >= W || y >= H) { for (let py = 0; py < TS; py++) for (let px = 0; px < TS; px++) { const p = (oy + py) * stride + (ox + px) * 4; d[p] = 18; d[p + 1] = 48; d[p + 2] = 94; d[p + 3] = 255; } continue; }
       const i = y * W + x, t = tile[i], v = (hash(x, y, 1) * 4) | 0;
       const e = elvAt(i);
       const tex = t === T.SNOW && e === 6 ? snowPeakTex(v) : getTex(t, v);
@@ -264,7 +264,7 @@ function render() {
   const ctx = vctx, z = cam.z * DPR;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.globalCompositeOperation = 'source-over';
-  ctx.fillStyle = '#071019'; ctx.fillRect(0, 0, view.width, view.height);
+  ctx.fillStyle = '#12305e'; ctx.fillRect(0, 0, view.width, view.height);
   let sxo = 0, syo = 0;
   if (shake > 0) { sxo = (rnd() - .5) * shake * DPR; syo = (rnd() - .5) * shake * DPR; if (!paused) shake *= .9; if (shake < .3) shake = 0; }
   const ox = -cam.x * z + sxo, oy = -cam.y * z + syo;
