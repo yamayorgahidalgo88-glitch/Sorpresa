@@ -120,6 +120,33 @@
   </div>
 </div>
 
+<div id="raceModal" class="overlay" hidden>
+  <div class="box">
+    <h2>Crear especie</h2>
+    <p>Inventa un pueblo nuevo. Aparecerá en la pestaña Vida para fundar pueblos y se guarda en este navegador.</p>
+    <div class="rgrid">
+      <div>
+        <div class="frow"><label for="rName">Nombre (plural)</label><input id="rName" maxlength="20" placeholder="Por ejemplo: Trasgos"></div>
+        <div class="frow"><label for="rBase">Aspecto</label><select id="rBase"></select></div>
+        <div class="frow"><label for="rSkin">Piel</label><input type="color" id="rSkin" value="#7fb069"></div>
+        <div class="frow"><label for="rHair">Pelo</label><input type="color" id="rHair" value="#3a2a1e"></div>
+        <div class="frow"><label for="rWar">Carácter</label><select id="rWar"><option value="0">Pacífico</option><option value="1" selected>Normal</option><option value="2">Belicoso</option></select></div>
+      </div>
+      <div class="rprev"><canvas id="rPrev" width="96" height="96"></canvas><small>Vista previa</small></div>
+    </div>
+    <div id="rSliders"></div>
+    <div class="tchecks">
+      <label><input type="checkbox" id="rSwim"> Nada</label>
+      <label><input type="checkbox" id="rFire"> Inmune al fuego</label>
+      <label><input type="checkbox" id="rMount"> Cruza montañas</label>
+      <label><input type="checkbox" id="rFood"> No necesita comer</label>
+    </div>
+    <div class="frow"><label>Rasgos innatos</label><div class="rinn"><select id="rT1"></select><select id="rT2"></select></div></div>
+    <div class="mrow"><button class="primary" id="rSave">Crear especie</button><button class="tbtn" id="rClose">Cancelar</button></div>
+    <div id="rList"></div>
+  </div>
+</div>
+
 <div id="rotate" class="overlay" hidden>
   <div class="box" style="text-align:center">
     <div class="rot" aria-hidden="true">📱</div>

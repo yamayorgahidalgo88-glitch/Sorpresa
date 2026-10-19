@@ -196,6 +196,7 @@ const USPR = {
 };
 const SPRITE_CACHE = new Map();
 function hairOf(type, seed) {
+  if (SP[type]?.hair) return SP[type].hair;
   const H = { human: [[70, 46, 30], [40, 30, 24], [170, 120, 60], [120, 70, 40]], elf: [[230, 210, 140], [210, 200, 190], [170, 120, 70]], dwarf: [[160, 80, 40], [90, 60, 40], [200, 140, 60]], orc: [[40, 40, 30]], undead: [[200, 210, 200]], demon: [[30, 20, 20]], lizard: [[60, 140, 90]], zombie: [[60, 70, 50]] };
   const a = H[type] || [[60, 50, 40]]; return a[seed % a.length];
 }
@@ -213,7 +214,7 @@ function unitSprite(u, frame, flip = 0) {
   const sig = (frame & 1) | flip << 1 | hit << 2 | (u.plague || u.sick ? 1 : 0) << 3 | wk << 4 | at << 6 | (u.k ? u.k.id + 3 : 1) << 10 | (u.k && wk ? u.k.weapon.tier : 0) << 24;
   if (u._sig === sig && u._spr) return u._spr;
   const hs = u.id % 4;
-  const key = u.type + '|' + sig + '|' + hs + '|' + (u.k ? u.k.color.join(',') : '');
+  const key = u.type + '|' + sig + '|' + hs + '|' + (u.k ? u.k.color.join(',') : '') + (def.custom ? '|' + def.skin.join(',') + '|' + (def.hair || []).join(',') + '|' + def.base : '');
   let s = SPRITE_CACHE.get(key);
   if (!s) {
     const tpl = USPR[u.type] || USPR.human;

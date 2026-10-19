@@ -46,6 +46,7 @@ function spawn(type, x, y, k, city, opt = {}) {
   };
   if (def.civ && u.age < 12) u.prof = 'child';
   if (def.civ) u.name = mkName(type);
+  if (def.innate) for (const t of def.innate) if (TRAITS[t] && !u.traits.includes(t)) u.traits.push(t);
   u.maxAge *= tmul(u, 'age');
   u.maxHp = maxHpOf(u); u.hp = u.maxHp;
   units.push(u); UMAP.set(u.id, u);

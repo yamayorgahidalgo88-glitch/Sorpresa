@@ -25,6 +25,7 @@ function serialize() {
     kingdoms: kingdoms.map(k => ({ ...k, css: undefined, _embC: undefined, _embK: undefined, _embUrl: undefined, _embUrlK: undefined, _flag: undefined, _flagK: undefined, wars: [...k.wars], allies: [...k.allies], tech: [...k.tech], king: k.king && !k.king.dead ? k.king.id : null })),
     cities: cities.map(c => c && ({ ...c, k: c.k.id, ores: [] })),
     units: list.map(u => { const o = { k: u.k ? u.k.id : null }; for (const key of UNIT_KEYS) if (u[key] !== undefined && u[key] !== null) o[key] = u[key]; return o; }),
+    races: Object.fromEntries(Object.keys(SP).filter(t => SP[t].custom && units.some(u => u.type === t)).map(t => [t, SP[t]])),
     religions, history, histStep, custom: Object.fromEntries([...used].map(t => [t, TRAITS[t]])),
     logs: logs.slice(0, 120),
   };
@@ -34,6 +35,7 @@ function deserialize(data) {
   for (const k in data.mods) if (MODS[k]) MODS[k].on = data.mods[k];
   for (const k in data.laws) if (LAWS[k]) LAWS[k].on = data.laws[k];
   for (const id in data.custom || {}) if (!TRAITS[id]) { TRAITS[id] = data.custom[id]; customTraits[id] = data.custom[id]; TOOLS.push({ tab: 'rasgos', id: 'r_' + id, n: TRAITS[id].n, kind: 'trait', trait: id, glyph: TRAITS[id].g }); }
+  for (const id in data.races || {}) if (!SP[id]) { registerRace(id, data.races[id]); customRaces[id] = data.races[id]; addRaceTools(id); }
   allocWorld(data.W, data.H);
   tile.set(fromB64(data.tile)); owner.set(new Uint16Array(fromB64(data.owner).buffer)); bld.set(fromB64(data.bld)); rad.set(fromB64(data.rad));
   ore.set(fromB64(data.ore)); oreAmt.set(fromB64(data.oreAmt)); wall.set(fromB64(data.wall));

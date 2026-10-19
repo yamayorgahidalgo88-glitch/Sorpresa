@@ -153,3 +153,20 @@ function loadCustomTraits() {
 }
 function saveCustomTraits() { try { localStorage.setItem(CUSTOM_KEY, JSON.stringify(customTraits)); return true; } catch (e) { return false; } }
 loadCustomTraits();
+
+// ---------- especies creadas por el jugador ----------
+const RACE_KEY = 'caja-de-dioses-especies';
+let customRaces = {};
+const RACE_BASES = { human: 'Humano', elf: 'Elfo', dwarf: 'Enano', orc: 'Orco', lizard: 'Lagarto', undead: 'Esqueleto', demon: 'Demonio' };
+function registerRace(id, d) {
+  SP[id] = d; USPR[id] = USPR[d.base] || USPR.human;
+  KT[id] = [['Tribu de', 1], ['Reino de', 0], ['Imperio de', 0]];
+  SYL[id] = SYL[d.base] || SYL.human;
+  if (!CIV.includes(id)) CIV.push(id);
+}
+function loadCustomRaces() {
+  try { customRaces = JSON.parse(localStorage.getItem(RACE_KEY) || '{}') || {}; } catch (e) { customRaces = {}; }
+  for (const id in customRaces) registerRace(id, customRaces[id]);
+}
+function saveCustomRaces() { try { localStorage.setItem(RACE_KEY, JSON.stringify(customRaces)); return true; } catch (e) { return false; } }
+loadCustomRaces();

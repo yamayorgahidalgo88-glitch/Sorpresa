@@ -67,6 +67,11 @@ function renderTools() {
       card.innerHTML = `<span style="font-size:22px;line-height:1">✚</span><span><b>Crear rasgo</b><p>Inventa tus propios rasgos con sus efectos.${n ? ' Tienes ' + n + '.' : ''}</p></span>`;
       card.onclick = openTraitEditor;
       wrap.prepend(card);
+      const rc = document.createElement('button'); rc.className = 'pcard create';
+      const nr = Object.keys(customRaces).length;
+      rc.innerHTML = `<span style="font-size:22px;line-height:1">🧬</span><span><b>Crear especie</b><p>Diseña un pueblo nuevo: aspecto, fuerza, vida y carácter.${nr ? ' Tienes ' + nr + '.' : ''}</p></span>`;
+      rc.onclick = openRaceEditor;
+      card.after(rc);
     }
     toolsEl.appendChild(wrap);
     return;
@@ -447,4 +452,72 @@ function bindHistory() {
   };
   hit.addEventListener('pointermove', move); hit.addEventListener('pointerdown', move);
   hit.addEventListener('pointerleave', () => { xl.style.display = 'none'; tip.hidden = true; });
+}
+
+// ---------- editor de especies ----------
+const RSLIDERS = [['hp', 'Vida', 10, 90, 1, 30], ['atk', 'Ataque', 1, 14, .5, 4], ['spd', 'Velocidad', .3, 1, .05, .55], ['life', 'Esperanza de vida', 20, 600, 5, 70], ['research', 'Ciencia', .4, 2.2, .05, 1], ['mine', 'Minería', .4, 2.5, .05, 1]];
+const raceModal = document.getElementById('raceModal');
+const hex2rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+function raceDraft() {
+  const v = id => document.getElementById(id);
+  const val = k => +v('rs_' + k).value;
+  const life = val('life');
+  const d = { n: v('rName').value.trim() || 'Nueva especie', civ: 1, custom: 1, base: v('rBase').value, spr: 'man', skin: hex2rgb(v('rSkin').value), hair: hex2rgb(v('rHair').value), hp: val('hp'), atk: val('atk'), spd: val('spd'), age: [Math.round(life * .8), Math.round(life * 1.15)] };
+  const war = +v('rWar').value; if (war === 2) d.war = 2;
+  const bonus = {}; if (Math.abs(val('research') - 1) > .04) bonus.research = val('research'); if (Math.abs(val('mine') - 1) > .04) bonus.mine = val('mine'); if (Object.keys(bonus).length) d.bonus = bonus;
+  if (v('rSwim').checked) d.swim = 1; if (v('rFire').checked) d.fireproof = 1; if (v('rMount').checked) d.mount = 1; if (v('rFood').checked) d.noFood = 1;
+  const inn = [v('rT1').value, v('rT2').value].filter(Boolean); if (war === 0 && !inn.includes('pacifico')) inn.push('pacifico'); if (inn.length) d.innate = [...new Set(inn)];
+  return d;
+}
+function raceSpritePreview() {
+  const d = raceDraft(), id = '__preview';
+  SP[id] = d; USPR[id] = USPR[d.base] || USPR.human;
+  const fake = { def: d, type: id, k: { id: -50, color: [200, 170, 90], armor: { tier: 0 }, weapon: { tier: 0, c: null } }, age: 30, id: Date.now() % 997, hitT: 0, plague: 0, traits: [] };
+  const spr = unitSprite(fake, 0, 0);
+  const c = document.getElementById('rPrev'), x = c.getContext('2d');
+  x.clearRect(0, 0, 96, 96); x.imageSmoothingEnabled = false;
+  const sc = Math.floor(84 / Math.max(spr.w, spr.h));
+  x.drawImage(spr.cv, Math.floor(48 - spr.ax * sc), Math.floor(90 - spr.ay * sc), spr.w * sc, spr.h * sc);
+  delete SP[id];
+}
+function openRaceEditor() {
+  document.getElementById('rBase').innerHTML = Object.entries(RACE_BASES).map(([k, n]) => `<option value="${k}">${n}</option>`).join('');
+  const opts = '<option value="">— ninguno —</option>' + Object.keys(TRAITS).filter(t => modOn(TRAITS[t].mod)).map(t => `<option value="${t}">${TRAITS[t].g} ${esc(TRAITS[t].n)}</option>`).join('');
+  document.getElementById('rT1').innerHTML = opts; document.getElementById('rT2').innerHTML = opts;
+  document.getElementById('rSliders').innerHTML = RSLIDERS.map(([k, n, a, b, st, def]) => `<div class="slid"><span>${n}</span><input type="range" id="rs_${k}" min="${a}" max="${b}" step="${st}" value="${def}"><b id="rv_${k}">${def}</b></div>`).join('');
+  for (const [k] of RSLIDERS) { const r = document.getElementById('rs_' + k); r.oninput = () => { document.getElementById('rv_' + k).textContent = (+r.value).toFixed(r.step < 1 ? 2 : 0); raceSpritePreview(); }; }
+  for (const id of ['rBase', 'rSkin', 'rHair']) document.getElementById(id).oninput = raceSpritePreview;
+  renderRaceList(); raceSpritePreview();
+  raceModal.hidden = false; document.getElementById('rName').focus();
+}
+function renderRaceList() {
+  const ids = Object.keys(customRaces);
+  document.getElementById('rList').innerHTML = ids.length ? '<h4 style="margin:0 0 6px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Tus especies</h4>' + ids.map(id => `<div class="ct"><span>${esc(customRaces[id].n)} <small style="color:var(--muted)">vida ${customRaces[id].hp} · ataque ${customRaces[id].atk} · ${customRaces[id].age[0]}–${customRaces[id].age[1]} años</small></span><button class="tbtn" data-rdel="${id}">Borrar</button></div>`).join('') : '';
+  document.querySelectorAll('#rList [data-rdel]').forEach(b => b.onclick = () => deleteCustomRace(b.dataset.rdel));
+}
+function addRaceTools(id) {
+  const d = SP[id];
+  TOOLS.push({ tab: 'vida', id: 'v_' + id, n: 'Pueblo de ' + d.n.toLowerCase(), kind: 'village', sp: id, once: 1 });
+  TOOLS.push({ tab: 'vida', id: 's_' + id, n: d.n, kind: 'spawn', sp: id });
+}
+document.getElementById('rClose').onclick = () => raceModal.hidden = true;
+raceModal.addEventListener('click', e => { if (e.target === raceModal) raceModal.hidden = true; });
+document.getElementById('rSave').onclick = () => {
+  if (!document.getElementById('rName').value.trim()) { toast('Ponle un nombre a la especie'); return; }
+  const d = raceDraft();
+  const id = 'r_' + d.n.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '_').slice(0, 16) + '_' + Date.now().toString(36).slice(-3);
+  customRaces[id] = d; registerRace(id, d); addRaceTools(id);
+  if (!saveCustomRaces()) toast('No se pudo guardar en el navegador; la especie dura hasta que cierres la página');
+  raceModal.hidden = true; document.getElementById('rName').value = '';
+  curTab = 'vida'; renderTabs(); selectTool(TOOLS.find(t => t.id === 'v_' + id));
+  toast(`Especie creada: ${d.n}. Toca la tierra para fundar su primer pueblo.`);
+};
+function deleteCustomRace(id) {
+  if (units.some(u => u.type === id)) { toast('Aún quedan seres de esa especie en el mundo'); return; }
+  delete customRaces[id]; saveCustomRaces();
+  for (const tid of ['v_' + id, 's_' + id]) { const i = TOOLS.findIndex(t => t.id === tid); if (i >= 0) TOOLS.splice(i, 1); }
+  const ci = CIV.indexOf(id); if (ci >= 0) CIV.splice(ci, 1);
+  delete SP[id];
+  if (curTool.sp === id) curTool = TOOLS.find(t => t.id === 'v_human');
+  renderRaceList(); renderTools();
 }
