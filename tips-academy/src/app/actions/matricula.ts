@@ -10,7 +10,7 @@ const schema = z.object({
   email: z.email("Introduce un email válido.").max(120),
   phone: z.string().trim().regex(/^(\+?\d[\d\s-]{7,16}\d)$/, "Introduce un teléfono válido."),
   course: z.string().trim().max(60).optional().default(""),
-  hours: z.coerce.number().int().min(1).max(15),
+  hours: z.union([z.literal(""), z.coerce.number().int().min(1).max(15)]).optional().default(""),
   message: z.string().trim().max(800).optional().default(""),
   privacy: z.literal("on", { error: "Debes aceptar la política de privacidad." }),
 })
@@ -41,8 +41,8 @@ export async function sendMatricula(_prev: MatriculaState, formData: FormData): 
       ["Alumno", d.student],
       ["Email", d.email],
       ["Teléfono", d.phone],
-      ["Curso", d.course || "—"],
-      ["Horas/semana", String(d.hours)],
+      ["Asignatura / taller", d.course || "—"],
+      ["Horas/semana", d.hours === "" ? "—" : String(d.hours)],
       ["Mensaje", d.message || "—"],
     ],
   })

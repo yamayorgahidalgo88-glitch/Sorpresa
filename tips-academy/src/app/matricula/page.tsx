@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import type { Metadata } from "next"
 import { Globe, Mail, MapPin, Phone } from "lucide-react"
 
@@ -21,7 +22,9 @@ export default function MatriculaPage() {
       <section className="whiteboard py-12 sm:py-16">
         <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-8 lg:grid-cols-[1.25fr_0.75fr]">
           <div className="notebook rounded-[8px] p-6 pl-14 shadow-[0_30px_50px_-30px_rgb(12_31_51/0.5)] sm:p-10 sm:pl-16">
-            <MatriculaForm />
+            <Suspense>
+              <MatriculaForm />
+            </Suspense>
           </div>
           <div className="space-y-6">
             <StickyNote color="yellow" rotate={2}>

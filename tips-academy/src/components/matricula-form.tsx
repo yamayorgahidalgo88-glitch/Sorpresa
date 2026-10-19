@@ -2,6 +2,7 @@
 
 import { startTransition, useActionState, useEffect, useId, useRef } from "react"
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 import { CircleAlert, CircleCheck, LoaderCircle, Send } from "lucide-react"
 
 import { sendMatricula, type MatriculaField, type MatriculaState } from "@/app/actions/matricula"
@@ -9,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { courses } from "@/lib/site"
+import { courses, services } from "@/lib/site"
 import { cn } from "@/lib/utils"
 
 const initial: MatriculaState = { status: "idle" }
@@ -20,6 +21,8 @@ export function MatriculaForm() {
   const uid = useId()
   const form = useRef<HTMLFormElement>(null)
   const status = useRef<HTMLDivElement>(null)
+  const params = useSearchParams()
+  const wanted = services.find((x) => x.slug === params.get("servicio"))?.title ?? courses.find((x) => x.slug === params.get("curso"))?.title
   const errors = state.status === "error" ? (state.fieldErrors ?? {}) : {}
   const values = state.status === "error" ? (state.values ?? {}) : {}
 
@@ -75,18 +78,26 @@ export function MatriculaForm() {
       </div>
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="grid gap-2">
-          <Label htmlFor={`${uid}-course`} className="font-semibold text-ink">Curso</Label>
-          <select {...a("course")} defaultValue={values.course ?? ""} className="h-12 w-full rounded-[12px] border border-input bg-white px-4 text-base">
+          <Label htmlFor={`${uid}-course`} className="font-semibold text-ink">Asignatura, curso o taller</Label>
+          <select {...a("course")} defaultValue={values.course ?? wanted ?? ""} className="h-12 w-full rounded-[12px] border border-input bg-white px-4 text-base">
             <option value="">Selecciona (opcional)</option>
-            <option>Primaria</option>
-            {courses.map((c) => (
-              <option key={c.slug}>{c.title}</option>
-            ))}
+            <optgroup label="Clases de apoyo por curso">
+              <option>Primaria</option>
+              {courses.map((c) => (
+                <option key={c.slug}>{c.title}</option>
+              ))}
+            </optgroup>
+            <optgroup label="Talleres, cursos y otros servicios">
+              {services.map((x) => (
+                <option key={x.slug}>{x.title}</option>
+              ))}
+            </optgroup>
           </select>
         </div>
         <div className="grid gap-2">
-          <Label htmlFor={`${uid}-hours`} className="font-semibold text-ink">Horas a la semana *</Label>
-          <select {...a("hours")} defaultValue={values.hours ?? "2"} className="h-12 w-full rounded-[12px] border border-input bg-white px-4 text-base">
+          <Label htmlFor={`${uid}-hours`} className="font-semibold text-ink">Horas a la semana (opcional)</Label>
+          <select {...a("hours")} defaultValue={values.hours ?? ""} className="h-12 w-full rounded-[12px] border border-input bg-white px-4 text-base">
+            <option value="">Lo vemos juntos</option>
             {Array.from({ length: 15 }, (_, i) => (
               <option key={i + 1} value={i + 1}>
                 {i + 1} {i ? "horas" : "hora"}

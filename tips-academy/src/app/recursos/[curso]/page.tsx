@@ -88,7 +88,7 @@ export default async function CursoPage({ params }: PageProps<"/recursos/[curso]
         </div>
       </section>
 
-      <CtaStrip text="¿Te ayudamos con esto?" />
+      <CtaStrip text="¿Te ayudamos con esto?" query={`curso=${course.slug}`} />
     </>
   )
 }

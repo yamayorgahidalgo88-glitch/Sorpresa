@@ -74,7 +74,7 @@ export default async function ServicePage({ params }: PageProps<"/servicios/[slu
             <p className="mt-2 text-ink/80">Cuéntanos qué necesitas y te informamos sin compromiso.</p>
             <div className="mt-5 flex flex-col gap-2">
               <Button asChild>
-                <Link href={site.links.matricula}>Reservar mi plaza</Link>
+                <Link href={`${site.links.matricula}?servicio=${service.slug}`}>Reservar mi plaza</Link>
               </Button>
               <Button asChild variant="outline">
                 <a href={site.phone.href}>
@@ -164,7 +164,7 @@ export default async function ServicePage({ params }: PageProps<"/servicios/[slu
         </div>
       </section>
 
-      <CtaStrip />
+      <CtaStrip query={`servicio=${service.slug}`} />
     </>
   )
 }

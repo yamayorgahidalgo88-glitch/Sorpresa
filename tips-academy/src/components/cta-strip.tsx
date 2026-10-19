@@ -5,7 +5,7 @@ import { Scribble } from "@/components/board/scribble"
 import { Button } from "@/components/ui/button"
 import { site } from "@/lib/site"
 
-export function CtaStrip({ text = "¿Empezamos?" }: { text?: string }) {
+export function CtaStrip({ text = "¿Empezamos?", query }: { text?: string; query?: string }) {
   return (
     <section className="bg-sky-light/60 py-12">
       <div className="mx-auto flex max-w-7xl flex-col items-center gap-6 px-4 text-center sm:px-8 md:flex-row md:justify-between md:text-left">
@@ -16,7 +16,7 @@ export function CtaStrip({ text = "¿Empezamos?" }: { text?: string }) {
         </div>
         <div className="flex flex-wrap justify-center gap-3">
           <Button asChild size="lg">
-            <Link href={site.links.matricula}>Reservar mi plaza</Link>
+            <Link href={query ? `${site.links.matricula}?${query}` : site.links.matricula}>Reservar mi plaza</Link>
           </Button>
           <Button asChild size="lg" variant="outline">
             <Link href="/contacto">Pide información</Link>
