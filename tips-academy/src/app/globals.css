@@ -219,6 +219,15 @@ html.js .chalk-pending {
   animation: write-in 0.16s cubic-bezier(0.4, 0, 0.6, 1) forwards;
   animation-delay: calc(var(--d, 0s) + var(--i) * var(--speed, 45ms));
 }
+/* En espera hasta entrar en pantalla (solo con JS; sin JS se escribe al cargar). */
+html.js .hw-wait .hw-char {
+  animation-play-state: paused;
+}
+/* Terminado: sin animaciones ni recortes. */
+.hw-done .hw-char {
+  animation: none;
+  clip-path: none;
+}
 
 @media (prefers-reduced-motion: reduce) {
   *,
