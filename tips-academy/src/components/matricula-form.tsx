@@ -1,6 +1,6 @@
 "use client"
 
-import { startTransition, useActionState, useEffect, useId, useRef } from "react"
+import { startTransition, useActionState, useEffect, useId, useRef, useState } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { CircleAlert, CircleCheck, LoaderCircle, Send } from "lucide-react"
@@ -10,10 +10,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { courses, services } from "@/lib/site"
+import { courses, services, subjects } from "@/lib/site"
 import { cn } from "@/lib/utils"
 
 const initial: MatriculaState = { status: "idle" }
+/** Servicios en los que se pide elegir asignaturas. */
+const WITH_SUBJECTS = ["Clases de apoyo grupales", "Clases particulares"]
 const field = "h-12 rounded-[12px] bg-white px-4 text-base"
 
 export function MatriculaForm() {
@@ -25,10 +27,25 @@ export function MatriculaForm() {
   const wanted = services.find((x) => x.slug === params.get("servicio"))?.title ?? courses.find((x) => x.slug === params.get("curso"))?.title
   const errors = state.status === "error" ? (state.fieldErrors ?? {}) : {}
   const values = state.status === "error" ? (state.values ?? {}) : {}
+  const [course, setCourse] = useState(values.course ?? wanted ?? "")
+  const [picked, setPicked] = useState<string[]>(values.subjects ? values.subjects.split("|") : [])
+  const names = subjects.map((s) => s.name)
+  // Tras enviar con éxito, se vuelve a la selección inicial (ajuste durante el render, sin efectos).
+  const [seen, setSeen] = useState(state)
+  if (seen !== state) {
+    setSeen(state)
+    if (state.status === "success") {
+      setCourse(wanted ?? "")
+      setPicked([])
+    }
+  }
+  const allPicked = picked.length === names.length
 
   useEffect(() => {
     if (state.status === "idle") return
-    if (state.status === "success") form.current?.reset()
+    if (state.status === "success") {
+      form.current?.reset()
+    }
     const bad = form.current?.querySelector<HTMLElement>("[aria-invalid='true']")
     if (bad) bad.focus()
     else status.current?.focus()
@@ -79,7 +96,7 @@ export function MatriculaForm() {
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="grid gap-2">
           <Label htmlFor={`${uid}-course`} className="font-semibold text-ink">Asignatura, curso o taller</Label>
-          <select {...a("course")} defaultValue={values.course ?? wanted ?? ""} className="h-12 w-full rounded-[12px] border border-input bg-white px-4 text-base">
+          <select {...a("course")} value={course} onChange={(e) => setCourse(e.target.value)} className="h-12 w-full rounded-[12px] border border-input bg-white px-4 text-base">
             <option value="">Selecciona (opcional)</option>
             <optgroup label="Clases de apoyo por curso">
               <option>Primaria</option>
@@ -107,6 +124,35 @@ export function MatriculaForm() {
           {err("hours")}
         </div>
       </div>
+      {WITH_SUBJECTS.includes(course) && (
+        <fieldset className="grid gap-3 rounded-[12px] border border-dashed border-input bg-white/70 p-4">
+          <legend className="px-2 font-semibold text-ink">¿Qué asignaturas necesitas?</legend>
+          <label className="flex items-center gap-3 font-semibold text-ink">
+            <input
+              type="checkbox"
+              checked={allPicked}
+              onChange={(e) => setPicked(e.target.checked ? names : [])}
+              className="size-5 accent-[#1d3b5a]"
+            />
+            Seleccionar todas
+          </label>
+          <div className="grid gap-x-4 gap-y-2 sm:grid-cols-2">
+            {names.map((n) => (
+              <label key={n} className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  name="subjects"
+                  value={n}
+                  checked={picked.includes(n)}
+                  onChange={(e) => setPicked((p) => (e.target.checked ? [...p, n] : p.filter((x) => x !== n)))}
+                  className="size-5 accent-[#1d3b5a]"
+                />
+                {n}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )}
       <div className="grid gap-2">
         <Label htmlFor={`${uid}-message`} className="font-semibold text-ink">Tu mensaje (opcional)</Label>
         <Textarea {...a("message")} rows={4} maxLength={800} defaultValue={values.message} className="rounded-[12px] bg-white px-4 py-3 text-base" />

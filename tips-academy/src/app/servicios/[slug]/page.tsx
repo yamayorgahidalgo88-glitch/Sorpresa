@@ -8,6 +8,7 @@ import { Mark } from "@/components/board/scribble"
 import { noteBg, StickyNote } from "@/components/board/sticky-note"
 import { CtaStrip } from "@/components/cta-strip"
 import { PageHero } from "@/components/page-hero"
+import { SubjectsOffered } from "@/components/subjects-offered"
 import { ServiceCard } from "@/components/service-card"
 import { ServiceIcon } from "@/components/service-icon"
 import { Button } from "@/components/ui/button"
@@ -121,6 +122,8 @@ export default async function ServicePage({ params }: PageProps<"/servicios/[slu
           </div>
         </section>
       )}
+
+      {(service.slug === "clases-grupales" || service.slug === "clases-particulares") && <SubjectsOffered />}
 
       {service.slug === "intensivo-selectividad" && (
         <section aria-labelledby="calendario" className="whiteboard py-14 sm:py-16">

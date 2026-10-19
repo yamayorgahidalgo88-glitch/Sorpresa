@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 
 import { QuoteMarker } from "@/components/board/quote-marker"
 import { PageHero } from "@/components/page-hero"
+import { SubjectsOffered } from "@/components/subjects-offered"
 import { ServiceCard } from "@/components/service-card"
 import { quotes, services } from "@/lib/site"
 
@@ -36,6 +37,8 @@ export default function Servicios() {
           </div>
         </div>
       </section>
+
+      <SubjectsOffered />
     </>
   )
 }
