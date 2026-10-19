@@ -107,7 +107,7 @@ function scanCity(c) {
   }
   c.houses = houses; c.fields = fields; c.owned = owned; c.foodYield = food; c.coast = coast; c.has = has; c.granary = has[B.GRANARY] || 0;
   const ht = modOn('tecnologia') ? c.k.house : 0;
-  c.cap = 5 + Math.floor(houses * (1.5 + ht * .5));
+  c.cap = Math.min(140, 5 + Math.floor(houses * (1.5 + ht * .3)));
 }
 function cityUpdate(c) {
   if (!c.alive) return;
@@ -127,7 +127,8 @@ function cityUpdate(c) {
   const fert = members.length ? members.reduce((s, o) => s + tmul(o, 'fert'), 0) / members.length : 0;
   c.mood = members.length ? members.reduce((s, o) => s + o.mood, 0) / members.length : 60;
   const crowd = c.pop / Math.max(1, c.cap);
-  const birth = (sp.noFood ? .2 : .42) * fert * kmul(k, 'birth') * (.6 + c.mood / 120) * (crowd > .8 ? (1 - crowd) * 5 : 1);
+  const world = Math.max(0, 1 - civPop / (N / 13)); // el mundo se llena: menos nacimientos
+  const birth = (sp.noFood ? .2 : .42) * fert * kmul(k, 'birth') * (.6 + c.mood / 120) * (crowd > .8 ? (1 - crowd) * 5 : 1) * world;
   if (members.length >= 2 && c.pop < c.cap && (c.food > 3 + c.pop * .6 || sp.noFood) && rnd() < birth) {
     const mothers = members.filter(o => o.partner && o.sex === 'f' && o.age < SP[o.type].age[0] * .75 && tmul(o, 'fert') > 0 && tickN - (o.lastBirth || -9999) > YEAR * 1.6);
     let pa = null, pb = null;
@@ -293,7 +294,9 @@ function research(k, members) {
   let maxCost = 40; for (const t of TECH) if (techAvailable(k, t)) maxCost = Math.max(maxCost, t.cost);
   k.rp = Math.min(k.rp, maxCost * 1.5);
 }
+let civPop = 0;
 function kingdomUpdate() {
+  civPop = 0; for (const u of units) if (u.def.civ) civPop++;
   if (regionDirty) computeRegions();
   const alive = kingdoms.filter(k => k.alive);
   for (const k of alive) {

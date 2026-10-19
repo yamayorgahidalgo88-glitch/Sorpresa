@@ -39,6 +39,8 @@ const TECH = [
   { id: 'blindaje', n: 'Blindaje moderno', era: 7, cost: 580, need: { hierro: 80, carbon: 40 }, req: ['electricidad'], armor: 7 },
   { id: 'adamant', n: 'Armadura de adamantita', era: 5, cost: 260, need: { adamantita: 15 }, req: ['mithril'], armor: 8, mod: 'magia' },
 ];
+// las eras avanzadas cuestan bastante más de investigar
+for (const t of TECH) t.cost = Math.round(t.cost * (1.6 + t.era * .22));
 const TECHID = Object.fromEntries(TECH.map(t => [t.id, t]));
 
 // ---------- especies ----------
