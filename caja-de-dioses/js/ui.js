@@ -219,6 +219,9 @@ function renderSide() {
   if (sidePane === 'log') {
     sideBody.innerHTML = logs.length > 1 ? '<div class="log">' + logs.map((l, n) => `<div class="${l.cls}${l.x !== undefined ? ' go' : ''}" ${l.x !== undefined ? `data-go="${n}" title="Ir al lugar"` : ''}><i>Año ${l.y}</i>${esc(l.m)}</div>`).join('') + '</div>'
       : '<p class="empty">Aquí se escribirá la historia de tu mundo.<br><br>1. En <b>Vida</b>, toca la tierra para fundar un pueblo.<br>2. En <b>Rasgos</b>, pasa el pincel por su gente: inteligentes, trabajadores, tontos…<br>3. En <b>Materiales</b>, pon cobre, hierro, obsidiana… cerca de ellos.<br>4. Separa pueblos con una <b>frontera</b> si quieres que crezcan aislados.<br>5. Pulsa <b>▶ Empezar</b>.</p>';
+  } else if (sidePane === 'hist') {
+    sideBody.innerHTML = historyPane();
+    bindHistory();
   } else if (sidePane === 'kingdoms') {
     if (selectedKingdom && selectedKingdom.alive) sideBody.innerHTML = kingdomDetail(selectedKingdom);
     else {
@@ -385,4 +388,63 @@ function deleteCustomTrait(id) {
   for (const u of units) if (u.traits.includes(id)) u.traits = u.traits.filter(x => x !== id);
   if (curTool.trait === id) curTool = TOOLS.find(t => t.id === 'v_human');
   renderTraitList(); renderTools();
+}
+
+// ---------- historia: gráfica de población por reino ----------
+function histSeries() {
+  const peak = {};
+  for (const h of history) for (const id in h.p) peak[id] = Math.max(peak[id] || 0, h.p[id]);
+  const ids = Object.keys(peak).sort((a, b) => peak[b] - peak[a]);
+  return { main: ids.slice(0, 8).map(Number), rest: ids.slice(8).map(Number) };
+}
+function historyPane() {
+  if (history.length < 2) return '<p class="empty">La historia se escribe año a año. Deja correr el tiempo y aquí verás cómo crece cada pueblo.</p>';
+  const { main, rest } = histSeries();
+  const W2 = 290, H2 = 170, L = 34, R = 8, Tp = 8, Bt = 22;
+  let max = 1; for (const h of history) { let o = 0; for (const id in h.p) { if (main.includes(+id)) max = Math.max(max, h.p[id]); else o += h.p[id]; } max = Math.max(max, o); }
+  const nice = v => { const p = Math.pow(10, Math.floor(Math.log10(v))); return Math.ceil(v / p / (v / p > 5 ? 2 : 1)) * p * (v / p > 5 ? 2 : 1); };
+  max = nice(max * 1.05);
+  const y0 = history[0].y, y1 = history[history.length - 1].y;
+  const X = y => L + (y - y0) / Math.max(1, y1 - y0) * (W2 - L - R), Y = v => Tp + (1 - v / max) * (H2 - Tp - Bt);
+  let grid = '';
+  for (let k = 0; k <= 4; k++) { const v = max * k / 4, yy = Y(v); grid += `<line x1="${L}" x2="${W2 - R}" y1="${yy}" y2="${yy}" class="hg"/><text x="${L - 5}" y="${yy + 3.5}" class="ht" text-anchor="end">${Math.round(v)}</text>`; }
+  grid += `<text x="${L}" y="${H2 - 6}" class="ht">Año ${y0}</text><text x="${W2 - R}" y="${H2 - 6}" class="ht" text-anchor="end">Año ${y1}</text>`;
+  const line = (get, col, dash) => { let d = '', on = false; for (const h of history) { const v = get(h); if (v === undefined) { on = false; continue; } d += (on ? 'L' : 'M') + X(h.y).toFixed(1) + ' ' + Y(v).toFixed(1); on = true; } return `<path d="${d}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"${dash ? ' stroke-dasharray="4 3"' : ''}/>`; };
+  let paths = main.map(id => line(h => h.p[id], css(kingdoms[id].color))).join('');
+  if (rest.length) paths += line(h => { let o = 0, any = false; for (const id of rest) if (h.p[id]) { o += h.p[id]; any = true; } return any ? o : undefined; }, '#8c9ba3', true);
+  const last = history[history.length - 1];
+  const leg = main.map(id => { const k = kingdoms[id]; return `<div class="hl${k.alive ? '' : ' dead'}">${embCached(k)}<span>${esc(k.name)}</span><b>${k.alive ? (last.p[id] || 0) : '†'}</b></div>`; }).join('')
+    + (rest.length ? `<div class="hl"><i class="hdash"></i><span>Otros ${rest.length} pueblos</span><b>${rest.reduce((s, id) => s + (last.p[id] || 0), 0)}</b></div>` : '');
+  return `<div class="ins"><h3>Historia del mundo</h3><div class="sub">Población de cada pueblo · año ${y1}${histStep > 1 ? ' · un punto cada ' + histStep + ' años' : ''}</div>
+    <div class="hchart"><svg viewBox="0 0 ${W2} ${H2}" width="100%" role="img" aria-label="Población por pueblo a lo largo de los años">${grid}${paths}<line class="hx" x1="0" x2="0" y1="${Tp}" y2="${H2 - Bt}" style="display:none"/><rect class="hhit" x="${L}" y="${Tp}" width="${W2 - L - R}" height="${H2 - Tp - Bt}" fill="transparent"/></svg><div class="htip" hidden></div></div>
+    <div class="hleg">${leg}</div>
+    <h4>Récords</h4><dl>${recordsHtml()}</dl></div>`;
+}
+function recordsHtml() {
+  let best = null, bestV = 0, peakY = 0, peakV = 0;
+  for (const h of history) { if (h.t > peakV) { peakV = h.t; peakY = h.y; } for (const id in h.p) if (h.p[id] > bestV) { bestV = h.p[id]; best = +id; } }
+  const dead = kingdoms.filter(k => !k.alive).length, heroes = units.filter(u => u.hero).length;
+  return `<dt>Mayor pueblo</dt><dd>${best !== null ? esc(kingdoms[best].name) + ' · ' + bestV : '—'}</dd><dt>Población máxima</dt><dd>${peakV} (año ${peakY})</dd><dt>Pueblos caídos</dt><dd>${dead}</dd><dt>Religiones</dt><dd>${religions.length}</dd><dt>Héroes vivos</dt><dd>${heroes}</dd>`;
+}
+function bindHistory() {
+  const box = sideBody.querySelector('.hchart'); if (!box) return;
+  const svg = box.querySelector('svg'), hit = svg.querySelector('.hhit'), xl = svg.querySelector('.hx'), tip = box.querySelector('.htip');
+  const { main, rest } = histSeries();
+  const vb = svg.viewBox.baseVal, L = 34, R = 8;
+  const y0 = history[0].y, y1 = history[history.length - 1].y;
+  const move = e => {
+    const r = svg.getBoundingClientRect(), sx = (e.clientX - r.left) / r.width * vb.width;
+    const yr = y0 + (sx - L) / (vb.width - L - R) * (y1 - y0);
+    let h = history[0]; for (const q of history) if (Math.abs(q.y - yr) < Math.abs(h.y - yr)) h = q;
+    const x = L + (h.y - y0) / Math.max(1, y1 - y0) * (vb.width - L - R);
+    xl.setAttribute('x1', x); xl.setAttribute('x2', x); xl.style.display = '';
+    const rows = main.filter(id => h.p[id]).sort((a, b) => h.p[b] - h.p[a]).map(id => `<div><i style="background:${css(kingdoms[id].color)}"></i>${esc(kingdoms[id].name)}<b>${h.p[id]}</b></div>`).join('');
+    const o = rest.reduce((s, id) => s + (h.p[id] || 0), 0);
+    tip.innerHTML = `<em>Año ${h.y}</em>${rows}${o ? `<div><i class="hdash"></i>Otros<b>${o}</b></div>` : ''}<div class="tot">Total<b>${h.t}</b></div>`;
+    tip.hidden = false;
+    const px = (x / vb.width) * r.width; tip.style.left = Math.min(px + 10, r.width - tip.offsetWidth - 4) + 'px';
+    if (px + 10 + tip.offsetWidth > r.width) tip.style.left = Math.max(0, px - tip.offsetWidth - 10) + 'px';
+  };
+  hit.addEventListener('pointermove', move); hit.addEventListener('pointerdown', move);
+  hit.addEventListener('pointerleave', () => { xl.style.display = 'none'; tip.hidden = true; });
 }

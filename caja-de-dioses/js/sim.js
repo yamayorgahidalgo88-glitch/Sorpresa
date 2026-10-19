@@ -100,6 +100,7 @@ function tick() {
   }
   if (tickN % 20 === 0) towersFire();
   if (tickN % 120 === 0) kingdomUpdate();
+  if (tickN % YEAR === 0) recordHistory();
   if (tickN % 200 === 0) naturalSpawns();
   weatherTick();
   if (units.some(u => u.dead)) {
@@ -124,4 +125,14 @@ function weatherTick() {
     const x = ri(0, W - 1), y = ri(0, H - 1);
     if (LAWS.desastres.on && rnd() < .4) lightning(x, y); else sfx('thunder', cam.x + VW / cam.z / 2, cam.y + VH / cam.z / 2, .6, 400);
   }
+}
+
+// historia: población de cada reino año a año (se aclara si crece mucho)
+let history = [], histStep = 1;
+function recordHistory() {
+  if ((year() - 1) % histStep) return;
+  const p = {}; let tot = 0;
+  for (const k of kingdoms) if (k.alive && k.pop) { p[k.id] = k.pop; tot += k.pop; }
+  history.push({ y: year(), p, t: tot });
+  if (history.length > 240) { history = history.filter((_, i) => i % 2 === 0); histStep *= 2; }
 }

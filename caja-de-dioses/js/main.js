@@ -23,6 +23,7 @@ document.getElementById('mGen').onclick = () => {
 };
 function newWorld(w, h, type, ores, life) {
   genWorld(w, h, type, ores);
+  history = []; histStep = 1; religions = [];
   selected = null; selectedCity = null; selectedKingdom = null; warPick = null;
   computeRegions();
   if (life === 'civ') {

@@ -25,7 +25,7 @@ function serialize() {
     kingdoms: kingdoms.map(k => ({ ...k, css: undefined, _embC: undefined, _embK: undefined, _embUrl: undefined, _embUrlK: undefined, _flag: undefined, _flagK: undefined, wars: [...k.wars], allies: [...k.allies], tech: [...k.tech], king: k.king && !k.king.dead ? k.king.id : null })),
     cities: cities.map(c => c && ({ ...c, k: c.k.id, ores: [] })),
     units: list.map(u => { const o = { k: u.k ? u.k.id : null }; for (const key of UNIT_KEYS) if (u[key] !== undefined && u[key] !== null) o[key] = u[key]; return o; }),
-    religions, custom: Object.fromEntries([...used].map(t => [t, TRAITS[t]])),
+    religions, history, histStep, custom: Object.fromEntries([...used].map(t => [t, TRAITS[t]])),
     logs: logs.slice(0, 120),
   };
 }
@@ -39,7 +39,7 @@ function deserialize(data) {
   ore.set(fromB64(data.ore)); oreAmt.set(fromB64(data.oreAmt)); wall.set(fromB64(data.wall));
   if (data.road) road.set(fromB64(data.road));
   if (data.siteT) siteT.set(fromB64(data.siteT));
-  tickN = data.tickN; uid = data.uid; logs = data.logs || []; religions = data.religions || [];
+  tickN = data.tickN; uid = data.uid; logs = data.logs || []; religions = data.religions || []; history = data.history || []; histStep = data.histStep || 1;
   kingdoms = data.kingdoms.map(k => ({ mem: {}, ...k, wars: new Set(k.wars), allies: new Set(k.allies), tech: new Set(k.tech), kingId: k.king, king: null }));
   cities = data.cities.map(c => c && ({ has: {}, towers: [], mood: 60, ...c, k: kingdoms[c.k] }));
   const byId = {};
