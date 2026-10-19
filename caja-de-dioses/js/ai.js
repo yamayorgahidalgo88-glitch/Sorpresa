@@ -83,7 +83,7 @@ function findPath(u, goal) {
 function stepToward(u, tx, ty, mul = 1) {
   const dx = tx - u.x, dy = ty - u.y, d = Math.hypot(dx, dy);
   if (d < .12) return 1;
-  const sp = u.def.spd * tmul(u, 'spd') * .095 * mul * (road[(u.y | 0) * W + (u.x | 0)] ? 1.35 : 1) * (u.def.civ ? kmul(u.k, 'speed') : 1) * (u.def.civ && u.food <= 0 ? .6 : 1);
+  const sp = u.def.spd * tmul(u, 'spd') * .095 * mul * (u.traits.length && hasTrait(u, 'licantropo') && isNight() ? 1.4 : 1) * (road[(u.y | 0) * W + (u.x | 0)] ? 1.35 : 1) * (u.def.civ ? kmul(u.k, 'speed') : 1) * (u.def.civ && u.food <= 0 ? .6 : 1);
   const st = Math.min(sp, d);
   if (Math.abs(dx) > .02) u.face = dx < 0 ? -1 : 1;
   const nx = u.x + dx / d * st, ny = u.y + dy / d * st, oi = (u.y | 0) * W + (u.x | 0);
@@ -279,9 +279,9 @@ const DECISIONS = [
     start: (u, c) => { const h = homeOf(u, c); if (h) return setTask(u, 'sleep', h % W, (h / W) | 0, 9999); return setTask(u, 'sleep', u.x | 0, u.y | 0, 9999); } },
   { id: 'work', n: 'Trabajar', score: (u, c) => !c || u.age < 12 || u.prof === 'child' ? 0 : 46 * Math.min(1.6, tmul(u, 'work')) * (.6 + u.energy / 250) * (u.prof === 'soldier' && u.k?.wars.size ? 1.8 : 1),
     start: (u, c) => startWork(u, c) },
-  { id: 'social', n: 'Charlar', score: (u, c) => !c ? 0 : 9 + Math.max(0, 62 - u.mood) * .5 + (hasTrait(u, 'lider') ? 6 : 0),
+  { id: 'social', n: 'Charlar', score: (u, c) => !c ? 0 : (9 + Math.max(0, 62 - u.mood) * .5 + (hasTrait(u, 'lider') ? 6 : 0)) * (u.traits.length ? tmul(u, 'social') : 1),
     start: u => { const o = nearest(u.x, u.y, 7, v => v !== u && v.def.civ && v.city === u.city && !v.asleep && !v.task?.who); return o && setTask(u, 'social', o.x | 0, o.y | 0, 30, { who: o.id }); } },
-  { id: 'love', n: 'Buscar pareja', score: u => adult(u) && !u.partner && u.age < SP[u.type].age[0] * .8 && !hasTrait(u, 'esteril') ? 30 : 0,
+  { id: 'love', n: 'Buscar pareja', score: u => adult(u) && !u.partner && u.age < SP[u.type].age[0] * .8 && !hasTrait(u, 'esteril') ? 30 * (hasTrait(u, 'carismatico') ? 1.5 : 1) : 0,
     start: u => { const o = nearest(u.x, u.y, 10, v => canCouple(u, v) && v.city === u.city && !v.asleep); return o && setTask(u, 'love', o.x | 0, o.y | 0, 36, { who: o.id }); } },
   { id: 'play', n: 'Jugar', score: u => u.def.civ && u.age < 12 ? 34 : 0,
     start: (u, c) => { const cx = c ? c.x : u.x, cy = c ? c.y : u.y; const p = pickTile(cx, cy, 4, i => canStand(u.def, i % W + .5, ((i / W) | 0) + .5)); return p && setTask(u, 'play', p[0], p[1], 40); } },
@@ -421,10 +421,7 @@ function think(u) {
 function thinkAnimal(u) {
   const def = u.def;
   if (danger(u)) return;
-  if (def.passive) {
-    if (u.type === 'sheep' && rnd() < .012 && (countType.sheep || 0) < Math.min(160, N / 140)) spawn('sheep', u.x, u.y);
-  }
-  if (u.type === 'wolf' && rnd() < .005 && (countType.wolf || 0) < Math.min(50, N / 400)) spawn('wolf', u.x, u.y);
+  animalBreed(u);
   if (ANIMAL_HOOKS[u.type]) { if (ANIMAL_HOOKS[u.type](u)) return; }
   if (u.type === 'ghost' && u.life > YEAR * 3) { kill(u, null, 'se desvanece'); return; }
   if (u.type === 'ghost' && u.k) { const tgt = enemyCityFor(u.k, u); if (tgt) { u.tx = tgt.x + .5; u.ty = tgt.y + .5; return; } }

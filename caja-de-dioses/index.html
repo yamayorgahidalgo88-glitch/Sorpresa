@@ -75,6 +75,28 @@
   </div>
 </div>
 
+<div id="traitModal" class="overlay" hidden>
+  <div class="box">
+    <h2>Crear rasgo</h2>
+    <p>Diseña un rasgo propio. Aparecerá en la pestaña Rasgos (con un punto dorado), se hereda como los demás y se guarda en este navegador.</p>
+    <div class="frow"><label for="tName">Nombre</label><input id="tName" maxlength="24" placeholder="Por ejemplo: Hijo del trueno"></div>
+    <div class="frow"><label for="tIcon">Icono</label><input id="tIcon" maxlength="4" value="✨"></div>
+    <div class="frow"><label for="tCat">Categoría</label><select id="tCat"><option>Mente</option><option>Carácter</option><option>Cuerpo</option><option>Habilidad</option><option>Poder</option></select></div>
+    <div class="frow"><label for="tDesc">Descripción</label><input id="tDesc" maxlength="80" placeholder="Opcional"></div>
+    <div id="tSliders"></div>
+    <div class="tchecks">
+      <label><input type="checkbox" id="tRegen"> Se regenera</label>
+      <label><input type="checkbox" id="tArcher"> Dispara de lejos</label>
+      <label><input type="checkbox" id="tAggr"> Belicoso</label>
+      <label><input type="checkbox" id="tPeace"> Pacífico</label>
+      <label><input type="checkbox" id="tInh" checked> Se hereda</label>
+      <label><input type="checkbox" id="tBad"> Es un defecto</label>
+    </div>
+    <div class="mrow"><button class="primary" id="tSave">Crear rasgo</button><button class="tbtn" id="tClose">Cancelar</button></div>
+    <div id="tList"></div>
+  </div>
+</div>
+
 <div id="rotate" class="overlay" hidden>
   <div class="box" style="text-align:center">
     <div class="rot" aria-hidden="true">📱</div>
@@ -96,6 +118,7 @@
 <script src="js/buildings.js"></script>
 <script src="js/boats.js"></script>
 <script src="js/diplomacy.js"></script>
+<script src="js/mods2.js"></script>
 <script src="js/civ.js"></script>
 <script src="js/nature.js"></script>
 <script src="js/powers.js"></script>

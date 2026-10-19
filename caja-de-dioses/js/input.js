@@ -70,7 +70,7 @@ window.addEventListener('keydown', e => {
   if (e.key === '-') document.getElementById('zout').click();
   if (e.key === 'i' || e.key === 'I') selectTool(TOOLS.find(t => t.id === 'inspect'));
   if (e.key === '[') setBrush(brush - 1); if (e.key === ']') setBrush(brush + 1);
-  if (e.key === 'Escape') { document.getElementById('modal').hidden = true; warPick = null; }
+  if (e.key === 'Escape') { document.getElementById('modal').hidden = true; document.getElementById('traitModal').hidden = true; warPick = null; followSel = null; }
 });
 window.addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
 function keyPan() {

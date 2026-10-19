@@ -55,6 +55,14 @@ await page.screenshot({ path: path.join(out, 'inspector.png') });
 await page.evaluate(() => { const k = kingdoms.filter(k => k.alive).sort((a, b) => b.pop - a.pop)[0]; if (k) showKingdom(k); });
 await page.screenshot({ path: path.join(out, 'kingdom.png') });
 
+// editor de rasgos
+await page.evaluate(() => { curTab = 'mods'; renderTabs(); renderTools(); openTraitEditor(); document.getElementById('tName').value = 'Hijo del trueno'; document.getElementById('ts_atk').value = 2; document.getElementById('ts_atk').oninput(); });
+await page.screenshot({ path: path.join(out, 'editor.png') });
+await page.evaluate(() => { document.getElementById('tSave').click(); const c = cities.find(c => c && c.alive); traitScope = 'village'; applyTool(curTool, c.x + .5, c.y + .5, true); });
+const withT = await page.evaluate(() => units.filter(u => u.traits.some(t => t.startsWith('c_'))).length);
+console.log('con rasgo creado:', withT);
+await page.evaluate(() => { const c = cities.find(c => c && c.alive && c.pop > 10) || cities.find(c => c && c.alive); cam.z = 16; cam.x = c.x - VW / cam.z / 2; cam.y = c.y - VH / cam.z / 2; curTab = 'rasgos'; renderTabs(); renderTools(); document.getElementById('traitModal').hidden = true; render(); });
+await page.screenshot({ path: path.join(out, 'minds.png') });
 await browser.close();
 if (errors.length) { console.error('ERRORES:\n' + errors.join('\n')); process.exit(1); }
 console.log('OK sin errores');

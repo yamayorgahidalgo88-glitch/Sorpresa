@@ -301,6 +301,20 @@ function render() {
       if (u === selected) { ctx.strokeStyle = '#e8b64c'; ctx.lineWidth = 2; ctx.strokeRect(sx - s, sy - s * 1.6, s * 2, s * 2); }
     }
   }
+  // mentes visibles: bocadillo con lo que piensa cada habitante
+  if (modOn('mentes') && cam.z >= 15 && sprites) {
+    let n = 0;
+    for (const u of vis) {
+      if (!u.def.civ || (u.asleep && bld[(u.y | 0) * W + (u.x | 0)]) || n > 160) continue;
+      const key = u.target && !u.target.dead ? (u.hunting ? 'hunt' : 'fight') : u.task ? u.task.k : null;
+      const g = key === 'fight' ? '⚔' : TASKICON[key]; if (!g) continue;
+      const [sx, sy] = toS(u.x, u.y), r = z * .5, bx = sx + z * .55, by = sy - z * 1.75;
+      ctx.fillStyle = 'rgba(250,248,240,.93)'; ctx.beginPath(); ctx.arc(bx, by, r, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.arc(bx - r * .7, by + r * 1.05, r * .2, 0, 7); ctx.fill();
+      ctx.drawImage(emojiCanvas(g), bx - r * .78, by - r * .78, r * 1.56, r * 1.56);
+      n++;
+    }
+  }
   for (const p of projs) {
     const [sx, sy] = toS(p.x, p.y);
     const s = Math.max(2, z * (p.kind === 'fireball' ? .45 : .2));
@@ -389,6 +403,13 @@ function render() {
   }
   if (flash > 0) { ctx.fillStyle = `rgba(255,250,235,${flash})`; ctx.fillRect(0, 0, view.width, view.height); if (!paused) flash *= .93; if (flash < .02) flash = 0; }
   renderMini();
+}
+const EMOJI = new Map();
+function emojiCanvas(g) {
+  let c = EMOJI.get(g); if (c) return c;
+  c = document.createElement('canvas'); c.width = c.height = 40; const x = c.getContext('2d');
+  x.font = '30px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",system-ui,sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText(g, 20, 22); EMOJI.set(g, c); return c;
 }
 function roundRect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
 

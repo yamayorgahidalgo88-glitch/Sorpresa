@@ -158,6 +158,8 @@ function cityUpdate(c) {
     }
   }
   assignJobs(c, members.filter(o => !o.settler && o.age >= 12));
+  diseaseCheck(c, members);
+  if (members.some(o => o.traits.length && hasTrait(o, 'bardo'))) for (const o of members) o.mood = Math.min(100, o.mood + .8);
   // emparejamientos: solteros compatibles de la misma ciudad
   if (rnd() < .35) {
     const single = members.filter(o => !o.partner && adult(o) && o.age < SP[o.type].age[0] * .8 && !o.settler && tmul(o, 'fert') > 0);
@@ -212,7 +214,7 @@ function cityUpdate(c) {
     const cap = cities[k.capital];
     const far = cap ? Math.sqrt(dist2(cap.x, cap.y, c.x, c.y)) : 50;
     const kc = cities.filter(o => o && o.alive && o.k === k).length;
-    if (kc > 4 && year() - k.born > 30 && rnd() < .0007 * (far / 25) * (1 + k.wars.size) * (1.6 - c.mood / 100) / (1 + (k.leaders || 0) * .5)) rebel(c);
+    if (kc > 4 && year() - k.born > 30 && rnd() < .0007 * (far / 25) * (1 + k.wars.size) * (1.6 - c.mood / 100) * (1 + members.filter(o => o.traits.length && hasTrait(o, 'ambicioso')).length * .5) / (1 + (k.leaders || 0) * .5)) rebel(c);
   }
 }
 function rebel(c) {
@@ -303,7 +305,7 @@ function kingdomUpdate() {
     const members = units.filter(u => u.k === k && u.def.civ && !u.dead && u.age >= 12);
     k.pop = kc.reduce((s, c) => s + c.pop, 0);
     const cnt = Object.create(null); let ag = 0; k.smiths = 0; k.leaders = 0;
-    for (const u of members) for (const t of u.traits) { cnt[t] = (cnt[t] || 0) + 1; if (TRAITS[t].aggr) ag += TRAITS[t].aggr; if (t === 'herrero') k.smiths++; if (t === 'lider') k.leaders++; }
+    for (const u of members) for (const t of u.traits) { cnt[t] = (cnt[t] || 0) + 1; if (TRAITS[t]?.aggr) ag += TRAITS[t].aggr; if (t === 'herrero') k.smiths++; if (t === 'lider') k.leaders++; }
     k.culture = cnt; k.aggr = members.length ? ag / members.length : 0;
     research(k, members);
     if (modOn('diplomacia')) {

@@ -58,6 +58,7 @@ function naturalSpawns() {
     if ((countType.sheep || 0) < 20) for (let k = 0; k < 2; k++) { const p = randomTile(t => t === T.GRASS); if (p) spawn('sheep', p[0] + .5, p[1] + .5); }
     if ((countType.wolf || 0) < 5 && rnd() < .3) { const p = randomTile(t => t === T.FOREST); if (p) spawn('wolf', p[0] + .5, p[1] + .5); }
   }
+  ecoSpawns();
   if (LAWS.desastres.on && rnd() < .15) {
     const p = randomTile(t => !isWater(t));
     if (p) { if (rnd() < .7) lightning(p[0], p[1]); else fx.push({ k: 'meteor', x: p[0] + .5, y: p[1] + .5, life: 40, r: 4 }); }

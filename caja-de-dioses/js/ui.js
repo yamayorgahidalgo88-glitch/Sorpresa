@@ -61,6 +61,13 @@ function renderTools() {
       card.onclick = () => { m.on = !m.on; if (curTab === 'mods') { toast(`${m.n}: ${m.on ? 'activado' : 'desactivado'}`); applyModChange(); } renderTools(); };
       wrap.appendChild(card);
     }
+    if (curTab === 'mods') {
+      const card = document.createElement('button'); card.className = 'pcard create';
+      const n = Object.keys(customTraits).length;
+      card.innerHTML = `<span style="font-size:22px;line-height:1">✚</span><span><b>Crear rasgo</b><p>Inventa tus propios rasgos con sus efectos.${n ? ' Tienes ' + n + '.' : ''}</p></span>`;
+      card.onclick = openTraitEditor;
+      wrap.prepend(card);
+    }
     toolsEl.appendChild(wrap);
     return;
   }
@@ -77,6 +84,7 @@ function renderTools() {
     b.appendChild(toolIcon(t));
     const s = document.createElement('span'); s.textContent = t.kind === 'scope' ? (traitScope === 'brush' ? 'Con pincel' : 'Pueblo entero') : t.n; b.appendChild(s);
     if (t.mod) { const m = document.createElement('i'); m.className = 'm'; m.title = 'Mod: ' + MODS[t.mod].n; b.appendChild(m); }
+    else if (t.trait && TRAITS[t.trait]?.custom) { const m = document.createElement('i'); m.className = 'm c'; m.title = 'Rasgo creado por ti'; b.appendChild(m); }
     b.onclick = () => {
       if (t.kind === 'act') { globalAct(t.act); return; }
       if (t.kind === 'scope') { traitScope = traitScope === 'brush' ? 'village' : 'brush'; toast(traitScope === 'brush' ? 'Los rasgos se ponen con el pincel' : 'Ahora toca un pueblo: el rasgo se pone a todos sus habitantes'); renderTools(); return; }
@@ -150,7 +158,7 @@ function resGrid(k) {
 function cultureChips(k) {
   const tot = Math.max(1, units.filter(u => u.k === k && u.def.civ && u.age >= 12).length);
   const cnt = Object.create(null); for (const u of units) if (u.k === k && u.def.civ && u.age >= 12) for (const t of u.traits) cnt[t] = (cnt[t] || 0) + 1;
-  const arr = Object.entries(cnt).sort((a, b) => b[1] - a[1]).slice(0, 12);
+  const arr = Object.entries(cnt).filter(([t]) => TRAITS[t]).sort((a, b) => b[1] - a[1]).slice(0, 12);
   if (!arr.length) return '<p class="empty">Sin rasgos todavía. Usa la pestaña Rasgos.</p>';
   return '<div class="chips">' + arr.map(([t, n]) => `<span class="chip ${TRAITS[t].magic ? 'm' : TRAITS[t].bad ? 'r' : ''}">${TRAITS[t].g} ${TRAITS[t].n} ${Math.round(n / tot * 100)}%</span>`).join('') + '</div>';
 }
@@ -314,4 +322,56 @@ function renderStats() {
   for (let i = 0; i < ak.length; i++) for (let j = i + 1; j < ak.length; j++) if (ak[i].wars.has(ak[j].id)) wars++;
   const top = ak.reduce((m, k) => Math.max(m, k.era), 0);
   document.getElementById('stats').innerHTML = `<span>Año <b>${year()}</b>${modOn('clima') ? ' · ' + SEASONS[season()] : ''}</span><span>Gente <b>${pop}</b></span><span>Pueblos <b>${ak.length}</b></span><span>Guerras <b>${wars}</b></span>${ak.length && modOn('tecnologia') ? `<span>Era más avanzada <b>${ERAS[top]}</b></span>` : ''}${modOn('heroes') ? `<span>Héroes <b>${heroes}</b></span>` : ''}<span>Criaturas <b>${units.length - pop}</b></span>`;
+}
+
+// ---------- editor de rasgos ----------
+const TSLIDERS = [['atk', 'Ataque', .3, 3], ['hp', 'Vida', .3, 3], ['spd', 'Velocidad', .4, 2.2], ['work', 'Trabajo', .2, 3], ['research', 'Investigación', .1, 4], ['fert', 'Fertilidad', 0, 3], ['age', 'Longevidad', .4, 4], ['hunger', 'Hambre', .1, 2.5], ['tired', 'Cansancio', .1, 2.5], ['dmgTaken', 'Daño recibido', .1, 2], ['size', 'Tamaño', .6, 1.8], ['social', 'Sociabilidad', .1, 3]];
+const traitModal = document.getElementById('traitModal');
+function openTraitEditor() {
+  document.getElementById('tSliders').innerHTML = TSLIDERS.map(([k, n, a, b]) => `<div class="slid"><span>${n}</span><input type="range" id="ts_${k}" min="${a}" max="${b}" step=".05" value="1"><b id="tv_${k}">×1.00</b></div>`).join('');
+  for (const [k] of TSLIDERS) { const r = document.getElementById('ts_' + k); r.oninput = () => document.getElementById('tv_' + k).textContent = '×' + (+r.value).toFixed(2); }
+  renderTraitList();
+  traitModal.hidden = false;
+  document.getElementById('tName').focus();
+}
+function renderTraitList() {
+  const ids = Object.keys(customTraits);
+  document.getElementById('tList').innerHTML = ids.length ? '<h4 style="margin:0 0 6px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Tus rasgos</h4>' + ids.map(id => `<div class="ct"><span>${esc(customTraits[id].g)} ${esc(customTraits[id].n)} <small style="color:var(--muted)">${esc(customTraits[id].d)}</small></span><button class="tbtn" data-del="${id}">Borrar</button></div>`).join('') : '';
+  document.querySelectorAll('#tList [data-del]').forEach(b => b.onclick = () => deleteCustomTrait(b.dataset.del));
+}
+function describeTrait(t) {
+  const parts = [];
+  for (const [k, n] of TSLIDERS) if (t[k] !== undefined && Math.abs(t[k] - 1) > .04) parts.push(`${n.toLowerCase()} ×${t[k].toFixed(2)}`);
+  if (t.regen) parts.push('se regenera'); if (t.archer) parts.push('dispara de lejos');
+  return parts.join(', ') || 'Sin efectos';
+}
+document.getElementById('tClose').onclick = () => traitModal.hidden = true;
+traitModal.addEventListener('click', e => { if (e.target === traitModal) traitModal.hidden = true; });
+document.getElementById('tSave').onclick = () => {
+  const name = document.getElementById('tName').value.trim();
+  if (!name) { toast('Ponle un nombre al rasgo'); return; }
+  const id = 'c_' + name.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '_').slice(0, 20) + '_' + Date.now().toString(36).slice(-3);
+  const t = { n: name, g: document.getElementById('tIcon').value.trim() || '✨', cat: document.getElementById('tCat').value, custom: 1 };
+  for (const [k] of TSLIDERS) { const v = +document.getElementById('ts_' + k).value; if (Math.abs(v - 1) > .04) t[k] = Math.round(v * 100) / 100; }
+  if (document.getElementById('tRegen').checked) t.regen = 1;
+  if (document.getElementById('tArcher').checked) t.archer = 1;
+  if (document.getElementById('tAggr').checked) t.aggr = 1;
+  if (document.getElementById('tPeace').checked) t.aggr = -1;
+  if (!document.getElementById('tInh').checked) t.inh = 0;
+  if (document.getElementById('tBad').checked) t.bad = 1;
+  t.d = document.getElementById('tDesc').value.trim() || describeTrait(t);
+  TRAITS[id] = t; customTraits[id] = t;
+  if (!saveCustomTraits()) toast('No se pudo guardar en el navegador; el rasgo dura hasta que cierres la página');
+  TOOLS.push({ tab: 'rasgos', id: 'r_' + id, n: t.n, kind: 'trait', trait: id, glyph: t.g });
+  traitModal.hidden = true;
+  document.getElementById('tName').value = ''; document.getElementById('tDesc').value = '';
+  curTab = 'rasgos'; renderTabs(); selectTool(TOOLS.find(x => x.id === 'r_' + id));
+  toast(`Rasgo creado: ${t.g} ${t.n}. Pásalo con el pincel por la gente.`);
+};
+function deleteCustomTrait(id) {
+  delete customTraits[id]; delete TRAITS[id]; saveCustomTraits();
+  const i = TOOLS.findIndex(x => x.id === 'r_' + id); if (i >= 0) TOOLS.splice(i, 1);
+  for (const u of units) if (u.traits.includes(id)) u.traits = u.traits.filter(x => x !== id);
+  if (curTool.trait === id) curTool = TOOLS.find(t => t.id === 'v_human');
+  renderTraitList(); renderTools();
 }

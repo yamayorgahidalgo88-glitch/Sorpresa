@@ -14,7 +14,8 @@ function canStand(def, x, y) {
   return true;
 }
 function tmul(u, key) { let m = 1; for (const t of u.traits) { const tr = TRAITS[t]; if (tr && tr[key] !== undefined && modOn(tr.mod)) m *= tr[key]; } return m; }
-function hasTrait(u, t) { return u.traits.includes(t) && modOn(TRAITS[t].mod); }
+function tflag(u, key) { for (const t of u.traits) { const tr = TRAITS[t]; if (tr && tr[key] && modOn(tr.mod)) return true; } return false; }
+function hasTrait(u, t) { return u.traits.includes(t) && !!TRAITS[t] && modOn(TRAITS[t].mod); }
 function addTrait(u, t) {
   if (u.traits.includes(t)) return false;
   const o = OPPOSITE[t]; if (o) u.traits = u.traits.filter(x => x !== o);
@@ -58,6 +59,7 @@ function atkOf(u) {
   a *= tmul(u, 'atk') * (1 + (u.level - 1) * .12);
   if (k && u.def.civ) a *= 1 + Math.min(.3, (k.smiths || 0) * .03) + Math.min(.25, (k.leaders || 0) * .05) + (k.siege && u.army ? .15 : 0);
   if (u.item && modOn('heroes')) a += u.item[1];
+  if (u.traits.length) a *= traitAtk(u);
   return a;
 }
 function maxHpOf(u) {
@@ -71,9 +73,9 @@ function rangeOf(u) {
   const k = u.k;
   if (k && modOn('tecnologia')) {
     if (k.gun) return k.ranged;
-    if (k.ranged && (u.archer || hasTrait(u, 'arquero'))) return k.ranged;
+    if (k.ranged && (u.archer || hasTrait(u, 'arquero') || (u.traits.length && tflag(u, 'archer')))) return k.ranged;
   }
-  if (hasTrait(u, 'arquero')) return 4;
+  if (hasTrait(u, 'arquero') || (u.traits.length && tflag(u, 'archer'))) return 4;
   return 1.25;
 }
 function displayName(u) { return u.name ? u.name + (u.fam && u.def.civ ? ' ' + u.fam : '') : u.def.n.replace(/s$/, ''); }
@@ -83,7 +85,7 @@ function isEnemy(a, b) {
   const da = a.def, db = b.def;
   if (da.hostile) return !db.hostile || (a.type !== b.type && !(da.infect && db.infect));
   if (db.hostile) return da.civ || (a.type === 'ghost' && !!a.k);
-  if (da.hunter) return b.type === 'sheep' || (db.civ && a.aggro);
+  if (da.hunter) return (da.prey ? da.prey.includes(b.type) : b.type === 'sheep') || (db.civ && a.aggro);
   if (db.hunter) return !!da.civ && !!b.aggro;
   if (a.k && b.k && a.k !== b.k) return a.k.wars.has(b.k.id) && sameRegion(a, b);
   if (a.type === 'ghost' && !a.k) return !!db.civ;
@@ -126,7 +128,9 @@ function damage(u, d, src) {
   d *= 1 - armorOf(u);
   if (u.k && u.k.walls && owner[(u.y | 0) * W + (u.x | 0)] && cities[owner[(u.y | 0) * W + (u.x | 0)] - 1]?.k === u.k) d *= 1 - u.k.walls * .12;
   if (src && src.k && src.k.silver && u.def.unholy) d *= 2;
+  if (u.traits.length) d *= tmul(u, 'dmgTaken');
   u.hp -= d; u.hitT = 6;
+  if (src) onHit(src, u, d);
   if (u.hp <= 0) kill(u, src);
 }
 function gainXp(u, n) {
@@ -230,11 +234,11 @@ function updateUnit(u) {
   if (rad[ti]) damage(u, .15, null);
   if (tt === T.CORRUPT && def.civ && !def.unholy) damage(u, .03, null);
   if (u.plague) { u.plague--; damage(u, .06, null); if (rnd() < .02) around(u.x, u.y, 1.6, o => { if (o.def.civ && !o.plague && rnd() < .5) o.plague = 600; }); }
-  if (hasTrait(u, 'regenera') && u.hp < u.maxHp) u.hp += .04;
+  if (u.traits.length && u.hp < u.maxHp && (hasTrait(u, 'regenera') || tflag(u, 'regen'))) u.hp += .04;
   if (u.dead) return;
   if (u.type === 'ghost') u.life++;
 
-  if (modOn('magia') && def.civ && --u.spell <= 0 && u.traits.some(t => TRAITS[t].magic)) castSpell(u);
+  if (modOn('magia') && def.civ && --u.spell <= 0 && u.traits.some(t => TRAITS[t]?.magic)) castSpell(u);
   if (def.healer && --u.spell <= 0) {
     u.spell = 80;
     around(u.x, u.y, 4, o => { if (o.def.civ && o.hp < o.maxHp) o.hp = Math.min(o.maxHp, o.hp + 10); if (o.plague) o.plague = 0; });
@@ -255,13 +259,14 @@ function updateUnit(u) {
   }
 
   if (def.civ) {
-    u.food -= def.noFood ? 0 : .12 * (u.asleep ? .5 : 1) * (u.age < 12 ? .8 : 1);
-    u.energy -= u.asleep ? 0 : .09;
+    u.food -= def.noFood ? 0 : .12 * (u.asleep ? .5 : 1) * (u.age < 12 ? .8 : 1) * (u.traits.length ? tmul(u, 'hunger') : 1);
+    u.energy -= u.asleep ? 0 : .09 * (u.traits.length ? tmul(u, 'tired') : 1);
     if (u.food <= 0) { u.food = 0; u.hp -= .025; if (u.hp <= 0) { kill(u, null, 'hambre'); return; } u.mood = Math.max(0, u.mood - .05); }
     if (u.energy < 0) u.energy = 0;
     u.mood += (58 - u.mood) * .0008;
     if (u.prof === 'child' && u.age >= 12) { u.prof = null; u.task = null; }
   }
+  if (u.poison || u.sick || u.traits.length) { traitTick(u); if (u.dead) return; }
   if (--u.think <= 0) think(u);
 
   if (u.target) {
