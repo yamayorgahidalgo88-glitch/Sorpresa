@@ -7,12 +7,15 @@ import { ChalkQuote } from "@/components/board/chalk-quote"
 import { Mark } from "@/components/board/scribble"
 import { noteBg, StickyNote } from "@/components/board/sticky-note"
 import { CtaStrip } from "@/components/cta-strip"
+import { FaqList } from "@/components/faq"
 import { PageHero } from "@/components/page-hero"
 import { SubjectsOffered } from "@/components/subjects-offered"
 import { ServiceCard } from "@/components/service-card"
 import { ServiceIcon } from "@/components/service-icon"
+import { Rich } from "@/components/rich"
 import { Button } from "@/components/ui/button"
 import { services, site, type Sticky } from "@/lib/site"
+import { breadcrumbJsonLd, jsonLd } from "@/lib/structured-data"
 
 export function generateStaticParams() {
   return services.map((s) => ({ slug: s.slug }))
@@ -22,7 +25,11 @@ export async function generateMetadata({ params }: PageProps<"/servicios/[slug]"
   const { slug } = await params
   const s = services.find((x) => x.slug === slug)
   if (!s) return {}
-  return { title: s.title, description: s.text, alternates: { canonical: `/servicios/${s.slug}` } }
+  return {
+    title: s.seoTitle ?? s.title,
+    description: s.seoDescription ?? s.text,
+    alternates: { canonical: `/servicios/${s.slug}` },
+  }
 }
 
 const NOTE_COLORS: Sticky[] = ["yellow", "teal", "rose", "orange", "sky", "mint"]
@@ -57,13 +64,16 @@ export default async function ServicePage({ params }: PageProps<"/servicios/[slu
 
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(breadcrumbJsonLd([{ name: "Servicios", path: "/servicios" }, { name: service.title, path: `/servicios/${service.slug}` }]))} />
       <PageHero title={service.title} hand={service.slogan} />
 
       <section className="bg-white py-14 sm:py-16">
         <div className="mx-auto grid max-w-7xl gap-12 px-4 sm:px-8 lg:grid-cols-[1.2fr_0.8fr]">
           <div className="space-y-5 text-lg leading-relaxed text-slate">
             {service.intro.map((p) => (
-              <p key={p}>{p}</p>
+              <p key={p}>
+                <Rich text={p} />
+              </p>
             ))}
             {service.note && <p className="font-semibold text-ink">{service.note}</p>}
           </div>
@@ -102,6 +112,35 @@ export default async function ServicePage({ params }: PageProps<"/servicios/[slu
                 </StickyNote>
               ))}
             </ul>
+          </div>
+        </section>
+      )}
+
+      {(service.sections || service.faq) && (
+        <section aria-label={`Más sobre ${service.title.toLowerCase()}`} className="bg-white py-14 sm:py-16">
+          <div className="mx-auto max-w-7xl px-4 sm:px-8">
+            {service.sections && (
+              <div className="grid gap-x-14 gap-y-10 md:grid-cols-2">
+                {service.sections.map((sec) => (
+                  <article key={sec.title}>
+                    <h2 className="text-2xl font-bold tracking-tight text-ink sm:text-3xl">{sec.title}</h2>
+                    <div className="mt-4 space-y-4 text-lg leading-relaxed text-slate">
+                      {sec.body.map((b) => (
+                        <p key={b}>
+                          <Rich text={b} />
+                        </p>
+                      ))}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+            {service.faq && (
+              <div className={service.sections ? "mt-14 max-w-4xl" : "max-w-4xl"}>
+                <h2 className="text-2xl font-bold tracking-tight text-ink sm:text-3xl">Preguntas frecuentes</h2>
+                <FaqList items={service.faq} className="mt-6" />
+              </div>
+            )}
           </div>
         </section>
       )}

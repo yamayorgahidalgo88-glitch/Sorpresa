@@ -6,6 +6,7 @@ import { ArrowLeft } from "lucide-react"
 import { CtaStrip } from "@/components/cta-strip"
 import { Button } from "@/components/ui/button"
 import { posts } from "@/lib/site"
+import { articleJsonLd, breadcrumbJsonLd, jsonLd } from "@/lib/structured-data"
 
 export function generateStaticParams() {
   return posts.map((p) => ({ slug: p.slug }))
@@ -26,6 +27,7 @@ export default async function PostPage({ params }: PageProps<"/t-blog/[slug]">) 
 
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd([articleJsonLd(post), breadcrumbJsonLd([{ name: "t-Blog", path: "/t-blog" }, { name: post.title, path: `/t-blog/${post.slug}` }])])} />
       <div className="whiteboard py-10 sm:py-14">
         <article className="notebook mx-auto max-w-3xl rounded-[8px] px-6 py-10 pl-16 shadow-[0_30px_50px_-30px_rgb(12_31_51/0.5)] sm:px-12 sm:pl-20">
           <Link href="/t-blog" className="inline-flex items-center gap-1.5 text-sm font-semibold text-sky-dark hover:underline">

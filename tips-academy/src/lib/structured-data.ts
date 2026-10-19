@@ -1,4 +1,4 @@
-import { site } from "@/lib/site"
+import { academicServices, mapsLinkHref, type Post, serviceHref, site } from "@/lib/site"
 
 export function academyJsonLd() {
   return {
@@ -26,6 +26,46 @@ export function academyJsonLd() {
       closes: h.closes,
     })),
     sameAs: site.social.map((s) => s.href),
+    hasMap: mapsLinkHref,
+    areaServed: { "@type": "City", name: site.address.city },
+    knowsLanguage: ["es", "en"],
+    hasOfferCatalog: {
+      "@type": "OfferCatalog",
+      name: "Clases y cursos",
+      itemListElement: academicServices.map((s) => ({
+        "@type": "Offer",
+        itemOffered: { "@type": "Service", name: s.title, description: s.seoDescription ?? s.text, url: `${site.url}${serviceHref(s.slug)}` },
+      })),
+    },
+  }
+}
+
+/** Migas de pan para buscadores: [{ name, path }] desde la portada. */
+export function breadcrumbJsonLd(items: { name: string; path: string }[]) {
+  const all = [{ name: "Inicio", path: "/" }, ...items]
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: all.map((it, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: it.name,
+      item: `${site.url}${it.path === "/" ? "" : it.path}`,
+    })),
+  }
+}
+
+export function articleJsonLd(post: Post) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: post.title,
+    description: post.excerpt,
+    datePublished: post.iso,
+    mainEntityOfPage: `${site.url}/t-blog/${post.slug}`,
+    author: { "@type": "Organization", name: site.name, url: site.url },
+    publisher: { "@id": `${site.url}/#academy` },
+    inLanguage: "es-ES",
   }
 }
 

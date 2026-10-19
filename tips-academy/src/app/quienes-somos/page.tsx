@@ -9,7 +9,7 @@ import { Team } from "@/components/sections/team"
 import { Reviews } from "@/components/sections/reviews"
 
 export const metadata: Metadata = {
-  title: "Quiénes somos",
+  title: "Quiénes somos: academia de apoyo con más de 15 años",
   description: "Tips Academy: academia de apoyo escolar en Alcorcón con más de 15 años de experiencia, profesores titulados y metodología de aula invertida.",
   alternates: { canonical: "/quienes-somos" },
 }

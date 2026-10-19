@@ -7,7 +7,7 @@ export const site = {
   name: "Tips Academy",
   tagline: "Tu academia de apoyo en Alcorcón",
   description:
-    "Academia de apoyo escolar e inglés en Alcorcón: clases grupales y particulares, intensivo de Selectividad (EvAU), Cambridge, técnicas de estudio, robótica e informática.",
+    "Academia en Alcorcón con más de 15 años: clases de apoyo y particulares (presencial, a domicilio u online), Selectividad, inglés Cambridge y talleres.",
   url: (process.env.NEXT_PUBLIC_SITE_URL ?? "https://tipsacademy.es").replace(/\/$/, ""),
 
   phone: { display: "641 77 09 21", href: "tel:+34641770921", e164: "+34641770921" },
@@ -106,11 +106,34 @@ export type Service = {
   subjects?: string[]
   note?: string
   quote: QuoteKey
+  /** SEO: título y descripción para buscadores (si no, se usan title y text) */
+  seoTitle?: string
+  seoDescription?: string
+  /** Apartados de texto ampliado. Admite **negritas**. */
+  sections?: { title: string; body: string[] }[]
+  /** Preguntas frecuentes del servicio. Admite **negritas** en la respuesta. */
+  faq?: { q: string; a: string }[]
 }
 
 export const services: Service[] = [
   {
     slug: "intensivo-selectividad",
+    seoTitle: "Intensivo de Selectividad (PAU / EvAU) 2026",
+    seoDescription: "Curso intensivo de Selectividad en Alcorcón: 10 días, una hora por asignatura, material propio y exámenes de años anteriores. También en clases particulares.",
+    sections: [
+      {
+        title: "Así es el intensivo",
+        body: [
+          "Durante los **10 días previos a la Selectividad** repasamos cada asignatura una hora al día, en grupos reducidos y con cuadernillos elaborados por nuestros profesores.",
+          "Trabajamos solo con **exámenes de convocatorias anteriores**, para que llegues sabiendo qué te pueden preguntar y cómo responder. Y además del temario, practicamos la gestión del tiempo y de los nervios: llegar con un plan marca la diferencia.",
+        ],
+      },
+    ],
+    faq: [
+      { q: "¿Qué asignaturas incluye?", a: "Hasta 11 asignaturas de ciencias y de letras: las tienes todas en el listado de esta página." },
+      { q: "¿Puedo prepararla con un profesor solo para mí?", a: "Sí. Tenemos un **intensivo particular** de 15 horas con un profesor dedicado solo a ti." },
+      { q: "¿Cuándo empieza?", a: "Justo antes de los exámenes de la PAU. Escríbenos y te confirmamos fechas y plazas disponibles." },
+    ],
     title: "Intensivo de Selectividad",
     slogan: "Prepara la EvAU de la mejor manera posible",
     text: "Todas las asignaturas, 1 hora por asignatura durante 10 días y material propio de Selectividad.",
@@ -134,6 +157,28 @@ export const services: Service[] = [
   },
   {
     slug: "clases-grupales",
+    seoTitle: "Clases de apoyo y refuerzo escolar en grupos reducidos",
+    seoDescription: "Clases de apoyo grupales en Alcorcón para Primaria, ESO y Bachillerato: grupos reducidos, atención personalizada y método de aula invertida.",
+    sections: [
+      {
+        title: "Refuerzo escolar en grupos reducidos",
+        body: [
+          "Nuestras **clases de apoyo** se dan en grupos reducidos para que cada alumno tenga su sitio: el profesor sigue su trabajo, resuelve sus dudas y le propone ejercicios a su nivel.",
+          "Es la mejor forma de llevar el curso al día, preparar los exámenes con tiempo y ganar autonomía al estudiar.",
+        ],
+      },
+      {
+        title: "Primaria, ESO y Bachillerato",
+        body: [
+          "Hacemos **refuerzo escolar de Primaria, ESO y Bachillerato** en todas las asignaturas: matemáticas, lengua, inglés, física y química, biología, historia, economía… Tienes el listado completo más abajo.",
+        ],
+      },
+    ],
+    faq: [
+      { q: "¿Cuántos alumnos hay en cada grupo?", a: "Trabajamos con **grupos reducidos** para poder atender a cada alumno. Pregúntanos por la disponibilidad del grupo que te interesa." },
+      { q: "¿Qué horario tenéis?", a: "La academia abre de lunes a viernes de 9:30 a 13:00 y de 16:00 a 20:30. Te ayudamos a elegir los días y horas que mejor encajan con tu semana." },
+      { q: "¿Se pueden combinar con clases particulares?", a: "Sí, puedes combinar clases grupales y **clases particulares** según lo que necesites en cada momento del curso." },
+    ],
     title: "Clases de apoyo grupales",
     slogan: "Todos los niveles y asignaturas",
     text: "Acude de forma presencial a la academia para recibir apoyo y refuerzo en todas las asignaturas y niveles.",
@@ -155,6 +200,41 @@ export const services: Service[] = [
   },
   {
     slug: "clases-particulares",
+    seoTitle: "Clases particulares con profesores titulados",
+    seoDescription: "Clases particulares y profesores particulares para Primaria, ESO, Bachillerato, Selectividad e inglés: a domicilio, en nuestra academia de Alcorcón u online.",
+    sections: [
+      {
+        title: "Clases particulares a tu medida",
+        body: [
+          "Una **clase particular** es la forma más directa de resolver dudas: un profesor, un alumno y un plan de trabajo pensado solo para él. Empezamos viendo en qué punto está, qué le cuesta y qué exámenes tiene por delante, y a partir de ahí organizamos las sesiones.",
+          "Sirven para **recuperar una asignatura**, subir nota, preparar un examen concreto o coger hábito de estudio. Como el ritmo lo marca el alumno, avanzamos rápido en lo que ya domina y nos paramos en lo que le cuesta.",
+        ],
+      },
+      {
+        title: "Profesores particulares titulados",
+        body: [
+          "Contamos con un equipo de más de 10 **profesores particulares** titulados, especialistas en ciencias, letras e idiomas. Te ayudamos a elegir el que mejor encaja con la asignatura y con la forma de aprender del alumno.",
+        ],
+      },
+      {
+        title: "Todas las asignaturas y niveles",
+        body: [
+          "Damos **clases particulares de Primaria, ESO y Bachillerato**, preparación de la **Selectividad (PAU)**, acceso a Grado Medio y Superior, acceso a la universidad para mayores de 25 e **inglés**.",
+        ],
+      },
+      {
+        title: "A domicilio, en la academia u online",
+        body: [
+          "Tú eliges dónde: el profesor puede ir **a domicilio**, puedes venir a nuestra academia en Alcorcón o conectarte a **clases particulares online** desde cualquier lugar, con la misma atención personalizada. Los horarios se adaptan a tu semana.",
+        ],
+      },
+    ],
+    faq: [
+      { q: "¿Cuánto cuesta una clase particular?", a: "Depende del nivel, la asignatura y la modalidad (a domicilio, en la academia u online). Escríbenos o llámanos y te damos un **presupuesto sin compromiso**." },
+      { q: "¿Sirven para preparar un examen concreto?", a: "Sí. Cuéntanos qué necesitas y vemos juntos la mejor opción: desde un repaso antes de un examen hasta un seguimiento durante todo el curso." },
+      { q: "¿Las clases particulares online funcionan igual?", a: "Sí: el profesor explica, corrige y resuelve dudas en directo, y compartís materiales y ejercicios como en una clase presencial. Es una buena opción si vives lejos o tienes poco tiempo." },
+      { q: "¿Qué diferencia hay con las clases grupales?", a: "En las grupales trabajas en un grupo reducido en la academia y el profesor atiende a cada alumno con nuestro método de aula invertida. En las particulares tienes al profesor **solo para ti** y total flexibilidad de horario y lugar." },
+    ],
     title: "Clases particulares",
     slogan: "Un profesor solo para ti",
     text: "A domicilio, en la academia u online, con un plan de aprendizaje personalizado y adaptado al estudiante.",
@@ -174,6 +254,16 @@ export const services: Service[] = [
   },
   {
     slug: "tecnicas-de-estudio",
+    seoTitle: "Taller de técnicas de estudio para ESO y Bachillerato",
+    seoDescription: "Taller de técnicas de estudio: organización, resúmenes, esquemas, subrayado y hábitos para estudiar mejor en menos tiempo. Plazas limitadas.",
+    sections: [
+      {
+        title: "Aprender a estudiar",
+        body: [
+          "Estudiar muchas horas no siempre da resultados. En el taller de **técnicas de estudio** aprendes a organizarte, a hacer **resúmenes y esquemas** que de verdad sirven y a memorizar de forma activa, para estudiar menos tiempo y mejor.",
+        ],
+      },
+    ],
     title: "Técnicas de estudio",
     slogan: "Estudia mejor, no más",
     text: "Periódicamente convocamos talleres para mejorar las capacidades de estudio y aprendizaje de nuestros alumnos.",
@@ -195,6 +285,20 @@ export const services: Service[] = [
   },
   {
     slug: "robotica",
+    seoTitle: "Cursos de robótica y programación para niños y jóvenes",
+    seoDescription: "Cursos de robótica y programación: los alumnos construyen y programan sus propios proyectos mientras aprenden lógica, creatividad y trabajo en equipo.",
+    sections: [
+      {
+        title: "Robótica y programación",
+        body: [
+          "En los **cursos de robótica** los alumnos montan y programan sus propios proyectos, y aprenden **programación**, lógica y pensamiento computacional mientras se divierten.",
+          "Es una actividad que potencia la creatividad, la resolución de problemas y el trabajo en equipo.",
+        ],
+      },
+    ],
+    faq: [
+      { q: "¿Para qué edades son?", a: "Consúltanos los grupos y edades disponibles cada curso y te contamos cuál encaja mejor." },
+    ],
     title: "Cursos de robótica",
     slogan: "Aprende jugando con la tecnología",
     text: "Damos a los alumnos las herramientas que necesitarán en una de las profesiones con más proyección del mercado.",
@@ -214,6 +318,16 @@ export const services: Service[] = [
   },
   {
     slug: "julio",
+    seoTitle: "Clases de apoyo e intensivos de inglés en julio",
+    seoDescription: "En julio: clases de apoyo por las mañanas para recuperar o adelantar asignaturas e intensivos de inglés B2 First y C1 Advanced.",
+    sections: [
+      {
+        title: "Un verano para ponerse al día",
+        body: [
+          "Si te ha quedado alguna asignatura o quieres empezar el próximo curso con ventaja, en julio tenemos **clases de apoyo por las mañanas**. Y si tu objetivo es el inglés, los **intensivos B2 y C1** son la mejor forma de aprovechar el verano.",
+        ],
+      },
+    ],
     title: "Clases y cursos en julio",
     slogan: "Aprovecha julio para ponerte a punto",
     text: "Clases de apoyo por las mañanas e intensivos de inglés, tanto para B2 como para C1.",
@@ -233,6 +347,21 @@ export const services: Service[] = [
   },
   {
     slug: "cambridge",
+    seoTitle: "Preparación de exámenes Cambridge B2 First y C1 Advanced",
+    seoDescription: "Prepara el B2 First o el C1 Advanced de Cambridge: grupos entre semana y los sábados, libro incluido y profesores especialistas en cada examen.",
+    sections: [
+      {
+        title: "Clases de inglés con un objetivo",
+        body: [
+          "Nuestras **clases de inglés** están orientadas a aprobar el **B2 First** y el **C1 Advanced** de Cambridge: trabajamos las cuatro destrezas (reading, writing, listening y speaking) con el formato real del examen y simulacros para coger ritmo.",
+          "Y si antes necesitas mejorar tu nivel, también damos **apoyo de inglés** de colegio, instituto y Bachillerato.",
+        ],
+      },
+    ],
+    faq: [
+      { q: "¿Qué horario tienen los grupos?", a: "De 19:30 a 21:00, dos días a la semana, y también los sábados por la mañana." },
+      { q: "¿Hay cursos intensivos?", a: "Sí, en julio hacemos **intensivos de B2 y C1**." },
+    ],
     title: "Certificados Cambridge",
     slogan: "Preparación de exámenes oficiales",
     text: "En todas las carreras se exige un nivel mínimo de B2: con nosotros podrás preparar B2 y C1 sin ningún problema.",
@@ -252,6 +381,12 @@ export const services: Service[] = [
   },
   {
     slug: "informatica",
+    seoTitle: "Cursos de informática: Windows, Office e internet",
+    seoDescription: "Curso de informática adaptado a la vida académica: Windows, Word, Excel, PowerPoint, navegación web y edición de imágenes. Portátil incluido en clase.",
+    faq: [
+      { q: "¿Cuánto cuesta?", a: "8 € la hora, dos horas a la semana, y una matrícula de 10 € al inicio del curso." },
+      { q: "¿Tengo que traer ordenador?", a: "No: cada alumno tiene un portátil en nuestras aulas de informática." },
+    ],
     title: "Cursos de informática",
     slogan: "La tecnología ha llegado para quedarse",
     text: "Windows, paquete Office, navegación web, edición de imágenes y comunicaciones, adaptado a la vida académica.",
@@ -286,6 +421,16 @@ export const services: Service[] = [
   },
   {
     slug: "club-rol",
+    seoTitle: "Club de Rol y Juegos de Mesa en Alcorcón",
+    seoDescription: "Club de rol y juegos de mesa: ocio alternativo y saludable en un espacio seguro, para desarrollar imaginación, estrategia y trabajo en equipo.",
+    sections: [
+      {
+        title: "Un ocio que también educa",
+        body: [
+          "Los **juegos de rol y de mesa** fomentan la imaginación, la comunicación y el pensamiento estratégico. En nuestro club se juega en grupo y en un ambiente seguro: un buen sitio para hacer amigos con los mismos intereses.",
+        ],
+      },
+    ],
     title: "Club de Rol y Juegos de Mesa",
     slogan: "Ofreciendo ocio alternativo",
     text: "En un espacio seguro y controlado, brindamos la oportunidad de un ocio alternativo y saludable.",
@@ -316,6 +461,16 @@ export const services: Service[] = [
     ],
     quote: "emerson",
   },
+]
+
+/** Preguntas frecuentes de la portada. Admite **negritas** en la respuesta. */
+export const homeFaq = [
+  { q: "¿Dónde está la academia?", a: "En la Calle Porto Lagos 1 (posterior), 28924 **Alcorcón** (Madrid). Abrimos de lunes a viernes de 9:30 a 13:00 y de 16:00 a 20:30." },
+  { q: "¿Qué niveles y asignaturas dais?", a: "**Primaria, ESO, Bachillerato** y **Selectividad**, acceso a Grado Medio y Superior, acceso a la universidad para mayores de 25 e idiomas: 18 asignaturas de ciencias, letras e idiomas." },
+  { q: "¿Dais clases particulares a domicilio u online?", a: "Sí. Además de las clases grupales en la academia, nuestros **profesores particulares** pueden ir a tu casa o darte la clase **online**, con horarios flexibles." },
+  { q: "¿Cómo funciona el aula invertida?", a: "El alumno trabaja la teoría con los materiales que le damos y el tiempo de clase se dedica a **practicar, resolver dudas** y afianzar lo aprendido, al ritmo de cada uno." },
+  { q: "¿Tenéis material gratuito?", a: "Sí: en Recursos tienes **más de 1000 archivos gratis** con apuntes, ejercicios y exámenes de ESO, Bachillerato y Selectividad." },
+  { q: "¿Cómo reservo plaza?", a: "Rellena el formulario de **reserva de plaza**, escríbenos por WhatsApp o llámanos al 641 77 09 21. Te informamos gratis y sin compromiso." },
 ]
 
 export const homeServices = services.filter((s) => s.home)

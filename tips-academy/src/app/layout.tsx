@@ -14,7 +14,7 @@ const sans = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-sans", di
 // Caveat: la letra "a mano" de rotulador y tiza.
 const hand = Caveat({ subsets: ["latin"], variable: "--font-hand", display: "swap" })
 
-const title = "Tips Academy · Academia de apoyo e inglés en Alcorcón"
+const title = "Tips Academy · Academia en Alcorcón: clases de apoyo y particulares"
 // Mientras sea una propuesta, no se indexa (evita contenido duplicado con la web actual).
 const indexable = process.env.NEXT_PUBLIC_ALLOW_INDEXING === "true"
 

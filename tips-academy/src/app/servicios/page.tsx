@@ -7,7 +7,7 @@ import { ServiceCard } from "@/components/service-card"
 import { quotes, services } from "@/lib/site"
 
 export const metadata: Metadata = {
-  title: "Servicios",
+  title: "Servicios: clases de apoyo, particulares, Selectividad e inglés",
   description: "Clases grupales y particulares, intensivo de Selectividad, Cambridge, técnicas de estudio, robótica, informática, educación financiera y Club de Rol en Alcorcón.",
   alternates: { canonical: "/servicios" },
 }

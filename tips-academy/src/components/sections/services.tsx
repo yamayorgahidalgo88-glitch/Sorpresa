@@ -2,6 +2,7 @@ import Link from "next/link"
 
 import { Mark } from "@/components/board/scribble"
 import { QuoteMarker } from "@/components/board/quote-marker"
+import { Rich } from "@/components/rich"
 import { ServiceCard } from "@/components/service-card"
 import { Button } from "@/components/ui/button"
 import { homeServices, quotes } from "@/lib/site"
@@ -18,6 +19,9 @@ export function Services() {
             <h2 id="servicios-title" className="mt-3 text-4xl leading-[1.1] font-bold tracking-[-0.02em] text-ink sm:text-5xl">
               Todo lo que necesitas para <Mark kind="underline" color="var(--sky)">aprobar</Mark>
             </h2>
+            <p className="mt-5 text-lg leading-relaxed text-slate">
+              <Rich text="Somos una **academia de apoyo** con más de 15 años de experiencia: **clases de apoyo** en grupos reducidos, **clases particulares** a domicilio, en la academia u online, preparación de la **Selectividad**, inglés de Cambridge y talleres para aprender de otra forma." />
+            </p>
           </div>
           <Button asChild variant="outline" className="self-start md:self-auto">
             <Link href="/servicios">Ver todos los servicios</Link>

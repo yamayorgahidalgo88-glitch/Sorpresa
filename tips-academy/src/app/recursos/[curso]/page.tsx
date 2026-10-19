@@ -8,6 +8,7 @@ import { CtaStrip } from "@/components/cta-strip"
 import { PageHero } from "@/components/page-hero"
 import { courses } from "@/lib/site"
 import { cn } from "@/lib/utils"
+import { breadcrumbJsonLd, jsonLd } from "@/lib/structured-data"
 
 export function generateStaticParams() {
   return courses.map((c) => ({ curso: c.slug }))
@@ -19,7 +20,7 @@ export async function generateMetadata({ params }: PageProps<"/recursos/[curso]"
   if (!c) return {}
   return {
     title: `Recursos ${c.title}: apuntes, ejercicios y exámenes`,
-    description: `Apuntes, ejercicios y exámenes gratis de ${c.title}.`,
+    description: `Apuntes, ejercicios y exámenes gratis de ${c.title}: ${c.subjects.slice(0, 4).join(", ")} y más. Material preparado por los profesores de Tips Academy.`,
     alternates: { canonical: `/recursos/${c.slug}` },
   }
 }
@@ -37,6 +38,7 @@ export default async function CursoPage({ params }: PageProps<"/recursos/[curso]
 
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(breadcrumbJsonLd([{ name: "Recursos", path: "/recursos" }, { name: course.title, path: `/recursos/${course.slug}` }]))} />
       <PageHero title={course.title} hand="apuntes, ejercicios y exámenes">
         <p>Todo el material es gratuito. Elige la asignatura y descárgalo.</p>
       </PageHero>
