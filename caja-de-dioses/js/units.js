@@ -154,7 +154,7 @@ function gainXp(u, n) {
     u.xp -= u.level * 2; u.level++;
     const oldMax = u.maxHp; u.maxHp = maxHpOf(u); u.hp += u.maxHp - oldMax;
     if (u.level === 5 && u.def.civ && !u.hero) makeHero(u);
-    else if (u.hero && [8, 12, 17, 25].includes(u.level)) addLog(`${u.name} alcanza el rango de ${rankOf(u.level)}.`, 'hero');
+    else if (u.hero && [8, 12, 17, 25].includes(u.level)) addLog(`${u.name} alcanza el rango de ${rankOf(u.level)}.`, 'hero', u);
   }
 }
 function makeHero(u) {
@@ -162,7 +162,7 @@ function makeHero(u) {
   if (!u.name) u.name = mkName(u.type);
   u.item = pick(ITEMS);
   u.maxHp = maxHpOf(u); u.hp = u.maxHp;
-  addLog(`${u.name}${u.k ? ' ' + del(u.k) : ''} se convierte en héroe y empuña ${u.item[0]}.`, 'hero');
+  addLog(`${u.name}${u.k ? ' ' + del(u.k) : ''} se convierte en héroe y empuña ${u.item[0]}.`, 'hero', u);
 }
 const DEATHS = {};
 function kill(u, src, cause) {
@@ -176,10 +176,10 @@ function kill(u, src, cause) {
     const pa = unitById(u.partner); if (pa) { pa.partner = null; pa.mood = Math.max(0, pa.mood - 35); pa.widow = u.name || displayName(u); }
     for (const o of units) if (o.parents && o.parents.includes(u.id) && !o.dead) o.mood = Math.max(0, o.mood - 22);
   }
-  if (u.cargo && u.cargo.length && u.k) addLog(`Un barco ${del(u.k)} se hunde con ${u.cargo.length} personas a bordo.`, 'doom');
+  if (u.cargo && u.cargo.length && u.k) addLog(`Un barco ${del(u.k)} se hunde con ${u.cargo.length} personas a bordo.`, 'doom', u);
   const wasKing = u.k && u.k.king === u;
-  if (wasKing) { u.k.lastKing = u.id; addLog(`Ha muerto ${u.name}, soberano ${del(u.k)}${cause ? ' (' + cause + ')' : ''}.`, 'war'); u.k.king = null; }
-  else if (u.hero) addLog(`El héroe ${u.name} ha caído${src ? ' a manos de ' + (src.name || src.def.n.toLowerCase()) : cause ? ' (' + cause + ')' : ''}.`, 'hero');
+  if (wasKing) { u.k.lastKing = u.id; addLog(`Ha muerto ${u.name}, soberano ${del(u.k)}${cause ? ' (' + cause + ')' : ''}.`, 'war', u); u.k.king = null; }
+  else if (u.hero) addLog(`El héroe ${u.name} ha caído${src ? ' a manos de ' + (src.name || src.def.n.toLowerCase()) : cause ? ' (' + cause + ')' : ''}.`, 'hero', u);
   if (src && src.def.infect && u.def.civ && u.type !== 'undead' && rnd() < .6) { spawn('zombie', u.x, u.y); return; }
   if (src && src.type === 'undead' && src.k && u.def.civ && u.type !== 'undead' && rnd() < SP.undead.raise) {
     const z = spawn('undead', u.x, u.y, src.k, src.city); if (z) burst(u.x, u.y, [120, 230, 140], 6, .5); return;

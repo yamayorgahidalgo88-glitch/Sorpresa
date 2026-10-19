@@ -47,8 +47,8 @@ function unloadBoat(b) {
     units.push(p); UMAP.set(p.id, p);
   }
   const n = (b.cargo || []).length;
-  if (m.kind === 'settle' && n && b.k) addLog(`Un barco ${del(b.k)} desembarca ${n} colonos en una nueva tierra.`, 'found');
-  if (m.kind === 'invade' && n && b.k) addLog(`¡Desembarco! ${n} soldados ${del(b.k)} llegan por mar cerca de ${m.tname}.`, 'war');
+  if (m.kind === 'settle' && n && b.k) addLog(`Un barco ${del(b.k)} desembarca ${n} colonos en una nueva tierra.`, 'found', b);
+  if (m.kind === 'invade' && n && b.k) addLog(`¡Desembarco! ${n} soldados ${del(b.k)} llegan por mar cerca de ${m.tname}.`, 'war', b);
   if (m.kind === 'trade') {
     const o = cities[m.to];
     if (o && o.alive && b.k) {

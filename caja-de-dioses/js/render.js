@@ -238,11 +238,22 @@ function renderMini() {
 }
 
 // ---------- nubes y clima ----------
-let clouds = [], weather = [], lastRT = 0;
+let clouds = [], lastRT = 0;
+const weather = { rain: 0, target: 0, storm: false, until: 0, flash: 0 };
 function updateAmbient(now) {
   const dt = Math.min(.1, (now - (lastRT || now)) / 1000); lastRT = now;
   if (!clouds.length && W) for (let k = 0; k < Math.max(3, (N / 4500) | 0); k++) clouds.push({ x: rnd() * W, y: rnd() * H, s: .6 + rnd() * .9, spr: (rnd() * 4) | 0, v: .4 + rnd() * .5 });
   for (const c of clouds) { c.x += c.v * dt * (paused ? .3 : 1 + speed * .2); if (c.x > W + 30) { c.x = -40; c.y = rnd() * H; } }
+}
+function flagCanvas(k) {
+  const key = k.color.join(',') + (k.emb ? k.emb.g : '');
+  if (k._flag && k._flagK === key) return k._flag;
+  const e = emblemOf(k), c = document.createElement('canvas'); c.width = 30; c.height = 20; const x = c.getContext('2d');
+  x.fillStyle = css(k.color); x.fillRect(0, 0, 30, 20);
+  x.fillStyle = css(e.c2); x.fillRect(0, 16, 30, 4); x.fillRect(0, 0, 30, 2);
+  x.font = '13px "Segoe UI Symbol","DejaVu Sans",system-ui,sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#fff6dc'; x.fillText(e.g, 15, 10);
+  x.strokeStyle = 'rgba(0,0,0,.4)'; x.strokeRect(.5, .5, 29, 19);
+  k._flag = c; k._flagK = key; return c;
 }
 function bodyColor(u) { return u.k ? u.k.color : u.def.skin.map(v => v * .75); }
 
@@ -384,17 +395,57 @@ function render() {
     }
     ctx.globalAlpha = 1;
   }
+  // lluvia y tormentas
+  if (weather.rain > .02 && modOn('clima') && seasonSig !== 3) {
+    const a = weather.rain;
+    ctx.fillStyle = `rgba(30,40,60,${a * .22})`; ctx.fillRect(0, 0, view.width, view.height);
+    ctx.strokeStyle = `rgba(190,210,240,${.35 * a})`; ctx.lineWidth = 1 * DPR; ctx.beginPath();
+    const n = (160 * a) | 0;
+    for (let k = 0; k < n; k++) { const x = (hash(k, 7, 1) * view.width + tsec * 160) % view.width, y = (hash(k, 9, 1) * view.height + tsec * 900 * (1 + hash(k, 3, 1) * .4)) % view.height; ctx.moveTo(x, y); ctx.lineTo(x - 4 * DPR, y + 16 * DPR); }
+    ctx.stroke();
+    if (weather.storm && weather.flash > 0) { ctx.fillStyle = `rgba(230,236,255,${weather.flash})`; ctx.fillRect(0, 0, view.width, view.height); weather.flash *= .82; if (weather.flash < .02) weather.flash = 0; }
+  }
   // nieve en invierno (partículas en pantalla)
   if (seasonSig === 3 && modOn('clima')) {
     ctx.fillStyle = 'rgba(255,255,255,.8)';
     for (let k = 0; k < 90; k++) { const x = (hash(k, 1, 3) * view.width + tsec * 20 * (1 + hash(k, 2, 3))) % view.width, y = (hash(k, 5, 3) * view.height + tsec * 40 * (1 + hash(k, 3, 3))) % view.height; const s = (1 + hash(k, 9, 3) * 1.5) * DPR; ctx.fillRect(x, y, s, s); }
+  }
+  // banderas con el escudo de cada reino, ondeando sobre su ayuntamiento
+  if (cam.z >= 5) {
+    for (const c of cities) {
+      if (!c || !c.alive || c.x < vx0 || c.x > vx1 || c.y < vy0 || c.y > vy1 || !c.k) continue;
+      const fl = flagCanvas(c.k), [bx, by] = toS(c.x + .22, c.y + .15), ph = z * 1.5, fw = z * 1.05, fh = z * .7;
+      ctx.fillStyle = '#4a3624'; ctx.fillRect(bx - z * .05, by - ph, Math.max(1, z * .1), ph);
+      const strips = 8, sw = fw / strips;
+      for (let k = 0; k < strips; k++) {
+        const off = Math.sin(tsec * 5 + k * .7 + c.id) * z * .06 * (k / strips);
+        ctx.drawImage(fl, k * fl.width / strips, 0, fl.width / strips, fl.height, bx + k * sw, by - ph + off, sw + .6, fh);
+      }
+    }
+  }
+  // humo de chimeneas: en invierno, de noche y siempre en las fábricas
+  if (cam.z >= 7) {
+    const cold = seasonSig === 3 || light < .7;
+    for (let y = ty0; y <= ty1; y++) for (let x = tx0; x <= tx1; x++) {
+      const i = y * W + x, b = bld[i]; if (b !== 1 && b !== 2) continue;
+      const o = owner[i], k = o && cities[o - 1] ? cities[o - 1].k : null;
+      const factory = k && modOn('tecnologia') && k.house >= 4;
+      if (!(cold || factory) || hash(x, y, 3) > (factory ? .8 : .3)) continue;
+      const h0 = hash(x, y, 4);
+      for (let q = 0; q < 3; q++) {
+        const p = (tsec * .45 + h0 + q / 3) % 1;
+        const sx = ox + (x + .3 + p * .5) * z, sy = oy + (y + .15 - p * 1.3) * z;
+        ctx.fillStyle = `rgba(${factory ? '90,88,92' : '210,210,214'},${(1 - p) * (factory ? .5 : .35)})`;
+        ctx.beginPath(); ctx.arc(sx, sy, z * (.1 + p * .22), 0, 7); ctx.fill();
+      }
+    }
   }
   // nombres de ciudades
   if (cam.z >= 2.6) {
     ctx.font = `600 ${Math.round(11 * DPR)}px Barlow, system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
     for (const c of cities) {
       if (!c || !c.alive || c.x < vx0 || c.x > vx1 || c.y < vy0 || c.y > vy1) continue;
-      const [sx, sy] = toS(c.x + .5, c.y - .6);
+      const [sx, sy] = toS(c.x + .5, c.y - (cam.z >= 5 ? 1.45 : .6));
       const cap = c.k.capital === c.id;
       const label = c.name + '  ' + c.pop;
       const w = ctx.measureText(label).width + (cap ? 26 : 14) * DPR, h = 17 * DPR, bx = sx - w / 2, by = sy - h - 2 * DPR;
@@ -413,6 +464,10 @@ function render() {
     ctx.strokeStyle = 'rgba(0,0,0,.5)'; ctx.lineWidth = 3 * DPR; ctx.beginPath(); ctx.arc(sx, sy, r, 0, 7); ctx.stroke();
     ctx.strokeStyle = k === 'wall' ? 'rgba(240,96,84,.95)' : 'rgba(240,196,96,.95)'; ctx.lineWidth = 1.5 * DPR; ctx.beginPath(); ctx.arc(sx, sy, r, 0, 7); ctx.stroke();
   }
+  if (ping) {
+    const k = (now - ping.t) / 1600; if (k > 1) ping = null;
+    else { const [px2, py2] = toS(ping.x, ping.y); ctx.strokeStyle = `rgba(255,211,106,${1 - k})`; ctx.lineWidth = 3 * DPR; for (const o of [0, .35]) { const kk = (k + o) % 1; ctx.beginPath(); ctx.arc(px2, py2, (1 + kk * 5) * z * .6, 0, 7); ctx.stroke(); } }
+  }
   if (flash > 0) { ctx.fillStyle = `rgba(255,250,235,${flash})`; ctx.fillRect(0, 0, view.width, view.height); if (!paused) flash *= .93; if (flash < .02) flash = 0; }
   renderMini();
 }
@@ -423,6 +478,8 @@ function emojiCanvas(g) {
   x.font = '30px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",system-ui,sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
   x.fillText(g, 20, 22); EMOJI.set(g, c); return c;
 }
+let ping = null;
+function pingAt(x, y) { ping = { x, y, t: performance.now() }; }
 function roundRect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
 
 const RESCOL = Object.fromEntries(RESLIST.map(r => [r[0], css(r[2])]));

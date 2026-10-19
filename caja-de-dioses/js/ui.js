@@ -132,8 +132,8 @@ document.getElementById('startBtn').onclick = () => {
 };
 let toastT = 0;
 function toast(m) { const t = document.getElementById('toast'); t.textContent = m; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2200); }
-function addLog(m, cls = '') {
-  logs.unshift({ y: year(), m, cls }); if (logs.length > 150) logs.pop(); sideDirty = true;
+function addLog(m, cls = '', at = null) {
+  logs.unshift(at && at.x !== undefined ? { y: year(), m, cls, x: at.x | 0, yy: at.y | 0 } : { y: year(), m, cls }); if (logs.length > 150) logs.pop(); sideDirty = true;
   if (cls === 'war' && /guerra|Rebelión|Desembarco/.test(m)) sfx('war', undefined, undefined, 1, 2500);
   else if (cls === 'peace' && /Paz|Alianza/.test(m)) sfx('peace', undefined, undefined, 1, 2500);
   else if (cls === 'found' && /funda|Nace/.test(m)) sfx('found', undefined, undefined, 1, 1500);
@@ -170,6 +170,8 @@ function cultureChips(k) {
   if (!arr.length) return '<p class="empty">Sin rasgos todavía. Usa la pestaña Rasgos.</p>';
   return '<div class="chips">' + arr.map(([t, n]) => `<span class="chip ${TRAITS[t].magic ? 'm' : TRAITS[t].bad ? 'r' : ''}">${TRAITS[t].g} ${TRAITS[t].n} ${Math.round(n / tot * 100)}%</span>`).join('') + '</div>';
 }
+// la imagen del escudo se genera una vez por reino y se reutiliza
+function embCached(k, cls = 'emb') { const key = k.color.join(',') + (k.emb ? k.emb.s + k.emb.g : ''); if (!k._embUrl || k._embUrlK !== key) { emblemCanvas(k); k._embUrl = k._embC.toDataURL(); k._embUrlK = k.color.join(',') + k.emb.s + k.emb.g; } return `<img class="${cls}" alt="" src="${k._embUrl}">`; }
 function relationsHtml(k) {
   const others = kingdoms.filter(o => o.alive && o !== k);
   if (!others.length || !modOn('diplomacia')) return '';
@@ -177,7 +179,7 @@ function relationsHtml(k) {
     const op = opinion(k, o), st = k.wars.has(o.id) ? '<span class="chip r">⚔ Guerra</span>' : k.allies.has(o.id) ? '<span class="chip ok">Aliado</span>' : '';
     const why = Object.entries(op.why).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 4).map(([r, v]) => `${v > 0 ? '+' : ''}${v} ${r}`).join(' · ');
     const col = op.v > 25 ? '#8ed596' : op.v < -25 ? '#f08a80' : 'var(--muted)';
-    return `<div class="rel" title="${esc(why)}"><span class="sw" style="background:${css(o.color)}"></span><span class="rn">${esc(o.name)} ${st}<small>${esc(why)}</small></span><b style="color:${col}">${op.v > 0 ? '+' : ''}${op.v}</b></div>`;
+    return `<div class="rel" title="${esc(why)}">${embCached(o)}<span class="rn">${esc(o.name)} ${st}<small>${esc(why)}</small></span><b style="color:${col}">${op.v > 0 ? '+' : ''}${op.v}</b></div>`;
   }).join('');
   return `<h4>Relaciones (opinión de este reino)</h4>${rows}`;
 }
@@ -200,7 +202,7 @@ function kingdomDetail(k) {
       <h4>Almacén</h4>${resGrid(k)}`;
   }
   const sep = kingdoms.filter(o => o.alive && o !== k && !kingdomsTouch(k, o));
-  return `<div class="ins"><button class="back" data-back="1">← Todos los pueblos</button><h3>${esc(k.name)}</h3>
+  return `<div class="ins"><button class="back" data-back="1">← Todos los pueblos</button><div class="khead">${embCached(k, 'emb big')}<h3>${esc(k.name)}</h3></div>
     <div class="sub">${SP[k.race].n} · nacido en el año ${k.born}${k.dynasty ? ' · Casa ' + esc(k.dynasty) : ''}${modOn('religion') && k.religion ? '<br>Fe: ' + esc(relOf(k.religion).n) + ' ' + relOf(k.religion).s : ''} · ${kc.length} ciudad${kc.length === 1 ? '' : 'es'} · ${k.pop || units.filter(u => u.k === k).length} habitantes${k.king && !k.king.dead ? '<br>Soberano: ' + esc(k.king.name) : ''}</div>
     ${wars.length ? `<div class="chips">${wars.map(o => `<span class="chip r">⚔ ${esc(o.name)}</span>`).join('')}</div>` : ''}
     ${allies.length ? `<div class="chips">${allies.map(o => `<span class="chip ok">Aliado: ${esc(o.name)}</span>`).join('')}</div>` : ''}
@@ -215,7 +217,7 @@ function renderSide() {
   document.querySelectorAll('#sideTabs button[data-p]').forEach(b => b.classList.toggle('on', b.dataset.p === sidePane));
   const scroll = sideBody.scrollTop;
   if (sidePane === 'log') {
-    sideBody.innerHTML = logs.length > 1 ? '<div class="log">' + logs.map(l => `<div class="${l.cls}"><i>Año ${l.y}</i>${esc(l.m)}</div>`).join('') + '</div>'
+    sideBody.innerHTML = logs.length > 1 ? '<div class="log">' + logs.map((l, n) => `<div class="${l.cls}${l.x !== undefined ? ' go' : ''}" ${l.x !== undefined ? `data-go="${n}" title="Ir al lugar"` : ''}><i>Año ${l.y}</i>${esc(l.m)}</div>`).join('') + '</div>'
       : '<p class="empty">Aquí se escribirá la historia de tu mundo.<br><br>1. En <b>Vida</b>, toca la tierra para fundar un pueblo.<br>2. En <b>Rasgos</b>, pasa el pincel por su gente: inteligentes, trabajadores, tontos…<br>3. En <b>Materiales</b>, pon cobre, hierro, obsidiana… cerca de ellos.<br>4. Separa pueblos con una <b>frontera</b> si quieres que crezcan aislados.<br>5. Pulsa <b>▶ Empezar</b>.</p>';
   } else if (sidePane === 'kingdoms') {
     if (selectedKingdom && selectedKingdom.alive) sideBody.innerHTML = kingdomDetail(selectedKingdom);
@@ -224,7 +226,7 @@ function renderSide() {
       sideBody.innerHTML = ks.length ? ks.map(k => {
         const kc = cities.filter(c => c && c.alive && c.k === k).length;
         const wars = [...k.wars].map(w => kingdoms[w]?.name).filter(Boolean);
-        return `<div class="krow" data-k="${k.id}"><span class="sw" style="background:${css(k.color)}"></span><div style="min-width:0"><div class="kn">${esc(k.name)}</div><div class="kmeta">${SP[k.race].n}${modOn('tecnologia') ? ' · ' + ERAS[k.era] + ' · ' + esc(k.weapon.n) : ''} · ${kc} ciudad${kc === 1 ? '' : 'es'}${wars.length ? '<br><span style="color:var(--danger)">En guerra con: ' + esc(wars.join(', ')) + '</span>' : ''}</div></div><span class="kpop">${k.pop || units.filter(u => u.k === k).length}</span></div>`;
+        return `<div class="krow" data-k="${k.id}">${embCached(k)}<div style="min-width:0"><div class="kn">${esc(k.name)}</div><div class="kmeta">${SP[k.race].n}${modOn('tecnologia') ? ' · ' + ERAS[k.era] + ' · ' + esc(k.weapon.n) : ''} · ${kc} ciudad${kc === 1 ? '' : 'es'}${wars.length ? '<br><span style="color:var(--danger)">En guerra con: ' + esc(wars.join(', ')) + '</span>' : ''}</div></div><span class="kpop">${k.pop || units.filter(u => u.k === k).length}</span></div>`;
       }).join('') : '<p class="empty">No hay pueblos todavía. Funda uno en la pestaña Vida.</p>';
     }
   } else {
@@ -247,6 +249,7 @@ function renderSide() {
     }
   }
   sideBody.scrollTop = scroll;
+  sideBody.querySelectorAll('[data-go]').forEach(d => d.onclick = () => { const l = logs[+d.dataset.go]; if (!l) return; if (cam.z < 9) cam.z = 12; cam.x = l.x + .5 - VW / cam.z / 2; cam.y = l.yy + .5 - VH / cam.z / 2; clampCam(); followSel = null; pingAt(l.x + .5, l.yy + .5); });
   sideBody.querySelectorAll('.krow').forEach(r => r.onclick = () => { selectedKingdom = kingdoms[+r.dataset.k]; const c = cities[selectedKingdom.capital]; if (c) { cam.x = c.x - VW / cam.z / 2; cam.y = c.y - VH / cam.z / 2; clampCam(); } renderSide(); sideBody.scrollTop = 0; });
   sideBody.querySelectorAll('[data-back]').forEach(b => b.onclick = () => { selectedKingdom = null; renderSide(); });
   sideBody.querySelectorAll('[data-ka]').forEach(b => b.onclick = () => kingdomAct(selectedKingdom, b.dataset.ka));

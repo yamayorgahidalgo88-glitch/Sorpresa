@@ -137,7 +137,7 @@ function diseaseCheck(c, members) {
   if (rnd() < .0025 * (c.pop / 22) * crowd * med) {
     let n = 0;
     for (const o of members) { if (n >= 3) break; if (!o.immune && !hasTrait(o, 'inmune') && rnd() < .3) { o.sick = 360; n++; } }
-    if (n) addLog(`Brota una epidemia de fiebre en ${c.name}.`, 'doom');
+    if (n) addLog(`Brota una epidemia de fiebre en ${c.name}.`, 'doom', c);
   }
 }
 

@@ -36,8 +36,8 @@ function foundCity(u, force) {
   u.city = c.id; u.k = k;
   rebuildGrid();
   around(u.x, u.y, 6, o => { if (o.def.civ && o.type === u.type && o.city < 0 && !o.settler && !o.k) { o.city = c.id; o.k = k; } });
-  if (isNew) addLog(`Nace ${el(k)}, fundado por ${u.name}.`, 'found');
-  else addLog(`${El(k)} funda la ciudad de ${c.name}.`, 'found');
+  if (isNew) addLog(`Nace ${el(k)}, fundado por ${u.name}.`, 'found', c);
+  else addLog(`${El(k)} funda la ciudad de ${c.name}.`, 'found', c);
   regionDirty = true;
   return c;
 }
@@ -76,7 +76,7 @@ function destroyCity(c, why) {
     const i = y * W + x; if (owner[i] === c.id + 1) { owner[i] = 0; if (bld[i]) bld[i] = 4; }
   }
   for (const u of units) if (u.city === c.id) u.city = -1;
-  if (why) addLog(`La ciudad de ${c.name} ${why}.`, 'doom');
+  if (why) addLog(`La ciudad de ${c.name} ${why}.`, 'doom', c);
 }
 function tryCapture(u, c) {
   if (!c.alive || c.k === u.k) return;
@@ -86,7 +86,7 @@ function tryCapture(u, c) {
   c.k = u.k;
   for (const o of units) if (o.city === c.id) { o.k = u.k; o.army = false; }
   for (const r in old.res) { const loot = Math.floor(old.res[r] * .3); old.res[r] -= loot; u.k.res[r] += loot; }
-  addLog(`${El(u.k)} conquista ${c.name}, arrebatada ${al(old)}, y saquea sus almacenes.`, 'war');
+  addLog(`${El(u.k)} conquista ${c.name}, arrebatada ${al(old)}, y saquea sus almacenes.`, 'war', c);
   rebuildGrid(); around(c.x, c.y, 9, o => { if (o.k === u.k && o.prof === 'soldier') { o.city = c.id; o.home = -1; } });
   if (old.capital === c.id) old.capital = -1;
   bumpOpinion(old, u.k, -25, 'Ciudades conquistadas');
@@ -229,7 +229,7 @@ function rebel(c) {
   for (const t of old.tech) applyTech(k, TECHID[t], true);
   for (const o of units) if (o.city === c.id) { o.k = k; o.army = false; }
   k.wars.add(old.id); old.wars.add(k.id);
-  addLog(`¡Rebelión! ${c.name} se independiza ${del(old)} y le declara la guerra.`, 'war');
+  addLog(`¡Rebelión! ${c.name} se independiza ${del(old)} y le declara la guerra.`, 'war', c);
 }
 function declareWar(a, b, byGod) {
   if (a === b || a.wars.has(b.id)) return;
@@ -237,14 +237,14 @@ function declareWar(a, b, byGod) {
   a.wars.add(b.id); b.wars.add(a.id); a.warYears[b.id] = 0; b.warYears[a.id] = 0;
   bumpOpinion(a, b, -15, 'Declaración de guerra');
   const sep = !kingdomsTouch(a, b);
-  addLog(`${El(a)} declara la guerra ${al(b)}${byGod ? ' por voluntad divina' : ''}.${sep ? ' Una frontera los separa: sus ejércitos esperan en la línea.' : ''}`, 'war');
+  addLog(`${El(a)} declara la guerra ${al(b)}${byGod ? ' por voluntad divina' : ''}.${sep ? ' Una frontera los separa: sus ejércitos esperan en la línea.' : ''}`, 'war', cities[b.capital]);
   if (modOn('diplomacia')) for (const al_ of a.allies) { const k = kingdoms[al_]; if (k && k.alive && !k.wars.has(b.id) && k !== b) { k.wars.add(b.id); b.wars.add(k.id); } }
 }
 function makePeace(a, b) {
   if (!a.wars.has(b.id)) return;
   a.wars.delete(b.id); b.wars.delete(a.id);
   bumpOpinion(a, b, -25, 'Guerra pasada'); bumpOpinion(a, b, 12, 'Tratado de paz');
-  addLog(`Paz firmada entre ${el(a)} y ${el(b)}.`, 'peace');
+  addLog(`Paz firmada entre ${el(a)} y ${el(b)}.`, 'peace', cities[a.capital]);
 }
 function applyTech(k, t, silent) {
   if (k.tech.has(t.id)) return;
@@ -258,8 +258,8 @@ function applyTech(k, t, silent) {
   if (t.fx) for (const f in t.fx) k.mul[f] = (k.mul[f] || 1) * t.fx[f];
   const oldEra = k.era; if (t.core) k.era = Math.max(k.era, t.era);
   if (!silent) {
-    addLog(`${El(k)} descubre: ${t.n}.`, 'tech');
-    if (k.era > oldEra) addLog(`${El(k)} entra en la ${ERAS[k.era]}.`, 'found');
+    addLog(`${El(k)} descubre: ${t.n}.`, 'tech', cities[k.capital]);
+    if (k.era > oldEra) addLog(`${El(k)} entra en la ${ERAS[k.era]}.`, 'found', cities[k.capital]);
   }
 }
 function techAvailable(k, t) { return !k.tech.has(t.id) && modOn(t.mod) && (t.req || []).every(r => k.tech.has(r)); }
@@ -279,8 +279,8 @@ function research(k, members) {
       if (!techAvailable(k, t) || k.rp < t.cost) continue;
       const miss = missingFor(k, t);
       if (miss.length) {
-        if (!k.blocked[t.id]) { k.blocked[t.id] = 1; addLog(`${El(k)} sabe cómo hacer ${t.n.toLowerCase()}, pero le falta ${miss.map(m => RESNAME[m[0]].toLowerCase()).join(' y ')}.`, 'tech'); }
-        if (k.trade) for (const [r] of miss) { k.res[r] = (k.res[r] || 0) + .18 * k.trade; if (!k.found[r] && k.res[r] > 1) { k.found[r] = 1; addLog(`${El(k)} empieza a importar ${RESNAME[r].toLowerCase()} gracias al comercio.`, 'tech'); } }
+        if (!k.blocked[t.id]) { k.blocked[t.id] = 1; addLog(`${El(k)} sabe cómo hacer ${t.n.toLowerCase()}, pero le falta ${miss.map(m => RESNAME[m[0]].toLowerCase()).join(' y ')}.`, 'tech', cities[k.capital]); }
+        if (k.trade) for (const [r] of miss) { k.res[r] = (k.res[r] || 0) + .18 * k.trade; if (!k.found[r] && k.res[r] > 1) { k.found[r] = 1; addLog(`${El(k)} empieza a importar ${RESNAME[r].toLowerCase()} gracias al comercio.`, 'tech', cities[k.capital]); } }
         continue;
       }
       for (const r in t.need || {}) k.res[r] -= t.need[r];
@@ -313,7 +313,7 @@ function kingdomUpdate() {
     research(k, members);
     if (modOn('diplomacia')) {
       const rank = kc.length >= 7 ? 2 : kc.length >= 3 ? 1 : 0;
-      if (rank > k.rank && !k.custom) { const old = k.name; k.rank = rank; nameKingdom(k); addLog(`${old} crece y se convierte en ${el(k)}.`, 'found'); }
+      if (rank > k.rank && !k.custom) { const old = k.name; k.rank = rank; nameKingdom(k); addLog(`${old} crece y se convierte en ${el(k)}.`, 'found', cities[k.capital]); }
     }
     if (k.capital < 0 || !cities[k.capital] || !cities[k.capital].alive || cities[k.capital].k !== k) k.capital = kc.sort((a, b) => b.pop - a.pop)[0].id;
     if (!k.king || k.king.dead || k.king.k !== k) succession(k, members);

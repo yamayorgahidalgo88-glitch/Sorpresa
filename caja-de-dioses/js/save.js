@@ -22,7 +22,7 @@ function serialize() {
   return {
     v: 4, W, H, tickN, uid, tile: toB64(tile), owner: toB64(new Uint8Array(owner.buffer)), bld: toB64(bld), rad: toB64(rad), ore: toB64(ore), oreAmt: toB64(oreAmt), wall: toB64(wall), road: toB64(road), siteT: toB64(siteT),
     mods: Object.fromEntries(Object.entries(MODS).map(([k, m]) => [k, m.on])), laws: Object.fromEntries(Object.entries(LAWS).map(([k, m]) => [k, m.on])),
-    kingdoms: kingdoms.map(k => ({ ...k, css: undefined, wars: [...k.wars], allies: [...k.allies], tech: [...k.tech], king: k.king && !k.king.dead ? k.king.id : null })),
+    kingdoms: kingdoms.map(k => ({ ...k, css: undefined, _embC: undefined, _embK: undefined, _embUrl: undefined, _embUrlK: undefined, _flag: undefined, _flagK: undefined, wars: [...k.wars], allies: [...k.allies], tech: [...k.tech], king: k.king && !k.king.dead ? k.king.id : null })),
     cities: cities.map(c => c && ({ ...c, k: c.k.id, ores: [] })),
     units: list.map(u => { const o = { k: u.k ? u.k.id : null }; for (const key of UNIT_KEYS) if (u[key] !== undefined && u[key] !== null) o[key] = u[key]; return o; }),
     religions, custom: Object.fromEntries([...used].map(t => [t, TRAITS[t]])),

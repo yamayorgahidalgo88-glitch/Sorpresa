@@ -52,7 +52,7 @@ function buildStep(u, c, i, want, tk) {
     const t = siteT[i] || B.HOUSE;
     bld[i] = t; siteT[i] = 0;
     if (cam.z >= 8) sfx('build', i % W, (i / W) | 0, .8, 250);
-    if (t === B.TEMPLE || t === B.LIBRARY || t === B.MARKET) addLog(`${c.name} termina su ${BUILDINGS[t].n.toLowerCase()}.`, 'found');
+    if (t === B.TEMPLE || t === B.LIBRARY || t === B.MARKET) addLog(`${c.name} termina su ${BUILDINGS[t].n.toLowerCase()}.`, 'found', c);
     else if (tmul(u, 'build') > 1) { const n = i + pick([1, -1, W, -W]); if (n >= 0 && n < N && freeLot(n, c.id + 1)) { bld[n] = B.SITE; siteT[n] = B.HOUSE; } }
     gainXp(u, .3);
     return false;

@@ -199,7 +199,7 @@ function finishWork(u, tk, c) {
     case 'farm':
       if (!c || owner[i] !== c.id + 1) break;
       if (tile[i] !== T.FIELD) { if (TILE[tile[i]].farm) tile[i] = T.FIELD; }
-      else c.food += 2.2 * wm * tmul(u, 'farm') * kmul(k, 'food') * (c.has[B.MILL] ? 1.3 : 1) * (season() === 3 ? .35 : season() === 1 ? 1.25 : 1);
+      else c.food += 2.2 * wm * tmul(u, 'farm') * kmul(k, 'food') * (c.has[B.MILL] ? 1.3 : 1) * (season() === 3 ? .35 : season() === 1 ? 1.25 : 1) * (weather.rain > .3 ? 1.15 : 1);
       gainXp(u, .15);
       break;
     case 'gather':
@@ -208,16 +208,16 @@ function finishWork(u, tk, c) {
       break;
     case 'fish': if (c) c.food += 2.6 * wm * kmul(k, 'food') * (c.has[B.DOCKS] ? 1.6 : 1); gainXp(u, .1); break;
     case 'wood':
-      if (TILE[tile[i]].wood) { u.carry = { r: 'madera', n: 4 * wm }; if (rnd() < .18) tile[i] = T.GRASS; tk.ph = 'back'; return; }
+      if (TILE[tile[i]].wood) { u.carry = { r: 'madera', n: 9 * wm }; if (rnd() < .18) tile[i] = T.GRASS; tk.ph = 'back'; return; }
       break;
     case 'stone':
-      if (TILE[tile[i]].stone) { u.carry = { r: 'piedra', n: 3.5 * wm * tmul(u, 'mine') }; tk.ph = 'back'; return; }
+      if (TILE[tile[i]].stone) { u.carry = { r: 'piedra', n: 8 * wm * tmul(u, 'mine') }; tk.ph = 'back'; return; }
       break;
     case 'mine':
       if (ore[i] && k) {
-        const m = MAT[ore[i]], amt = workOf(u, 'mine') * (u.def.bonus?.mine || 1) * 1.4;
+        const m = MAT[ore[i]], amt = workOf(u, 'mine') * (u.def.bonus?.mine || 1) * 3;
         u.carry = { r: m.id, n: amt };
-        if (!k.found[m.id]) { k.found[m.id] = 1; if (modOn('tecnologia')) addLog(`${El(k)} descubre ${m.n.toLowerCase()} y empieza a extraerlo.`, 'tech'); }
+        if (!k.found[m.id]) { k.found[m.id] = 1; if (modOn('tecnologia')) addLog(`${El(k)} descubre ${m.n.toLowerCase()} y empieza a extraerlo.`, 'tech', { x: tk.tx, y: tk.ty }); }
         oreAmt[i] = Math.max(0, oreAmt[i] - Math.max(1, Math.round(amt)));
         if (!oreAmt[i]) ore[i] = 0;
         gainXp(u, .2); tk.ph = 'back'; return;
@@ -263,7 +263,7 @@ function marry(a, b) {
   a.partner = b.id; b.partner = a.id;
   a.mood = Math.min(100, a.mood + 20); b.mood = Math.min(100, b.mood + 20);
   for (let k = 0; k < 6; k++) parts.push({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 - 1, vx: (rnd() - .5) * .06, vy: -.03, l: 40, c: [255, 120, 170], s: 1.1 });
-  if (a.hero || b.hero || (a.k && (a.k.king === a || a.k.king === b))) addLog(`${displayName(a)} y ${displayName(b)} se casan${a.k ? ' en ' + (cities[a.city]?.name || a.k.name) : ''}.`, 'peace');
+  if (a.hero || b.hero || (a.k && (a.k.king === a || a.k.king === b))) addLog(`${displayName(a)} y ${displayName(b)} se casan${a.k ? ' en ' + (cities[a.city]?.name || a.k.name) : ''}.`, 'peace', a);
 }
 const UMAP = new Map();
 function unitById(id) { if (!id) return null; const u = UMAP.get(id); return u && !u.dead ? u : null; }

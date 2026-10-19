@@ -101,8 +101,27 @@ function tick() {
   if (tickN % 20 === 0) towersFire();
   if (tickN % 120 === 0) kingdomUpdate();
   if (tickN % 200 === 0) naturalSpawns();
+  weatherTick();
   if (units.some(u => u.dead)) {
     if (selected && selected.dead) selectedDeadName = displayName(selected);
     units = units.filter(u => !u.dead);
+  }
+}
+
+// episodios de lluvia (a veces con tormenta) en primavera y otoño
+function weatherTick() {
+  if (!modOn('clima')) { weather.rain = 0; return; }
+  if (tickN > weather.until) {
+    const sea = season();
+    weather.target = (sea === 0 || sea === 2) && rnd() < .45 ? .5 + rnd() * .5 : 0;
+    weather.storm = weather.target > .8 && rnd() < .5;
+    weather.until = tickN + ri(60, 180);
+  }
+  weather.rain += (weather.target - weather.rain) * .02;
+  if (weather.rain > .3 && tickN % 4 === 0) { for (let k = 0; k < 6; k++) { const i = (rnd() * N) | 0; if (fire[i] && rnd() < .5) fire[i] = 0; } }
+  if (weather.storm && weather.rain > .6 && rnd() < .006) {
+    weather.flash = .35;
+    const x = ri(0, W - 1), y = ri(0, H - 1);
+    if (LAWS.desastres.on && rnd() < .4) lightning(x, y); else sfx('thunder', cam.x + VW / cam.z / 2, cam.y + VH / cam.z / 2, .6, 400);
   }
 }

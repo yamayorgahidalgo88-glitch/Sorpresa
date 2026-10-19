@@ -35,7 +35,7 @@ function nuke(x, y) {
   fx.push({ k: 'mush', x, y, life: 160 });
   flash = 1; shake = 30;
   sfx('boom', undefined, undefined, 2.2, 0);
-  addLog('Una bomba nuclear arrasa la región. La radiación tardará años en desaparecer.', 'doom');
+  addLog('Una bomba nuclear arrasa la región. La radiación tardará años en desaparecer.', 'doom', { x, y });
 }
 
 const TOOLS = [];
@@ -161,13 +161,13 @@ function applyTool(t, x, y, first) {
     case 'meteor': fx.push({ k: 'meteor', x, y, life: 40, r: 4 + b * .4 }); break;
     case 'bomb': explode(x, y, 3 + b * .5, { dmg: 150, fire: .4 }); break;
     case 'nuke': nuke(x, y); break;
-    case 'quake': fx.push({ k: 'quake', x, y, life: 140, r: 8 + b }); addLog('Un terremoto sacude la tierra.', 'doom'); break;
+    case 'quake': fx.push({ k: 'quake', x, y, life: 140, r: 8 + b }); addLog('Un terremoto sacude la tierra.', 'doom', { x, y }); break;
     case 'flood': circle(x, y, 6 + b, (xx, yy, i, d) => { const tt = tile[i]; if ([T.SAND, T.GRASS, T.FIELD, T.SWAMP, T.ASH, T.DESERT, T.SAVANNA, T.FERTILE].includes(tt) || (d < 4 && tt !== T.MOUNT && tt !== T.SNOW)) { tile[i] = d < 4 ? T.DEEP : T.WATER; bld[i] = 0; fire[i] = 0; ore[i] = 0; } }); regionDirty = true; break;
     case 'volcano': circle(x, y, 5, (xx, yy, i, d) => { tile[i] = d < 1.6 ? T.LAVA : d < 3.5 ? T.MOUNT : T.BASALT; bld[i] = 0; }); fx.push({ k: 'volcano', x, y, life: 900 }); regionDirty = true; break;
     case 'tornado': fx.push({ k: 'tornado', x, y, vx: (rnd() - .5) * .1, vy: (rnd() - .5) * .1, life: 700 }); break;
     case 'acid': fx.push({ k: 'cloud', acid: 1, x, y, vx: (rnd() - .5) * .04, vy: (rnd() - .5) * .02, life: 420 }); break;
     case 'rain': fx.push({ k: 'cloud', acid: 0, x, y, vx: (rnd() - .5) * .04, vy: (rnd() - .5) * .02, life: 420 }); break;
-    case 'bhole': fx.push({ k: 'bhole', x, y, life: 520 }); addLog('Se abre un agujero negro en el mundo.', 'doom'); break;
+    case 'bhole': fx.push({ k: 'bhole', x, y, life: 520 }); addLog('Se abre un agujero negro en el mundo.', 'doom', { x, y }); break;
     case 'plague': rebuildGrid(); around(x, y, b, u => { if (u.def.civ) u.plague = 900; }); break;
     case 'bless': rebuildGrid(); around(x, y, b, u => { if (u.def.civ || u.def.passive) { u.hp = u.maxHp; u.plague = 0; if (first || rnd() < .05) gainXp(u, u.level * 2); burst(u.x, u.y, [255, 230, 120], 3, .5); } }); break;
     case 'seed': circle(x, y, b, (xx, yy, i) => { const tt = tile[i]; if (tt === T.ASH || tt === T.DESERT || tt === T.CORRUPT || tt === T.SAND || tt === T.TUNDRA) tile[i] = T.GRASS; else if (tt === T.GRASS && rnd() < .4) tile[i] = T.FERTILE; rad[i] = 0; }); break;
@@ -182,14 +182,14 @@ function applyTool(t, x, y, first) {
     case 'madness': rebuildGrid(); around(x, y, b, u => { if (u.def.civ || !u.def.boat) { u.mad = 900; u.target = null; u.task = null; burst(u.x, u.y, [200, 80, 255], 3, .4); } }); break;
     case 'curse': rebuildGrid(); around(x, y, b, u => { if (!u.def.civ) return; const bad = Object.keys(TRAITS).filter(t => TRAITS[t].bad && modOn(TRAITS[t].mod)); if (addTrait(u, pick(bad))) burst(u.x, u.y, [120, 60, 140], 3, .4); }); sideDirty = true; break;
     case 'cupid': { rebuildGrid(); const got = []; around(x, y, b + 1, u => { if (adult(u) && !u.partner) got.push(u); }); let n = 0; for (const a of got) { if (a.partner) continue; const o = got.find(v => canCouple(a, v)); if (o) { marry(a, o); n++; } } if (first) toast(n ? `Cupido une ${n} pareja${n === 1 ? '' : 's'}` : 'Aquí no hay solteros compatibles'); break; }
-    case 'enlight': { const k = kingdomAt(x, y); if (!k) { toast('Toca un pueblo'); break; } k.rp += 400; research(k, []); addLog(`Los dioses iluminan a los sabios ${del(k)}.`, 'tech'); toast(`${k.name} recibe una revelación`); sideDirty = true; break; }
+    case 'enlight': { const k = kingdomAt(x, y); if (!k) { toast('Toca un pueblo'); break; } k.rp += 400; research(k, []); addLog(`Los dioses iluminan a los sabios ${del(k)}.`, 'tech', cities[k.capital]); toast(`${k.name} recibe una revelación`); sideDirty = true; break; }
     case 'cheer': rebuildGrid(); around(x, y, b, u => { if (u.def.civ) { u.mood = 100; if (rnd() < .1) parts.push({ x: u.x, y: u.y - 1, vx: (rnd() - .5) * .05, vy: -.04, l: 30, c: pick([[255, 90, 120], [255, 220, 80], [120, 220, 255]]), s: 1 }); } }); break;
     case 'discord': case 'friend': {
       const k = kingdomAt(x, y); if (!k) { toast('Toca un pueblo'); break; }
       if (!warPick || !warPick.alive) { warPick = k; toast(`${k.name} elegido. Ahora toca el otro pueblo.`); break; }
       if (warPick === k) { toast('Elige otro pueblo distinto'); break; }
       bumpOpinion(warPick, k, t.kind === 'discord' ? -45 : 45, t.kind === 'discord' ? 'Intrigas divinas' : 'Amistad divina');
-      addLog(t.kind === 'discord' ? `Los dioses siembran la discordia entre ${el(warPick)} y ${el(k)}.` : `Los dioses inspiran amistad entre ${el(warPick)} y ${el(k)}.`, t.kind === 'discord' ? 'war' : 'peace');
+      addLog(t.kind === 'discord' ? `Los dioses siembran la discordia entre ${el(warPick)} y ${el(k)}.` : `Los dioses inspiran amistad entre ${el(warPick)} y ${el(k)}.`, t.kind === 'discord' ? 'war' : 'peace', cities[k.capital]);
       warPick = null; sideDirty = true; break;
     }
     case 'turncoat': {
@@ -200,7 +200,7 @@ function applyTool(t, x, y, first) {
       if (!k || !city.alive || k === city.k) { toast('Toca un reino distinto'); break; }
       const old = city.k; city.k = k; for (const u of units) if (u.city === city.id) { u.k = k; u.army = false; u.task = null; }
       if (old.capital === city.id) old.capital = -1;
-      addLog(`Por voluntad divina, ${city.name} deja ${el(old)} y se une ${al(k)}.`, 'war');
+      addLog(`Por voluntad divina, ${city.name} deja ${el(old)} y se une ${al(k)}.`, 'war', city);
       bumpOpinion(old, k, -30, 'Ciudades robadas'); sideDirty = true; break;
     }
   }

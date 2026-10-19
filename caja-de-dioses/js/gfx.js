@@ -283,3 +283,33 @@ function makeCloud(seed) {
   return c;
 }
 const CLOUD_SPR = [1, 2, 3, 4].map(makeCloud);
+
+// ---------- escudos de armas ----------
+const EMB_SYM = ['✦', '☀', '☾', '♛', '⚔', '⚒', '❦', '✠', '♜', '☘', '⚓', '♞', '❂', '⚜', '♆', '☗', '✚', '⚘'];
+function emblemOf(k) {
+  if (!k.emb) { const r = mulb(k.id * 7919 + k.hue); k.emb = { s: (r() * 6) | 0, c2: hsl((k.hue + 120 + r() * 120) % 360, 55, r() < .5 ? 82 : 28), g: EMB_SYM[(r() * EMB_SYM.length) | 0] }; }
+  return k.emb;
+}
+// escudo dibujado en un lienzo cacheado por reino
+function emblemCanvas(k, size = 48) {
+  const e = emblemOf(k), key = size + '|' + k.color.join(',') + '|' + e.s + e.g;
+  if (k._embC && k._embK === key) return k._embC;
+  const c = document.createElement('canvas'); c.width = size; c.height = Math.round(size * 1.15);
+  const x = c.getContext('2d'), w = size, h = c.height;
+  const shield = () => { x.beginPath(); x.moveTo(w * .06, h * .05); x.lineTo(w * .94, h * .05); x.lineTo(w * .94, h * .5); x.quadraticCurveTo(w * .94, h * .82, w * .5, h * .97); x.quadraticCurveTo(w * .06, h * .82, w * .06, h * .5); x.closePath(); };
+  shield(); x.fillStyle = css(k.color); x.fill();
+  x.save(); shield(); x.clip(); x.fillStyle = css(e.c2);
+  if (e.s === 1) x.fillRect(w * .5, 0, w, h);
+  else if (e.s === 2) x.fillRect(0, h * .48, w, h);
+  else if (e.s === 3) { x.fillRect(w * .5, 0, w, h * .48); x.fillRect(0, h * .48, w * .5, h); }
+  else if (e.s === 4) { x.beginPath(); x.moveTo(0, h * .75); x.lineTo(w * .5, h * .35); x.lineTo(w, h * .75); x.lineTo(w, h * .95); x.lineTo(w * .5, h * .55); x.lineTo(0, h * .95); x.fill(); }
+  else if (e.s === 5) { x.lineWidth = w * .16; x.strokeStyle = css(e.c2); shield(); x.stroke(); }
+  x.restore();
+  shield(); x.lineWidth = Math.max(1.5, w * .05); x.strokeStyle = 'rgba(20,16,10,.75)'; x.stroke();
+  x.font = `${Math.round(w * .5)}px "Segoe UI Symbol","DejaVu Sans",system-ui,sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillStyle = 'rgba(0,0,0,.35)'; x.fillText(e.g, w * .5 + 1, h * .47 + 1.5);
+  x.fillStyle = '#fff6dc'; x.fillText(e.g, w * .5, h * .47);
+  k._embC = c; k._embK = key;
+  return c;
+}
+function emblemHTML(k, cls = 'emb') { try { return `<img class="${cls}" alt="" src="${emblemCanvas(k).toDataURL()}">`; } catch (e) { return `<span class="sw" style="background:${css(k.color)}"></span>`; } }

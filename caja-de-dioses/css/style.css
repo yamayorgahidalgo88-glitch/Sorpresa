@@ -202,3 +202,11 @@ label.tbtn{display:inline-block}
 .wfeat li{font-size:13.5px;color:var(--muted);line-height:1.45;padding-left:14px;border-left:2px solid var(--gold-dim)}
 .wfeat b{color:var(--fg);font-weight:600}
 @media (max-height:520px){.wlogo{font-size:42px}.wfeat{display:none}.welcome .box{padding:16px 18px}}
+.log div.go{cursor:pointer;border-radius:0 4px 4px 0}
+.log div.go:hover{background:var(--panel2)}
+.log div.go::after{content:' ⌖';color:var(--muted);font-size:11px}
+.emb{width:16px;height:18px;margin-top:1px;image-rendering:auto;flex:0 0 auto}
+.emb.big{width:34px;height:39px;margin:0}
+.khead{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.krow{grid-template-columns:16px minmax(0,1fr) auto}
+.rel{grid-template-columns:16px minmax(0,1fr) auto}

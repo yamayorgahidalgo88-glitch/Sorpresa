@@ -53,7 +53,7 @@ function diplomacyUpdate(live) {
       if (LAWS.guerras.on && yrs > 2.5 && rnd() < .025 * (1 + peaceful * 3) * (lopsided ? 2.5 : 1) * (avg > -45 ? 1.6 : 1)) makePeace(a, b);
       continue;
     }
-    if (a.allies.has(b.id)) { if (avg < 5 && rnd() < .2) { a.allies.delete(b.id); b.allies.delete(a.id); addLog(`Se rompe la alianza entre ${el(a)} y ${el(b)}.`, 'war'); } continue; }
+    if (a.allies.has(b.id)) { if (avg < 5 && rnd() < .2) { a.allies.delete(b.id); b.allies.delete(a.id); addLog(`Se rompe la alianza entre ${el(a)} y ${el(b)}.`, 'war', cities[a.capital]); } continue; }
     if (LAWS.guerras.on && kingdomsTouch(a, b) && dist2(ca.x, ca.y, cb.x, cb.y) < 85 * 85) {
       const worst = oa < ob ? a : b, wv = Math.min(oa, ob), other = worst === a ? b : a;
       if (wv < -25) {
@@ -62,7 +62,7 @@ function diplomacyUpdate(live) {
         if (rnd() < p) { declareWar(worst, other); continue; }
       }
     }
-    if (modOn('diplomacia') && avg > 40 && rnd() < .04) { a.allies.add(b.id); b.allies.add(a.id); addLog(`Alianza entre ${el(a)} y ${el(b)}.`, 'peace'); }
+    if (modOn('diplomacia') && avg > 40 && rnd() < .04) { a.allies.add(b.id); b.allies.add(a.id); addLog(`Alianza entre ${el(a)} y ${el(b)}.`, 'peace', cities[a.capital]); }
   }
 }
 
@@ -74,7 +74,7 @@ function foundReligion(k, c) {
   const god = mkName(k.race), t = pick(RELIG_T);
   const r = { id: religions.length + 1, n: t[0] + ' ' + god, s: RELIG_S[religions.length % RELIG_S.length], color: hsl(ri(0, 359), 60, 62), born: year(), by: k.id };
   religions.push(r); k.religion = r.id; k.faith = 10;
-  addLog(`En ${c.name} nace una religión: la ${r.n} ${r.s}.`, 'hero');
+  addLog(`En ${c.name} nace una religión: la ${r.n} ${r.s}.`, 'hero', c);
   return r;
 }
 const relOf = id => religions[id - 1] || null;
@@ -94,7 +94,7 @@ function religionUpdate(live) {
       if (rnd() < p) {
         const r = relOf(a.religion);
         b.religion = a.religion; b.faith = 5;
-        addLog(`${El(b)} abraza la ${r.n} ${r.s}.`, 'peace');
+        addLog(`${El(b)} abraza la ${r.n} ${r.s}.`, 'peace', cities[b.capital]);
         bumpOpinion(a, b, 8, 'Conversión');
       }
     }
@@ -106,9 +106,9 @@ function crown(k, cand) {
   const prev = k.dynasty;
   k.king = cand; cand.name = cand.name || mkName(k.race); cand.prof = 'ruler'; cand.task = null;
   if (cand.fam && cand.fam !== prev) {
-    if (prev && modOn('diplomacia')) addLog(`Cambio de dinastía ${del(k)}: la Casa ${cand.fam} llega al trono con ${displayName(cand)}.`, 'peace');
+    if (prev && modOn('diplomacia')) addLog(`Cambio de dinastía ${del(k)}: la Casa ${cand.fam} llega al trono con ${displayName(cand)}.`, 'peace', cand);
     k.dynasty = cand.fam;
-  } else if (modOn('diplomacia')) addLog(`${displayName(cand)} es coronado soberano ${del(k)}.`, 'peace');
+  } else if (modOn('diplomacia')) addLog(`${displayName(cand)} es coronado soberano ${del(k)}.`, 'peace', cand);
 }
 function succession(k, members) {
   const dead = k.lastKing;
