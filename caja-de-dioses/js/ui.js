@@ -35,12 +35,12 @@ function toolIcon(t) {
     const def = SP[t.sp];
     const body = def.civ ? hsl((CIV.indexOf(t.sp) * 51) % 360, 60, 50) : def.skin;
     const fake = { def, type: t.sp, k: def.civ ? { id: -2 - CIV.indexOf(t.sp), color: body, armor: { tier: 0 } } : null, age: 30, id: 1, hitT: 0, plague: 0 };
-    const spr = unitSprite(fake, 0);
+    const spr = unitSprite(fake, 0, 0);
     c.width = 28; c.height = 28;
     if (t.kind === 'village') stampIcon(x, def.civ ? body : [200, 60, 60]);
-    const sc = Math.max(1, Math.floor((t.kind === 'village' ? 20 : 26) / Math.max(spr.w, spr.h)));
+    const sc = Math.max(1, Math.floor((t.kind === 'village' ? 22 : 27) / Math.max(spr.w - 6, spr.h - 2)));
     x.imageSmoothingEnabled = false;
-    x.drawImage(spr.cv, Math.floor((28 - spr.w * sc) / 2) + (t.kind === 'village' ? 4 : 0), 28 - spr.h * sc - (t.kind === 'village' ? 0 : 1), spr.w * sc, spr.h * sc);
+    x.drawImage(spr.cv, Math.floor(14 - spr.ax * sc) + (t.kind === 'village' ? 4 : 0), Math.floor(27 - spr.ay * sc), spr.w * sc, spr.h * sc);
   } else {
     c.width = 28; c.height = 28;
     x.font = '20px system-ui, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';

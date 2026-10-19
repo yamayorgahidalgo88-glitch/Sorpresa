@@ -199,34 +199,57 @@ function hairOf(type, seed) {
   const H = { human: [[70, 46, 30], [40, 30, 24], [170, 120, 60], [120, 70, 40]], elf: [[230, 210, 140], [210, 200, 190], [170, 120, 70]], dwarf: [[160, 80, 40], [90, 60, 40], [200, 140, 60]], orc: [[40, 40, 30]], undead: [[200, 210, 200]], demon: [[30, 20, 20]], lizard: [[60, 140, 90]], zombie: [[60, 70, 50]] };
   const a = H[type] || [[60, 50, 40]]; return a[seed % a.length];
 }
-// lienzo de un sprite (cacheado por aspecto); devuelve {cv, w, h}
-function unitSprite(u, frame) {
-  const def = u.def, tpl = USPR[u.type] || USPR.human;
+// sprite completo de una criatura: sombra, cuerpo con contorno y arma, ya
+// orientado. Se cachea por aspecto y cada unidad recuerda el último que usó.
+// Devuelve {cv, w, h, ax, ay}: ax/ay es el punto de los pies dentro del lienzo.
+function weaponKind(u) {
+  if (!u.def.civ || !u.k || !modOn('tecnologia') || u.age < 12 || !u.k.weapon || !u.k.weapon.c) return 0;
+  return u.k.gun ? 3 : rangeOf(u) > 2 ? 2 : 1;
+}
+function unitSprite(u, frame, flip = 0) {
+  const def = u.def;
   const tech = def.civ && u.k && modOn('tecnologia') && u.age >= 12;
-  const at = tech ? u.k.armor.tier : 0;
-  const body = u.hitT > 0 ? [255, 90, 90] : u.k ? u.k.color : def.skin.map(v => v * .75);
+  const at = tech ? u.k.armor.tier : 0, wk = weaponKind(u), hit = u.hitT > 0 ? 1 : 0;
+  const sig = (frame & 1) | flip << 1 | hit << 2 | (u.plague || u.sick ? 1 : 0) << 3 | wk << 4 | at << 6 | (u.k ? u.k.id + 3 : 1) << 10 | (u.k && wk ? u.k.weapon.tier : 0) << 24;
+  if (u._sig === sig && u._spr) return u._spr;
   const hs = u.id % 4;
-  const key = u.type + '|' + frame + '|' + (u.k ? u.k.id : -1) + '|' + at + '|' + hs + '|' + (u.hitT > 0 ? 1 : 0) + '|' + (u.plague ? 1 : 0);
+  const key = u.type + '|' + sig + '|' + hs + '|' + (u.k ? u.k.color.join(',') : '');
   let s = SPRITE_CACHE.get(key);
-  if (s) return s;
-  const pat = tpl.f[frame % tpl.f.length], h = pat.length, w = pat[0].length;
-  const cv = document.createElement('canvas'); cv.width = w + 2; cv.height = h + 2;
-  const x = cv.getContext('2d');
-  const skin = u.plague ? mix(def.skin, [120, 220, 90], .45) : def.skin;
-  const arm = at >= 1 ? ARMORS[at][2] : null;
-  const pal = { h: arm || hairOf(u.type, hs), s: skin, e: [24, 16, 16], b: body, B: shade(body, .66), l: [58, 44, 36], t: [250, 250, 236], r: hairOf(u.type, hs), d: [40, 24, 24], w: [244, 244, 236], S: shade(skin, .8), c: [150, 224, 255], y: [255, 240, 140] };
-  if (!def.civ) { pal.b = def.skin; pal.B = shade(def.skin, .7); pal.l = shade(def.skin, .55); }
-  if (def.boat) { pal.b = u.k ? u.k.color : [230, 230, 220]; pal.w = [90, 66, 44]; }
-  // contorno oscuro de 1 píxel para que destaque sobre cualquier suelo
-  x.fillStyle = 'rgba(16,12,10,.55)';
-  for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) if (pat[yy][xx] !== '.') { x.fillRect(xx, yy + 1, 1, 1); x.fillRect(xx + 2, yy + 1, 1, 1); x.fillRect(xx + 1, yy, 1, 1); x.fillRect(xx + 1, yy + 2, 1, 1); }
-  for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) {
-    const ch = pat[yy][xx]; if (ch === '.') continue;
-    x.fillStyle = css((pal[ch] || skin).map(v => clamp(v, 0, 255))); x.fillRect(xx + 1, yy + 1, 1, 1);
+  if (!s) {
+    const tpl = USPR[u.type] || USPR.human;
+    const pat = tpl.f[frame % tpl.f.length], h = pat.length, w = pat[0].length;
+    const ox = 3, cw = w + 2 + 6, chh = h + 4;
+    const cv = document.createElement('canvas'); cv.width = cw; cv.height = chh;
+    const x = cv.getContext('2d');
+    const body = hit ? [255, 90, 90] : u.k ? u.k.color : def.skin.map(v => v * .75);
+    const skin = (u.plague || u.sick) ? mix(def.skin, [120, 220, 90], .45) : def.skin;
+    const arm = at >= 1 ? ARMORS[at][2] : null;
+    const pal = { h: arm || hairOf(u.type, hs), s: skin, e: [24, 16, 16], b: body, B: shade(body, .66), l: [58, 44, 36], t: [250, 250, 236], r: hairOf(u.type, hs), d: [40, 24, 24], w: [244, 244, 236], S: shade(skin, .8), c: [150, 224, 255], y: [255, 240, 140] };
+    if (!def.civ) { pal.b = def.skin; pal.B = shade(def.skin, .7); pal.l = shade(def.skin, .55); }
+    if (def.boat) { pal.b = u.k ? u.k.color : [230, 230, 220]; pal.w = [90, 66, 44]; }
+    if (flip) { x.translate(cw, 0); x.scale(-1, 1); }
+    // sombra
+    if (!def.fly && !def.waterOnly) { x.fillStyle = 'rgba(0,0,0,.28)'; x.beginPath(); x.ellipse(ox + 1 + w / 2, h + 1.6, w * .5 + .3, 1.3, 0, 0, 7); x.fill(); }
+    // contorno oscuro de 1 píxel para que destaque sobre cualquier suelo
+    x.fillStyle = 'rgba(16,12,10,.6)';
+    for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) if (pat[yy][xx] !== '.') { x.fillRect(ox + xx, yy + 1, 1, 1); x.fillRect(ox + xx + 2, yy + 1, 1, 1); x.fillRect(ox + xx + 1, yy, 1, 1); x.fillRect(ox + xx + 1, yy + 2, 1, 1); }
+    for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) {
+      const ch = pat[yy][xx]; if (ch === '.') continue;
+      x.fillStyle = css((pal[ch] || skin).map(v => clamp(v, 0, 255))); x.fillRect(ox + 1 + xx, yy + 1, 1, 1);
+    }
+    // arma en la mano delantera
+    if (wk) {
+      const wc = css(u.k.weapon.c), wx = ox + 1 + w;
+      x.fillStyle = 'rgba(16,12,10,.6)';
+      if (wk === 1) { x.fillRect(wx - 1, 1, 3, 7); x.fillStyle = wc; x.fillRect(wx, 2, 1, 5); x.fillStyle = '#5a3c24'; x.fillRect(wx, 6, 1, 1); }
+      else if (wk === 2) { x.fillStyle = '#8a5a30'; for (const [dx, dy] of [[1, 3], [2, 4], [2, 5], [2, 6], [1, 7]]) x.fillRect(wx - 1 + dx, dy, 1, 1); x.fillStyle = 'rgba(240,230,210,.85)'; x.fillRect(wx, 4, 1, 3); }
+      else { x.fillRect(wx - 3, 4, 6, 3); x.fillStyle = wc; x.fillRect(wx - 2, 5, 5, 1); }
+    }
+    s = { cv, w: cw, h: chh, ax: flip ? cw - (ox + 1 + w / 2) : ox + 1 + w / 2, ay: h + 1.4 };
+    if (SPRITE_CACHE.size > 5000) SPRITE_CACHE.clear();
+    SPRITE_CACHE.set(key, s);
   }
-  s = { cv, w: w + 2, h: h + 2 };
-  if (SPRITE_CACHE.size > 4000) SPRITE_CACHE.clear();
-  SPRITE_CACHE.set(key, s);
+  u._sig = sig; u._spr = s;
   return s;
 }
 

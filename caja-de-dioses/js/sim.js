@@ -85,7 +85,7 @@ function updateParts() {
 // ---------- bucle ----------
 function tick() {
   tickN++;
-  pathBudget = 14000;
+  pathBudget = 7000;
   if (regionDirty && tickN % 10 === 0) computeRegions();
   rebuildGrid();
   for (const k in countType) countType[k] = 0;

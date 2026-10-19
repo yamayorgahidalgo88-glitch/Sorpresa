@@ -89,7 +89,7 @@ function centerCam() {
 }
 
 // ---------- regiones (fronteras) ----------
-function passable(i) { const t = tile[i]; return !wall[i] && !isWater(t) && !TILE[t].liquid; }
+function passable(i) { const t = tile[i]; return !wall[i] && !isWater(t) && !TILE[t].liquid && t !== T.MOUNT; }
 function computeRegions() {
   region.fill(0);
   const q = new Int32Array(N);

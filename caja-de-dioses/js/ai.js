@@ -39,9 +39,9 @@ function findPath(u, goal) {
   const def = u.def, sx = u.x | 0, sy = u.y | 0, s = sy * W + sx;
   if (s === goal) return [];
   const gx = goal % W, gy = (goal / W) | 0;
-  if (!def.fly && region[s] && region[goal] && region[s] !== region[goal]) return false;
+  if (!def.fly && !def.mount && region[s] && region[goal] && region[s] !== region[goal]) return false;
   if (pathBudget <= 0) return null;
-  const maxN = Math.min(pathBudget, 2600);
+  const maxN = Math.min(pathBudget, 1600);
   const st = ++PF.stamp, g = PF.g, came = PF.came, seen = PF.seen, shut = PF.shut, hf = PF.hf, hi = PF.hi;
   let hn = 0;
   const push = (f, i) => { let k = hn++; while (k > 0) { const p = (k - 1) >> 1; if (hf[p] <= f) break; hf[k] = hf[p]; hi[k] = hi[p]; k = p; } hf[k] = f; hi[k] = i; };
@@ -359,6 +359,7 @@ function nextToOwned(i, id1) { const x = i % W; return (x > 0 && owner[i - 1] ==
 function danger(u) {
   const def = u.def;
   const sight = def.civ ? (u.prof === 'soldier' ? 9 : 4.5) : def.hostile ? 9 : def.hunter ? 7 : 4;
+  if (!def.hostile && !def.hunter && !(u.mad > 0) && !(u.k && u.k.wars.size) && !threatNear(u.x, u.y, sight)) return false;
   const e = nearest(u.x, u.y, sight, o => isEnemy(u, o) || isEnemy(o, u));
   if (!e) return false;
   const hpR = u.hp / u.maxHp;

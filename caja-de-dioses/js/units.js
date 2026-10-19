@@ -94,14 +94,26 @@ function isEnemy(a, b) {
   return false;
 }
 
+let threat = null;
+// celdas con alguien que podría atacar (monstruos, depredadores, locos o
+// gente de un reino en guerra): danger() solo busca si hay alguna cerca
+const isThreat = o => o.def.hostile || o.def.hunter || o.mad > 0 || (o.k && o.k.wars.size > 0) || (o.def.atk > 0 && !o.def.civ && !o.def.passive && !o.def.pet);
 function rebuildGrid() {
   for (const c of grid) c.length = 0;
+  if (!threat || threat.length !== GW * GH) threat = new Uint8Array(GW * GH); else threat.fill(0);
   if (UMAP.size > units.length * 1.5 + 50) { UMAP.clear(); for (const u of units) UMAP.set(u.id, u); }
   for (const u of units) {
     if (u.dead) continue;
     const gx = clamp((u.x / GC) | 0, 0, GW - 1), gy = clamp((u.y / GC) | 0, 0, GH - 1);
     grid[gy * GW + gx].push(u);
+    if (isThreat(u)) threat[gy * GW + gx] = 1;
   }
+}
+function threatNear(x, y, r) {
+  const x0 = clamp(((x - r) / GC) | 0, 0, GW - 1), x1 = clamp(((x + r) / GC) | 0, 0, GW - 1);
+  const y0 = clamp(((y - r) / GC) | 0, 0, GH - 1), y1 = clamp(((y + r) / GC) | 0, 0, GH - 1);
+  for (let gy = y0; gy <= y1; gy++) for (let gx = x0; gx <= x1; gx++) if (threat[gy * GW + gx]) return true;
+  return false;
 }
 function nearest(x, y, r, fn) {
   let best = null, bd = r * r;

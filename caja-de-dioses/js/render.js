@@ -298,16 +298,19 @@ function render() {
   const vis = [];
   for (const u of units) if (u.x >= vx0 && u.x <= vx1 && u.y >= vy0 && u.y <= vy1) vis.push(u);
   vis.sort((a, b) => a.y - b.y);
-  const sprites = z >= 3.2 * DPR;
+  const sprites = z >= 5.5 * DPR;
   for (const u of vis) {
     const [sx, sy] = toS(u.x, u.y);
     if (sprites) drawUnit(ctx, u, sx, sy, z);
     else {
-      const s = Math.max(1.5 * DPR, z * .8 * (u.def.size || 1));
-      ctx.fillStyle = css(u.hitT ? [255, 70, 70] : u.def.civ ? bodyColor(u) : u.def.skin);
-      ctx.fillRect(sx - s / 2, sy - s, s, s);
-      if ((u.k && u.k.king === u) || u.hero) { ctx.fillStyle = '#ffd23a'; ctx.fillRect(sx - s / 2, sy - s * 1.5, s, s * .4); }
-      if (u === selected) { ctx.strokeStyle = '#e8b64c'; ctx.lineWidth = 2; ctx.strokeRect(sx - s, sy - s * 1.6, s * 2, s * 2); }
+      // de lejos: un punto de dos colores (ropa y cabeza), mucho más barato
+      if (u.asleep && bld[(u.y | 0) * W + (u.x | 0)]) continue;
+      const s = Math.max(1.6 * DPR, z * .55 * (u.def.size || 1));
+      ctx.fillStyle = u.hitT ? '#ff4646' : u.k && u.def.civ ? (u.k.css || (u.k.css = css(u.k.color))) : (u.def.css || (u.def.css = css(u.def.skin)));
+      ctx.fillRect(sx - s / 2, sy - s * 1.4, s, s * 1.4);
+      if (u.def.civ) { ctx.fillStyle = u.def.css || (u.def.css = css(u.def.skin)); ctx.fillRect(sx - s / 2, sy - s * 1.9, s, s * .6); }
+      if ((u.k && u.k.king === u) || u.hero) { ctx.fillStyle = '#ffd23a'; ctx.fillRect(sx - s / 2, sy - s * 2.4, s, s * .45); }
+      if (u === selected) { ctx.strokeStyle = '#ffd36a'; ctx.lineWidth = 2; ctx.strokeRect(sx - s * 1.5, sy - s * 3, s * 3, s * 3.6); }
     }
   }
   // mentes visibles: bocadillo con lo que piensa cada habitante
@@ -426,31 +429,17 @@ const RESCOL = Object.fromEntries(RESLIST.map(r => [r[0], css(r[2])]));
 function drawUnit(ctx, u, sx, sy, z) {
   const def = u.def;
   if (u.asleep && bld[(u.y | 0) * W + (u.x | 0)]) return; // duerme dentro de casa
-  const size = (def.size || 1) * tmul(u, 'size') * (def.civ && u.age < 12 ? .72 : 1);
-  const moving = u.tx !== null || u.target;
+  const size = (def.size || 1) * (u.traits.length ? tmul(u, 'size') : 1) * (def.civ && u.age < 12 ? .72 : 1);
+  const moving = u.tx !== null || u.target || (u.task && u.task.ph !== 'work');
   const frame = moving ? ((tickN + u.id * 3) >> 3) & 1 : 0;
-  const s = unitSprite(u, frame);
+  const s = unitSprite(u, frame, u.face < 0 ? 1 : 0);
   const px = z / TS * size * (def.civ ? .78 : def.size > 1.5 ? .9 : .72);
-  const w = s.w * px, h = s.h * px;
-  const bob = def.fly ? Math.sin((tickN + u.id * 7) * .1) * px * 1.5 - px * 4 : 0;
-  const flip = u.face < 0;
-  ctx.drawImage(SHADOW, sx - w * .45, sy - px * 1.6, w * .9, px * 3);
-  ctx.save();
-  ctx.translate(sx, sy - h + px + bob);
-  if (flip) ctx.scale(-1, 1);
-  ctx.drawImage(s.cv, -w / 2, 0, w, h);
-  // arma
-  const tech = def.civ && u.k && modOn('tecnologia') && u.age >= 12;
-  if (tech && u.k.weapon.c) {
-    ctx.fillStyle = css(u.k.weapon.c);
-    if (u.k.gun) ctx.fillRect(w * .28, h * .48, px * 3, px);
-    else if (rangeOf(u) > 2) { ctx.strokeStyle = '#8a5a30'; ctx.lineWidth = px * .7; ctx.beginPath(); ctx.arc(w * .2, h * .52, px * 2.6, -1.1, 1.1); ctx.stroke(); ctx.strokeStyle = 'rgba(240,230,210,.8)'; ctx.lineWidth = px * .3; ctx.beginPath(); ctx.moveTo(w * .2 + Math.cos(-1.1) * px * 2.6, h * .52 + Math.sin(-1.1) * px * 2.6); ctx.lineTo(w * .2 + Math.cos(1.1) * px * 2.6, h * .52 + Math.sin(1.1) * px * 2.6); ctx.stroke(); }
-    else ctx.fillRect(w * .36, h * .12, px, px * 5);
-  }
-  if (u.carry) { ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.fillRect(w * .14 - px * .3, h * .38 - px * .3, px * 3.6, px * 3.1); ctx.fillStyle = RESCOL[u.carry.r] || '#c9a060'; ctx.fillRect(w * .14, h * .38, px * 3, px * 2.5); }
-  if (u.asleep) ctx.globalAlpha = 1;
-  ctx.restore();
-  const top = sy - h + px + bob;
+  const bob = def.fly ? Math.sin((tickN + u.id * 7) * .1) * px * 1.5 - px * 4 : def.boat ? Math.sin((tickN + u.id * 5) * .08) * px * .6 : 0;
+  const dx = sx - s.ax * px, dy = sy - s.ay * px + bob;
+  ctx.drawImage(s.cv, dx, dy, s.w * px, s.h * px);
+  if (z < 7) { if (u === selected) { ctx.strokeStyle = '#ffd36a'; ctx.lineWidth = 2; ctx.strokeRect(dx - 2, dy - 2, s.w * px + 4, s.h * px + 4); } return; }
+  const top = dy + px * .6;
+  if (u.carry) { const cx = sx + (u.face < 0 ? -1 : 1) * px * 2.2; ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.fillRect(cx - px * 1.8, sy - px * 6.3, px * 3.6, px * 3.1); ctx.fillStyle = RESCOL[u.carry.r] || '#c9a060'; ctx.fillRect(cx - px * 1.5, sy - px * 6, px * 3, px * 2.5); }
   const crown = (u.k && u.k.king === u) ? 'king' : u.hero ? 'hero' : null;
   if (crown) {
     ctx.fillStyle = crown === 'king' ? '#ffd23a' : '#e8b64c';
@@ -459,12 +448,13 @@ function drawUnit(ctx, u, sx, sy, z) {
     if (crown === 'king') { ctx.fillRect(sx - cw / 2, top - px * 2, px, px * 1.4); ctx.fillRect(sx + cw / 2 - px, top - px * 2, px, px * 1.4); ctx.fillRect(sx - px / 2, top - px * 2.2, px, px * 1.6); }
   }
   if (u.traits.length && z >= 14 && !crown) { ctx.fillStyle = 'rgba(232,182,76,.95)'; ctx.fillRect(sx - px * .6, top - px * 1.6, px * 1.2, px * 1.2); }
+  if (u.mad > 0) { ctx.fillStyle = '#c070ff'; ctx.fillRect(sx - px * .6, top - px * 2.8, px * 1.2, px * 1.2); }
   if (u.hp < u.maxHp && z >= 8) {
-    const bw = Math.max(w, px * 7), bx = sx - bw / 2, by = top - px * 3.2, bh = Math.max(2, px * .9);
+    const bw = px * 7, bx = sx - bw / 2, by = top - px * 3.4, bh = Math.max(2, px * .9);
     ctx.fillStyle = 'rgba(0,0,0,.65)'; ctx.fillRect(bx - 1, by - 1, bw + 2, bh + 2);
     ctx.fillStyle = u.hp / u.maxHp > .5 ? '#6ad074' : u.hp / u.maxHp > .25 ? '#e8b64c' : '#e0584b'; ctx.fillRect(bx, by, bw * Math.max(0, u.hp / u.maxHp), bh);
   }
-  if (u === selected) { ctx.strokeStyle = '#ffd36a'; ctx.lineWidth = Math.max(1.5, px * .5); ctx.beginPath(); ctx.ellipse(sx, sy, w * .7, px * 2.2, 0, 0, 7); ctx.stroke(); }
+  if (u === selected) { ctx.strokeStyle = '#ffd36a'; ctx.lineWidth = Math.max(1.5, px * .5); ctx.beginPath(); ctx.ellipse(sx, sy, px * 4.5, px * 2.2, 0, 0, 7); ctx.stroke(); }
 }
 
 function drawFx(ctx, toS, z) {
