@@ -3,6 +3,7 @@
 import { useRef } from "react"
 
 import { gsap, prefersReducedMotion, useGSAP } from "@/lib/gsap"
+import { whenInView } from "@/lib/in-view"
 import { cn } from "@/lib/utils"
 
 /** Trazos a mano alzada (rotulador). Se dibujan con DrawSVGPlugin al entrar en pantalla. */
@@ -44,24 +45,40 @@ export function Scribble({
 }) {
   const ref = useRef<SVGSVGElement>(null)
   const p = PATHS[kind]
+  const [, , vbW, vbH] = p.vb.split(" ").map(Number)
 
   useGSAP(
     () => {
-      if (prefersReducedMotion()) return
-      gsap.from(ref.current!.querySelectorAll("path"), {
-        drawSVG: 0,
-        duration,
-        delay,
-        ease: "power2.inOut",
-        scrollTrigger: trigger === "view" ? { trigger: ref.current, start: "top 85%", once: true } : undefined,
-      })
+      const svg = ref.current!
+      const path = svg.querySelector("path")!
+
+      // El grosor del trazo se corrige una vez según el tamaño real del dibujo
+      // (en lugar de `non-scaling-stroke`, que obliga a GSAP a medir el SVG en cada fotograma).
+      const fit = () => {
+        const w = svg.clientWidth || svg.getBoundingClientRect().width
+        const h = svg.clientHeight || svg.getBoundingClientRect().height
+        const scale = Math.sqrt((w / vbW) * (h / vbH)) || 1
+        path.setAttribute("stroke-width", String(strokeWidth / scale))
+      }
+      fit()
+      const ro = new ResizeObserver(fit)
+      ro.observe(svg)
+
+      if (prefersReducedMotion()) return () => ro.disconnect()
+
+      const tween = gsap.from(path, { drawSVG: 0, duration, delay, ease: "power2.inOut", paused: true })
+      const stop = trigger === "load" ? (tween.play(), () => {}) : whenInView(svg, () => tween.play(), "0px 0px -10% 0px")
+      return () => {
+        stop()
+        ro.disconnect()
+      }
     },
     { scope: ref }
   )
 
   return (
     <svg ref={ref} viewBox={p.vb} preserveAspectRatio="none" aria-hidden="true" focusable="false" className={cn("pointer-events-none overflow-visible", className)}>
-      <path d={p.d} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+      <path d={p.d} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }

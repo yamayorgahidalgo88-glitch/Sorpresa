@@ -3,6 +3,7 @@
 import { useRef } from "react"
 
 import { gsap, prefersReducedMotion, useGSAP } from "@/lib/gsap"
+import { onVisibility, whenInView } from "@/lib/in-view"
 import { cn } from "@/lib/utils"
 
 /**
@@ -15,18 +16,26 @@ export function WateringDoodle({ className }: { className?: string }) {
   useGSAP(
     () => {
       if (prefersReducedMotion()) return
-      const tl = gsap.timeline({ scrollTrigger: { trigger: ref.current, start: "top 85%", once: true } })
+      const svg = ref.current!
+      const tl = gsap.timeline({ paused: true })
       tl.from(".wd-can", { drawSVG: 0, duration: 1.1, ease: "power2.inOut", stagger: 0.1 })
         .from(".wd-can-wrap", { rotate: 14, svgOrigin: "150 100", duration: 0.7, ease: "back.out(2)" }, "-=0.2")
         .from(".wd-ground", { drawSVG: 0, duration: 0.5 }, "<")
         .from(".wd-stem", { drawSVG: 0, duration: 0.9, ease: "power1.out" })
         .from(".wd-leaf", { drawSVG: 0, scale: 0.3, transformOrigin: "50% 100%", duration: 0.6, stagger: 0.2, ease: "back.out(2)" }, "-=0.3")
         .from(".wd-flower", { scale: 0, transformOrigin: "50% 50%", duration: 0.6, ease: "back.out(3)" })
-      gsap.fromTo(
+      const drops = gsap.fromTo(
         ".wd-drop",
         { y: 0, autoAlpha: 0 },
-        { y: 34, autoAlpha: 1, duration: 0.9, ease: "power1.in", stagger: { each: 0.3, repeat: -1 }, delay: 1.2 }
+        { y: 34, autoAlpha: 1, duration: 0.9, ease: "power1.in", stagger: { each: 0.3, repeat: -1 }, delay: 1.2, paused: true }
       )
+      const stopStart = whenInView(svg, () => tl.play(), "0px 0px -10% 0px")
+      // Las gotas solo caen mientras se ven.
+      const stopVis = onVisibility(svg, (v) => (v && tl.progress() > 0 ? drops.play() : drops.pause()))
+      return () => {
+        stopStart()
+        stopVis()
+      }
     },
     { scope: ref }
   )

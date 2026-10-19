@@ -1,5 +1,7 @@
 "use client"
 
+import { useEffect, useRef, useState } from "react"
+
 import TextType from "@/components/reactbits/TextType"
 
 /** Lápiz que "escribe": va al final del texto y se mueve como en una mano. */
@@ -22,18 +24,35 @@ function Pencil() {
 }
 
 /** React Bits · TextType: los eslóganes de la academia se escriben y se borran solos. */
+const SLOGANS = [
+  "Aprender también puede ser divertido.",
+  "Prepara la EvAU de la mejor manera posible.",
+  "Cada alumno, a su ritmo.",
+  "Nunca es tarde para mejorar tu futuro.",
+  "Entre todos hacemos TIPS.",
+]
+
 export function HeroSlogans() {
+  const ref = useRef<HTMLParagraphElement>(null)
+  const [visible, setVisible] = useState(true)
+
+  // Fuera de pantalla no hay nada que teclear: se detiene (y con él el lápiz y sus temporizadores).
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const io = new IntersectionObserver(([e]) => setVisible(e.isIntersecting), { rootMargin: "100px" })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+
   return (
-    <p className="mt-5 min-h-[2.8rem] font-hand text-[1.9rem] leading-tight sm:text-[2.2rem]">
+    <p ref={ref} className="mt-5 min-h-[2.8rem] font-hand text-[1.9rem] leading-tight sm:text-[2.2rem]">
+      {!visible ? (
+        <span className="text-marker-blue">{SLOGANS[0]}</span>
+      ) : (
       <TextType
         as="span"
-        text={[
-          "Aprender también puede ser divertido.",
-          "Prepara la EvAU de la mejor manera posible.",
-          "Cada alumno, a su ritmo.",
-          "Nunca es tarde para mejorar tu futuro.",
-          "Entre todos hacemos TIPS.",
-        ]}
+        text={SLOGANS}
         typingSpeed={60}
         deletingSpeed={28}
         pauseDuration={2200}
@@ -42,6 +61,7 @@ export function HeroSlogans() {
         cursorBlinkDuration={0}
         className="text-marker-blue"
       />
+      )}
     </p>
   )
 }

@@ -25,7 +25,7 @@ export function Stats() {
               <Link href={s.href} className="mt-2 block font-semibold text-ink-deep after:absolute after:inset-0">
                 {s.label}
               </Link>
-              <span className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-slate opacity-70 transition-opacity group-hover:opacity-100">
+              <span className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-ink-deep underline-offset-4 group-hover:underline">
                 Ver más <ArrowRight className="size-3" aria-hidden="true" />
               </span>
             </StickyNote>

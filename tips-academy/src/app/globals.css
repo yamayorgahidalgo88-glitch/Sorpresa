@@ -173,7 +173,11 @@
   text-shadow:
     0 0 1px rgb(244 241 230 / 0.9),
     0 0 6px rgb(244 241 230 / 0.25);
-  filter: url(#chalk-rough);
+}
+
+/* Texto de tiza pendiente de escribirse: invisible pero ocupa su sitio (solo con JS) */
+html.js .chalk-pending {
+  visibility: hidden;
 }
 
 /* Papel de cuaderno */
@@ -214,11 +218,6 @@
   clip-path: inset(0 100% 0 0);
   animation: write-in 0.16s cubic-bezier(0.4, 0, 0.6, 1) forwards;
   animation-delay: calc(var(--d, 0s) + var(--i) * var(--speed, 45ms));
-}
-
-/* Con JS, las escrituras "al entrar en pantalla" esperan; sin JS se escriben al cargar */
-html.js [data-hw="wait"] .hw-char {
-  animation-play-state: paused;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -290,12 +289,21 @@ html.js [data-hw="wait"] .hw-char {
   animation: pencil-write 0.42s ease-in-out infinite;
 }
 
-/* Barras de porcentaje: rayas que avanzan suavemente */
-@keyframes stripes-move {
-  to { background-position: 28.28px 0; }
+/* Barras de porcentaje: rayas que avanzan suavemente.
+   Se animan con transform (lo hace la GPU) en lugar de background-position (repintaría cada fotograma). */
+@keyframes stripes-slide {
+  to { transform: translateX(-28.28px); }
 }
 .rate-stripes {
+  position: relative;
+  overflow: hidden;
+}
+.rate-stripes::before {
+  content: "";
+  position: absolute;
+  inset: 0 -30px 0 0;
   background-image: repeating-linear-gradient(-45deg, #36a9e1 0 10px, #5cc0f0 10px 20px);
   background-size: 28.28px 28.28px;
-  animation: stripes-move 0.9s linear infinite;
+  animation: stripes-slide 0.9s linear infinite;
+  will-change: transform;
 }

@@ -4,7 +4,7 @@ import { useEffect } from "react"
 import Lenis from "lenis"
 import { LazyMotion, MotionConfig, domAnimation } from "motion/react"
 
-import { gsap, prefersReducedMotion, ScrollTrigger } from "@/lib/gsap"
+import { gsap, prefersReducedMotion } from "@/lib/gsap"
 
 export function Providers({ children }: { children: React.ReactNode }) {
   useSmoothScroll()
@@ -16,7 +16,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * Lenis + GSAP ScrollTrigger en un único bucle (integración recomendada en el README de Lenis).
+ * Lenis movido por el ticker de GSAP (un único bucle de animación).
  * Desactivado con «movimiento reducido». Los enlaces #ancla se desplazan con la misma inercia.
  */
 function useSmoothScroll() {
@@ -24,7 +24,6 @@ function useSmoothScroll() {
     if (prefersReducedMotion()) return
 
     const lenis = new Lenis({ lerp: 0.1, wheelMultiplier: 0.95 })
-    lenis.on("scroll", ScrollTrigger.update)
     const tick = (time: number) => lenis.raf(time * 1000)
     gsap.ticker.add(tick)
     gsap.ticker.lagSmoothing(0)

@@ -23,7 +23,7 @@ export function Reviews() {
           </h2>
           <p className="mt-5 flex items-center gap-3 text-lg text-slate">
             <span className="text-5xl leading-none font-extrabold tracking-tight text-ink">{reviews.rating}</span>
-            <span className="flex text-[#f5a524]" aria-label="5 de 5 estrellas">
+            <span className="flex text-[#f5a524]" role="img" aria-label="5 de 5 estrellas">
               {Array.from({ length: 5 }, (_, i) => (
                 <Star key={i} className="size-6 fill-current" aria-hidden="true" />
               ))}

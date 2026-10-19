@@ -4,6 +4,7 @@ import { useRef } from "react"
 import { Scribble } from "@/components/board/scribble"
 import { noteBg } from "@/components/board/sticky-note"
 import { gsap, prefersReducedMotion, useGSAP } from "@/lib/gsap"
+import { onVisibility } from "@/lib/in-view"
 import type { Sticky } from "@/lib/site"
 import { cn } from "@/lib/utils"
 
@@ -38,9 +39,11 @@ export function HeroBoard() {
         delay: 0.4,
       })
       // Flotación suave
-      notes.forEach((n, i) =>
+      const floats = notes.map((n, i) =>
         gsap.to(n, { y: "+=8", duration: 2.4 + i * 0.3, yoyo: true, repeat: -1, ease: "sine.inOut", delay: 1.4 + i * 0.2 })
       )
+      // Solo flotan mientras el tablero está en pantalla.
+      return onVisibility(board.current!, (v) => floats.forEach((f) => (v ? f.resume() : f.pause())))
     },
     { scope: board }
   )

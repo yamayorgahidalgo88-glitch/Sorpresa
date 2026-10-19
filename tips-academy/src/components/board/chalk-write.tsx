@@ -2,7 +2,8 @@
 
 import { useRef } from "react"
 
-import { gsap, prefersReducedMotion, ScrollTrigger, SplitText, useGSAP } from "@/lib/gsap"
+import { gsap, prefersReducedMotion, SplitText, useGSAP } from "@/lib/gsap"
+import { whenInView } from "@/lib/in-view"
 import { cn } from "@/lib/utils"
 
 type Props = {
@@ -11,30 +12,44 @@ type Props = {
   className?: string
   /** segundos por letra */
   speed?: number
-  start?: string
   showChalk?: boolean
 }
 
 /**
- * Escritura en tiza con GSAP SplitText + ScrollTrigger: las letras aparecen una a una
+ * Escritura en tiza con GSAP SplitText (se activa al entrar en pantalla): las letras aparecen una a una
  * mientras una tiza recorre el texto. Con movimiento reducido el texto aparece completo.
+ *
+ * Rendimiento: el texto solo se divide en letras cuando empieza a escribirse y, al terminar,
+ * se deshace (SplitText.revert) para dejar un único nodo de texto sin animaciones.
  */
-export function ChalkWrite({ children, as: Tag = "p", className, speed = 0.035, start = "top 78%", showChalk = true }: Props) {
+export function ChalkWrite({ children, as: Tag = "p", className, speed = 0.035, showChalk = true }: Props) {
   const wrap = useRef<HTMLDivElement>(null)
   const text = useRef<HTMLSpanElement>(null)
   const chalk = useRef<HTMLSpanElement>(null)
 
   useGSAP(
     () => {
-      if (prefersReducedMotion() || !text.current) return
-      const split = SplitText.create(text.current, { type: "chars,words", charsClass: "chalk-char", aria: "none" })
-      const chars = split.chars as HTMLElement[]
-      gsap.set(chars, { clipPath: "inset(0 100% 0 0)" })
+      const el = text.current
+      if (!el) return
+      el.classList.remove("chalk-pending")
+      if (prefersReducedMotion()) return
+      // Oculto hasta que le toca escribirse (con JS); sigue ocupando su sitio.
+      el.classList.add("chalk-pending")
       gsap.set(chalk.current, { autoAlpha: 0 })
 
-      // Las posiciones se miden al empezar (con las fuentes ya cargadas).
+      let split: SplitText | undefined
       const play = () => {
-        const tl = gsap.timeline()
+        split = SplitText.create(el, { type: "chars,words", charsClass: "chalk-char", aria: "none" })
+        const chars = split.chars as HTMLElement[]
+        gsap.set(chars, { clipPath: "inset(0 100% 0 0)" })
+        el.classList.remove("chalk-pending")
+
+        const tl = gsap.timeline({
+          onComplete: () => {
+            split?.revert()
+            split = undefined
+          },
+        })
         const box = wrap.current!.getBoundingClientRect()
         chars.forEach((c, idx) => {
           const r = c.getBoundingClientRect()
@@ -55,11 +70,13 @@ export function ChalkWrite({ children, as: Tag = "p", className, speed = 0.035, 
           }
         })
         if (showChalk) tl.to(chalk.current, { autoAlpha: 0, x: "+=16", y: "-=16", duration: 0.4 })
-        // Sin recorte al terminar: ninguna letra queda cortada
-        tl.set(chars, { clipPath: "none" })
       }
-      ScrollTrigger.create({ trigger: wrap.current, start, once: true, onEnter: play })
-      return () => split.revert()
+      const stop = whenInView(wrap.current!, play, "0px 0px -22% 0px")
+      return () => {
+        stop()
+        split?.revert()
+        el.classList.remove("chalk-pending")
+      }
     },
     { scope: wrap }
   )
@@ -67,7 +84,7 @@ export function ChalkWrite({ children, as: Tag = "p", className, speed = 0.035, 
   return (
     <div ref={wrap} className="relative">
       <Tag className={cn("chalk-text font-hand", className)}>
-        {/* Texto visual (se divide en letras) + copia para lectores de pantalla */}
+        {/* Texto visual (se divide en letras al escribirse) + copia para lectores de pantalla */}
         <span ref={text} aria-hidden="true">
           {children}
         </span>

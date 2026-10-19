@@ -79,15 +79,20 @@ export function SiteHeader() {
   const pathname = usePathname()
   const [scrolled, setScrolled] = useState(false)
 
+  // «Scrolled» se detecta con un observador sobre un marcador al inicio de la página:
+  // leer window.scrollY en cada evento de scroll fuerza al navegador a recalcular el diseño.
+  const sentinel = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 30)
-    onScroll()
-    window.addEventListener("scroll", onScroll, { passive: true })
-    return () => window.removeEventListener("scroll", onScroll)
+    const el = sentinel.current
+    if (!el) return
+    const io = new IntersectionObserver(([e]) => setScrolled(!e.isIntersecting))
+    io.observe(el)
+    return () => io.disconnect()
   }, [])
 
   return (
     <>
+      <div ref={sentinel} aria-hidden="true" className="pointer-events-none absolute top-0 left-0 h-14 w-px" />
       {/* Barra superior: datos útiles en un formato compacto */}
       <div className="bg-ink-deep text-white/85">
         <div className="mx-auto flex h-10 max-w-7xl items-center justify-between gap-4 px-4 text-[0.8rem] sm:px-8">
@@ -118,7 +123,7 @@ export function SiteHeader() {
       <header
         className={cn(
           "sticky top-0 z-40 border-b transition-[background-color,border-color,box-shadow] duration-300",
-          scrolled ? "border-hairline bg-white/90 shadow-[0_8px_30px_-20px_rgb(12_31_51/0.4)] backdrop-blur-xl" : "border-transparent bg-white"
+          scrolled ? "border-hairline bg-white shadow-[0_8px_30px_-20px_rgb(12_31_51/0.4)]" : "border-transparent bg-white"
         )}
       >
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-4 px-4 sm:px-8">

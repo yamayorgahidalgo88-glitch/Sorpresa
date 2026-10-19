@@ -47,13 +47,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           Saltar al contenido
         </a>
         <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(academyJsonLd())} />
-        {/* Filtro de tiza: borde irregular */}
-        <svg aria-hidden="true" width="0" height="0" className="absolute">
-          <filter id="chalk-rough">
-            <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="1" result="noise" />
-            <feDisplacementMap in="SourceGraphic" in2="noise" scale="2.2" />
-          </filter>
-        </svg>
         <Providers>
           <SiteHeader />
           <main id="contenido" className="flex-1">

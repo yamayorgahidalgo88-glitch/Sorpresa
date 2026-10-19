@@ -4,6 +4,7 @@ import { useRef } from "react"
 
 import { Handwrite } from "@/components/board/handwrite"
 import { gsap, prefersReducedMotion, useGSAP } from "@/lib/gsap"
+import { whenInView } from "@/lib/in-view"
 import { successRates } from "@/lib/site"
 
 /** Porcentaje de éxito: barras de rotulador que se rellenan al entrar en pantalla (GSAP). */
@@ -13,14 +14,9 @@ export function SuccessRates() {
   useGSAP(
     () => {
       if (prefersReducedMotion()) return
-      gsap.from(".rate-fill", {
-        scaleX: 0,
-        transformOrigin: "left center",
-        duration: 1.4,
-        ease: "power3.out",
-        stagger: 0.15,
-        scrollTrigger: { trigger: ref.current, start: "top 70%", once: true },
-      })
+      gsap.set(".rate-fill", { scaleX: 0, transformOrigin: "left center" })
+      return whenInView(ref.current!, () =>
+        gsap.to(".rate-fill", { scaleX: 1, duration: 1.4, ease: "power3.out", stagger: 0.15 }), "0px 0px -25% 0px")
     },
     { scope: ref }
   )
