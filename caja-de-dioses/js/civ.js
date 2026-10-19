@@ -28,7 +28,7 @@ function foundCity(u, force) {
   let k = u.k && u.k.alive ? u.k : null;
   const isNew = !k;
   if (!k) k = newKingdom(u.type, u);
-  const c = { id: cities.length, name: mkName(u.type), x, y, k, alive: true, pop: 0, cap: 6, food: 8, fields: 0, houses: 0, radius: 3, empty: 0, born: year(), ores: [] };
+  const c = { id: cities.length, name: mkName(u.type), x, y, k, alive: true, pop: 0, cap: 6, food: 8, fields: 0, houses: 0, radius: 3, empty: 0, born: year(), ores: [], has: {}, towers: [], barracks: -1, temple: -1, mood: 60 };
   cities.push(c);
   if (k.capital < 0 || !cities[k.capital] || !cities[k.capital].alive) k.capital = c.id;
   bld[i] = 2; ore[i] = 0;
@@ -87,22 +87,25 @@ function tryCapture(u, c) {
   for (const o of units) if (o.city === c.id) { o.k = u.k; o.army = false; }
   for (const r in old.res) { const loot = Math.floor(old.res[r] * .3); old.res[r] -= loot; u.k.res[r] += loot; }
   addLog(`${El(u.k)} conquista ${c.name}, arrebatada ${al(old)}, y saquea sus almacenes.`, 'war');
+  rebuildGrid(); around(c.x, c.y, 9, o => { if (o.k === u.k && o.prof === 'soldier') { o.city = c.id; o.home = -1; } });
   if (old.capital === c.id) old.capital = -1;
+  bumpOpinion(old, u.k, -25, 'Ciudades conquistadas');
 }
 function scanCity(c) {
   let houses = 0, fields = 0, owned = 0, food = 0, coast = false;
+  const has = {}; c.towers = []; c.barracks = -1; c.temple = -1; c.docks = -1;
   const r = Math.ceil(c.radius) + 4, id1 = c.id + 1;
   c.ores = [];
   for (let y = Math.max(0, c.y - r); y <= Math.min(H - 1, c.y + r); y++) for (let x = Math.max(0, c.x - r); x <= Math.min(W - 1, c.x + r); x++) {
     const i = y * W + x;
     if (ore[i] && (owner[i] === id1 || (!owner[i] && dist2(x, y, c.x, c.y) < (c.radius + 3) ** 2)) && region[i] !== -1) c.ores.push(i);
     if (owner[i] !== id1) continue;
-    owned++; if (bld[i] === 1) houses++;
+    owned++; const b = bld[i]; if (b === 1) houses++; else if (b >= 5) { has[b] = (has[b] || 0) + 1; if (b === B.TOWER) c.towers.push(i); else if (b === B.BARRACKS) c.barracks = i; else if (b === B.TEMPLE) c.temple = i; else if (b === B.DOCKS) c.docks = i; }
     const t = tile[i]; if (t === T.FIELD) fields++;
     food += TILE[t].food || 0;
     if ((x > 0 && isWater(tile[i - 1])) || (x < W - 1 && isWater(tile[i + 1])) || (i >= W && isWater(tile[i - W])) || (i < N - W && isWater(tile[i + W]))) { food += .25; coast = true; }
   }
-  c.houses = houses; c.fields = fields; c.owned = owned; c.foodYield = food; c.coast = coast;
+  c.houses = houses; c.fields = fields; c.owned = owned; c.foodYield = food; c.coast = coast; c.has = has; c.granary = has[B.GRANARY] || 0;
   const ht = modOn('tecnologia') ? c.k.house : 0;
   c.cap = 5 + Math.floor(houses * (1.5 + ht * .5));
 }
@@ -113,6 +116,9 @@ function cityUpdate(c) {
   if (!bld[c.y * W + c.x] || bld[c.y * W + c.x] === 4) bld[c.y * W + c.x] = 2;
   if (!sp.noFood && LAWS.hambre.on) {
     c.food += c.foodYield * .035 * kmul(k, 'food') * (season() === 3 ? .4 : 1);
+    if (season() === 3 && !c.granary) c.food *= .997;
+    if (c.has[B.MARKET]) k.res.oro = (k.res.oro || 0) + .25 * c.has[B.MARKET];
+    if (c.has[B.TEMPLE]) for (const o of units) if (o.city === c.id && o.def.civ) o.mood = Math.min(100, o.mood + .6);
     if (c.food < 0) c.food = 0;
     c.food = Math.min(c.food, 80 + c.pop * 4 + (c.granary ? 120 : 0));
   } else c.food = 20;
@@ -165,7 +171,15 @@ function cityUpdate(c) {
     const x = Math.round(c.x + Math.cos(ang) * d), y = Math.round(c.y + Math.sin(ang) * d);
     if (x < 1 || y < 1 || x >= W - 1 || y >= H - 1) continue;
     const i = y * W + x;
-    if (owner[i - 1] === id1 || owner[i + 1] === id1 || owner[i - W] === id1 || owner[i + W] === id1) claim(c, x, y);
+    const nb = (owner[i - 1] === id1) + (owner[i + 1] === id1) + (owner[i - W] === id1) + (owner[i + W] === id1);
+    if (nb >= (a < 4 ? 1 : 2)) claim(c, x, y);
+  }
+  // rellena huecos sueltos dentro del territorio
+  for (let a = 0; a < 6; a++) {
+    const x = c.x + ri(-Math.ceil(c.radius), Math.ceil(c.radius)), y = c.y + ri(-Math.ceil(c.radius), Math.ceil(c.radius));
+    if (x < 1 || y < 1 || x >= W - 1 || y >= H - 1) continue;
+    const i = y * W + x; if (owner[i]) continue;
+    if ((owner[i - 1] === id1) + (owner[i + 1] === id1) + (owner[i - W] === id1) + (owner[i + W] === id1) >= 3) claim(c, x, y);
   }
   // colonos
   const explore = members.length ? members.reduce((s, o) => s + tmul(o, 'explore'), 0) / members.length : 1;
@@ -174,6 +188,7 @@ function cityUpdate(c) {
     if (kc < 10) {
       const s = members.find(o => !o.army && !o.settler && o !== k.king);
       const reg = region[c.y * W + c.x];
+      let placed = false;
       if (s) for (let a = 0; a < 20; a++) {
         const ang = rnd() * Math.PI * 2, d = 13 + rnd() * (14 + explore * 6);
         const x = Math.round(c.x + Math.cos(ang) * d), y = Math.round(c.y + Math.sin(ang) * d);
@@ -183,11 +198,14 @@ function cityUpdate(c) {
           s.settler = { x, y, t: 0 }; s.city = -1; s.task = null; s.think = 0; s.prof = null; s.food = 100; s.energy = Math.max(s.energy, 80);
           let n = 0;
           for (const o of members) { if (n >= 4) break; if (o === s || o.army || o.settler || o === k.king) continue; o.settler = { x: x + ri(-1, 1), y: y + ri(-1, 1), follow: 1, t: 0 }; o.city = -1; o.task = null; o.think = ri(0, 5); o.prof = null; o.food = 100; o.energy = Math.max(o.energy, 80); n++; }
-          break;
+          placed = true; break;
         }
       }
+      if (s && !placed && rnd() < .5) tryOverseas(c, members, explore);
     }
   }
+  if (k.wars.size && rnd() < .05) tryNaval(c, members);
+  else if (rnd() < .03) tryTrade(c);
   if (c.pop === 0) { if (++c.empty > 10) destroyCity(c, 'queda abandonada'); } else c.empty = 0;
   // rebelión
   if (LAWS.rebelion.on && modOn('diplomacia') && k.capital !== c.id && c.pop > 10 && year() - k.born > 15) {
@@ -213,6 +231,7 @@ function declareWar(a, b, byGod) {
   if (a === b || a.wars.has(b.id)) return;
   a.allies.delete(b.id); b.allies.delete(a.id);
   a.wars.add(b.id); b.wars.add(a.id); a.warYears[b.id] = 0; b.warYears[a.id] = 0;
+  bumpOpinion(a, b, -15, 'Declaración de guerra');
   const sep = !kingdomsTouch(a, b);
   addLog(`${El(a)} declara la guerra ${al(b)}${byGod ? ' por voluntad divina' : ''}.${sep ? ' Una frontera los separa: sus ejércitos esperan en la línea.' : ''}`, 'war');
   if (modOn('diplomacia')) for (const al_ of a.allies) { const k = kingdoms[al_]; if (k && k.alive && !k.wars.has(b.id) && k !== b) { k.wars.add(b.id); b.wars.add(k.id); } }
@@ -220,6 +239,7 @@ function declareWar(a, b, byGod) {
 function makePeace(a, b) {
   if (!a.wars.has(b.id)) return;
   a.wars.delete(b.id); b.wars.delete(a.id);
+  bumpOpinion(a, b, -25, 'Guerra pasada'); bumpOpinion(a, b, 12, 'Tratado de paz');
   addLog(`Paz firmada entre ${el(a)} y ${el(b)}.`, 'peace');
 }
 function applyTech(k, t, silent) {
@@ -245,7 +265,8 @@ function research(k, members) {
   if (!modOn('tecnologia')) return;
   let pts = 0;
   for (const u of members) pts += tmul(u, 'research') * (u.def.bonus?.research || 1);
-  k.rpRate = pts * .3 * k.mul.research;
+  let libs = 0; for (const c of cities) if (c && c.alive && c.k === k) libs += c.has?.[B.LIBRARY] || 0;
+  k.rpRate = pts * .3 * k.mul.research * (1 + Math.min(1, libs * .25));
   k.rp += k.rpRate;
   let guard = 0;
   while (guard++ < 5) {
@@ -290,31 +311,11 @@ function kingdomUpdate() {
       if (rank > k.rank && !k.custom) { const old = k.name; k.rank = rank; nameKingdom(k); addLog(`${old} crece y se convierte en ${el(k)}.`, 'found'); }
     }
     if (k.capital < 0 || !cities[k.capital] || !cities[k.capital].alive || cities[k.capital].k !== k) k.capital = kc.sort((a, b) => b.pop - a.pop)[0].id;
-    if (!k.king || k.king.dead || k.king.k !== k) {
-      const score = u => u.level + (u.hero ? 5 : 0) + (hasTrait(u, 'lider') ? 6 : 0);
-      const cand = members.slice().sort((a, b) => score(b) - score(a))[0];
-      if (cand) { k.king = cand; cand.name = cand.name || mkName(k.race); cand.prof = 'ruler'; cand.task = null; if (modOn('diplomacia')) addLog(`${cand.name} es coronado soberano ${del(k)}.`, 'peace'); }
-    }
+    if (!k.king || k.king.dead || k.king.k !== k) succession(k, members);
+    if (!k.dynasty && k.king) k.dynasty = k.king.fam;
     for (const w of k.wars) k.warYears[w] = (k.warYears[w] || 0) + .5;
   }
   const live = kingdoms.filter(k => k.alive);
-  for (let i = 0; i < live.length; i++) for (let j = i + 1; j < live.length; j++) {
-    const a = live[i], b = live[j];
-    const ca = cities[a.capital], cb = cities[b.capital]; if (!ca || !cb) continue;
-    if (a.wars.has(b.id)) {
-      const peaceful = Math.max(0, -(a.aggr + b.aggr));
-      if (LAWS.guerras.on && (a.warYears[b.id] || 0) > 3 && rnd() < .05 * (1 + peaceful * 3)) makePeace(a, b);
-      continue;
-    }
-    if (!LAWS.guerras.on || !kingdomsTouch(a, b)) continue;
-    const d = Math.sqrt(dist2(ca.x, ca.y, cb.x, cb.y));
-    if (d > 80) continue;
-    let p = .022 * ((SP[a.race].war || 1) + (SP[b.race].war || 1)) / 2 * clamp(1 + (a.aggr + b.aggr) * 2, .05, 4);
-    if (a.race === b.race) p *= .6;
-    if (a.allies.has(b.id)) p *= .1;
-    if (rnd() < p) declareWar(rnd() < .5 ? a : b, rnd() < .5 ? b : a);
-    else if (modOn('diplomacia') && !a.allies.has(b.id) && rnd() < .012 && a.aggr + b.aggr < .3) {
-      a.allies.add(b.id); b.allies.add(a.id); addLog(`Alianza entre ${el(a)} y ${el(b)}.`, 'peace');
-    }
-  }
+  diplomacyUpdate(live);
+  religionUpdate(live);
 }

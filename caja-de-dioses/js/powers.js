@@ -44,7 +44,7 @@ addTool('terreno', 'lower', 'Hundir', 'lower', { glyph: '▼' });
 MAT.forEach((m, i) => { if (m) addTool('materiales', 'm_' + m.id, m.n, 'ore', { ore: i, mod: m.mod }); });
 addTool('materiales', 'm_none', 'Quitar mineral', 'unore', { glyph: '✕' });
 CIV.forEach(s => addTool('vida', 'v_' + s, 'Pueblo de ' + SP[s].n.toLowerCase(), 'village', { sp: s, mod: SP[s].mod, once: 1 }));
-Object.keys(SP).forEach(s => addTool('vida', 's_' + s, SP[s].n, 'spawn', { sp: s, mod: SP[s].mod, once: SP[s].size > 1.5 }));
+Object.keys(SP).filter(s => !SP[s].boat).forEach(s => addTool('vida', 's_' + s, SP[s].n, 'spawn', { sp: s, mod: SP[s].mod, once: SP[s].size > 1.5 }));
 addTool('rasgos', 'scope', 'Aplicar a', 'scope', { glyph: '◎' });
 addTool('rasgos', 'r_clear', 'Quitar rasgos', 'untrait', { glyph: '✕' });
 Object.keys(TRAITS).forEach(t => addTool('rasgos', 'r_' + t, TRAITS[t].n, 'trait', { trait: t, glyph: TRAITS[t].g, mod: TRAITS[t].mod }));

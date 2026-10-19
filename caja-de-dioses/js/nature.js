@@ -46,6 +46,7 @@ function liveWorld() {
     }
     else if (t === T.ACID) { if (bld[j] && rnd() < .2) bld[j] = 4; if (TILE[tj].burn && rnd() < .05) tile[j] = T.ASH; }
     else if (t === T.CRYSTAL && modOn('magia') && rnd() < .0008 && (countType.fairy || 0) < 30) spawn('fairy', x + .5, y + .5);
+    roadDecay(i);
     if (bld[i] === 4 && !owner[i] && rnd() < .05) bld[i] = 0;
     if (bld[i] && !owner[i] && bld[i] !== 4) bld[i] = 4;
   }

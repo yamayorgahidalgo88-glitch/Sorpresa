@@ -47,7 +47,7 @@ function spawn(type, x, y, k, city, opt = {}) {
   if (def.civ) u.name = mkName(type);
   u.maxAge *= tmul(u, 'age');
   u.maxHp = maxHpOf(u); u.hp = u.maxHp;
-  units.push(u);
+  units.push(u); UMAP.set(u.id, u);
   return u;
 }
 function kmul(k, key) { return k && modOn('tecnologia') ? (k.mul[key] || 1) : 1; }
@@ -92,6 +92,7 @@ function isEnemy(a, b) {
 
 function rebuildGrid() {
   for (const c of grid) c.length = 0;
+  if (UMAP.size > units.length * 1.5 + 50) { UMAP.clear(); for (const u of units) UMAP.set(u.id, u); }
   for (const u of units) {
     if (u.dead) continue;
     const gx = clamp((u.x / GC) | 0, 0, GW - 1), gy = clamp((u.y / GC) | 0, 0, GH - 1);
@@ -157,8 +158,9 @@ function kill(u, src, cause) {
     const pa = unitById(u.partner); if (pa) { pa.partner = null; pa.mood = Math.max(0, pa.mood - 35); pa.widow = u.name || displayName(u); }
     for (const o of units) if (o.parents && o.parents.includes(u.id) && !o.dead) o.mood = Math.max(0, o.mood - 22);
   }
+  if (u.cargo && u.cargo.length && u.k) addLog(`Un barco ${del(u.k)} se hunde con ${u.cargo.length} personas a bordo.`, 'doom');
   const wasKing = u.k && u.k.king === u;
-  if (wasKing) { addLog(`Ha muerto ${u.name}, soberano ${del(u.k)}${cause ? ' (' + cause + ')' : ''}.`, 'war'); u.k.king = null; }
+  if (wasKing) { u.k.lastKing = u.id; addLog(`Ha muerto ${u.name}, soberano ${del(u.k)}${cause ? ' (' + cause + ')' : ''}.`, 'war'); u.k.king = null; }
   else if (u.hero) addLog(`El héroe ${u.name} ha caído${src ? ' a manos de ' + (src.name || src.def.n.toLowerCase()) : cause ? ' (' + cause + ')' : ''}.`, 'hero');
   if (src && src.def.infect && u.def.civ && u.type !== 'undead' && rnd() < .6) { spawn('zombie', u.x, u.y); return; }
   if (src && src.type === 'undead' && src.k && u.def.civ && u.type !== 'undead' && rnd() < SP.undead.raise) {
@@ -217,6 +219,7 @@ function updateUnit(u) {
   u.age += 1 / YEAR;
   if (u.cool > 0) u.cool--; if (u.hitT > 0) u.hitT--;
   if (u.age > u.maxAge * kmul(u.k, 'age') && !hasTrait(u, 'inmortal')) { kill(u, null, 'vejez'); return; }
+  if (def.boat) { updateBoat(u); return; }
   const ti = (u.y | 0) * W + (u.x | 0), tt = tile[ti];
   if (!def.fly) {
     if (tt === T.LAVA && !def.fireproof) { kill(u, null, 'lava'); return; }

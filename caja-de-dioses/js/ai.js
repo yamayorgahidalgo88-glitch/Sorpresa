@@ -63,7 +63,7 @@ function findPath(u, goal) {
       if (shut[j] === st) continue;
       if (j !== goal && !walk(def, nx, ny)) continue;
       if (k >= 4 && (!walk(def, nx, y) || !walk(def, x, ny))) continue;
-      const ng = gi + (k >= 4 ? 1.414 : 1) * TCOST[tile[j]];
+      const ng = gi + (k >= 4 ? 1.414 : 1) * TCOST[tile[j]] * (road[j] ? .55 : 1);
       if (seen[j] === st && ng >= g[j]) continue;
       seen[j] = st; g[j] = ng; came[j] = i;
       const hh = h(nx, ny); push(ng + hh * 1.05, j);
@@ -83,20 +83,21 @@ function findPath(u, goal) {
 function stepToward(u, tx, ty, mul = 1) {
   const dx = tx - u.x, dy = ty - u.y, d = Math.hypot(dx, dy);
   if (d < .12) return 1;
-  const sp = u.def.spd * tmul(u, 'spd') * .095 * mul * (u.def.civ ? kmul(u.k, 'speed') : 1) * (u.def.civ && u.food <= 0 ? .6 : 1);
+  const sp = u.def.spd * tmul(u, 'spd') * .095 * mul * (road[(u.y | 0) * W + (u.x | 0)] ? 1.35 : 1) * (u.def.civ ? kmul(u.k, 'speed') : 1) * (u.def.civ && u.food <= 0 ? .6 : 1);
   const st = Math.min(sp, d);
   if (Math.abs(dx) > .02) u.face = dx < 0 ? -1 : 1;
-  const nx = u.x + dx / d * st, ny = u.y + dy / d * st;
+  const nx = u.x + dx / d * st, ny = u.y + dy / d * st, oi = (u.y | 0) * W + (u.x | 0);
   if (canStand(u.def, nx, ny)) { u.x = nx; u.y = ny; }
   else if (canStand(u.def, nx, u.y)) u.x = nx;
   else if (canStand(u.def, u.x, ny)) u.y = ny;
   else return -1;
+  const ni = (u.y | 0) * W + (u.x | 0); if (ni !== oi) noteStep(u, ni);
   return d - st < .12 ? 1 : 0;
 }
 // camina hacia (tx,ty) usando caminos: 1 llegó, 0 en camino, -1 imposible
 function moveTo(u, tx, ty, mul = 1) {
   const def = u.def;
-  if (def.fly || def.waterOnly || def.swim) { const r = stepToward(u, tx, ty, mul); return r === -1 ? (u.stuck = (u.stuck || 0) + 1) > 20 ? -1 : 0 : r; }
+  if (def.fly || def.swim || (def.waterOnly && !def.boat)) { const r = stepToward(u, tx, ty, mul); return r === -1 ? (u.stuck = (u.stuck || 0) + 1) > 20 ? -1 : 0 : r; }
   const goal = (ty | 0) * W + (tx | 0);
   const near = dist2(u.x, u.y, tx, ty);
   if (near < 9 && !u.path) {
@@ -157,7 +158,7 @@ function runTask(u) {
       return;
     }
     if (tk.k === 'social' || tk.k === 'love') {
-      const o = units.find(v => v.id === tk.who);
+      const o = unitById(tk.who);
       if (!o || o.dead || dist2(u.x, u.y, o.x, o.y) > 6) { endTask(u); return; }
       u.face = o.x < u.x ? -1 : 1;
       if (tk.t === tk.dur) parts.push({ x: u.x, y: u.y - 1.3, vx: 0, vy: -.01, l: 40, c: tk.k === 'love' ? [255, 120, 160] : [255, 255, 255], s: 1.3 });
@@ -198,14 +199,14 @@ function finishWork(u, tk, c) {
     case 'farm':
       if (!c || owner[i] !== c.id + 1) break;
       if (tile[i] !== T.FIELD) { if (TILE[tile[i]].farm) tile[i] = T.FIELD; }
-      else c.food += 2.2 * wm * tmul(u, 'farm') * kmul(k, 'food') * (season() === 3 ? .35 : season() === 1 ? 1.25 : 1);
+      else c.food += 2.2 * wm * tmul(u, 'farm') * kmul(k, 'food') * (c.has[B.MILL] ? 1.3 : 1) * (season() === 3 ? .35 : season() === 1 ? 1.25 : 1);
       gainXp(u, .15);
       break;
     case 'gather':
       if (c) c.food += (.6 + (TILE[tile[i]].food || 0)) * 1.4 * wm * kmul(k, 'food');
       if (TILE[tile[i]].wood && k) k.res.madera += .4 * wm;
       break;
-    case 'fish': if (c) c.food += 2.6 * wm * kmul(k, 'food'); gainXp(u, .1); break;
+    case 'fish': if (c) c.food += 2.6 * wm * kmul(k, 'food') * (c.has[B.DOCKS] ? 1.6 : 1); gainXp(u, .1); break;
     case 'wood':
       if (TILE[tile[i]].wood) { u.carry = { r: 'madera', n: 4 * wm }; if (rnd() < .18) tile[i] = T.GRASS; tk.ph = 'back'; return; }
       break;
@@ -222,24 +223,11 @@ function finishWork(u, tk, c) {
         gainXp(u, .2); tk.ph = 'back'; return;
       }
       break;
-    case 'build': {
-      if (!c || owner[i] !== c.id + 1 || (bld[i] && bld[i] !== 3) || !TILE[tile[i]].build) break;
-      const ht = modOn('tecnologia') ? k.house : 0;
-      const cost = ht >= 2 ? ['piedra', 3] : ['madera', 2];
-      if (bld[i] === 3) {
-        bld[i] = 1;
-        if (tmul(u, 'build') > 1) { const n = i + pick([1, -1, W, -W]); if (n >= 0 && n < N && owner[n] === c.id + 1 && !bld[n] && TILE[tile[n]].build && !ore[n]) bld[n] = 3; }
-        gainXp(u, .3);
-      } else if (ht === 0 || k.res[cost[0]] >= cost[1] + (k.reserve?.[cost[0]] || 0) * .5) {
-        if (ht > 0) k.res[cost[0]] -= cost[1];
-        bld[i] = 3; tk.t = Math.max(20, 70 / Math.max(.5, tmul(u, 'build'))); return; // segunda fase: levantar la obra
-      }
-      break;
-    }
+    case 'build': if (c && buildStep(u, c, i, tk.want, tk)) return; break;
     case 'study': if (k) k.rp += 1.2 * tmul(u, 'research') * (u.def.bonus?.research || 1) * k.mul.research; gainXp(u, .2); break;
-    case 'train': gainXp(u, .5); break;
+    case 'train': gainXp(u, c && c.has[B.BARRACKS] ? 1.1 : .5); if (c && c.has[B.BARRACKS]) u.hp = Math.min(u.maxHp, u.hp + 8); break;
     case 'social': case 'love': {
-      const o = units.find(v => v.id === tk.who);
+      const o = unitById(tk.who);
       if (o && !o.dead) {
         befriend(u, o, tk.k === 'love' ? 18 : 10);
         u.mood = Math.min(100, u.mood + 8); o.mood = Math.min(100, o.mood + 6);
@@ -277,14 +265,15 @@ function marry(a, b) {
   for (let k = 0; k < 6; k++) parts.push({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 - 1, vx: (rnd() - .5) * .06, vy: -.03, l: 40, c: [255, 120, 170], s: 1.1 });
   if (a.hero || b.hero || (a.k && (a.k.king === a || a.k.king === b))) addLog(`${displayName(a)} y ${displayName(b)} se casan${a.k ? ' en ' + (cities[a.city]?.name || a.k.name) : ''}.`, 'peace');
 }
-function unitById(id) { if (!id) return null; for (const u of units) if (u.id === id) return u.dead ? null : u; return null; }
+const UMAP = new Map();
+function unitById(id) { if (!id) return null; const u = UMAP.get(id); return u && !u.dead ? u : null; }
 
 // ---------- decisiones ----------
 // score(u, cx) → puntuación (0 = imposible); start(u, cx) → true si arrancó
 const DECISIONS = [
-  { id: 'eat', n: 'Comer', score: (u, c) => u.food < 60 && c && c.food >= 1 ? (60 - u.food) * 2.1 : 0,
+  { id: 'eat', n: 'Comer', score: (u, c) => u.food < 60 && c && c.food >= 1 && sameLand(u, c) ? (60 - u.food) * 2.1 : 0,
     start: (u, c) => setTask(u, 'eat', c.x, c.y, 18) },
-  { id: 'forage', n: 'Buscar comida', score: (u, c) => u.food < 50 && (!c || c.food < 1) ? (50 - u.food) * 1.5 + 8 : 0,
+  { id: 'forage', n: 'Buscar comida', score: (u, c) => u.food < 50 && (!c || c.food < 1 || !sameLand(u, c)) ? (50 - u.food) * 1.5 + 8 : 0,
     start: u => { const p = pickNear(u, u.x, u.y, 7, i => (TILE[tile[i]].food || 0) >= .25 && !bld[i], 20); return p && setTask(u, 'forage', p[0], p[1], 30); } },
   { id: 'sleep', n: 'Dormir', score: u => u.energy < 45 ? (50 - u.energy) * 2.2 * (isNight() ? 1.4 : 1) : isNight() && u.energy < 70 ? (70 - u.energy) * .9 : 0,
     start: (u, c) => { const h = homeOf(u, c); if (h) return setTask(u, 'sleep', h % W, (h / W) | 0, 9999); return setTask(u, 'sleep', u.x | 0, u.y | 0, 9999); } },
@@ -297,10 +286,11 @@ const DECISIONS = [
   { id: 'play', n: 'Jugar', score: u => u.def.civ && u.age < 12 ? 34 : 0,
     start: (u, c) => { const cx = c ? c.x : u.x, cy = c ? c.y : u.y; const p = pickTile(cx, cy, 4, i => canStand(u.def, i % W + .5, ((i / W) | 0) + .5)); return p && setTask(u, 'play', p[0], p[1], 40); } },
   { id: 'pray', n: 'Rezar', score: (u, c) => modOn('religion') && c && u.k?.religion ? 6 + Math.max(0, 50 - u.mood) * .3 + (hasTrait(u, 'devoto') ? 18 : 0) : 0,
-    start: (u, c) => setTask(u, 'pray', c.x, c.y, 40) },
+    start: (u, c) => { const ti = c.temple >= 0 ? c.temple : c.y * W + c.x; return setTask(u, 'pray', ti % W, (ti / W) | 0, 40); } },
   { id: 'wander', n: 'Pasear', score: () => 5,
     start: (u, c) => { const cx = c ? c.x : u.x, cy = c ? c.y : u.y, r = c ? Math.max(2, c.radius * .8) : 6; const p = pickTile(cx, cy, r, i => canStand(u.def, i % W + .5, ((i / W) | 0) + .5)); return p && setTask(u, 'wander', p[0], p[1], ri(10, 40)); } },
 ];
+function sameLand(u, c) { const a = regAt(u.x, u.y), b = region[c.y * W + c.x]; return !a || !b || a === b; }
 function homeOf(u, c) {
   if (u.home >= 0 && bld[u.home] === 1 && c && owner[u.home] === c.id + 1) return u.home;
   if (!c) return -1;
@@ -331,9 +321,8 @@ function startWork(u, c) {
       break;
     }
     case 'builder': {
-      const site = pickTile(c.x, c.y, r, i => owner[i] === id1 && bld[i] === 3, 16);
-      if (site) return setTask(u, 'build', site[0], site[1], 30);
-      if (c.pop + 2 > c.cap || rnd() < .15) { const p = pickTile(c.x, c.y, r * .85, i => owner[i] === id1 && !bld[i] && TILE[tile[i]].build && tile[i] !== T.FIELD && !ore[i] && !wall[i], 22); if (p) return setTask(u, 'build', p[0], p[1], 26); }
+      const plan = chooseBuild(u, c);
+      if (plan) return setTask(u, 'build', plan.x, plan.y, 26, { want: plan.t, n: plan.t >= 5 ? 'Construir: ' + BUILDINGS[plan.t].n.toLowerCase() : plan.t === 0 ? 'Terminar una obra' : TASKN.build });
       break;
     }
     case 'fisher': { const p = pickNear(u, c.x, c.y, r + 4, i => isWater(tile[i]) && nextToOwned(i, id1), 30); if (p) return setTask(u, 'fish', p[0], p[1], 44); break; }
@@ -354,7 +343,7 @@ function startWork(u, c) {
           return setTask(u, 'march', clamp(tgt.x + ox, 0, W - 1), clamp(tgt.y + oy, 0, H - 1), 6);
         }
       }
-      if (rnd() < .35) return setTask(u, 'train', c.x, c.y, 40);
+      if (rnd() < .35) { const bi = c.barracks >= 0 ? c.barracks : c.y * W + c.x; return setTask(u, 'train', bi % W, (bi / W) | 0, 40); }
       const p = pickTile(c.x, c.y, r + 1, i => owner[i] === id1 && (owner[i - 1] !== id1 || owner[i + 1] !== id1 || owner[i - W] !== id1 || owner[i + W] !== id1), 30);
       if (p) return setTask(u, 'patrol', p[0], p[1], 30);
       break;
@@ -433,9 +422,9 @@ function thinkAnimal(u) {
   const def = u.def;
   if (danger(u)) return;
   if (def.passive) {
-    if (u.type === 'sheep' && rnd() < .025 && (countType.sheep || 0) < 300) spawn('sheep', u.x, u.y);
+    if (u.type === 'sheep' && rnd() < .012 && (countType.sheep || 0) < Math.min(160, N / 140)) spawn('sheep', u.x, u.y);
   }
-  if (u.type === 'wolf' && rnd() < .006 && (countType.wolf || 0) < 80) spawn('wolf', u.x, u.y);
+  if (u.type === 'wolf' && rnd() < .005 && (countType.wolf || 0) < Math.min(50, N / 400)) spawn('wolf', u.x, u.y);
   if (ANIMAL_HOOKS[u.type]) { if (ANIMAL_HOOKS[u.type](u)) return; }
   if (u.type === 'ghost' && u.life > YEAR * 3) { kill(u, null, 'se desvanece'); return; }
   if (u.type === 'ghost' && u.k) { const tgt = enemyCityFor(u.k, u); if (tgt) { u.tx = tgt.x + .5; u.ty = tgt.y + .5; return; } }
@@ -451,7 +440,7 @@ function assignJobs(c, members) {
   const foodNeed = c.food < c.pop * 1.5 ? 1.5 : c.food > c.pop * 4 ? .6 : 1;
   want.soldier = war ? Math.ceil(n * (.28 + (SP[k.race].war ? .12 : 0) + Math.max(0, k.aggr || 0) * .15)) : n >= 8 ? Math.max(1, Math.round(n * .08)) : 0;
   want.farmer = SP[k.race].noFood ? 0 : Math.max(1, Math.round(n * .26 * foodNeed));
-  want.builder = c.pop + 3 > c.cap ? Math.max(1, Math.round(n * .16)) : n > 5 ? 1 : 0;
+  want.builder = c.pop + 3 > c.cap ? Math.max(2, Math.round(n * .2)) : n > 5 ? 1 : 0;
   const woodNeed = 40 + c.pop * 2 + (k.reserve?.madera || 0);
   want.lumber = k.res.madera < woodNeed ? Math.max(2, Math.round(n * .16)) : n > 6 ? 1 : 0;
   want.miner = c.ores.length ? Math.max(1, Math.round(n * .14)) : k.res.piedra < 50 + c.pop * 2 && n > 6 ? 1 : 0;

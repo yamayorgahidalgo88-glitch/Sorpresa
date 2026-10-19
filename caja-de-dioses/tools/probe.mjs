@@ -7,7 +7,7 @@ let pw; try { pw = require('playwright'); } catch { pw = require(execSync('npm r
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const browser = await pw.chromium.launch();
 const page = await browser.newPage();
-page.on('pageerror', e => console.log('ERR', e.message));
+page.on('pageerror', e => console.log('ERR', e.stack || e.message));
 await page.goto('file://' + path.join(root, 'index.html'));
 await page.waitForTimeout(400);
 const code = process.argv[2];

@@ -1,6 +1,6 @@
 "use strict";
 // ---------- estado del mundo ----------
-let W, H, N, tile, owner, bld, fire, rad, ore, oreAmt, wall, region, jit;
+let W, H, N, tile, owner, bld, fire, rad, ore, oreAmt, wall, region, road, traffic, siteT;
 let units = [], cities = [], kingdoms = [], projs = [], fx = [], parts = [], fires = [];
 let tickN = 0, uid = 1, logs = [], regionDirty = true;
 const YEAR = 240;
@@ -11,21 +11,17 @@ const countType = {};
 
 const view = document.getElementById('view');
 const vctx = view.getContext('2d');
-const off = document.createElement('canvas');
-const octx = off.getContext('2d');
-let img;
 let VW = 0, VH = 0, DPR = 1;
 
 function allocWorld(w, h) {
   W = w; H = h; N = W * H;
   tile = new Uint8Array(N); owner = new Uint16Array(N); bld = new Uint8Array(N);
   fire = new Uint8Array(N); rad = new Uint8Array(N); ore = new Uint8Array(N); oreAmt = new Uint8Array(N);
-  wall = new Uint8Array(N); region = new Int32Array(N); jit = new Int8Array(N);
-  for (let i = 0; i < N; i++) jit[i] = Math.floor(hash(i % W, (i / W) | 0, 7) * 14) - 7;
+  wall = new Uint8Array(N); region = new Int32Array(N); road = new Uint8Array(N); traffic = new Uint8Array(N); siteT = new Uint8Array(N);
   GW = Math.ceil(W / GC); GH = Math.ceil(H / GC); grid = Array.from({ length: GW * GH }, () => []);
   units = []; cities = []; kingdoms = []; projs = []; fx = []; parts = []; fires = []; logs = [];
   tickN = 0; regionDirty = true;
-  img = vctx.createImageData(W, H); off.width = W; off.height = H;
+  if (typeof onAllocWorld === 'function') onAllocWorld();
 }
 
 function genWorld(w, h, type, ores) {

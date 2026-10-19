@@ -96,6 +96,7 @@ function tick() {
     for (const u of units) if (!u.dead && u.city >= 0 && cities[u.city]) { const c = cities[u.city]; if (c.alive) c.pop++; else u.city = -1; }
     for (const c of cities) if (c) cityUpdate(c);
   }
+  if (tickN % 20 === 0) towersFire();
   if (tickN % 120 === 0) kingdomUpdate();
   if (tickN % 200 === 0) naturalSpawns();
   if (units.some(u => u.dead)) {

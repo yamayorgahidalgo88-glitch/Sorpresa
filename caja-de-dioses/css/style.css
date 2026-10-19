@@ -99,6 +99,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .tool:hover{border-color:var(--gold-dim)}
 .tool.on{border-color:var(--gold);background:#231d10}
 .tool canvas{width:28px;height:28px;image-rendering:pixelated}
+.tool canvas[width="14"]{width:28px}
 .tool span{font-size:10.5px;line-height:1.1;text-align:center;color:var(--fg);max-width:60px}
 .tool .m{position:absolute;top:2px;right:3px;width:6px;height:6px;border-radius:50%;background:var(--mod)}
 .tool.act{border-style:dashed}
@@ -171,3 +172,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .decs b{background:#4b5d6a}
 .decs>div.on{color:var(--fg)} .decs>div.on b{background:var(--gold)}
 .ulink{border:0;background:none;color:var(--gold);cursor:pointer;padding:0;font:inherit;text-decoration:underline;text-underline-offset:2px}
+.rel{display:grid;grid-template-columns:14px minmax(0,1fr) auto;gap:8px;align-items:start;padding:6px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+.rel .rn{min-width:0;line-height:1.35}.rel .rn .chip{font-size:10px;padding:0 5px;margin-left:4px}
+.rel small{display:block;color:var(--muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rel b{font-family:var(--f-mono);font-weight:500;font-size:12px}

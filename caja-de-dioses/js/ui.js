@@ -11,6 +11,14 @@ function renderTabs() {
     tabsEl.appendChild(b);
   }
 }
+function stampIcon(x, kc) {
+  const id = x.createImageData(8, 8), d = id.data;
+  for (let k = 0; k < 64; k++) d[k * 4 + 3] = 0;
+  const spr = BLD_SPR[2], kd = shade(kc, .62);
+  for (let yy = 0; yy < 8; yy++) for (let xx = 0; xx < 8; xx++) { const ch = spr[yy][xx]; if (ch === '.' || ch === 's') continue; const cc = ch === 'K' ? kc : ch === 'k' ? kd : BPAL[ch]; const p = (yy * 8 + xx) * 4; d[p] = cc[0]; d[p + 1] = cc[1]; d[p + 2] = cc[2]; d[p + 3] = 255; }
+  const t = document.createElement('canvas'); t.width = t.height = 8; t.getContext('2d').putImageData(id, 0, 0);
+  x.imageSmoothingEnabled = false; x.drawImage(t, 0, 4, 16, 16);
+}
 function toolIcon(t) {
   const c = document.createElement('canvas'); c.width = 14; c.height = 14;
   const x = c.getContext('2d');
@@ -23,13 +31,16 @@ function toolIcon(t) {
       x.fillStyle = css(cc.map(v => clamp(v, 0, 255))); x.fillRect(xx, yy, 1, 1);
     }
   } else if (t.kind === 'spawn' || t.kind === 'village') {
-    const def = SP[t.sp], pat = SPR[def.spr], ph = pat.length, pw = pat[0].length;
-    const p = Math.floor(13 / Math.max(ph, pw)) || 1;
-    const ox = Math.floor((14 - pw * p) / 2), oy = Math.floor((14 - ph * p) / 2);
-    const body = def.civ ? hsl((CIV.indexOf(t.sp) * 51) % 360, 60, 50) : def.skin.map(v => v * .75);
-    const pal = { s: def.skin, h: def.skin, b: body, d: [40, 32, 30], r: [200, 110, 40], w: def.skin.map(v => v * .65), e: [20, 10, 10], y: [180, 240, 255], c: [140, 220, 255], S: [240, 120, 120] };
-    if (t.kind === 'village') { x.fillStyle = css(HOUSES[1][1]); x.fillRect(0, 7, 4, 7); x.fillRect(10, 6, 4, 8); x.fillStyle = css(body); x.fillRect(0, 5, 4, 2); x.fillRect(10, 4, 4, 2); }
-    for (let yy = 0; yy < ph; yy++) for (let xx = 0; xx < pw; xx++) { const ch = pat[yy][xx]; if (ch === '.') continue; x.fillStyle = css(pal[ch] || def.skin); x.fillRect(ox + xx * p, oy + yy * p, p, p); }
+    // icono con el sprite real de la criatura (y unas casas si es un pueblo)
+    const def = SP[t.sp];
+    const body = def.civ ? hsl((CIV.indexOf(t.sp) * 51) % 360, 60, 50) : def.skin;
+    const fake = { def, type: t.sp, k: def.civ ? { id: -2 - CIV.indexOf(t.sp), color: body, armor: { tier: 0 } } : null, age: 30, id: 1, hitT: 0, plague: 0 };
+    const spr = unitSprite(fake, 0);
+    c.width = 28; c.height = 28;
+    if (t.kind === 'village') stampIcon(x, def.civ ? body : [200, 60, 60]);
+    const sc = Math.max(1, Math.floor((t.kind === 'village' ? 20 : 26) / Math.max(spr.w, spr.h)));
+    x.imageSmoothingEnabled = false;
+    x.drawImage(spr.cv, Math.floor((28 - spr.w * sc) / 2) + (t.kind === 'village' ? 4 : 0), 28 - spr.h * sc - (t.kind === 'village' ? 0 : 1), spr.w * sc, spr.h * sc);
   } else {
     c.width = 28; c.height = 28;
     x.font = '20px system-ui, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
@@ -143,6 +154,17 @@ function cultureChips(k) {
   if (!arr.length) return '<p class="empty">Sin rasgos todavía. Usa la pestaña Rasgos.</p>';
   return '<div class="chips">' + arr.map(([t, n]) => `<span class="chip ${TRAITS[t].magic ? 'm' : TRAITS[t].bad ? 'r' : ''}">${TRAITS[t].g} ${TRAITS[t].n} ${Math.round(n / tot * 100)}%</span>`).join('') + '</div>';
 }
+function relationsHtml(k) {
+  const others = kingdoms.filter(o => o.alive && o !== k);
+  if (!others.length || !modOn('diplomacia')) return '';
+  const rows = others.map(o => {
+    const op = opinion(k, o), st = k.wars.has(o.id) ? '<span class="chip r">⚔ Guerra</span>' : k.allies.has(o.id) ? '<span class="chip ok">Aliado</span>' : '';
+    const why = Object.entries(op.why).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 4).map(([r, v]) => `${v > 0 ? '+' : ''}${v} ${r}`).join(' · ');
+    const col = op.v > 25 ? '#8ed596' : op.v < -25 ? '#f08a80' : 'var(--muted)';
+    return `<div class="rel" title="${esc(why)}"><span class="sw" style="background:${css(o.color)}"></span><span class="rn">${esc(o.name)} ${st}<small>${esc(why)}</small></span><b style="color:${col}">${op.v > 0 ? '+' : ''}${op.v}</b></div>`;
+  }).join('');
+  return `<h4>Relaciones (opinión de este reino)</h4>${rows}`;
+}
 function kingdomDetail(k) {
   const kc = cities.filter(c => c && c.alive && c.k === k);
   const wars = [...k.wars].map(w => kingdoms[w]).filter(o => o && o.alive);
@@ -163,10 +185,11 @@ function kingdomDetail(k) {
   }
   const sep = kingdoms.filter(o => o.alive && o !== k && !kingdomsTouch(k, o));
   return `<div class="ins"><button class="back" data-back="1">← Todos los pueblos</button><h3>${esc(k.name)}</h3>
-    <div class="sub">${SP[k.race].n} · nacido en el año ${k.born} · ${kc.length} ciudad${kc.length === 1 ? '' : 'es'} · ${k.pop || units.filter(u => u.k === k).length} habitantes${k.king && !k.king.dead ? '<br>Soberano: ' + esc(k.king.name) : ''}</div>
+    <div class="sub">${SP[k.race].n} · nacido en el año ${k.born}${k.dynasty ? ' · Casa ' + esc(k.dynasty) : ''}${modOn('religion') && k.religion ? '<br>Fe: ' + esc(relOf(k.religion).n) + ' ' + relOf(k.religion).s : ''} · ${kc.length} ciudad${kc.length === 1 ? '' : 'es'} · ${k.pop || units.filter(u => u.k === k).length} habitantes${k.king && !k.king.dead ? '<br>Soberano: ' + esc(k.king.name) : ''}</div>
     ${wars.length ? `<div class="chips">${wars.map(o => `<span class="chip r">⚔ ${esc(o.name)}</span>`).join('')}</div>` : ''}
     ${allies.length ? `<div class="chips">${allies.map(o => `<span class="chip ok">Aliado: ${esc(o.name)}</span>`).join('')}</div>` : ''}
     ${sep.length ? `<p class="empty" style="font-size:12px">Separado por fronteras o agua de: ${sep.map(o => esc(o.name)).join(', ')}.</p>` : ''}
+    ${relationsHtml(k)}
     <h4>Cultura (rasgos más comunes)</h4>${cultureChips(k)}
     ${techHtml}
     ${modOn('trucos') ? `<div class="acts"><button data-ka="res">+40 de todo</button><button data-ka="era">Avanzar una era</button><button data-ka="peace">Paz con todos</button><button data-ka="pop">+10 habitantes</button></div>` : ''}</div>`;
@@ -197,7 +220,9 @@ function renderSide() {
     } else if (selectedCity && selectedCity.alive) {
       const c = selectedCity, k = c.k;
       sideBody.innerHTML = `<div class="ins"><h3>${esc(c.name)}</h3><div class="sub">${k.capital === c.id ? 'Capital ' : 'Ciudad '}${esc(del(k))} · fundada en el año ${c.born}</div>
-        <dl><dt>Población</dt><dd>${c.pop} / ${c.cap}</dd><dt>Casas</dt><dd>${c.houses}</dd><dt>Cultivos</dt><dd>${c.fields}</dd><dt>Comida</dt><dd>${SP[k.race].noFood ? 'no necesita' : c.food.toFixed(0)}</dd><dt>Minas cerca</dt><dd>${c.ores.length}</dd></dl>
+        <dl><dt>Población</dt><dd>${c.pop} / ${c.cap}</dd><dt>Casas</dt><dd>${c.houses}</dd><dt>Cultivos</dt><dd>${c.fields}</dd><dt>Comida</dt><dd>${SP[k.race].noFood ? 'no necesita' : c.food.toFixed(0)}</dd><dt>Minas cerca</dt><dd>${c.ores.length}</dd><dt>Ánimo</dt><dd>${Math.round(c.mood ?? 60)}</dd></dl>
+        <h4>Edificios</h4><div class="chips">${Object.entries(c.has || {}).map(([b, n]) => `<span class="chip" title="${esc(BUILDINGS[b]?.d || '')}">${esc(BLD_NAME[b])}${n > 1 ? ' ×' + n : ''}</span>`).join('') || '<span class="empty">Solo casas. Con más población levantarán granero, cuartel, templo…</span>'}</div>
+        <h4>Oficios</h4><div class="chips">${profChips(c)}</div>
         <button class="tbtn" data-c="kingdom">Ver ${esc(k.name)}</button>
         ${modOn('trucos') ? `<div class="acts"><button data-c="grow">+10 habitantes</button>${modOn('diplomacia') ? '<button data-c="rebel">Provocar rebelión</button>' : ''}<button data-c="burn" class="bad">Destruir ciudad</button></div>` : ''}</div>`;
       sideBody.querySelectorAll('[data-c]').forEach(b => b.onclick = () => cityAct(c, b.dataset.c));
@@ -252,6 +277,10 @@ function unitPanel(u) {
     ${modOn('trucos') ? `<div class="acts"><button data-a="heal">Curar</button><button data-a="lvl">+5 niveles</button>${modOn('heroes') && def.civ ? '<button data-a="hero">Hacer héroe</button>' : ''}${k ? '<button data-a="king">Coronar</button>' : ''}<button data-a="kill" class="bad">Fulminar</button></div>` : ''}</div>`;
 }
 let followSel = null;
+function profChips(c) {
+  const cnt = {}; for (const u of units) if (u.city === c.id && u.def.civ && u.prof) cnt[u.prof] = (cnt[u.prof] || 0) + 1;
+  return Object.entries(cnt).sort((a, b) => b[1] - a[1]).map(([p, n]) => `<span class="chip">${PROFS[p]?.g || ''} ${PROFS[p]?.n || p} ${n}</span>`).join('');
+}
 function showKingdom(k) { selectedKingdom = k; openSide('kingdoms'); }
 function kingdomAct(k, a) {
   if (!k) return;

@@ -141,11 +141,23 @@ const CENTER_SPR = [
   ['|KK.cC..', '|KKkcC..', '|..rrRR.', '.rrrrrRR', 'rirrrirR', 'rrrrrrRR', 'rrrddrRR', '.ssssss.'],
   ['|KK.f...', '|KKkbf..', '|.fbBf..', '.fbBbBf.', 'fbBbBbBf', 'fbKKKKBf', 'fbBddBbf', '.ssssss.'],
 ];
+const SITE_SPR = ['........', '.J....J.', '.JjjjjJ.', '.J....J.', '.JjjjjJ.', '.J.hh.J.', '.JhhhhJ.', '.ssssss.'];
+const SPECIAL_SPR = {
+  5: ['...yy...', '..yyyY..', '.yyyyYY.', '.wwwwWW.', '.wKwwWW.', '.wwddWW.', '.wwddWW.', '.ssssss.'], // granero
+  6: ['........', 'KKKKKKkk', 'KKKKKKkk', 'gggggGGG', 'gzgzgGGG', 'gggddGGG', 'gggddGGG', '.ssssss.'], // cuartel
+  7: ['...u....', '...un...', '..mmmM..', '.mmmmMM.', '.m.m.mM.', '.m.m.mM.', 'mmmmmmmM', '.ssssss.'], // templo
+  8: ['........', 'xmxmxm..', 'xmxmxmM.', 'j....jJ.', 'juunvjJ.', 'j....jJ.', 'jjjjjjJ.', '.ssssss.'], // mercado
+  9: ['....J...', '....JJJ.', '....J..J', 'jjjjjjjj', 'JjJjJjJj', 'jjjjjjjj', 'J.J.J.J.', '.s.s.s.s'], // muelle
+  10: ['.g.g.g..', '.ggggG..', '..giG...', '..ggG.K.', '..giGKK.', '..ggG.|.', '.gggGG|.', '.sssss..'], // torre
+  11: ['j.....j.', '.j...j..', '..jMj...', '..mmM...', '.jmmMj..', 'j.mmM.j.', '..mdM...', '.ssss...'], // molino
+  13: ['..KKKk..', '.KKKKKk.', 'KKKKKKKk', '.mMmMmM.', '.mvmvmM.', '.mmddmM.', '.mmddmM.', '.ssssss.'], // biblioteca
+};
 const RUIN_SPR = ['........', '........', '.g......', '.gG...g.', '.gGg..gG', 'ggGg.ggG', 'aggGaggG', '.sssssss'];
 const BPAL = {
   h: [176, 140, 98], H: [138, 104, 70], o: [52, 36, 28], y: [214, 184, 96], Y: [168, 136, 64], w: [132, 92, 56], W: [104, 70, 42], d: [58, 40, 30],
   g: [176, 170, 160], G: [130, 124, 118], i: [250, 222, 140], c: [112, 70, 60], C: [80, 50, 44], r: [176, 84, 60], R: [130, 60, 44],
   f: [70, 78, 92], b: [124, 186, 226], B: [86, 136, 182], a: [74, 70, 68], '|': [80, 60, 44],
+  m: [236, 232, 220], M: [186, 182, 172], u: [252, 212, 80], n: [204, 152, 40], x: [196, 56, 48], v: [74, 112, 196], j: [176, 126, 76], J: [122, 84, 50], z: [64, 62, 68],
 };
 function stamp(d, stride, ox, oy, spr, kc) {
   const kd = kc ? shade(kc, .62) : null;
@@ -204,6 +216,7 @@ function unitSprite(u, frame) {
   const arm = at >= 1 ? ARMORS[at][2] : null;
   const pal = { h: arm || hairOf(u.type, hs), s: skin, e: [24, 16, 16], b: body, B: shade(body, .66), l: [58, 44, 36], t: [250, 250, 236], r: hairOf(u.type, hs), d: [40, 24, 24], w: [244, 244, 236], S: shade(skin, .8), c: [150, 224, 255], y: [255, 240, 140] };
   if (!def.civ) { pal.b = def.skin; pal.B = shade(def.skin, .7); pal.l = shade(def.skin, .55); }
+  if (def.boat) { pal.b = u.k ? u.k.color : [230, 230, 220]; pal.w = [90, 66, 44]; }
   // contorno oscuro de 1 píxel para que destaque sobre cualquier suelo
   x.fillStyle = 'rgba(16,12,10,.55)';
   for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) if (pat[yy][xx] !== '.') { x.fillRect(xx, yy + 1, 1, 1); x.fillRect(xx + 2, yy + 1, 1, 1); x.fillRect(xx + 1, yy, 1, 1); x.fillRect(xx + 1, yy + 2, 1, 1); }

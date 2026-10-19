@@ -5,7 +5,7 @@
 // sombra y solo se repintan los bloques que han cambiado.
 const CH = 16;
 let wdist = null, wdistDirty = true, wdistF = 0;
-let CW = 0, CHn = 0, chunks = [], sTile, sBld, sOre, sWall, sOwner, citySig = [], seasonSig = -1, chunkFor = null;
+let CW = 0, CHn = 0, chunks = [], sTile, sBld, sOre, sWall, sOwner, sRoad, citySig = [], seasonSig = -1, chunkFor = null;
 const nightCol = [18, 26, 60];
 function dayLight() {
   if (!modOn('clima') || tickN === 0) return 1;
@@ -18,7 +18,7 @@ const SEASONS = ['Primavera', 'Verano', 'Otoño', 'Invierno'];
 function initChunks() {
   CW = Math.ceil(W / CH); CHn = Math.ceil(H / CH);
   chunks = Array.from({ length: CW * CHn }, () => ({ cv: null, dirty: true }));
-  sTile = new Uint8Array(N).fill(255); sBld = new Uint8Array(N).fill(255); sOre = new Uint8Array(N).fill(255); sWall = new Uint8Array(N).fill(255); sOwner = new Uint16Array(N).fill(65535);
+  sTile = new Uint8Array(N).fill(255); sBld = new Uint8Array(N).fill(255); sOre = new Uint8Array(N).fill(255); sWall = new Uint8Array(N).fill(255); sOwner = new Uint16Array(N).fill(65535); sRoad = new Uint8Array(N).fill(255);
   citySig = []; chunkFor = tile; wdist = null; wdistDirty = true;
   mini.dirty = true;
 }
@@ -38,8 +38,8 @@ function diffWorld() {
   if (chunkFor !== tile || chunks.length !== Math.ceil(W / CH) * Math.ceil(H / CH)) initChunks();
   let changed = false;
   for (let i = 0; i < N; i++) {
-    if (tile[i] !== sTile[i] || bld[i] !== sBld[i] || ore[i] !== sOre[i] || wall[i] !== sWall[i] || owner[i] !== sOwner[i]) {
-      sBld[i] = bld[i]; sOre[i] = ore[i]; sWall[i] = wall[i]; sOwner[i] = owner[i];
+    if (tile[i] !== sTile[i] || bld[i] !== sBld[i] || ore[i] !== sOre[i] || wall[i] !== sWall[i] || owner[i] !== sOwner[i] || road[i] !== sRoad[i]) {
+      sRoad[i] = road[i]; sBld[i] = bld[i]; sOre[i] = ore[i]; sWall[i] = wall[i]; sOwner[i] = owner[i];
       if (sTile[i] !== 255) wdistDirty = true;
       sTile[i] = tile[i];
       dirtyTile(i); changed = true;
@@ -152,6 +152,20 @@ function paintChunk(ch, cx, cy) {
         const p = (oy + py) * stride + (ox + px) * 4;
         d[p] = r; d[p + 1] = g; d[p + 2] = b; d[p + 3] = 255;
       }
+      // caminos: tierra o adoquín según la era, unidos con los vecinos
+      if (road[i]) {
+        const stone = kc && tech && cities[o - 1].k.house >= 2;
+        const rc = stone ? [158, 152, 142] : [176, 146, 100], rd = stone ? [122, 118, 110] : [146, 118, 78];
+        const cn = road[nN] && y > 0, cs = road[nS] && y < H - 1, cw = road[nWst] && x > 0, ce = road[nE] && x < W - 1;
+        for (let py = 0; py < TS; py++) for (let px = 0; px < TS; px++) {
+          const inC = px >= 2 && px <= 5 && py >= 2 && py <= 5;
+          const on = inC || (cn && py < 2 && px >= 2 && px <= 5) || (cs && py > 5 && px >= 2 && px <= 5) || (cw && px < 2 && py >= 2 && py <= 5) || (ce && px > 5 && py >= 2 && py <= 5);
+          if (!on) continue;
+          const p = (oy + py) * stride + (ox + px) * 4, h2 = hash(x * TS + px, y * TS + py, 11);
+          const c = stone ? (((px + (py >> 1)) & 1) ? rc : rd) : h2 < .2 ? rd : rc;
+          d[p] = c[0] + h2 * 8; d[p + 1] = c[1] + h2 * 8; d[p + 2] = c[2] + h2 * 6;
+        }
+      }
       // minerales
       const m = ore[i];
       if (m) {
@@ -168,6 +182,8 @@ function paintChunk(ch, cx, cy) {
         const c = o ? cities[o - 1] : null, k = c && c.alive ? c.k : null;
         const ht = k && tech ? k.house : 0;
         if (bl === 4 || !k) stamp(d, stride, ox, oy, RUIN_SPR, null);
+        else if (bl === 3) stamp(d, stride, ox, oy, SITE_SPR, k.color);
+        else if (bl >= 5) stamp(d, stride, ox, oy, SPECIAL_SPR[bl] || BLD_SPR[ht], k.color);
         else stamp(d, stride, ox, oy, bl === 2 ? CENTER_SPR[ht] : BLD_SPR[ht], k.color);
       }
       // frontera divina
@@ -317,9 +333,9 @@ function render() {
       let n = 0;
       const step = cam.z < 3 ? 2 : 1;
       for (let y = ty0; y <= ty1 && n < 1800; y += step) for (let x = tx0; x <= tx1; x += step) {
-        const i = y * W + x, b = bld[i]; if (b !== 1 && b !== 2) continue;
+        const i = y * W + x, b = bld[i]; if (!b || b === 3 || b === 4) continue;
         if (hash(x, y, 77) > (b === 2 ? 1 : .7)) continue;
-        const r = z * (b === 2 ? 2.4 : 1.3); n++;
+        const r = z * (b === 2 ? 2.4 : b >= 5 ? 1.8 : 1.3); n++;
         ctx.drawImage(GLOW, ox + (x + .5) * z - r, oy + (y + .5) * z - r, r * 2, r * 2);
       }
       ctx.globalAlpha = a;
@@ -398,7 +414,7 @@ function drawUnit(ctx, u, sx, sy, z) {
   if (tech && u.k.weapon.c) {
     ctx.fillStyle = css(u.k.weapon.c);
     if (u.k.gun) ctx.fillRect(w * .28, h * .48, px * 3, px);
-    else if (rangeOf(u) > 2) { ctx.strokeStyle = css(u.k.weapon.c); ctx.lineWidth = px * .8; ctx.beginPath(); ctx.arc(w * .34, h * .5, px * 2.4, -1.3, 1.3); ctx.stroke(); }
+    else if (rangeOf(u) > 2) { ctx.strokeStyle = '#8a5a30'; ctx.lineWidth = px * .7; ctx.beginPath(); ctx.arc(w * .2, h * .52, px * 2.6, -1.1, 1.1); ctx.stroke(); ctx.strokeStyle = 'rgba(240,230,210,.8)'; ctx.lineWidth = px * .3; ctx.beginPath(); ctx.moveTo(w * .2 + Math.cos(-1.1) * px * 2.6, h * .52 + Math.sin(-1.1) * px * 2.6); ctx.lineTo(w * .2 + Math.cos(1.1) * px * 2.6, h * .52 + Math.sin(1.1) * px * 2.6); ctx.stroke(); }
     else ctx.fillRect(w * .36, h * .12, px, px * 5);
   }
   if (u.carry) { ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.fillRect(w * .14 - px * .3, h * .38 - px * .3, px * 3.6, px * 3.1); ctx.fillStyle = RESCOL[u.carry.r] || '#c9a060'; ctx.fillRect(w * .14, h * .38, px * 3, px * 2.5); }
