@@ -153,6 +153,7 @@ function cityUpdate(c) {
       if (b) {
         if (!sp.noFood) c.food -= 4;
         b.parents = [pa.id, pb.id]; b.fam = (pa.sex === 'm' ? pa.fam : pb.fam) || pa.fam || pb.fam || mkName(race); b.home = pa.home;
+        if (cam.z >= 10) sfx('birth', pa.x, pa.y, .8, 500);
         pa.lastBirth = tickN; pa.mood = Math.min(100, pa.mood + 10); pb.mood = Math.min(100, pb.mood + 10);
         pa.kids = (pa.kids || 0) + 1; pb.kids = (pb.kids || 0) + 1;
       }

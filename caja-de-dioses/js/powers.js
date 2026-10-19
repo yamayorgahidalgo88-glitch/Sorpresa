@@ -19,6 +19,7 @@ function explode(cx, cy, r, o = {}) {
   around(cx, cy, r * 1.15, u => { const d = Math.hypot(u.x - cx, u.y - cy); damage(u, (o.dmg ?? 120) * (1 - d / (r * 1.2)), null); });
   for (let k = 0; k < r * 10; k++) { const a = rnd() * 6.28, s = rnd() * .25 * Math.sqrt(r); parts.push({ x: cx, y: cy, vx: Math.cos(a) * s, vy: Math.sin(a) * s, l: 20 + rnd() * 30, c: pick([[255, 200, 60], [255, 120, 30], [90, 80, 75], [255, 240, 180]]), s: 1.4 }); }
   shake = Math.max(shake, Math.min(18, r * 1.5));
+  sfx('boom', cx, cy, Math.min(1.6, r / 6), 60);
 }
 function lightning(x, y) {
   fx.push({ k: 'bolt', x: x + .5, y: y + .5, life: 12, seed: rnd() });
@@ -26,12 +27,14 @@ function lightning(x, y) {
   around(x + .5, y + .5, 2.2, u => damage(u, 60, null));
   ignite(x, y); if (rnd() < .5) ignite(x + ri(-1, 1), y + ri(-1, 1));
   flash = Math.max(flash, .25); shake = Math.max(shake, 3);
+  sfx('thunder', x, y, 1, 150);
 }
 function nuke(x, y) {
   explode(x, y, 15, { dmg: 999, fire: .6, rad: 1 });
   circle(x, y, 22, (xx, yy, i, d) => { if (d > 15) { rad[i] = Math.max(rad[i], 120); if (rnd() < .2 && TILE[tile[i]].burn) ignite(xx, yy); } });
   fx.push({ k: 'mush', x, y, life: 160 });
   flash = 1; shake = 30;
+  sfx('boom', undefined, undefined, 2.2, 0);
   addLog('Una bomba nuclear arrasa la región. La radiación tardará años en desaparecer.', 'doom');
 }
 

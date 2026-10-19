@@ -210,13 +210,16 @@ function attack(u, t) {
   if (rg > 2) {
     const kind = u.type === 'ufo' ? 'laser' : (u.def.civ && u.k && u.k.gun) ? 'bullet' : 'arrow';
     projs.push({ x: u.x, y: u.y, t, src: u, dmg, kind, spd: kind === 'arrow' ? .35 : .7 });
+    if (cam.z >= 9) sfx('arrow', u.x, u.y, .7, 90);
   } else {
+    if (cam.z >= 9) sfx('hit', u.x, u.y, .7, 70);
     damage(t, dmg, u);
     if (u.type === 'demon' && rnd() < .08) ignite((t.x | 0), (t.y | 0));
   }
 }
 function castSpell(u) {
   u.spell = ri(110, 200);
+  if (cam.z >= 8) sfx('magic', u.x, u.y, .8, 300);
   if (hasTrait(u, 'piromante')) {
     const e = nearest(u.x, u.y, 7, o => isEnemy(u, o));
     if (e) { projs.push({ x: u.x, y: u.y, t: e, src: u, dmg: atkOf(u) * 1.5 + 6, kind: 'fireball', spd: .3 }); return; }

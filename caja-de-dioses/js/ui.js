@@ -101,7 +101,7 @@ function applyModChange() {
   if (!modOn('trucos') && speed > 5) setSpeed(5);
   sideDirty = true;
 }
-function selectTool(t) { curTool = t; warPick = null; renderTools(); updateHint(); if (t.kind === 'declare' || t.kind === 'peace') toast('Toca el primer pueblo'); }
+function selectTool(t) { sfx('ui', undefined, undefined, 1, 40); curTool = t; warPick = null; renderTools(); updateHint(); if (t.kind === 'declare' || t.kind === 'peace') toast('Toca el primer pueblo'); }
 function updateHint() {
   const h = document.getElementById('hint');
   let s = curTool.kind === 'scope' ? 'Rasgos' : curTool.n;
@@ -132,7 +132,15 @@ document.getElementById('startBtn').onclick = () => {
 };
 let toastT = 0;
 function toast(m) { const t = document.getElementById('toast'); t.textContent = m; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2200); }
-function addLog(m, cls = '') { logs.unshift({ y: year(), m, cls }); if (logs.length > 150) logs.pop(); sideDirty = true; }
+function addLog(m, cls = '') {
+  logs.unshift({ y: year(), m, cls }); if (logs.length > 150) logs.pop(); sideDirty = true;
+  if (cls === 'war' && /guerra|Rebelión|Desembarco/.test(m)) sfx('war', undefined, undefined, 1, 2500);
+  else if (cls === 'peace' && /Paz|Alianza/.test(m)) sfx('peace', undefined, undefined, 1, 2500);
+  else if (cls === 'found' && /funda|Nace/.test(m)) sfx('found', undefined, undefined, 1, 1500);
+  else if (cls === 'tech' && /descubre:|entra en/.test(m)) sfx('tech', undefined, undefined, 1, 2000);
+  else if (cls === 'hero') sfx('hero', undefined, undefined, 1, 2500);
+  else if (cls === 'doom') sfx('doom', undefined, undefined, 1, 4000);
+}
 
 // panel lateral
 let sidePane = 'log', sideDirty = true, selected = null, selectedCity = null, selectedKingdom = null, selectedDeadName = null;

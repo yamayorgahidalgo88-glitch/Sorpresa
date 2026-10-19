@@ -68,7 +68,7 @@ function loop(now) {
     while (loop.acc >= 1 && n < 30) { tick(); loop.acc--; n++; }
     if (loop.acc > 30) loop.acc = 0;
   }
-  heldTool(now); keyPan(); autoSave(now);
+  heldTool(now); keyPan(); autoSave(now); musicTick();
   if (followSel) { if (followSel.dead) followSel = null; else { cam.x += (followSel.x - VW / cam.z / 2 - cam.x) * .12; cam.y += (followSel.y - VH / cam.z / 2 - cam.y) * .12; clampCam(); } }
   render();
   loop.f = (loop.f || 0) + 1;
@@ -93,3 +93,6 @@ document.getElementById('wEmpty').onclick = () => { closeWelcome(); newWorld(192
 document.getElementById('wContinue').onclick = () => { closeWelcome(); loadSlot(saveMeta().auto ? 'auto' : 1); };
 renderTabs(); renderTools(); setBrush(3); updateHint(); renderStats(); renderSide(); checkRotate();
 requestAnimationFrame(loop);
+
+document.getElementById('soundBtn').onclick = () => { audioInit(); if (SND.on && SND.musicOn) setMusic(false); else if (SND.on) setSound(false); else { setSound(true); setMusic(true); } };
+syncSoundBtn();

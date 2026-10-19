@@ -79,3 +79,13 @@ function keyPan() {
   if (keys.has('w') || keys.has('arrowup')) cam.y -= s; if (keys.has('s') || keys.has('arrowdown')) cam.y += s;
   if (keys.size) clampCam();
 }
+// minimapa: tocar o arrastrar mueve la cámara
+{
+  const mm = document.getElementById('mini');
+  let drag = false;
+  const go = e => { const r = mm.getBoundingClientRect(); const wx = (e.clientX - r.left) / r.width * W, wy = (e.clientY - r.top) / r.height * H; cam.x = wx - VW / cam.z / 2; cam.y = wy - VH / cam.z / 2; clampCam(); followSel = null; };
+  mm.addEventListener('pointerdown', e => { drag = true; mm.setPointerCapture(e.pointerId); go(e); e.preventDefault(); });
+  mm.addEventListener('pointermove', e => { if (drag) go(e); });
+  mm.addEventListener('pointerup', () => drag = false);
+  mm.addEventListener('pointercancel', () => drag = false);
+}
