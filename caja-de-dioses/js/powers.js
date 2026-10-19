@@ -73,6 +73,16 @@ addTool('bendicion', 'seed', 'Fertilidad', 'seed', { glyph: '🌱' });
 addTool('bendicion', 'cure', 'Curar', 'cure', { glyph: '✚' });
 addTool('bendicion', 'extinguish', 'Apagar fuego', 'extinguish', { glyph: '💧' });
 addTool('bendicion', 'erase', 'Borrar seres', 'erase', { glyph: '✕' });
+addTool('caos', 'drought', 'Sequía', 'drought', { glyph: '☀' });
+addTool('caos', 'blizzard', 'Ventisca', 'blizzard', { glyph: '❄', once: 1, mod: 'clima' });
+addTool('caos', 'madness', 'Locura', 'madness', { glyph: '🌀' });
+addTool('caos', 'curse', 'Maldición', 'curse', { glyph: '🕱' });
+addTool('bendicion', 'cupid', 'Flecha de Cupido', 'cupid', { glyph: '💘' });
+addTool('bendicion', 'enlight', 'Iluminar', 'enlight', { glyph: '💡', once: 1, mod: 'tecnologia' });
+addTool('bendicion', 'cheer', 'Alegría', 'cheer', { glyph: '🎉' });
+addTool('fronteras', 'discord', 'Sembrar discordia', 'discord', { glyph: '🐍', once: 1, mod: 'diplomacia' });
+addTool('fronteras', 'friend', 'Inspirar amistad', 'friend', { glyph: '🤝', once: 1, mod: 'diplomacia' });
+addTool('fronteras', 'turncoat', 'Cambiar de bando', 'turncoat', { glyph: '🏳', once: 1 });
 addTool('dios', 'inspect', 'Inspeccionar', 'inspect', { glyph: '🔍', once: 1 });
 addTool('dios', 'move', 'Mover mapa', 'move', { glyph: '✋' });
 addTool('dios', 'hero', 'Crear héroe', 'heroize', { glyph: '♛', once: 1, mod: 'heroes' });
@@ -164,6 +174,32 @@ function applyTool(t, x, y, first) {
     case 'heroize': { rebuildGrid(); const u = nearest(x, y, 3, o => o.def.civ); if (u) { u.level = Math.max(u.level, 5); if (!u.hero) makeHero(u); select(u); } else toast('No hay nadie cerca'); break; }
     case 'gift': { const k = kingdomAt(x, y); if (k) { for (const r in k.res) k.res[r] += 40; toast(`${k.name} recibe 40 de cada recurso`); sideDirty = true; } else toast('Toca un pueblo'); break; }
     case 'inspect': inspectAt(x, y); break;
+    case 'drought': circle(x, y, b, (xx, yy, i) => { if (rnd() > .4) return; const tt = tile[i]; if (tt === T.WATER && rnd() < .3) tile[i] = T.SAND; else if (tt === T.FOREST || tt === T.JUNGLE) tile[i] = T.SAVANNA; else if (tt === T.GRASS || tt === T.FERTILE || tt === T.SWAMP) tile[i] = rnd() < .5 ? T.SAVANNA : T.DESERT; else if (tt === T.SAVANNA || tt === T.FIELD) tile[i] = T.DESERT; fire[i] = 0; }); regionDirty = true; break;
+    case 'blizzard': fx.push({ k: 'cloud', snow: 1, acid: 0, x, y, vx: (rnd() - .5) * .04, vy: (rnd() - .5) * .02, life: 420 }); break;
+    case 'madness': rebuildGrid(); around(x, y, b, u => { if (u.def.civ || !u.def.boat) { u.mad = 900; u.target = null; u.task = null; burst(u.x, u.y, [200, 80, 255], 3, .4); } }); break;
+    case 'curse': rebuildGrid(); around(x, y, b, u => { if (!u.def.civ) return; const bad = Object.keys(TRAITS).filter(t => TRAITS[t].bad && modOn(TRAITS[t].mod)); if (addTrait(u, pick(bad))) burst(u.x, u.y, [120, 60, 140], 3, .4); }); sideDirty = true; break;
+    case 'cupid': { rebuildGrid(); const got = []; around(x, y, b + 1, u => { if (adult(u) && !u.partner) got.push(u); }); let n = 0; for (const a of got) { if (a.partner) continue; const o = got.find(v => canCouple(a, v)); if (o) { marry(a, o); n++; } } if (first) toast(n ? `Cupido une ${n} pareja${n === 1 ? '' : 's'}` : 'Aquí no hay solteros compatibles'); break; }
+    case 'enlight': { const k = kingdomAt(x, y); if (!k) { toast('Toca un pueblo'); break; } k.rp += 400; research(k, []); addLog(`Los dioses iluminan a los sabios ${del(k)}.`, 'tech'); toast(`${k.name} recibe una revelación`); sideDirty = true; break; }
+    case 'cheer': rebuildGrid(); around(x, y, b, u => { if (u.def.civ) { u.mood = 100; if (rnd() < .1) parts.push({ x: u.x, y: u.y - 1, vx: (rnd() - .5) * .05, vy: -.04, l: 30, c: pick([[255, 90, 120], [255, 220, 80], [120, 220, 255]]), s: 1 }); } }); break;
+    case 'discord': case 'friend': {
+      const k = kingdomAt(x, y); if (!k) { toast('Toca un pueblo'); break; }
+      if (!warPick || !warPick.alive) { warPick = k; toast(`${k.name} elegido. Ahora toca el otro pueblo.`); break; }
+      if (warPick === k) { toast('Elige otro pueblo distinto'); break; }
+      bumpOpinion(warPick, k, t.kind === 'discord' ? -45 : 45, t.kind === 'discord' ? 'Intrigas divinas' : 'Amistad divina');
+      addLog(t.kind === 'discord' ? `Los dioses siembran la discordia entre ${el(warPick)} y ${el(k)}.` : `Los dioses inspiran amistad entre ${el(warPick)} y ${el(k)}.`, t.kind === 'discord' ? 'war' : 'peace');
+      warPick = null; sideDirty = true; break;
+    }
+    case 'turncoat': {
+      const o = owner[yi * W + xi], c = o ? cities[o - 1] : null;
+      if (!warPick) { if (!c || !c.alive) { toast('Toca primero una ciudad'); break; } warPick = c; toast(`${c.name} elegida. Ahora toca el reino al que se unirá.`); break; }
+      const city = warPick; warPick = null;
+      const k = kingdomAt(x, y);
+      if (!k || !city.alive || k === city.k) { toast('Toca un reino distinto'); break; }
+      const old = city.k; city.k = k; for (const u of units) if (u.city === city.id) { u.k = k; u.army = false; u.task = null; }
+      if (old.capital === city.id) old.capital = -1;
+      addLog(`Por voluntad divina, ${city.name} deja ${el(old)} y se une ${al(k)}.`, 'war');
+      bumpOpinion(old, k, -30, 'Ciudades robadas'); sideDirty = true; break;
+    }
   }
 }
 function wallLine(x0, y0, x1, y1, on) {

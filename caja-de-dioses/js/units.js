@@ -82,6 +82,8 @@ function displayName(u) { return u.name ? u.name + (u.fam && u.def.civ ? ' ' + u
 
 function isEnemy(a, b) {
   if (a === b || b.dead) return false;
+  if (a.mad > 0) return !!(b.def.civ || b.def.passive);
+  if (b.mad > 0) return !!a.def.civ;
   const da = a.def, db = b.def;
   if (da.hostile) return !db.hostile || (a.type !== b.type && !(da.infect && db.infect));
   if (db.hostile) return da.civ || (a.type === 'ghost' && !!a.k);
@@ -266,6 +268,7 @@ function updateUnit(u) {
     u.mood += (58 - u.mood) * .0008;
     if (u.prof === 'child' && u.age >= 12) { u.prof = null; u.task = null; }
   }
+  if (u.mad > 0) u.mad--;
   if (u.poison || u.sick || u.traits.length) { traitTick(u); if (u.dead) return; }
   if (--u.think <= 0) think(u);
 

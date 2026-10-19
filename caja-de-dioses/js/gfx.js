@@ -96,7 +96,7 @@ const TEXGEN = {
   [T.ICE]: (t, R) => { ground(t, R, [172, 212, 234], [184, 222, 240], TAG.N); let x = (R() * TS) | 0; for (let y = 0; y < TS; y++) { t.set(x, y, [226, 242, 252]); x += R() < .5 ? -1 : 1; } },
   [T.HILL]: (t, R) => { ground(t, R, [116, 138, 74], [128, 148, 80], TAG.GRASS); for (let y = 0; y < TS; y++) for (let x = 0; x < TS; x++) { const d = Math.hypot(x - 3.5, y - 4.5); if (d < 3.6) { const c = t.get(x, y); t.set(x, y, shade(c, (x + y) < 7 ? 1.12 : .86), TAG.GRASS); } } },
   [T.ROCK]: (t, R) => { ground(t, R, [132, 128, 122], [146, 142, 136], TAG.N, [98, 94, 90], .12); t.set(2, 5, [176, 172, 166]); t.set(5, 2, [176, 172, 166]); },
-  [T.MOUNT]: (t, R, v) => { ground(t, R, [104, 98, 94], [114, 106, 100]); peak(t, R, 3 + (v & 1), ROCKP, v === 3); },
+  [T.MOUNT]: (t, R, v) => { ground(t, R, [112, 104, 98], [124, 116, 108], TAG.N, [92, 86, 82], .15); if (v === 0) peak(t, R, 3.5, ROCKP, false); },
   [T.LAVA]: (t, R) => { ground(t, R, [224, 84, 22], [238, 104, 28]); for (let k = 0; k < 10; k++) t.set((R() * TS) | 0, (R() * TS) | 0, R() < .5 ? [255, 206, 70] : [140, 40, 20]); },
   [T.ASH]: (t, R) => { ground(t, R, [68, 64, 62], [78, 74, 72], TAG.N, [104, 100, 98], .12); if (R() < .4) t.set((R() * TS) | 0, (R() * TS) | 0, [200, 90, 40]); },
   [T.CORRUPT]: (t, R) => { ground(t, R, [96, 44, 116], [114, 54, 134]); let x = (R() * TS) | 0; for (let y = 0; y < TS; y++) { t.set(x, y, [70, 26, 86]); x += (R() * 3 | 0) - 1; } if (R() < .6) t.set((R() * TS) | 0, (R() * TS) | 0, [236, 120, 230]); },

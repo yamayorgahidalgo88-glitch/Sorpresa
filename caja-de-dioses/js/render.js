@@ -77,6 +77,9 @@ ELV[T.DEEP] = 0; ELV[T.WATER] = 1; ELV[T.ACID] = 1; ELV[T.LAVA] = 2; ELV[T.SAND]
 ELV[T.HILL] = 4; ELV[T.ROCK] = 4; ELV[T.MESA] = 4; ELV[T.MOUNT] = 5; ELV[T.SNOW] = 3;
 const isW = t => t === T.DEEP || t === T.WATER;
 function elvAt(i) { const t = tile[i]; if (t === T.SNOW) { const x = i % W; let m = 0; if (x > 0 && tile[i - 1] === T.MOUNT) m++; if (x < W - 1 && tile[i + 1] === T.MOUNT) m++; if (i >= W && tile[i - W] === T.MOUNT) m++; if (i < N - W && tile[i + W] === T.MOUNT) m++; return m ? 6 : 3; } return ELV[t]; }
+// relieve continuo (no por casilla) para montañas, colinas y rocas
+const RELIEF = new Float32Array(32); RELIEF[T.MOUNT] = 2.6; RELIEF[T.HILL] = 1.2; RELIEF[T.ROCK] = 1.3; RELIEF[T.MESA] = 1.4; RELIEF[T.SNOW] = 1.9; RELIEF[T.ICE] = .5; RELIEF[T.TUNDRA] = .5; RELIEF[T.DESERT] = .6; RELIEF[T.BASALT] = .9;
+const rn = (gx, gy) => vnoise(gx / 9, gy / 9, 77) * .62 + vnoise(gx / 3.5, gy / 3.5, 78) * .38;
 const AUTUMN = [[214, 120, 40], [196, 72, 36], [228, 172, 52], [170, 96, 40]];
 const SNOWC = [238, 242, 248], FOAM = [226, 240, 246], SHALLOW = [70, 158, 186];
 
@@ -134,6 +137,12 @@ function paintChunk(ch, cx, cy) {
           if (aut && tag === TAG.CANOPY) { const k = .55; r += (aut[0] - r) * k; g += (aut[1] - g) * k; b += (aut[2] - b) * k; }
           else if (autumn && tag === TAG.GRASS) { r += 18; g += 2; b -= 8; }
           if (snowK && (tag !== TAG.CANOPY || py < 3) && hash(x * TS + px, y * TS + py, 5) < snowK * (tag === TAG.CANOPY ? .7 : .92)) { r = SNOWC[0] - (px + py & 1) * 8; g = SNOWC[1] - (px + py & 1) * 6; b = SNOWC[2]; }
+          const rk = RELIEF[t];
+          if (rk) {
+            const gx = x * TS + px, gy = y * TS + py, h0 = rn(gx, gy), l = 1 + (rn(gx - 1, gy - 1) - rn(gx + 1, gy + 1)) * rk;
+            r *= l; g *= l; b *= l;
+            if (t === T.MOUNT && h0 > .66) { const k2 = Math.min(1, (h0 - .66) * 6); r += (236 - r) * k2; g += (240 - g) * k2; b += (246 - b) * k2; }
+          }
           if (lit && py === 0) { r *= 1.1; g *= 1.1; b *= 1.08; }
           if (cliff) {
             if (cliffWater) { if (py === TS - 1) { r = 120; g = 96; b = 70; } else if (py === TS - 2) { r *= .82; g *= .8; b *= .78; } }
@@ -479,6 +488,7 @@ function drawFx(ctx, toS, z) {
       for (let k = 0; k < 9; k++) { const a = tickN * .4 + k; ctx.strokeStyle = `rgba(200,200,190,${.65 - k * .05})`; ctx.lineWidth = Math.max(1, z * .35); ctx.beginPath(); ctx.ellipse(sx + Math.sin(a) * z * .4, sy - k * z * .8, z * (.4 + k * .3), z * (.15 + k * .09), 0, 0, 7); ctx.stroke(); }
     } else if (f.k === 'cloud') {
       ctx.globalAlpha = .85; ctx.drawImage(CLOUD_SPR[f.acid ? 1 : 0], sx - z * 8, sy - z * 10, z * 16, z * 8.8); ctx.globalAlpha = 1;
+      if (f.snow) { ctx.fillStyle = 'rgba(255,255,255,.9)'; for (let k = 0; k < 26; k++) { const rx = sx + (hash(k, tickN >> 1, 1) - .5) * z * 12, ry = sy - z * 5 + hash(k, tickN >> 1, 2) * z * 7; ctx.fillRect(rx, ry, Math.max(1.5, z * .18), Math.max(1.5, z * .18)); } continue; }
       if (f.acid) { ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = 'rgba(170,230,90,.7)'; ctx.beginPath(); ctx.ellipse(sx, sy - z * 6, z * 7, z * 3.4, 0, 0, 7); ctx.fill(); ctx.globalCompositeOperation = 'source-over'; }
       ctx.strokeStyle = f.acid ? 'rgba(170,240,60,.7)' : 'rgba(170,200,255,.7)'; ctx.lineWidth = Math.max(1, z * .12);
       for (let k = 0; k < 18; k++) { const rx = sx + (rnd() - .5) * z * 12, ry = sy - z * 5 + rnd() * z * 7; ctx.beginPath(); ctx.moveTo(rx, ry); ctx.lineTo(rx - z * .3, ry + z * 1); ctx.stroke(); }

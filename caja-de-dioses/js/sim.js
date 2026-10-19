@@ -28,10 +28,12 @@ function updateFx() {
         const x = Math.round(f.x + (rnd() - .5) * 9), y = Math.round(f.y + (rnd() - .5) * 5);
         if (x < 0 || y < 0 || x >= W || y >= H) continue;
         const i = y * W + x;
+        if (f.snow) { if (isWater(tile[i]) && rnd() < .15) { tile[i] = T.ICE; regionDirty = true; } else if (!isWater(tile[i]) && tile[i] !== T.LAVA && tile[i] !== T.MOUNT && rnd() < .2) tile[i] = T.SNOW; fire[i] = 0; continue; }
         if (f.acid) { if (tile[i] === T.FOREST && rnd() < .2) tile[i] = T.ASH; else if (tile[i] === T.GRASS && rnd() < .05) tile[i] = T.SWAMP; if (bld[i] && rnd() < .02) bld[i] = 4; }
         else { fire[i] = 0; if (tile[i] === T.ASH && rnd() < .5) tile[i] = T.GRASS; else if (tile[i] === T.GRASS && !owner[i] && rnd() < .04) tile[i] = T.FOREST; else if (tile[i] === T.DESERT && rnd() < .05) tile[i] = T.SAVANNA; else if (tile[i] === T.LAVA && rnd() < .3) { tile[i] = T.BASALT; regionDirty = true; } }
       }
       if (f.acid && tickN % 8 === 0) around(f.x, f.y, 4.5, u => damage(u, 2, null));
+      if (f.snow && tickN % 10 === 0) around(f.x, f.y, 4.5, u => { if (!u.def.fireproof || u.type !== 'dragon') damage(u, u.def.fireproof ? 3 : 1, null); });
     }
     if (f.k === 'bhole') {
       const r = Math.min(14, 2 + (520 - f.life) / 30); f.r = r;
