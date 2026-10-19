@@ -164,6 +164,7 @@ function moveToward(u, tx, ty, mul = 1) {
   if (d < .05) return true;
   let sp = u.def.spd * tmul(u, 'spd') * .055 * mul * (u.def.civ ? kmul(u.k, 'speed') : 1);
   const st = Math.min(sp, d);
+  if (Math.abs(dx) > .02) u.face = dx < 0 ? -1 : 1;
   const nx = u.x + dx / d * st, ny = u.y + dy / d * st;
   if (canStand(u.def, nx, ny)) { u.x = nx; u.y = ny; }
   else if (canStand(u.def, nx, u.y)) u.x = nx;
