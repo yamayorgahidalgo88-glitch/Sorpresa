@@ -50,26 +50,44 @@ export function ChalkWrite({ children, as: Tag = "p", className, speed = 0.035, 
             split = undefined
           },
         })
-        const box = wrap.current!.getBoundingClientRect()
-        chars.forEach((c, idx) => {
-          const r = c.getBoundingClientRect()
+        // Un solo tween con «stagger» para todas las letras (en lugar de uno por letra).
+        tl.to(chars, { clipPath: "inset(0 0% 0 0)", duration: speed * 2.2, ease: "none", stagger: speed }, 0)
+
+        if (showChalk) {
+          // La posición de la tiza se calcula de una vez (lecturas agrupadas, sin tocar el DOM entre medias)
+          // y se aplica con un único tween que avanza por el índice de letra.
+          const box = wrap.current!.getBoundingClientRect()
+          const fs = parseFloat(getComputedStyle(chars[0]).fontSize)
           // La caja de cada letra lleva relleno (ver .chalk-char): se descuenta para
           // situar la punta de la tiza sobre la propia letra, a media altura.
-          const fs = parseFloat(getComputedStyle(c).fontSize)
-          const right = r.right - 0.32 * fs
-          const top = r.top + 0.45 * fs
-          const bottom = r.bottom - 0.35 * fs
-          const at = idx * speed
-          tl.to(c, { clipPath: "inset(0 0% 0 0)", duration: speed * 2.2, ease: "none" }, at)
-          if (showChalk) {
-            tl.set(
-              chalk.current,
-              { autoAlpha: 1, x: right - box.left, y: top + (bottom - top) * 0.55 - box.top, rotate: gsap.utils.random(-42, -32) },
-              at
-            )
-          }
-        })
-        if (showChalk) tl.to(chalk.current, { autoAlpha: 0, x: "+=16", y: "-=16", duration: 0.4 })
+          const pos = chars.map((c) => {
+            const r = c.getBoundingClientRect()
+            const top = r.top + 0.45 * fs
+            const bottom = r.bottom - 0.35 * fs
+            return { x: r.right - 0.32 * fs - box.left, y: top + (bottom - top) * 0.55 - box.top, rot: gsap.utils.random(-42, -32) }
+          })
+          const cursor = { i: 0 }
+          const place = gsap.quickSetter(chalk.current, "x", "px")
+          const placeY = gsap.quickSetter(chalk.current, "y", "px")
+          const placeR = gsap.quickSetter(chalk.current, "rotation", "deg")
+          tl.set(chalk.current, { autoAlpha: 1 }, 0)
+          tl.to(
+            cursor,
+            {
+              i: chars.length - 1,
+              duration: (chars.length - 1) * speed,
+              ease: "none",
+              onUpdate: () => {
+                const p = pos[Math.round(cursor.i)]
+                place(p.x)
+                placeY(p.y)
+                placeR(p.rot)
+              },
+            },
+            0
+          )
+          tl.to(chalk.current, { autoAlpha: 0, x: "+=16", y: "-=16", duration: 0.4 })
+        }
       }
       const stop = whenInView(wrap.current!, play, "0px 0px -22% 0px")
       return () => {

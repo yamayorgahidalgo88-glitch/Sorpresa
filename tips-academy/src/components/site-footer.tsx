@@ -8,19 +8,13 @@ export function SiteFooter() {
   return (
     <footer className="bg-ink-deep text-white/70">
       <div className="mx-auto max-w-7xl px-4 pt-16 pb-10 sm:px-8">
-        <div className="flex flex-col gap-6 border-b border-white/10 pb-12 md:flex-row md:items-end md:justify-between">
+        <div className="border-b border-white/10 pb-12">
           <Handwrite
             as="p"
             text={`${slogans.together}.`}
             className="font-hand text-5xl leading-none text-sky sm:text-6xl"
             speed={60}
           />
-          <Link
-            href={site.links.matricula}
-            className="inline-flex h-12 items-center self-start rounded-full bg-white px-6 font-semibold text-ink-deep transition-colors hover:bg-sky-light"
-          >
-            Reservar mi plaza
-          </Link>
         </div>
 
         <div className="grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-4">
