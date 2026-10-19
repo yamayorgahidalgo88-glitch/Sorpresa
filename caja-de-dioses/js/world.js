@@ -57,7 +57,7 @@ function genWorld(w, h, type, ores) {
     tile[i] = t;
   }
   if (ores !== 'none') {
-    const nVein = Math.round(N / (ores === 'many' ? 450 : 1400));
+    const nVein = Math.round(N / (ores === 'many' ? 450 : 1000));
     const common = [1, 1, 2, 3, 3, 3, 4, 4, 5, 6, 7, 8], rare = [9, 10, 11];
     for (let v = 0; v < nVein; v++) {
       const p = randomTile(t => TILE[t].stone || t === T.HILL) || randomTile(t => TILE[t].build);

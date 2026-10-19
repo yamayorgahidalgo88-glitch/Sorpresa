@@ -314,7 +314,7 @@ function render() {
     }
   }
   // mentes visibles: bocadillo con lo que piensa cada habitante
-  if (modOn('mentes') && cam.z >= 15 && sprites) {
+  if (modOn('mentes') && cam.z >= 18 && sprites) {
     let n = 0;
     for (const u of vis) {
       if (!u.def.civ || (u.asleep && bld[(u.y | 0) * W + (u.x | 0)]) || n > 160) continue;

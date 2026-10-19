@@ -115,19 +115,20 @@ function cityUpdate(c) {
   const id1 = c.id + 1, k = c.k, race = k.race, sp = SP[race];
   if (!bld[c.y * W + c.x] || bld[c.y * W + c.x] === 4) bld[c.y * W + c.x] = 2;
   if (!sp.noFood && LAWS.hambre.on) {
-    c.food += c.foodYield * .035 * kmul(k, 'food') * (season() === 3 ? .4 : 1);
+    c.food += c.foodYield * .025 * kmul(k, 'food') * (season() === 3 ? .4 : 1);
     if (season() === 3 && !c.granary) c.food *= .997;
     if (c.has[B.MARKET]) k.res.oro = (k.res.oro || 0) + .25 * c.has[B.MARKET];
     if (c.has[B.TEMPLE]) for (const o of units) if (o.city === c.id && o.def.civ) o.mood = Math.min(100, o.mood + .6);
     if (c.food < 0) c.food = 0;
-    c.food = Math.min(c.food, 80 + c.pop * 4 + (c.granary ? 120 : 0));
+    c.food = Math.min(c.food, 40 + c.pop * 3 + (c.granary ? 120 : 0));
   } else c.food = 20;
   // nacimientos: hacen falta parejas; los hijos heredan rasgos y apellido
   const members = units.filter(o => o.city === c.id && !o.dead && o.def.civ && o.age >= 14);
   const fert = members.length ? members.reduce((s, o) => s + tmul(o, 'fert'), 0) / members.length : 0;
   c.mood = members.length ? members.reduce((s, o) => s + o.mood, 0) / members.length : 60;
-  const birth = (sp.noFood ? .2 : .55) * fert * kmul(k, 'birth') * (.6 + c.mood / 120);
-  if (members.length >= 2 && c.pop < c.cap && (c.food > 2 || sp.noFood) && rnd() < birth) {
+  const crowd = c.pop / Math.max(1, c.cap);
+  const birth = (sp.noFood ? .2 : .42) * fert * kmul(k, 'birth') * (.6 + c.mood / 120) * (crowd > .8 ? (1 - crowd) * 5 : 1);
+  if (members.length >= 2 && c.pop < c.cap && (c.food > 3 + c.pop * .6 || sp.noFood) && rnd() < birth) {
     const mothers = members.filter(o => o.partner && o.sex === 'f' && o.age < SP[o.type].age[0] * .75 && tmul(o, 'fert') > 0 && tickN - (o.lastBirth || -9999) > YEAR * 1.6);
     let pa = null, pb = null;
     if (mothers.length) { pa = pick(mothers); pb = unitById(pa.partner); }
@@ -150,7 +151,7 @@ function cityUpdate(c) {
       for (const t of traits) { if (OPPOSITE[t] && clean.includes(OPPOSITE[t])) continue; if (!clean.includes(t)) clean.push(t); }
       const b = spawn(race, pa.x, pa.y, k, c.id, { age: 0, traits: clean });
       if (b) {
-        if (!sp.noFood) c.food -= 1.5;
+        if (!sp.noFood) c.food -= 4;
         b.parents = [pa.id, pb.id]; b.fam = (pa.sex === 'm' ? pa.fam : pb.fam) || pa.fam || pb.fam || mkName(race); b.home = pa.home;
         pa.lastBirth = tickN; pa.mood = Math.min(100, pa.mood + 10); pb.mood = Math.min(100, pb.mood + 10);
         pa.kids = (pa.kids || 0) + 1; pb.kids = (pb.kids || 0) + 1;
@@ -267,8 +268,8 @@ function research(k, members) {
   if (!modOn('tecnologia')) return;
   let pts = 0;
   for (const u of members) pts += tmul(u, 'research') * (u.def.bonus?.research || 1);
-  let libs = 0; for (const c of cities) if (c && c.alive && c.k === k) libs += c.has?.[B.LIBRARY] || 0;
-  k.rpRate = pts * .3 * k.mul.research * (1 + Math.min(1, libs * .25));
+  let libs = 0; k.trade = 0; for (const c of cities) if (c && c.alive && c.k === k) { libs += c.has?.[B.LIBRARY] || 0; k.trade += (c.has?.[B.MARKET] || 0) * 2 + (c.has?.[B.DOCKS] || 0) + (c.pop > 30 ? 1 : 0); }
+  k.rpRate = pts * .2 * k.mul.research * (1 + Math.min(1, libs * .25));
   k.rp += k.rpRate;
   let guard = 0;
   while (guard++ < 5) {
@@ -278,6 +279,7 @@ function research(k, members) {
       const miss = missingFor(k, t);
       if (miss.length) {
         if (!k.blocked[t.id]) { k.blocked[t.id] = 1; addLog(`${El(k)} sabe cómo hacer ${t.n.toLowerCase()}, pero le falta ${miss.map(m => RESNAME[m[0]].toLowerCase()).join(' y ')}.`, 'tech'); }
+        if (k.trade) for (const [r] of miss) { k.res[r] = (k.res[r] || 0) + .18 * k.trade; if (!k.found[r] && k.res[r] > 1) { k.found[r] = 1; addLog(`${El(k)} empieza a importar ${RESNAME[r].toLowerCase()} gracias al comercio.`, 'tech'); } }
         continue;
       }
       for (const r in t.need || {}) k.res[r] -= t.need[r];

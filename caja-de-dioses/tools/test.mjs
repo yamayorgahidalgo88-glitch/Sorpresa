@@ -22,7 +22,9 @@ const errors = [];
 page.on('pageerror', e => errors.push('pageerror: ' + e.message + '\n' + (e.stack || '')));
 page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
 await page.goto('file://' + path.join(root, 'index.html'));
-await page.waitForTimeout(800);
+await page.waitForTimeout(1500);
+await page.screenshot({ path: path.join(out, 'welcome.png') });
+await page.evaluate(() => document.getElementById('wPlay').click());
 
 const info = await page.evaluate(async (years) => {
   const t0 = performance.now();
@@ -55,6 +57,9 @@ await page.screenshot({ path: path.join(out, 'inspector.png') });
 await page.evaluate(() => { const k = kingdoms.filter(k => k.alive).sort((a, b) => b.pop - a.pop)[0]; if (k) showKingdom(k); });
 await page.screenshot({ path: path.join(out, 'kingdom.png') });
 
+// guardar y cargar
+const rt = await page.evaluate(() => { const before = units.filter(u => u.def.civ).length, kb = kingdoms.filter(k => k.alive).length; const ok = saveSlot(2); const size = localStorage.getItem('caja-de-dioses-slot-2').length; loadSlot(2); for (let i = 0; i < 60; i++) tick(); render(); return { ok, size, before, after: units.filter(u => u.def.civ).length, kb, ka: kingdoms.filter(k => k.alive).length }; });
+console.log('guardado:', JSON.stringify(rt));
 // editor de rasgos
 await page.evaluate(() => { curTab = 'mods'; renderTabs(); renderTools(); openTraitEditor(); document.getElementById('tName').value = 'Hijo del trueno'; document.getElementById('ts_atk').value = 2; document.getElementById('ts_atk').oninput(); });
 await page.screenshot({ path: path.join(out, 'editor.png') });

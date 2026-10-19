@@ -4,7 +4,7 @@
 <title>Caja de Dioses</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
 <link rel="stylesheet" href="css/style.css">
 
 <div id="app">
@@ -64,13 +64,34 @@
       <select id="mLife"><option value="none" selected>Nada: empiezo de cero</option><option value="animals">Solo animales</option><option value="civ">Cuatro pueblos de ejemplo</option></select></div>
     <div class="mrow">
       <button class="primary" id="mGen">Crear mundo</button>
-      <button class="tbtn" id="mSave">Guardar partida</button>
-      <button class="tbtn" id="mLoad">Cargar partida</button>
       <button class="tbtn" id="mClose">Cerrar</button>
+    </div>
+    <h3 class="mh">Partidas guardadas</h3>
+    <div id="slots"></div>
+    <div class="mrow">
+      <button class="tbtn" id="mExport">Exportar a archivo</button>
+      <label class="tbtn" for="mImport">Importar archivo</label><input type="file" id="mImport" accept=".json,application/json" hidden>
     </div>
     <div class="keys">
       <b>Cómo se juega.</b> Pestaña <i>Vida</i>: funda pueblos. <i>Rasgos</i>: toca a la gente para darle rasgos (los hijos los heredan). <i>Materiales</i>: pon hierro, oro, obsidiana… para que puedan forjar. <i>Fronteras</i>: dibuja líneas que separan pueblos; bórralas para que se encuentren. Abre <i>Pueblos</i> en el panel para ver su tecnología.<br>
       <kbd>espacio</kbd> pausa · <kbd>1</kbd>–<kbd>5</kbd> velocidad · <kbd>WASD</kbd> mover · <kbd>+</kbd><kbd>−</kbd> zoom · <kbd>I</kbd> inspeccionar · <kbd>[</kbd><kbd>]</kbd> pincel · clic derecho o dos dedos: desplazar
+    </div>
+  </div>
+</div>
+
+<div id="welcome" class="overlay welcome" hidden>
+  <div class="box">
+    <div class="wlogo">Caja de Dioses</div>
+    <p class="wsub">Un simulador de dioses. Crea un mundo, siembra pueblos y mira cómo viven, se enamoran, inventan, comercian y guerrean por su cuenta.</p>
+    <ul class="wfeat">
+      <li><b>Vida con mente propia.</b> Cada habitante tiene hambre, sueño, ánimo, oficio, familia y amigos, y decide qué hacer. Inspecciónalo para ver sus decisiones.</li>
+      <li><b>Civilizaciones.</b> Ciudades con graneros, templos y muelles; caminos que nacen del paso; barcos, diplomacia, religiones y dinastías.</li>
+      <li><b>Poder divino.</b> Rasgos, materiales, fronteras, desastres, bendiciones, y un editor para crear tus propios rasgos.</li>
+    </ul>
+    <div class="mrow">
+      <button class="primary" id="wPlay">▶ Ver un mundo vivo</button>
+      <button class="tbtn" id="wEmpty">Empezar con un mundo vacío</button>
+      <button class="tbtn" id="wContinue" hidden>Continuar partida</button>
     </div>
   </div>
 </div>
