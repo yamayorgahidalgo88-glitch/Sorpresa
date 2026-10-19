@@ -285,8 +285,8 @@ export const services: Service[] = [
   },
   {
     slug: "robotica",
-    seoTitle: "Cursos de robótica y programación para niños y jóvenes",
-    seoDescription: "Cursos de robótica y programación: los alumnos construyen y programan sus propios proyectos mientras aprenden lógica, creatividad y trabajo en equipo.",
+    seoTitle: "Robótica y programación para niños en Alcorcón",
+    seoDescription: "Cursos de robótica y programación para niños y jóvenes: montan y programan sus propios robots mientras aprenden lógica, creatividad y trabajo en equipo.",
     sections: [
       {
         title: "Robótica y programación",
@@ -295,9 +295,24 @@ export const services: Service[] = [
           "Es una actividad que potencia la creatividad, la resolución de problemas y el trabajo en equipo.",
         ],
       },
+      {
+        title: "Qué aprenden",
+        body: [
+          "Cada proyecto es un reto: pensar qué tiene que hacer el robot, construirlo, **programarlo** y probar hasta que funcione. Por el camino trabajan conceptos de matemáticas, ciencia y tecnología de forma práctica.",
+          "Equivocarse forma parte del juego: aprenden a buscar el fallo, a corregirlo y a no rendirse a la primera.",
+        ],
+      },
+      {
+        title: "Una extraescolar diferente",
+        body: [
+          "Si buscas una **actividad extraescolar** que combine diversión y aprendizaje, la **robótica para niños** es una de las mejores opciones: desarrolla habilidades muy demandadas en el futuro y se hace en grupo, con compañeros de su edad.",
+        ],
+      },
     ],
     faq: [
       { q: "¿Para qué edades son?", a: "Consúltanos los grupos y edades disponibles cada curso y te contamos cuál encaja mejor." },
+      { q: "¿Hace falta saber programar?", a: "No. Se empieza desde cero y cada alumno avanza a su ritmo." },
+      { q: "¿Dónde se hacen las clases?", a: "En nuestra academia de Alcorcón, en la Calle Porto Lagos 1 (posterior)." },
     ],
     title: "Cursos de robótica",
     slogan: "Aprende jugando con la tecnología",
