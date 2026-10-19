@@ -61,6 +61,10 @@ await page.mouse.move(1240, 190);
 await page.waitForTimeout(100);
 await page.screenshot({ path: path.join(out, 'history.png') });
 
+await page.evaluate(() => { unlock('pueblo'); document.getElementById('menuBtn').click(); });
+await page.waitForTimeout(300);
+await page.screenshot({ path: path.join(out, 'menu.png') });
+await page.evaluate(() => { document.getElementById('modal').hidden = true; });
 // guardar y cargar
 const rt = await page.evaluate(() => { const before = units.filter(u => u.def.civ).length, kb = kingdoms.filter(k => k.alive).length; const ok = saveSlot(2); const size = localStorage.getItem('caja-de-dioses-slot-2').length; loadSlot(2); for (let i = 0; i < 60; i++) tick(); render(); return { ok, size, before, after: units.filter(u => u.def.civ).length, kb, ka: kingdoms.filter(k => k.alive).length }; });
 console.log('guardado:', JSON.stringify(rt));

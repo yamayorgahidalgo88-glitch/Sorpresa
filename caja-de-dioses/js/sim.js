@@ -90,7 +90,7 @@ function tick() {
   rebuildGrid();
   for (const k in countType) countType[k] = 0;
   for (const u of units) countType[u.type] = (countType[u.type] || 0) + 1;
-  for (let i = 0; i < units.length; i++) { const u = units[i]; if (!u.dead) updateUnit(u); }
+  for (let i = 0; i < units.length; i++) { const u = units[i]; if (!u.dead && !u.held) updateUnit(u); }
   updateProjs(); updateFx(); updateParts();
   if (tickN % 4 === 0) { updateFires(); liveWorld(); }
   if (tickN % 30 === 0) {

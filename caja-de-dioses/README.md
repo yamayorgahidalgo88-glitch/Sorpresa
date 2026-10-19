@@ -27,17 +27,21 @@ Para jugar, abre `index.html` en un navegador moderno. No hace falta instalar na
 - Desastres: fuego, rayos, meteoritos, bombas, terremotos, inundaciones, volcanes, bomba nuclear, tornados, lluvia ácida, agujero negro, plagas, sequía, ventisca, locura y maldición.
 - Bendiciones: lluvia, curar, fertilidad, flecha de Cupido, iluminar a los sabios, alegría.
 - Diplomacia divina: sembrar discordia, inspirar amistad o cambiar una ciudad de bando.
+- Imán, para coger criaturas y soltarlas en otra tierra, y dedo divino, para dar un toque.
 
 ### Mods (se activan y desactivan en la pestaña Mods)
 Tecnología y forja, Razas extra, Bestiario, Apocalipsis, Héroes y leyendas, Diplomacia, Magia, Más allá, Invasión alien, Clima y estaciones, Modo dios, Religiones, Ecosistema (ciervos, osos, conejos, cangrejos, peces, pájaros, gallinas y mascotas), Rasgos ampliados, Superpoderes, Enfermedades y Mentes visibles.
 
-Desde la misma pestaña, **Crear rasgo** abre un editor para inventar rasgos propios con sus efectos. Se guardan en el navegador y se heredan como los demás.
+Desde la misma pestaña hay dos editores. **Crear rasgo** inventa rasgos propios con sus efectos, que se heredan como los demás. **Crear especie** diseña un pueblo nuevo: aspecto, colores, fuerza, vida, carácter y rasgos innatos. Las dos cosas se guardan en el navegador y viajan dentro de las partidas exportadas.
 
 ### Mundo vivo
 Relieve continuo en montañas, costas con espuma y degradado de profundidad, estaciones (otoño dorado, inviernos nevados), día y noche con las casas iluminadas, nubes, lluvia y tormentas, humo de chimeneas y minimapa.
 
 ### Sonido
 Todo el sonido está sintetizado, sin archivos: explosiones, truenos, cuernos de guerra, campanas, obras, combates según dónde mires, y una música ambiental generativa. El botón 🎵 de arriba alterna entre música y efectos, solo efectos, o silencio.
+
+### Historia y logros
+La pestaña **Historia** muestra una gráfica con la población de cada reino año a año, con detalle al pasar el cursor, y los récords del mundo. En el menú **Mundo** hay 25 **logros**, de «Primeros pasos» a «Diez siglos».
 
 ### Partidas
 En el menú **Mundo** hay tres ranuras, un autoguardado cada tres minutos y la opción de exportar o importar el mundo a un archivo `.json`.
@@ -58,7 +62,7 @@ En el menú **Mundo** hay tres ranuras, un autoguardado cada tres minutos y la o
   - `units`, `ai`: criaturas e inteligencia (necesidades, decisiones, tareas, A*).
   - `buildings`, `boats`, `diplomacy`, `civ`: civilizaciones.
   - `mods2`, `powers`, `nature`, `sim`: mods, poderes, naturaleza y bucle de simulación.
-  - `audio`, `input`, `ui`, `save`, `main`: sonido, entrada, interfaz, partidas y arranque.
+  - `audio`, `input`, `ui`, `save`, `achievements`, `main`: sonido, entrada, interfaz, partidas, logros y arranque.
 - `tools/`: pruebas automáticas con Chromium (Playwright).
   - `node tools/test.mjs [años]`: prueba de humo con capturas en `tools/shots/`.
   - `node tools/sim.mjs [años]`: equilibrio de población, comida y eras.

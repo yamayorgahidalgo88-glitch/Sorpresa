@@ -379,7 +379,7 @@ document.getElementById('tSave').onclick = () => {
   if (!document.getElementById('tInh').checked) t.inh = 0;
   if (document.getElementById('tBad').checked) t.bad = 1;
   t.d = document.getElementById('tDesc').value.trim() || describeTrait(t);
-  TRAITS[id] = t; customTraits[id] = t;
+  TRAITS[id] = t; customTraits[id] = t; unlock('rasgo');
   if (!saveCustomTraits()) toast('No se pudo guardar en el navegador; el rasgo dura hasta que cierres la página');
   TOOLS.push({ tab: 'rasgos', id: 'r_' + id, n: t.n, kind: 'trait', trait: id, glyph: t.g });
   traitModal.hidden = true;
@@ -506,7 +506,7 @@ document.getElementById('rSave').onclick = () => {
   if (!document.getElementById('rName').value.trim()) { toast('Ponle un nombre a la especie'); return; }
   const d = raceDraft();
   const id = 'r_' + d.n.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '_').slice(0, 16) + '_' + Date.now().toString(36).slice(-3);
-  customRaces[id] = d; registerRace(id, d); addRaceTools(id);
+  customRaces[id] = d; registerRace(id, d); addRaceTools(id); unlock('especie');
   if (!saveCustomRaces()) toast('No se pudo guardar en el navegador; la especie dura hasta que cierres la página');
   raceModal.hidden = true; document.getElementById('rName').value = '';
   curTab = 'vida'; renderTabs(); selectTool(TOOLS.find(t => t.id === 'v_' + id));

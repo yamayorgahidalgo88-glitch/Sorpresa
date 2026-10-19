@@ -11,7 +11,7 @@ function renderSlots() {
   document.querySelectorAll('#slots [data-save]').forEach(b => b.onclick = () => { saveSlot(+b.dataset.save); renderSlots(); });
   document.querySelectorAll('#slots [data-load]').forEach(b => b.onclick = () => { const v = b.dataset.load; if (loadSlot(v === 'auto' || v === 'old' ? v : +v)) modal.hidden = true; });
 }
-document.getElementById('menuBtn').onclick = () => { document.getElementById('mSize').querySelector('[value="384x224"]').disabled = !modOn('trucos'); renderSlots(); modal.hidden = false; };
+document.getElementById('menuBtn').onclick = () => { document.getElementById('mSize').querySelector('[value="384x224"]').disabled = !modOn('trucos'); renderSlots(); document.getElementById('achList').innerHTML = achHtml(); modal.hidden = false; };
 document.getElementById('mExport').onclick = exportGame;
 document.getElementById('mImport').onchange = e => { const f = e.target.files[0]; if (f) importGame(f); e.target.value = ''; };
 document.getElementById('mClose').onclick = () => modal.hidden = true;
@@ -69,10 +69,11 @@ function loop(now) {
     while (loop.acc >= 1 && n < 30) { tick(); loop.acc--; n++; }
     if (loop.acc > 30) loop.acc = 0;
   }
-  heldTool(now); keyPan(); autoSave(now); musicTick();
+  heldTool(now); keyPan(); autoSave(now); musicTick(); moveHeld();
   if (followSel) { if (followSel.dead) followSel = null; else { cam.x += (followSel.x - VW / cam.z / 2 - cam.x) * .12; cam.y += (followSel.y - VH / cam.z / 2 - cam.y) * .12; clampCam(); } }
   render();
   loop.f = (loop.f || 0) + 1;
+  if (loop.f % 60 === 0 && welcome.hidden) checkAch();
   if (loop.f % 15 === 0) { renderStats(); if (sideDirty || (loop.f % (sidePane === 'ins' ? 15 : 45) === 0 && !paused && sidePane !== 'log')) renderSide(); }
   requestAnimationFrame(loop);
 }

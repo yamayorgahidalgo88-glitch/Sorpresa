@@ -106,6 +106,7 @@ function crown(k, cand) {
   const prev = k.dynasty;
   k.king = cand; cand.name = cand.name || mkName(k.race); cand.prof = 'ruler'; cand.task = null;
   if (cand.fam && cand.fam !== prev) {
+    if (prev) unlock('dinastia');
     if (prev && modOn('diplomacia')) addLog(`Cambio de dinastía ${del(k)}: la Casa ${cand.fam} llega al trono con ${displayName(cand)}.`, 'peace', cand);
     k.dynasty = cand.fam;
   } else if (modOn('diplomacia')) addLog(`${displayName(cand)} es coronado soberano ${del(k)}.`, 'peace', cand);

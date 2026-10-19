@@ -221,6 +221,7 @@ function cityUpdate(c) {
   }
 }
 function rebel(c) {
+  unlock('rebelion');
   const old = c.k;
   const leader = units.find(o => o.city === c.id && !o.dead && o.def.civ);
   const k = newKingdom(old.race, leader);

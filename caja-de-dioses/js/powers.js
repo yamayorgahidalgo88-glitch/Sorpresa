@@ -30,6 +30,7 @@ function lightning(x, y) {
   sfx('thunder', x, y, 1, 150);
 }
 function nuke(x, y) {
+  unlock('nuclear');
   explode(x, y, 15, { dmg: 999, fire: .6, rad: 1 });
   circle(x, y, 22, (xx, yy, i, d) => { if (d > 15) { rad[i] = Math.max(rad[i], 120); if (rnd() < .2 && TILE[tile[i]].burn) ignite(xx, yy); } });
   fx.push({ k: 'mush', x, y, life: 160 });
@@ -87,6 +88,8 @@ addTool('fronteras', 'discord', 'Sembrar discordia', 'discord', { glyph: '🐍',
 addTool('fronteras', 'friend', 'Inspirar amistad', 'friend', { glyph: '🤝', once: 1, mod: 'diplomacia' });
 addTool('fronteras', 'turncoat', 'Cambiar de bando', 'turncoat', { glyph: '🏳', once: 1 });
 addTool('dios', 'inspect', 'Inspeccionar', 'inspect', { glyph: '🔍', once: 1 });
+addTool('dios', 'magnet', 'Imán', 'magnet', { glyph: '🧲', once: 1 });
+addTool('dios', 'poke', 'Dedo divino', 'poke', { glyph: '👆', once: 1 });
 addTool('dios', 'move', 'Mover mapa', 'move', { glyph: '✋' });
 addTool('dios', 'hero', 'Crear héroe', 'heroize', { glyph: '♛', once: 1, mod: 'heroes' });
 addTool('dios', 'gift', 'Regalar recursos', 'gift', { glyph: '🎁', once: 1, mod: 'trucos' });
@@ -177,6 +180,14 @@ function applyTool(t, x, y, first) {
     case 'heroize': { rebuildGrid(); const u = nearest(x, y, 3, o => o.def.civ); if (u) { u.level = Math.max(u.level, 5); if (!u.hero) makeHero(u); select(u); } else toast('No hay nadie cerca'); break; }
     case 'gift': { const k = kingdomAt(x, y); if (k) { for (const r in k.res) k.res[r] += 40; toast(`${k.name} recibe 40 de cada recurso`); sideDirty = true; } else toast('Toca un pueblo'); break; }
     case 'inspect': inspectAt(x, y); break;
+    case 'poke': {
+      rebuildGrid(); const u = nearest(x, y, 2.5, () => true);
+      if (!u) { toast('No hay nadie ahí'); break; }
+      const a = rnd() * 6.28, nx = clamp(u.x + Math.cos(a) * 1.5, 0, W - 1), ny = clamp(u.y + Math.sin(a) * 1.5, 0, H - 1);
+      if (canStand(u.def, nx, ny)) { u.x = nx; u.y = ny; }
+      burst(u.x, u.y, [255, 240, 200], 6, .5); damage(u, 6, null); u.mood = Math.max(0, (u.mood ?? 50) - 15); u.task = null;
+      sfx('hit', u.x, u.y, 1, 0); break;
+    }
     case 'drought': circle(x, y, b, (xx, yy, i) => { if (rnd() > .4) return; const tt = tile[i]; if (tt === T.WATER && rnd() < .3) tile[i] = T.SAND; else if (tt === T.FOREST || tt === T.JUNGLE) tile[i] = T.SAVANNA; else if (tt === T.GRASS || tt === T.FERTILE || tt === T.SWAMP) tile[i] = rnd() < .5 ? T.SAVANNA : T.DESERT; else if (tt === T.SAVANNA || tt === T.FIELD) tile[i] = T.DESERT; fire[i] = 0; }); regionDirty = true; break;
     case 'blizzard': fx.push({ k: 'cloud', snow: 1, acid: 0, x, y, vx: (rnd() - .5) * .04, vy: (rnd() - .5) * .02, life: 420 }); break;
     case 'madness': rebuildGrid(); around(x, y, b, u => { if (u.def.civ || !u.def.boat) { u.mad = 900; u.target = null; u.task = null; burst(u.x, u.y, [200, 80, 255], 3, .4); } }); break;
@@ -234,4 +245,27 @@ function globalAct(a) {
   if (a === 'healall') { for (const u of units) { u.hp = u.maxHp; u.plague = 0; } rad.fill(0); for (const i of fires) fire[i] = 0; toast('Mundo curado'); }
   if (a === 'clear') { for (const u of units) u.dead = true; for (const k of kingdoms) k.king = null; units = []; toast('Todos los seres han desaparecido'); }
   sideDirty = true;
+}
+
+// ---------- imán: coger criaturas y soltarlas en otro sitio ----------
+let held = [];
+function grabUnits(x, y) {
+  rebuildGrid();
+  held = [];
+  around(x, y, Math.max(1.2, brush * .9), u => { if (!u.def.boat && held.length < 60) { held.push({ u, dx: u.x - x, dy: u.y - y }); u.held = true; u.task = null; u.target = null; u.path = null; u.asleep = false; } });
+  if (held.length) sfx('magic', x, y, 1, 0); else toast('Pasa el imán por encima de alguien');
+}
+function moveHeld() { if (!held.length || !hover) return; for (const h of held) { h.u.x = clamp(hover.x + h.dx, 0, W - .01); h.u.y = clamp(hover.y + h.dy, 0, H - .01); } }
+function dropUnits() {
+  for (const { u } of held) {
+    u.held = false;
+    if (!canStand(u.def, u.x, u.y)) { for (let r = 1; r < 4; r++) { const nx = u.x + (rnd() - .5) * r * 2, ny = u.y + (rnd() - .5) * r * 2; if (canStand(u.def, nx, ny)) { u.x = nx; u.y = ny; break; } } }
+    damage(u, 1, null);
+    // si cae lejos de su ciudad, en otra tierra, la deja
+    const c = cities[u.city];
+    if (c && c.alive && (regAt(u.x, u.y) !== region[c.y * W + c.x] || dist2(u.x, u.y, c.x, c.y) > 900)) { if (u.def.civ) unlock('iman'); u.city = -1; u.prof = u.age < 12 ? 'child' : null; }
+    u.think = ri(0, 10);
+    burst(u.x, u.y, [230, 220, 200], 2, .3);
+  }
+  held = [];
 }

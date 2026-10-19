@@ -457,10 +457,10 @@ function render() {
     }
   }
   // pincel
-  if (hover && !['inspect', 'move', 'act', 'spawn', 'bolt', 'heroize', 'village', 'declare', 'peace', 'gift', 'scope'].includes(curTool.kind) && !(curTool.kind === 'trait' && traitScope === 'village')) {
+  if (hover && !['inspect', 'move', 'act', 'spawn', 'bolt', 'heroize', 'village', 'declare', 'peace', 'gift', 'scope', 'poke', 'enlight', 'discord', 'friend', 'turncoat'].includes(curTool.kind) && !(curTool.kind === 'trait' && traitScope === 'village')) {
     const [sx, sy] = toS(hover.x, hover.y);
     const k = curTool.kind;
-    const r = (k === 'quake' ? 8 + brush : k === 'flood' ? 6 + brush : k === 'nuke' ? 15 : k === 'bomb' ? 3 + brush * .5 : k === 'meteor' ? 4 + brush * .4 : k === 'wall' ? Math.max(.75, brush * .3) : k === 'unwall' ? Math.max(1, brush * .7) : k === 'ore' ? Math.max(.8, brush * .6) : (k === 'trait' || k === 'untrait') ? Math.max(1.2, brush * .8) : brush) * z;
+    const r = (k === 'quake' ? 8 + brush : k === 'flood' ? 6 + brush : k === 'nuke' ? 15 : k === 'bomb' ? 3 + brush * .5 : k === 'meteor' ? 4 + brush * .4 : k === 'wall' ? Math.max(.75, brush * .3) : k === 'unwall' ? Math.max(1, brush * .7) : k === 'ore' ? Math.max(.8, brush * .6) : (k === 'trait' || k === 'untrait') ? Math.max(1.2, brush * .8) : k === 'magnet' ? Math.max(1.2, brush * .9) : brush) * z;
     ctx.strokeStyle = 'rgba(0,0,0,.5)'; ctx.lineWidth = 3 * DPR; ctx.beginPath(); ctx.arc(sx, sy, r, 0, 7); ctx.stroke();
     ctx.strokeStyle = k === 'wall' ? 'rgba(240,96,84,.95)' : 'rgba(240,196,96,.95)'; ctx.lineWidth = 1.5 * DPR; ctx.beginPath(); ctx.arc(sx, sy, r, 0, 7); ctx.stroke();
   }
@@ -492,7 +492,9 @@ function drawUnit(ctx, u, sx, sy, z) {
   const s = unitSprite(u, frame, u.face < 0 ? 1 : 0);
   const px = z / TS * size * (def.civ ? .78 : def.size > 1.5 ? .9 : .72);
   const bob = def.fly ? Math.sin((tickN + u.id * 7) * .1) * px * 1.5 - px * 4 : def.boat ? Math.sin((tickN + u.id * 5) * .08) * px * .6 : 0;
-  const dx = sx - s.ax * px, dy = sy - s.ay * px + bob;
+  const lift = u.held ? z * (.9 + Math.sin(tickN * .2 + u.id) * .1) : 0;
+  if (lift) { ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(sx, sy, px * 3, px * 1.2, 0, 0, 7); ctx.fill(); }
+  const dx = sx - s.ax * px, dy = sy - s.ay * px + bob - lift;
   ctx.drawImage(s.cv, dx, dy, s.w * px, s.h * px);
   if (z < 7) { if (u === selected) { ctx.strokeStyle = '#ffd36a'; ctx.lineWidth = 2; ctx.strokeRect(dx - 2, dy - 2, s.w * px + 4, s.h * px + 4); } return; }
   const top = dy + px * .6;

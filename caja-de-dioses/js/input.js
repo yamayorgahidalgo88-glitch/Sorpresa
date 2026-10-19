@@ -25,6 +25,7 @@ view.addEventListener('pointerdown', e => {
   if (e.button === 0) {
     const w = screenToWorld(e.clientX, e.clientY);
     hover = w;
+    if (curTool.kind === 'magnet') { grabUnits(w.x, w.y); return; }
     if (curTool.kind === 'wall' || curTool.kind === 'unwall') { lastWall = w; wallLine(w.x, w.y, w.x, w.y, curTool.kind === 'wall'); return; }
     painting = !curTool.once && curTool.kind !== 'act' && !(curTool.kind === 'trait' && traitScope === 'village');
     if (curTool.kind === 'act' || curTool.kind === 'scope') return;
@@ -46,6 +47,7 @@ view.addEventListener('pointermove', e => {
   updateHint();
 });
 function endPointer(e) {
+  if (held.length) dropUnits();
   pointers.delete(e.pointerId); if (pointers.size < 2) pinch = null;
   if (!pointers.size) { painting = false; panning = null; if (lastWall) { lastWall = null; computeRegions(); sideDirty = true; } }
 }
