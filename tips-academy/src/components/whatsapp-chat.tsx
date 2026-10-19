@@ -10,8 +10,18 @@ import { waHref, whatsappTopics } from "@/lib/site"
 /** Chat de WhatsApp con temas rápidos (como el widget de la web actual). */
 export function WhatsAppChat() {
   const [open, setOpen] = useState(false)
+  // Se oculta cuando el pie de página (la zona oscura del final) entra en pantalla, para no tapar sus enlaces.
+  const [atFooter, setAtFooter] = useState(false)
   const id = useId()
   const btn = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    const footer = document.querySelector("footer")
+    if (!footer) return
+    const io = new IntersectionObserver(([e]) => setAtFooter(e.isIntersecting), { rootMargin: "0px 0px -12% 0px" })
+    io.observe(footer)
+    return () => io.disconnect()
+  }, [])
 
   useEffect(() => {
     if (!open) return
@@ -25,10 +35,17 @@ export function WhatsAppChat() {
     return () => document.removeEventListener("keydown", onKey)
   }, [open])
 
+  const shown = open && !atFooter
+
   return (
-    <div className="fixed right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-50 flex flex-col items-end gap-3 sm:right-6 sm:bottom-6">
+    <div
+      inert={atFooter}
+      className={`fixed right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-50 flex flex-col items-end gap-3 transition-[opacity,translate] duration-300 sm:right-6 sm:bottom-6 ${
+        atFooter ? "pointer-events-none translate-y-4 opacity-0" : ""
+      }`}
+    >
       <AnimatePresence>
-        {open && (
+        {shown && (
           <m.div
             id={id}
             role="dialog"
