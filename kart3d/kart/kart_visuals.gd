@@ -1,155 +1,170 @@
 class_name KartVisuals
 extends Node3D
-## Presentación del kart: modelo, ruedas, inclinaciones y efectos.
-## PROVISIONAL: geometría primitiva hasta tener modelos 3D definitivos. Para sustituirla,
-## reemplazar _build_model() por la instancia de un .glb que exponga los mismos nodos
-## (ruedas delanteras con pivote de dirección, ruedas con nodo de giro, puntos de escape).
+## Presentación del kart: modelo, piloto animado, ruedas, inclinaciones y efectos.
+## Solo lee el estado de KartBody; nunca modifica la física.
+## Modelos: Kenney Toy Car Kit y Mini Characters (CC0), ver assets/ASSETS.md.
 
-const DRIFT_COLORS := [Color("#4fb7ff"), Color("#ff9a2a")]
+const CAR_SCALE := 2.6
+const DRIVER_SCALE := 2.0
+const DRIVER_SEAT := Vector3(0.0, 0.42, 0.2)
+const WHEEL_RADIUS := 0.125 * CAR_SCALE
+const DRIFT_COLORS := [Color("#5fc8ff"), Color("#ff9a2a")]
 
-@export var paint := Color("#ff5fa2")
-@export var outfit := Color("#5fd3b0")
-@export var skin := Color("#f7cba6")
+@export var car_scene: PackedScene = preload("res://assets/kenney/toy-car-kit/vehicle-speedster.glb")
+@export var driver_scene: PackedScene = preload("res://assets/kenney/mini-characters/character-female-a.glb")
+## Textura alternativa de pintura (null = la original del modelo).
+@export var paint_texture: Texture2D
 
 var kart: KartBody
 var model := Node3D.new()
-var _spinners: Array[Node3D] = []
-var _steer_pivots: Array[Node3D] = []
-var _flames: Array[MeshInstance3D] = []
-var _sparks: Array[MeshInstance3D] = []
-var _spark_mat := StandardMaterial3D.new()
+var driver: Node3D
+var driver_anim: AnimationPlayer
+var _wheels_front: Array[Node3D] = []
+var _wheels_all: Array[Node3D] = []
+var _wheel_spin := 0.0
+var _sparks: Array[CPUParticles3D] = []
+var _smoke: Array[CPUParticles3D] = []
+var _flames: Array[CPUParticles3D] = []
+var _bob := 0.0
 
 
 func _ready() -> void:
 	kart = get_parent() as KartBody
 	add_child(model)
-	_build_model()
+	var car := car_scene.instantiate() as Node3D
+	car.scale = Vector3.ONE * CAR_SCALE
+	model.add_child(car)
+	for w in car.find_children("wheel-*", "Node3D", true, false):
+		_wheels_all.append(w)
+		if w.name.begins_with("wheel-f"):
+			_wheels_front.append(w)
+	driver = driver_scene.instantiate() as Node3D
+	driver.position = DRIVER_SEAT
+	driver.scale = Vector3.ONE * DRIVER_SCALE
+	driver.rotation.y = PI
+	model.add_child(driver)
+	driver_anim = driver.find_child("AnimationPlayer", true, false)
+	play_driver("drive")
+	ToonLook.apply(self, paint_texture)
+	_build_effects()
+
+
+func play_driver(anim: String) -> void:
+	if driver_anim and driver_anim.has_animation(anim):
+		driver_anim.get_animation(anim).loop_mode = Animation.LOOP_LINEAR if anim in ["drive", "idle"] else Animation.LOOP_NONE
+		driver_anim.play(anim, 0.2)
 
 
 func _process(delta: float) -> void:
 	if kart == null:
 		return
 	var k := 1.0 - exp(-10.0 * delta)
-	var speed_frac := clampf(absf(kart.speed) / kart.tuning.max_speed, 0.0, 1.0)
-	var yaw := -kart.drift_dir * 0.45 if kart.drifting else 0.0
+	var speed_frac := clampf(absf(kart.speed) / kart.tuning.max_speed, 0.0, 1.2)
+	# Orientación visual: el morro mira hacia dentro de la curva al derrapar.
+	var yaw := -kart.drift_dir * 0.42 if kart.drifting else -kart.steer_smoothed * 0.06 * speed_frac
 	model.rotation.y = lerp_angle(model.rotation.y, yaw, k)
-	var roll := kart.steer_smoothed * 0.07 * speed_frac + (kart.drift_dir * 0.06 if kart.drifting else 0.0)
+	var roll := kart.steer_smoothed * 0.06 * speed_frac + (kart.drift_dir * 0.07 if kart.drifting else 0.0)
 	model.rotation.z = lerpf(model.rotation.z, roll, k)
-	for s in _spinners:
-		s.rotation.x -= kart.speed * delta / 0.33
-	for p in _steer_pivots:
-		p.rotation.y = -kart.steer_smoothed * 0.45
-	var boosting := kart.boost_time > 0.0
-	for f in _flames:
-		f.visible = boosting
-		f.scale = Vector3.ONE * randf_range(0.8, 1.25)
-	var show_sparks := kart.drifting and kart.drift_tier > 0
+	# Suspensión: leve cabeceo al acelerar o frenar y vibración fuera de pista.
+	var pitch := -0.04 if kart.boost_time > 0.0 else (0.03 if kart.controls_enabled and kart.input.brake > 0.0 and kart.speed > 1.0 else 0.0)
+	model.rotation.x = lerpf(model.rotation.x, pitch, k * 0.5)
+	_bob += delta * (8.0 + speed_frac * 20.0)
+	var rough := 0.04 if kart.surface == &"offroad" and absf(kart.speed) > 2.0 else 0.008 * speed_frac
+	model.position.y = sin(_bob) * rough
+	# Ruedas
+	_wheel_spin -= kart.speed * delta / WHEEL_RADIUS
+	for w in _wheels_all:
+		w.rotation = Vector3(_wheel_spin, -kart.steer_smoothed * 0.45 if w in _wheels_front else 0.0, 0.0)
+	# Efectos
+	var tier := kart.drift_tier if kart.drifting else 0
 	for s in _sparks:
-		s.visible = show_sparks
-		s.scale = Vector3.ONE * randf_range(0.7, 1.3)
-	if show_sparks:
-		var c: Color = DRIFT_COLORS[kart.drift_tier - 1]
-		_spark_mat.albedo_color = c
-		_spark_mat.emission = c
+		s.emitting = tier > 0
+		if tier > 0:
+			s.color = DRIFT_COLORS[tier - 1]
+	var dusty := (kart.drifting or kart.surface == &"offroad") and absf(kart.speed) > 6.0
+	for s in _smoke:
+		s.emitting = dusty
+	for f in _flames:
+		f.emitting = kart.boost_time > 0.0
 
 
-func _mat(color: Color, roughness := 0.5, metallic := 0.0) -> StandardMaterial3D:
+func _particles(pos: Vector3, mesh: Mesh, amount: int, lifetime: float) -> CPUParticles3D:
+	var p := CPUParticles3D.new()
+	p.mesh = mesh
+	p.amount = amount
+	p.lifetime = lifetime
+	p.position = pos
+	p.emitting = false
+	p.local_coords = false
+	model.add_child(p)
+	return p
+
+
+func _unshaded(color: Color, alpha := false) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.vertex_color_use_as_albedo = true
 	m.albedo_color = color
-	m.roughness = roughness
-	m.metallic = metallic
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	if alpha:
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	return m
 
 
-func _add(mesh: Mesh, pos: Vector3, mat: Material, parent: Node3D = model, rot := Vector3.ZERO) -> MeshInstance3D:
-	var mi := MeshInstance3D.new()
-	mi.mesh = mesh
-	mi.position = pos
-	mi.rotation = rot
-	mi.material_override = mat
-	parent.add_child(mi)
-	return mi
-
-
-func _box(size: Vector3) -> BoxMesh:
-	var b := BoxMesh.new()
-	b.size = size
-	return b
-
-
-func _build_model() -> void:
-	var paint_m := _mat(paint, 0.22, 0.15)
-	paint_m.clearcoat_enabled = true
-	var dark := _mat(Color("#2b2233"), 0.7)
-	var metal := _mat(Color("#c9ccd6"), 0.3, 0.9)
-	var rubber := _mat(Color("#1d1a20"), 0.95)
-	# Carrocería
-	_add(_box(Vector3(1.25, 0.32, 1.9)), Vector3(0, 0.42, 0), paint_m)
-	_add(_box(Vector3(0.85, 0.24, 0.55)), Vector3(0, 0.4, -1.15), paint_m)
-	_add(_box(Vector3(1.5, 0.12, 0.3)), Vector3(0, 0.36, -1.35), dark)
-	_add(_box(Vector3(0.7, 0.55, 0.14)), Vector3(0, 0.78, 0.5), dark)
-	_add(_box(Vector3(1.45, 0.08, 0.36)), Vector3(0, 1.02, 0.95), paint_m)
-	for x in [-0.45, 0.45]:
-		_add(_box(Vector3(0.06, 0.4, 0.06)), Vector3(x, 0.8, 0.95), metal)
-		_add(_box(Vector3(0.14, 0.14, 0.4)), Vector3(x * 0.6, 0.42, 1.08), metal)
-	# Ruedas: pivote de dirección (delanteras) -> nodo de giro -> malla
-	var wheel_specs := [[-0.78, 0.3, -0.72, 0.3, true], [0.78, 0.3, -0.72, 0.3, true], [-0.8, 0.36, 0.7, 0.36, false], [0.8, 0.36, 0.7, 0.36, false]]
-	for w in wheel_specs:
-		var pivot := Node3D.new()
-		pivot.position = Vector3(w[0], w[1], w[2])
-		model.add_child(pivot)
-		if w[4]:
-			_steer_pivots.append(pivot)
-		var spin := Node3D.new()
-		pivot.add_child(spin)
-		_spinners.append(spin)
-		var tire := CylinderMesh.new()
-		tire.top_radius = w[3]
-		tire.bottom_radius = w[3]
-		tire.height = 0.32
-		_add(tire, Vector3.ZERO, rubber, spin, Vector3(0, 0, PI / 2))
-		var rim := CylinderMesh.new()
-		rim.top_radius = w[3] * 0.55
-		rim.bottom_radius = w[3] * 0.55
-		rim.height = 0.34
-		_add(rim, Vector3.ZERO, paint_m, spin, Vector3(0, 0, PI / 2))
-		_add(_box(Vector3(0.36, 0.08, w[3] * 1.2)), Vector3(0, 0, 0), metal, spin)
-	# Piloto (visto sobre todo de espaldas)
-	var torso := CapsuleMesh.new()
-	torso.radius = 0.27
-	torso.height = 0.75
-	_add(torso, Vector3(0, 0.95, 0.25), _mat(outfit, 0.8))
-	var head := SphereMesh.new()
-	head.radius = 0.3
-	head.height = 0.6
-	_add(head, Vector3(0, 1.45, 0.18), _mat(skin, 0.6))
-	var helmet := SphereMesh.new()
-	helmet.radius = 0.33
-	helmet.height = 0.5
-	helmet.is_hemisphere = true
-	_add(helmet, Vector3(0, 1.5, 0.2), paint_m)
-	# Escapes: llamas del turbo
-	var flame_m := _mat(Color("#ffb020"))
-	flame_m.emission_enabled = true
-	flame_m.emission = Color("#ff7a1a")
-	flame_m.emission_energy_multiplier = 3.0
-	flame_m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	for x in [-0.27, 0.27]:
-		var cone := CylinderMesh.new()
-		cone.top_radius = 0.0
-		cone.bottom_radius = 0.12
-		cone.height = 0.55
-		var f := _add(cone, Vector3(x, 0.42, 1.5), flame_m, model, Vector3(PI / 2, 0, 0))
-		f.visible = false
-		_flames.append(f)
-	# Chispas del derrape (color según el nivel de mini-turbo)
-	_spark_mat.emission_enabled = true
-	_spark_mat.emission_energy_multiplier = 4.0
-	_spark_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	for x in [-0.8, 0.8]:
-		var sp := SphereMesh.new()
-		sp.radius = 0.13
-		sp.height = 0.26
-		var s := _add(sp, Vector3(x, 0.08, 0.95), _spark_mat)
-		s.visible = false
+func _build_effects() -> void:
+	var quad := QuadMesh.new()
+	quad.size = Vector2(0.12, 0.12)
+	quad.material = _unshaded(Color.WHITE)
+	var puff := SphereMesh.new()
+	puff.radius = 0.25
+	puff.height = 0.5
+	puff.radial_segments = 8
+	puff.rings = 4
+	var smoke_mat := StandardMaterial3D.new()
+	smoke_mat.albedo_color = Color(1, 1, 1, 0.55)
+	smoke_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	smoke_mat.vertex_color_use_as_albedo = true
+	puff.material = smoke_mat
+	var fade := Gradient.new()
+	fade.set_color(0, Color(1, 1, 1, 0.7))
+	fade.set_color(1, Color(1, 1, 1, 0.0))
+	var shrink := Curve.new()
+	shrink.add_point(Vector2(0, 0.4))
+	shrink.add_point(Vector2(1, 1.4))
+	for x in [-0.55, 0.55]:
+		var s := _particles(Vector3(x, 0.15, 0.85), quad, 24, 0.35)
+		s.direction = Vector3(0, 1, 1)
+		s.spread = 40.0
+		s.initial_velocity_min = 3.0
+		s.initial_velocity_max = 6.0
+		s.gravity = Vector3(0, -12, 0)
 		_sparks.append(s)
+		var d := _particles(Vector3(x, 0.2, 0.9), puff, 14, 0.7)
+		d.direction = Vector3(0, 0.6, 1)
+		d.initial_velocity_min = 0.5
+		d.initial_velocity_max = 1.5
+		d.gravity = Vector3(0, 0.5, 0)
+		d.scale_amount_curve = shrink
+		d.color_ramp = fade
+		_smoke.append(d)
+	var flame := SphereMesh.new()
+	flame.radius = 0.12
+	flame.height = 0.24
+	flame.radial_segments = 8
+	flame.rings = 4
+	var flame_mat := StandardMaterial3D.new()
+	flame_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	flame_mat.vertex_color_use_as_albedo = true
+	flame.material = flame_mat
+	var heat := Gradient.new()
+	heat.set_color(0, Color("#fff3a0"))
+	heat.set_color(1, Color(1.0, 0.35, 0.1, 0.0))
+	for x in [-0.22, 0.22]:
+		var f := _particles(Vector3(x, 0.45, 1.15), flame, 20, 0.25)
+		f.direction = Vector3(0, 0.2, 1)
+		f.spread = 10.0
+		f.initial_velocity_min = 4.0
+		f.initial_velocity_max = 6.0
+		f.gravity = Vector3.ZERO
+		f.color_ramp = heat
+		_flames.append(f)

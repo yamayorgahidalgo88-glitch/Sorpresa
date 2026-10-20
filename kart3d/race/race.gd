@@ -4,10 +4,11 @@ extends Node3D
 
 signal race_finished(time: float)
 
-enum State { COUNTDOWN, RACING, FINISHED }
+enum State { INTRO, COUNTDOWN, RACING, FINISHED }
 
 const LAPS := 3
 const COUNTDOWN_TIME := 3.0
+const INTRO_TIME := 2.5
 const CHECKPOINTS := 12
 ## Circuito greybox provisional (plano XZ, metros). Sentido: hacia -Z desde la meta.
 const TRACK_POINTS := [
@@ -20,7 +21,8 @@ const TRACK_POINTS := [
 ## Si es true, el kart lo conduce la IA (lo usan los tests automáticos).
 @export var autopilot := false
 
-var state := State.COUNTDOWN
+var state := State.INTRO
+var intro := INTRO_TIME
 var countdown := COUNTDOWN_TIME
 var race_time := 0.0
 var track: TrackBuilder
@@ -48,11 +50,17 @@ func _ready() -> void:
 	camera.target = kart
 	camera.current = true
 	camera.snap()
+	camera.start_intro(INTRO_TIME)
 	add_child(hud)
+	hud.show_message("¡PREPARADOS!", INTRO_TIME)
 
 
 func _physics_process(delta: float) -> void:
 	match state:
+		State.INTRO:
+			intro -= delta
+			if intro <= 0.0:
+				state = State.COUNTDOWN
 		State.COUNTDOWN:
 			countdown -= delta
 			var c := ceili(countdown)
@@ -68,6 +76,7 @@ func _physics_process(delta: float) -> void:
 	if kart.global_position.y < -10.0 or (not autopilot and Input.is_action_just_pressed("respawn")):
 		respawn()
 	hud.set_values(laps.laps_completed + 1, LAPS, race_time, kart.speed)
+	hud.set_drift(kart)
 
 
 func _update_laps() -> void:
@@ -77,6 +86,8 @@ func _update_laps() -> void:
 	if laps.laps_completed >= LAPS:
 		state = State.FINISHED
 		kart.controls_enabled = false
+		kart.get_node("KartVisuals").play_driver("emote-yes")
+		camera.start_finish_orbit()
 		hud.show_message("¡META!  " + RaceHud.format_time(race_time), 10.0)
 		race_finished.emit(race_time)
 	else:
@@ -102,9 +113,17 @@ func _build_environment() -> void:
 	env.background_mode = Environment.BG_SKY
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	env.ambient_light_sky_contribution = 0.7
+	env.ambient_light_energy = 1.1
 	env.tonemap_mode = Environment.TONE_MAPPER_AGX
+	env.tonemap_exposure = 1.05
 	env.glow_enabled = true
+	env.glow_intensity = 0.5
+	env.glow_bloom = 0.05
 	env.ssao_enabled = true
+	env.ssao_intensity = 1.5
+	env.adjustment_enabled = true
+	env.adjustment_saturation = 1.15
 	env.fog_enabled = true
 	env.fog_light_color = Color("#ffd6ec")
 	env.fog_density = 0.0008
@@ -113,7 +132,9 @@ func _build_environment() -> void:
 	we.environment = env
 	add_child(we)
 	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-50, -35, 0)
+	sun.rotation_degrees = Vector3(-42, -35, 0)
 	sun.light_color = Color("#fff1dc")
+	sun.light_energy = 1.25
 	sun.shadow_enabled = true
+	sun.directional_shadow_max_distance = 120.0
 	add_child(sun)

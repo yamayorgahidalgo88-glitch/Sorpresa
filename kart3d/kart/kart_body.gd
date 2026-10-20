@@ -29,11 +29,13 @@ static func create(kart_tuning: KartTuning = null) -> KartBody:
 	kart.tuning = kart_tuning if kart_tuning else KartTuning.new()
 	var shape := CollisionShape3D.new()
 	var box := BoxShape3D.new()
-	box.size = Vector3(1.4, 0.7, 2.0)
+	box.size = Vector3(1.3, 0.7, 2.2)
 	shape.shape = box
-	shape.position.y = 0.45
+	shape.position.y = 0.38
 	kart.add_child(shape)
-	kart.add_child(KartVisuals.new())
+	var visuals := KartVisuals.new()
+	visuals.name = "KartVisuals"
+	kart.add_child(visuals)
 	return kart
 
 

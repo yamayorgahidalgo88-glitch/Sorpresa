@@ -1,6 +1,6 @@
-# Kart3D: prototipo (Fase 1)
+# Kart3D: prototipo (Fase 2, vertical slice visual)
 
-Juego de carreras arcade 3D en **Godot 4.7.2**. Estado: **prototipo jugable**, no es la versión visual final.
+Juego de carreras arcade 3D en **Godot 4.7.2**. Estado: **prototipo jugable con una primera capa visual**. No es la versión final.
 
 ## Cómo jugarlo
 1. Descarga Godot 4.7.2 (versión estándar, no .NET) desde godotengine.org.
@@ -20,10 +20,16 @@ Mando: A acelerar, B frenar, RB derrapar, Y volver a la pista, stick izquierdo p
 - Cámara de seguimiento con FOV dinámico.
 - IA básica que sigue la línea central (`ai/ai_input.gd`). De momento solo se usa en los tests.
 
-## Provisional (a sustituir en la Fase 2)
-- El kart y el piloto son figuras primitivas.
-- La pista greybox no tiene decorado.
-- La interfaz es texto plano.
+## Fase 2 (vertical slice visual)
+- Kart y piloto con modelos Kenney (CC0): el piloto lleva la animación de conducción y celebra al llegar a la meta.
+- Ruedas que giran y viran, inclinación en curvas y derrapes, y suspensión con vibración fuera de pista.
+- Partículas: chispas de derrape (azul en el nivel 1, naranja en el nivel 2), humo y llamas de turbo.
+- Materiales con luz de borde (rim) para separar al kart del fondo. Iluminación con AgX, SSAO, glow y sombras.
+- Circuito decorado: arco de meta, árboles (MultiMesh), conos, gradas, colinas y nubes pastel, suelo con textura y línea central.
+- Cámara con barrido de presentación antes de la salida y órbita en meta.
+- HUD con identidad propia: píldoras redondeadas, tipografía Fredoka, medidor de mini-turbo y mensajes animados.
+
+Recursos y licencias: [`assets/ASSETS.md`](assets/ASSETS.md), donde también figuran los elementos todavía provisionales.
 
 ## Tests
 ```bash

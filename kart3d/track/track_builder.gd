@@ -19,6 +19,7 @@ func build() -> void:
 	_build_road()
 	_build_walls()
 	_build_start_line()
+	TrackScenery.new(self).build()
 
 
 ## Distancia recorrida sobre la línea central más cercana a `world_pos` (0..length).
@@ -86,10 +87,24 @@ func _build_ground() -> void:
 	body.add_child(shape)
 	add_child(body)
 	var plane := PlaneMesh.new()
-	plane.size = Vector2(900, 900)
+	plane.size = Vector2(1400, 1400)
+	var noise := FastNoiseLite.new()
+	noise.frequency = 0.02
+	var ramp := Gradient.new()
+	ramp.set_color(0, Color("#6cc77e"))
+	ramp.set_color(1, Color("#9ee08e"))
+	var tex := NoiseTexture2D.new()
+	tex.width = 256
+	tex.height = 256
+	tex.seamless = true
+	tex.noise = noise
+	tex.color_ramp = ramp
+	var m := _mat(Color.WHITE, 0.95)
+	m.albedo_texture = tex
+	m.uv1_scale = Vector3(60, 60, 1)
 	var mi := MeshInstance3D.new()
 	mi.mesh = plane
-	mi.material_override = _mat(Color("#7ecf8a"), 0.95)
+	mi.material_override = m
 	add_child(mi)
 
 
@@ -118,9 +133,10 @@ func _build_road() -> void:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var half := road_width * 0.5
-	_strip(st, -half, half, 0.03, [Color("#5b5168"), Color("#564c63")])
-	_strip(st, -half - 1.2, -half, 0.04, [Color("#ff4f8b"), Color("#ffffff")])
-	_strip(st, half, half + 1.2, 0.04, [Color("#ffffff"), Color("#ff4f8b")])
+	_strip(st, -half, half, 0.03, [Color("#4a4458"), Color("#47415a")])
+	_strip(st, -0.18, 0.18, 0.035, [Color("#f4f1ff"), Color("#4a4458")])
+	_strip(st, -half - 1.2, -half, 0.04, [Color("#ff4f6e"), Color("#ffffff")])
+	_strip(st, half, half + 1.2, 0.04, [Color("#ffffff"), Color("#ff4f6e")])
 	var m := _mat(Color.WHITE, 0.85)
 	m.vertex_color_use_as_albedo = true
 	m.cull_mode = BaseMaterial3D.CULL_DISABLED
@@ -154,8 +170,14 @@ func _build_walls() -> void:
 			shape.shape = box
 			shape.transform = Transform3D(Basis(Vector3.UP, atan2(-seg.x, -seg.z)), (a + b) * 0.5 + Vector3.UP * 0.8)
 			body.add_child(shape)
-			var c := Color("#ffd23f") if i % 2 == 0 else Color("#ffffff")
-			for v in [a, b, a + Vector3.UP * 1.2, a + Vector3.UP * 1.2, b, b + Vector3.UP * 1.2]:
+			var c := Color("#ff4f6e") if i % 2 == 0 else Color("#ffffff")
+			var out := (seg.cross(Vector3.UP)).normalized() * 0.35 * side
+			var h := Vector3.UP * 1.1
+			var a2: Vector3 = a + out
+			var b2: Vector3 = b + out
+			for v in [a - out, b - out, a - out + h, a - out + h, b - out, b - out + h,
+					a2, a2 + h, b2, b2, a2 + h, b2 + h,
+					a - out + h, b - out + h, a2 + h, a2 + h, b - out + h, b2 + h]:
 				st.set_color(c)
 				st.add_vertex(v)
 	st.generate_normals()
