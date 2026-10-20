@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#ff5fa2">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Sugar Rush Kart</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--pink:#ff5fa2;--pinkd:#c2306f;--mint:#36d1a0;--mintd:#18936c;--yel:#ffc928;--yeld:#c98f00;--choc:#7a4a2a;--chocd:#4a2a14;--ink:#4a1f2e;
+  --sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#2a0f2a;font-family:Fredoka,"Baloo 2","Trebuchet MS",system-ui,sans-serif;color:var(--ink);touch-action:none;overscroll-behavior:none}
+#game{position:fixed;inset:0}
+#view{position:absolute;inset:0;width:100%;height:100%;display:block;image-rendering:pixelated;image-rendering:crisp-edges;object-fit:cover}
+.hidden{display:none!important}
+button{font-family:inherit;cursor:pointer}
+
+/* ---------- HUD ---------- */
+#hud{position:absolute;inset:0;pointer-events:none;color:#fff}
+.out{text-shadow:-2px -2px 0 #8f1d55,2px -2px 0 #8f1d55,-2px 2px 0 #8f1d55,2px 2px 0 #8f1d55,0 4px 0 #5a0f33}
+#hudPos{position:absolute;left:calc(14px + var(--sl));top:calc(6px + var(--st));font-size:54px;font-weight:700;line-height:1;color:#ffe45c}
+#hudPos small{font-size:24px}
+#hudLap{position:absolute;left:calc(16px + var(--sl));top:calc(64px + var(--st));font-size:17px;font-weight:700}
+#hudTime{position:absolute;left:calc(16px + var(--sl));top:calc(86px + var(--st));font-size:15px;font-weight:600}
+#hudCoins{position:absolute;right:calc(70px + var(--sr));top:calc(12px + var(--st));font-size:22px;font-weight:700}
+#btnPause{position:absolute;right:calc(14px + var(--sr));top:calc(8px + var(--st));width:44px;height:44px;border-radius:14px;border:3px solid #fff;background:rgba(255,95,162,.85);color:#fff;font-size:18px;font-weight:700;pointer-events:auto}
+#countdown{position:absolute;left:0;right:0;top:22%;text-align:center;font-size:110px;font-weight:700;color:#fff}
+#countdown{opacity:0}
+#countdown.pop{animation:pop .9s ease-out forwards}
+@keyframes pop{0%{transform:scale(2.2);opacity:0}25%{transform:scale(1);opacity:1}80%{opacity:1}100%{transform:scale(.8);opacity:0}}
+#toast{position:absolute;left:0;right:0;top:34%;text-align:center;font-size:30px;font-weight:700;color:#fff;opacity:0;transition:opacity .25s}
+#toast.on{opacity:1}
+
+/* ---------- Controles táctiles ---------- */
+#controls{position:absolute;inset:0;pointer-events:none}
+.ctl{position:absolute;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;border:4px solid rgba(255,255,255,.9);
+  background:rgba(255,95,162,.45);box-shadow:0 5px 0 rgba(143,29,85,.55);transition:transform .05s,background .05s;backdrop-filter:blur(2px)}
+.ctl.on{transform:translateY(3px) scale(.96);background:rgba(255,95,162,.8);box-shadow:0 2px 0 rgba(143,29,85,.55)}
+#cLeft,#cRight{bottom:calc(18px + var(--sb));width:84px;height:84px;border-radius:24px;font-size:38px}
+#cLeft{left:calc(18px + var(--sl))}
+#cRight{left:calc(116px + var(--sl))}
+#cBrake{right:calc(16px + var(--sr));bottom:calc(16px + var(--sb));width:76px;height:128px;border-radius:20px 20px 26px 26px;font-size:15px;writing-mode:vertical-rl;letter-spacing:3px;
+  background:repeating-linear-gradient(0deg,rgba(90,52,24,.55) 0 10px,rgba(122,74,42,.55) 10px 20px)}
+#cBrake.on{background:repeating-linear-gradient(0deg,rgba(90,52,24,.9) 0 10px,rgba(122,74,42,.9) 10px 20px)}
+.sup{width:70px;height:70px;border-radius:50%;font-size:34px;background:rgba(255,255,255,.25)}
+.sup.ready{background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.9),rgba(255,201,40,.85) 60%,rgba(255,120,40,.9));animation:glow 1s infinite alternate}
+@keyframes glow{to{box-shadow:0 0 18px 4px rgba(255,220,80,.9),0 5px 0 rgba(143,29,85,.55)}}
+#cS1{right:calc(104px + var(--sr));bottom:calc(18px + var(--sb))}
+#cS2{right:calc(92px + var(--sr));bottom:calc(100px + var(--sb))}
+.sup i{position:absolute;bottom:-18px;font-size:11px;font-style:normal;color:#fff;text-shadow:0 1px 2px #000}
+body:not(.touch) #cLeft,body:not(.touch) #cRight,body:not(.touch) #cBrake{display:none}
+body.touch .sup i{display:none}
+body:not(.touch) #cS1{right:calc(24px + var(--sr))}
+body:not(.touch) #cS2{right:calc(104px + var(--sr));bottom:calc(18px + var(--sb))}
+
+/* ---------- Pantallas ---------- */
+#screens{position:absolute;inset:0}
+.scr{position:absolute;inset:0;display:flex;flex-direction:column;
+  padding:calc(8px + var(--st)) calc(14px + var(--sr)) calc(8px + var(--sb)) calc(14px + var(--sl));
+  background:radial-gradient(circle at 12% 18%,rgba(255,255,255,.55) 0 4%,transparent 4.5%),radial-gradient(circle at 88% 78%,rgba(255,255,255,.4) 0 6%,transparent 6.5%),
+  repeating-linear-gradient(-45deg,#ffb6dc 0 26px,#ffc8e5 26px 52px)}
+.scr.overlay{background:rgba(60,10,40,.55);justify-content:center;align-items:center}
+.top{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex:none}
+.top h2{margin:0;font-size:24px;color:#fff;font-weight:700}
+.sp{flex:1}
+.coins{background:#fff;border:3px solid var(--yel);border-radius:20px;padding:3px 12px;font-weight:700;font-size:18px;color:#8a5a00}
+.back{width:44px;height:44px;border-radius:14px;border:3px solid #fff;background:var(--choc);color:#fff;font-size:20px;font-weight:700;box-shadow:0 4px 0 var(--chocd)}
+.icon{width:44px;height:44px;border-radius:14px;border:3px solid #fff;background:#fff6;font-size:20px}
+.btn{font-weight:700;border:3px solid #fff;border-radius:18px;padding:10px 16px;background:linear-gradient(#ff86c0,#ff4f98);color:#fff;
+  box-shadow:0 5px 0 var(--pinkd),0 8px 14px rgba(0,0,0,.18);text-shadow:0 2px 0 rgba(0,0,0,.2);font-size:18px}
+.btn:active{transform:translateY(3px);box-shadow:0 2px 0 var(--pinkd)}
+.btn.mint{background:linear-gradient(#6fe8c2,#2fc996);box-shadow:0 5px 0 var(--mintd),0 8px 14px rgba(0,0,0,.18)}
+.btn.yel{background:linear-gradient(#ffe066,#ffbb1f);box-shadow:0 5px 0 var(--yeld),0 8px 14px rgba(0,0,0,.18)}
+.btn.choc{background:linear-gradient(#9b6640,#6f3f1f);box-shadow:0 5px 0 var(--chocd),0 8px 14px rgba(0,0,0,.18)}
+.btn.sm{font-size:14px;padding:6px 10px;border-radius:12px}
+.btn[disabled]{filter:grayscale(.8);opacity:.6}
+.split{flex:1;display:flex;gap:12px;min-height:0}
+.pane{background:rgba(255,255,255,.82);border-radius:20px;border:3px solid #fff;padding:10px 12px;overflow:auto;touch-action:pan-y;-webkit-overflow-scrolling:touch}
+.stage{flex:0 0 38%;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;position:relative}
+.stage canvas{max-width:100%;max-height:100%}
+.right{flex:1;min-width:0;display:flex;flex-direction:column}
+.lbl{font-weight:700;font-size:14px;margin:8px 0 4px;color:#8f1d55}
+.lbl:first-child{margin-top:0}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{padding:5px 11px;border-radius:12px;background:#fff;border:2px solid #ffc2df;font-size:14px;font-weight:600;color:var(--ink)}
+.chip.on{background:var(--pink);color:#fff;border-color:#fff;box-shadow:0 0 0 2px var(--pink)}
+.sw{width:30px;height:30px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px #e7a3c5;padding:0}
+.sw.on{box-shadow:0 0 0 3px #ff2d87;transform:scale(1.12)}
+input.nm{font-family:inherit;font-size:16px;font-weight:600;border:2px solid #ffc2df;border-radius:12px;padding:6px 10px;width:100%;max-width:240px;color:var(--ink);user-select:text;-webkit-user-select:text}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;flex:none}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
+.item{background:#fff;border-radius:16px;padding:6px;border:3px solid #ffe0ef;text-align:center;font-size:13px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:3px}
+.item.on{border-color:var(--pink);box-shadow:0 0 0 2px #ffd0e6}
+.item.sel{border-color:var(--mint)}
+.item canvas{width:76px;height:76px}
+.item .d{font-size:11px;color:#7a4a5a;min-height:14px}
+.item .d b{color:#18936c}.item .d u{color:#d12a4a;text-decoration:none}
+.stats{width:100%;max-width:300px;background:rgba(255,255,255,.85);border:3px solid #fff;border-radius:16px;padding:6px 10px}
+.stat{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;margin:3px 0}
+.stat span{width:78px}
+.bar{flex:1;height:10px;background:#f3d9e6;border-radius:6px;overflow:hidden;position:relative}
+.bar i,.bar b{position:absolute;top:0;bottom:0;left:0;border-radius:6px}
+.bar i{background:linear-gradient(90deg,#ffd23f,#ff5fa2)}
+.bar b.up{background:#4fdc9f}.bar b.dn{background:#ff6b6b}
+/* menú */
+.logo{font-weight:700;color:#fff;line-height:.9;letter-spacing:1px;
+  text-shadow:-3px -3px 0 #e8247a,3px -3px 0 #e8247a,-3px 3px 0 #e8247a,3px 3px 0 #e8247a,0 6px 0 #8f1d55,0 9px 10px rgba(0,0,0,.25)}
+.logo small{display:block;font-size:.45em;color:#ffe45c;letter-spacing:6px}
+.menuBtns{flex:1;display:flex;flex-direction:column;gap:12px;justify-content:center;max-width:380px;margin-left:auto}
+.menuBtns .btn{font-size:22px;padding:12px 18px;text-align:left}
+.title{align-items:center;justify-content:center;text-align:center}
+.title .logo{font-size:min(17vh,96px)}
+.tap{margin-top:22px;font-size:22px;font-weight:700;color:#fff;animation:blink 1.2s infinite;text-shadow:0 2px 0 #c2306f}
+@keyframes blink{50%{opacity:.35}}
+.hint{margin-top:10px;font-size:13px;color:#8f1d55;font-weight:600}
+.tracks{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.track{background:#fff;border:3px solid #ffe0ef;border-radius:16px;padding:6px;text-align:center;font-weight:700;font-size:14px}
+.track.on{border-color:var(--pink);box-shadow:0 0 0 2px #ffd0e6}
+.track canvas{width:100%;height:auto;border-radius:10px;display:block;margin-bottom:4px}
+.track small{display:block;font-weight:500;font-size:11px;color:#8a5a6a}
+table.res{width:100%;border-collapse:collapse;font-size:14px;font-weight:600}
+table.res td{padding:2px 6px}
+table.res tr.me{background:#ffe45c;border-radius:8px}
+table.res td.p{font-size:18px;font-weight:700;color:#e8247a;width:34px}
+table.res canvas{width:28px;height:28px;vertical-align:middle}
+.box{background:rgba(255,255,255,.9);border:3px solid #fff;border-radius:20px;padding:14px 18px;text-align:center}
+.big{font-size:44px;font-weight:700;color:#e8247a}
+.stack{display:flex;flex-direction:column;gap:10px;align-items:stretch}
+#rotate{display:none;position:fixed;inset:0;z-index:99;background:#ff7ab8;color:#fff;font-size:24px;font-weight:700;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:30px}
+#rotate div{font-size:70px;animation:rot 1.6s infinite}
+@keyframes rot{50%{transform:rotate(90deg)}}
+@media (orientation:portrait){body.touch #rotate{display:flex}}
+@media (max-height:380px){.top h2{font-size:20px}.menuBtns .btn{font-size:19px;padding:9px 14px}.menuBtns{gap:8px}.btn{font-size:16px}#hudPos{font-size:44px}#hudLap{top:calc(54px + var(--st))}#hudTime{top:calc(74px + var(--st))}}
+</style>
+</head>
+<body>
+<div id="game">
+  <canvas id="view"></canvas>
+  <div id="hud" class="hidden">
+    <div id="hudPos" class="out">8º</div>
+    <div id="hudLap" class="out">VUELTA 1/3</div>
+    <div id="hudTime" class="out">0:00.00</div>
+    <div id="hudCoins" class="out">🪙 0</div>
+    <button id="btnPause">❚❚</button>
+    <div id="countdown" class="out"></div>
+    <div id="toast" class="out"></div>
+  </div>
+  <div id="controls" class="hidden">
+    <div class="ctl" id="cLeft" data-k="left">◀</div>
+    <div class="ctl" id="cRight" data-k="right">▶</div>
+    <div class="ctl sup" id="cS1" data-k="s1"><span></span><i>Z</i></div>
+    <div class="ctl sup" id="cS2" data-k="s2"><span></span><i>X</i></div>
+    <div class="ctl" id="cBrake" data-k="brake">FRENO</div>
+  </div>
+  <div id="screens"></div>
+</div>
+<div id="rotate"><div>📱</div>Gira el móvil en horizontal<br>para jugar</div>
+<script src="game.js"></script>
+</body>
+</html>
