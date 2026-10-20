@@ -1,0 +1,119 @@
+extends Node3D
+## Escena de carrera del prototipo (Fase 1): monta pista, kart, cámara y HUD,
+## y aplica las reglas de la carrera (cuenta atrás → carrera → meta).
+
+signal race_finished(time: float)
+
+enum State { COUNTDOWN, RACING, FINISHED }
+
+const LAPS := 3
+const COUNTDOWN_TIME := 3.0
+const CHECKPOINTS := 12
+## Circuito greybox provisional (plano XZ, metros). Sentido: hacia -Z desde la meta.
+const TRACK_POINTS := [
+	Vector3(0, 0, 0), Vector3(0, 0, -120), Vector3(30, 0, -190), Vector3(100, 0, -205),
+	Vector3(155, 0, -160), Vector3(140, 0, -90), Vector3(100, 0, -55), Vector3(115, 0, 10),
+	Vector3(175, 0, 45), Vector3(175, 0, 115), Vector3(110, 0, 155), Vector3(30, 0, 145),
+	Vector3(-20, 0, 90),
+]
+
+## Si es true, el kart lo conduce la IA (lo usan los tests automáticos).
+@export var autopilot := false
+
+var state := State.COUNTDOWN
+var countdown := COUNTDOWN_TIME
+var race_time := 0.0
+var track: TrackBuilder
+var kart: KartBody
+var laps := LapTracker.new(CHECKPOINTS)
+var camera := RaceCamera.new()
+var hud := RaceHud.new()
+var _last_count := 4
+
+
+func _ready() -> void:
+	PlayerInput.ensure_actions()
+	_build_environment()
+	track = TrackBuilder.new()
+	track.control_points = PackedVector3Array(TRACK_POINTS)
+	add_child(track)
+	track.build()
+	kart = KartBody.create()
+	kart.input = AIInput.new(track) if autopilot else PlayerInput.new()
+	kart.surface_query = track.surface_at
+	add_child(kart)
+	kart.place(track.transform_at(-8.0))
+	kart.drift_boost.connect(func(tier: int) -> void: hud.show_message("¡TURBO!" if tier == 1 else "¡SUPERTURBO!", 0.8))
+	add_child(camera)
+	camera.target = kart
+	camera.current = true
+	camera.snap()
+	add_child(hud)
+
+
+func _physics_process(delta: float) -> void:
+	match state:
+		State.COUNTDOWN:
+			countdown -= delta
+			var c := ceili(countdown)
+			if c != _last_count:
+				_last_count = c
+				hud.show_message(str(c) if c > 0 else "¡YA!", 0.9)
+			if countdown <= 0.0:
+				state = State.RACING
+				kart.controls_enabled = true
+		State.RACING:
+			race_time += delta
+			_update_laps()
+	if kart.global_position.y < -10.0 or (not autopilot and Input.is_action_just_pressed("respawn")):
+		respawn()
+	hud.set_values(laps.laps_completed + 1, LAPS, race_time, kart.speed)
+
+
+func _update_laps() -> void:
+	var event := laps.update(track.get_progress(kart.global_position))
+	if event != LapTracker.Event.LAP_COMPLETED:
+		return
+	if laps.laps_completed >= LAPS:
+		state = State.FINISHED
+		kart.controls_enabled = false
+		hud.show_message("¡META!  " + RaceHud.format_time(race_time), 10.0)
+		race_finished.emit(race_time)
+	else:
+		hud.show_message("¡ÚLTIMA VUELTA!" if laps.laps_completed == LAPS - 1 else "VUELTA %d" % (laps.laps_completed + 1))
+
+
+## Devuelve el kart al centro de la pista en el último checkpoint válido.
+func respawn() -> void:
+	var offset := float(laps.last_checkpoint) / CHECKPOINTS * track.length + 2.0
+	kart.place(track.transform_at(offset))
+	camera.snap()
+
+
+func _build_environment() -> void:
+	var sky_mat := ProceduralSkyMaterial.new()
+	sky_mat.sky_top_color = Color("#5fb8ff")
+	sky_mat.sky_horizon_color = Color("#ffd6ec")
+	sky_mat.ground_horizon_color = Color("#ffd6ec")
+	sky_mat.ground_bottom_color = Color("#7ecf8a")
+	var sky := Sky.new()
+	sky.sky_material = sky_mat
+	var env := Environment.new()
+	env.background_mode = Environment.BG_SKY
+	env.sky = sky
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	env.tonemap_mode = Environment.TONE_MAPPER_AGX
+	env.glow_enabled = true
+	env.ssao_enabled = true
+	env.fog_enabled = true
+	env.fog_light_color = Color("#ffd6ec")
+	env.fog_density = 0.0008
+	env.fog_sky_affect = 0.0
+	var we := WorldEnvironment.new()
+	we.environment = env
+	add_child(we)
+	var sun := DirectionalLight3D.new()
+	sun.rotation_degrees = Vector3(-50, -35, 0)
+	sun.light_color = Color("#fff1dc")
+	sun.shadow_enabled = true
+	add_child(sun)
