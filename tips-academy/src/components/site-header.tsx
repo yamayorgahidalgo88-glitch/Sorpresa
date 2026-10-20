@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ArrowRight, ChevronDown, Clock, MapPin, Menu, Phone } from "lucide-react"
+import { ChevronDown, Clock, MapPin, Menu, Phone } from "lucide-react"
 
 import { Logo } from "@/components/logo"
 import { OpenStatus } from "@/components/open-status"
@@ -106,7 +106,7 @@ export function SiteHeader() {
       <div ref={sentinel} aria-hidden="true" className="pointer-events-none absolute top-0 left-0 h-14 w-px" />
       {/* Barra superior: datos útiles en un formato compacto */}
       <div className="bg-ink-deep text-white/85">
-        <div className="mx-auto flex h-10 max-w-7xl items-center justify-between gap-4 px-4 text-[0.8rem] sm:px-8">
+        <div className="mx-auto flex h-10 max-w-7xl items-center gap-4 px-4 text-[0.8rem] sm:px-8">
           <div className="flex items-center gap-5">
             <a href={site.phone.href} className="inline-flex items-center gap-1.5 font-semibold text-white hover:text-sky">
               <Phone className="size-3.5 text-sky" aria-hidden="true" />
@@ -121,13 +121,6 @@ export function SiteHeader() {
               <OpenStatus className="text-[0.8rem] font-normal text-white/85" />
             </span>
           </div>
-          <Link
-            href={site.links.matricula}
-            className="group inline-flex items-center gap-1.5 rounded-full bg-sky px-3 py-1 text-[0.78rem] font-semibold text-ink-deep transition-colors hover:bg-white"
-          >
-            Reservar mi plaza
-            <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
-          </Link>
         </div>
       </div>
 
