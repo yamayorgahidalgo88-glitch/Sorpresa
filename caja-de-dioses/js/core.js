@@ -55,6 +55,7 @@ const LAWS = {
   fuego:     { n: 'El fuego se propaga', d: 'Bosques y casas arden y extienden las llamas.', on: true },
   salvaje:   { n: 'Vida salvaje', d: 'Aparecen ovejas y lobos solos.', on: true },
   bosques:   { n: 'Crecen los bosques', d: 'La pradera se vuelve bosque y la ceniza vuelve a ser hierba.', on: true },
+  separados: { n: 'Sin pueblos dentro de otros', d: 'Nadie funda pueblos nuevos dentro o al lado de otro reino, los vagabundos se unen a su gente y no hay rebeliones. Ideal para guerras entre reinos grandes.', on: false },
   desastres: { n: 'Desastres naturales', d: 'De vez en cuando caen rayos y meteoritos.', on: false },
 };
 

@@ -32,7 +32,9 @@ Para jugar, abre `index.html` en un navegador moderno. No hace falta instalar na
 ### Mods (se activan y desactivan en la pestaña Mods)
 Tecnología y forja, Razas extra, Bestiario, Apocalipsis, Héroes y leyendas, Diplomacia, Magia, Más allá, Invasión alien, Clima y estaciones, Modo dios, Religiones, Ecosistema (ciervos, osos, conejos, cangrejos, peces, pájaros, gallinas y mascotas), Rasgos ampliados, Superpoderes, Enfermedades y Mentes visibles.
 
-Desde la misma pestaña hay dos editores. **Crear rasgo** inventa rasgos propios con sus efectos, que se heredan como los demás. **Crear especie** diseña un pueblo nuevo: aspecto, colores, fuerza, vida, carácter y rasgos innatos. Las dos cosas se guardan en el navegador y viajan dentro de las partidas exportadas.
+En **Leyes**, «Sin pueblos dentro de otros» impide que nazcan pueblos pequeños dentro o al lado de otro reino y quita las rebeliones, para que las guerras sean entre reinos grandes.
+
+Desde la pestaña **Mods** hay dos editores. **Crear rasgo** inventa rasgos propios con sus efectos, que se heredan como los demás. **Crear especie** diseña un pueblo nuevo: aspecto, colores, fuerza, vida, carácter y rasgos innatos. Las dos cosas se guardan en el navegador y viajan dentro de las partidas exportadas.
 
 ### Mundo vivo
 Relieve continuo en montañas, costas con espuma y degradado de profundidad, estaciones (otoño dorado, inviernos nevados), día y noche con las casas iluminadas, nubes, lluvia y tormentas, humo de chimeneas y minimapa.
@@ -47,6 +49,7 @@ La pestaña **Historia** muestra una gráfica con la población de cada reino a�
 En el menú **Mundo** hay tres ranuras, un autoguardado cada tres minutos y la opción de exportar o importar el mundo a un archivo `.json`.
 
 ## Controles
+- La **mano ✋** (arriba a la izquierda, o la tecla `H`) sirve para moverte sin cambiar nada: arrastra para desplazar el mapa y toca para ver un ser, un barco, un edificio (con su nivel) o una ciudad. Al elegir otra herramienta, la mano se quita sola.
 - `espacio`: pausa. `1`–`5`: velocidad.
 - `WASD` o las flechas: mover la cámara. `+` y `−`: zoom.
 - `I`: inspeccionar. `[` y `]`: tamaño del pincel. `Esc`: cerrar ventanas.

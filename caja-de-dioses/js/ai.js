@@ -248,7 +248,7 @@ function settleHere(u) {
   u.settler = null;
   if (!follow && foundCity(u)) return;
   const near = cities.find(cc => cc && cc.alive && cc.k === u.k && dist2(cc.x, cc.y, u.x, u.y) < 100);
-  if (near) u.city = near.id; else if (!u.city || u.city < 0) foundCity(u);
+  if (near) u.city = near.id; else if ((!u.city || u.city < 0) && !foundCity(u) && LAWS.separados.on) { const own = cities.find(cc => cc && cc.alive && cc.k === u.k); if (own) u.city = own.id; }
 }
 
 // ---------- relaciones ----------
@@ -394,7 +394,8 @@ function think(u) {
     if (u.k && !u.k.alive) u.k = null;
     const i = (u.y | 0) * W + (u.x | 0);
     if (u.age > 12 && !owner[i] && TILE[tile[i]].build && !nearCity(u.x, u.y, 10) && rnd() < .3) { foundCity(u); return; }
-    const jc = cities.find(cc => cc && cc.alive && (cc.k === u.k || (!u.k && cc.k.race === u.type)) && dist2(cc.x, cc.y, u.x, u.y) < 600 && region[cc.y * W + cc.x] === regAt(u.x, u.y));
+    const far = LAWS.separados.on ? 1e9 : 600;
+    const jc = cities.find(cc => cc && cc.alive && (cc.k === u.k || (!u.k && cc.k.race === u.type)) && dist2(cc.x, cc.y, u.x, u.y) < far && region[cc.y * W + cc.x] === regAt(u.x, u.y));
     if (jc) { u.city = jc.id; u.k = jc.k; return; }
   }
   // una tarea en marcha solo se interrumpe por hambre o sueño extremos

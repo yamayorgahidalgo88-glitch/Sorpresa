@@ -1,6 +1,16 @@
 "use strict";
 // ---------- entrada ----------
 let hover = null, painting = false, panning = null, lastApply = 0, lastWall = null;
+// mano: arrastrar mueve el mapa y tocar inspecciona, sin cambiar nada del mundo
+let handMode = false;
+function setHand(on) {
+  handMode = on;
+  document.getElementById('handBtn').classList.toggle('on', on);
+  view.classList.toggle('hand', on);
+  if (on) { painting = false; toast('Mano: arrastra para moverte, toca algo para ver qué es'); }
+  updateHint();
+}
+document.getElementById('handBtn').onclick = () => setHand(!handMode);
 const pointers = new Map(); let pinch = null;
 function screenToWorld(px, py) { const r = view.getBoundingClientRect(); return { x: cam.x + (px - r.left) / cam.z, y: cam.y + (py - r.top) / cam.z }; }
 function zoomAt(px, py, f) {
@@ -21,7 +31,7 @@ view.addEventListener('pointerdown', e => {
     pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2 };
     return;
   }
-  if (e.button === 1 || e.button === 2 || curTool.kind === 'move') { panning = { x: e.clientX, y: e.clientY, cx: cam.x, cy: cam.y }; return; }
+  if (e.button === 1 || e.button === 2 || curTool.kind === 'move' || (handMode && e.button === 0)) { panning = { x: e.clientX, y: e.clientY, cx: cam.x, cy: cam.y, tap: e.button === 0, moved: 0 }; if (handMode) view.classList.add('grabbing'); return; }
   if (e.button === 0) {
     const w = screenToWorld(e.clientX, e.clientY);
     hover = w;
@@ -43,11 +53,13 @@ view.addEventListener('pointermove', e => {
   }
   hover = screenToWorld(e.clientX, e.clientY);
   if (lastWall) { wallLine(lastWall.x, lastWall.y, hover.x, hover.y, curTool.kind === 'wall'); lastWall = hover; }
-  if (panning) { cam.x = panning.cx - (e.clientX - panning.x) / cam.z; cam.y = panning.cy - (e.clientY - panning.y) / cam.z; clampCam(); }
+  if (panning) { panning.moved = Math.max(panning.moved, Math.hypot(e.clientX - panning.x, e.clientY - panning.y)); cam.x = panning.cx - (e.clientX - panning.x) / cam.z; cam.y = panning.cy - (e.clientY - panning.y) / cam.z; clampCam(); followSel = null; }
   updateHint();
 });
 function endPointer(e) {
   if (held.length) dropUnits();
+  if (panning && panning.tap && panning.moved < 7 && pointers.size <= 1) { const w = screenToWorld(panning.x, panning.y); inspectAt(w.x, w.y); }
+  view.classList.remove('grabbing');
   pointers.delete(e.pointerId); if (pointers.size < 2) pinch = null;
   if (!pointers.size) { painting = false; panning = null; if (lastWall) { lastWall = null; computeRegions(); sideDirty = true; } }
 }
@@ -71,6 +83,7 @@ window.addEventListener('keydown', e => {
   if (e.key === '+' || e.key === '=') document.getElementById('zin').click();
   if (e.key === '-') document.getElementById('zout').click();
   if (e.key === 'i' || e.key === 'I') selectTool(TOOLS.find(t => t.id === 'inspect'));
+  if (e.key === 'h' || e.key === 'H') setHand(!handMode);
   if (e.key === '[') setBrush(brush - 1); if (e.key === ']') setBrush(brush + 1);
   if (e.key === 'Escape') { document.getElementById('modal').hidden = true; document.getElementById('traitModal').hidden = true; document.getElementById('raceModal').hidden = true; warPick = null; followSel = null; }
 });

@@ -457,7 +457,7 @@ function render() {
     }
   }
   // pincel
-  if (hover && !['inspect', 'move', 'act', 'spawn', 'bolt', 'heroize', 'village', 'declare', 'peace', 'gift', 'scope', 'poke', 'enlight', 'discord', 'friend', 'turncoat'].includes(curTool.kind) && !(curTool.kind === 'trait' && traitScope === 'village')) {
+  if (hover && !handMode && !['inspect', 'move', 'act', 'spawn', 'bolt', 'heroize', 'village', 'declare', 'peace', 'gift', 'scope', 'poke', 'enlight', 'discord', 'friend', 'turncoat'].includes(curTool.kind) && !(curTool.kind === 'trait' && traitScope === 'village')) {
     const [sx, sy] = toS(hover.x, hover.y);
     const k = curTool.kind;
     const r = (k === 'quake' ? 8 + brush : k === 'flood' ? 6 + brush : k === 'nuke' ? 15 : k === 'bomb' ? 3 + brush * .5 : k === 'meteor' ? 4 + brush * .4 : k === 'wall' ? Math.max(.75, brush * .3) : k === 'unwall' ? Math.max(1, brush * .7) : k === 'ore' ? Math.max(.8, brush * .6) : (k === 'trait' || k === 'untrait') ? Math.max(1.2, brush * .8) : k === 'magnet' ? Math.max(1.2, brush * .9) : brush) * z;

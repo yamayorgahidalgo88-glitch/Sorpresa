@@ -199,8 +199,24 @@ function applyTool(t, x, y, first) {
       const k = kingdomAt(x, y); if (!k) { toast('Toca un pueblo'); break; }
       if (!warPick || !warPick.alive) { warPick = k; toast(`${k.name} elegido. Ahora toca el otro pueblo.`); break; }
       if (warPick === k) { toast('Elige otro pueblo distinto'); break; }
-      bumpOpinion(warPick, k, t.kind === 'discord' ? -45 : 45, t.kind === 'discord' ? 'Intrigas divinas' : 'Amistad divina');
-      addLog(t.kind === 'discord' ? `Los dioses siembran la discordia entre ${el(warPick)} y ${el(k)}.` : `Los dioses inspiran amistad entre ${el(warPick)} y ${el(k)}.`, t.kind === 'discord' ? 'war' : 'peace', cities[k.capital]);
+      const a = warPick, ca = cities[a.capital], cb = cities[k.capital];
+      if (t.kind === 'discord') {
+        bumpOpinion(a, k, -70, 'Intrigas divinas');
+        if (a.allies.has(k.id)) { a.allies.delete(k.id); k.allies.delete(a.id); }
+        addLog(`Los dioses siembran la discordia entre ${el(a)} y ${el(k)}.`, 'war', cb);
+        // si pueden llegar uno al otro (por tierra o con barcos), estalla la guerra
+        const reach = kingdomsTouch(a, k) || cities.some(c => c && c.alive && (c.k === a || c.k === k) && c.has?.[B.DOCKS]);
+        if (!a.wars.has(k.id) && LAWS.guerras.on && reach) { declareWar(a, k); toast(`¡${a.name} y ${k.name} se odian y entran en guerra!`); }
+        else if (!a.wars.has(k.id)) toast(`${a.name} y ${k.name} se odian (${opinion(a, k).v}). ${LAWS.guerras.on ? 'Les separa el mar o una frontera: lucharán cuando tengan barcos o se toquen.' : 'Las guerras automáticas están apagadas en Leyes.'}`);
+        else toast('Ya estaban en guerra: ahora se odian todavía más');
+      } else {
+        bumpOpinion(a, k, 70, 'Amistad divina');
+        if (a.wars.has(k.id)) makePeace(a, k);
+        if (!a.allies.has(k.id) && modOn('diplomacia')) { a.allies.add(k.id); k.allies.add(a.id); addLog(`Alianza entre ${el(a)} y ${el(k)} por voluntad divina.`, 'peace', ca); }
+        toast(`${a.name} y ${k.name} ahora son amigos (${opinion(a, k).v})`);
+      }
+      for (const c of [ca, cb]) if (c) { burst(c.x + .5, c.y + .5, t.kind === 'discord' ? [190, 60, 230] : [255, 200, 120], 18, 1.2); pingAt(c.x + .5, c.y + .5); }
+      sfx(t.kind === 'discord' ? 'war' : 'peace', undefined, undefined, 1, 0);
       warPick = null; sideDirty = true; break;
     }
     case 'turncoat': {

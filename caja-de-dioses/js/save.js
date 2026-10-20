@@ -53,7 +53,7 @@ function deserialize(data) {
   UMAP.clear(); for (const u of units) UMAP.set(u.id, u);
   for (const k of kingdoms) { k.king = byId[k.kingId] || null; delete k.kingId; }
   computeRegions(); for (const c of cities) if (c && c.alive) scanCity(c);
-  selected = null; selectedCity = null; selectedKingdom = null; warPick = null; followSel = null;
+  selected = null; selectedCity = null; selectedBld = -1; selectedKingdom = null; warPick = null; followSel = null;
   centerCam(); applyModChange(); renderTabs(); renderTools(); setSpeed(0); sideDirty = true;
   return true;
 }

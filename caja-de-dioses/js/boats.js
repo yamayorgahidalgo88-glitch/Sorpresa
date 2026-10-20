@@ -3,7 +3,7 @@
 // Las ciudades con muelle botan barcos para colonizar otras islas, desembarcar
 // ejércitos en tierras enemigas o comerciar. Los pasajeros salen del mundo
 // mientras navegan y vuelven a él al desembarcar.
-SP.boat = { n: 'Barco', skin: [150, 104, 62], hp: 70, atk: 0, spd: .75, age: [400, 500], waterOnly: 1, boat: 1, spr: 'boat' };
+SP.boat = { n: 'Barco', skin: [150, 104, 62], hp: 70, atk: 0, spd: .75, age: [400, 500], waterOnly: 1, boat: 1, spr: 'boat', size: 1.8 };
 USPR.boat = { f: [['....w.....', '....wbb...', '....wbbb..', '....wbbbb.', '.ssssssss.', 'sSSSSSSSSs', '.SSSSSSSS.'], ['....w.....', '....wbb...', '....wbbbb.', '....wbbb..', '.ssssssss.', 'sSSSSSSSSs', '.SSSSSSSS.']] };
 
 function dockWater(c) {
@@ -28,6 +28,8 @@ function launchBoat(c, cargo, mission) {
   const b = spawn('boat', dw[0] + .5, dw[1] + .5, c.k, c.id);
   if (!b) return null;
   b.cargo = cargo; b.mission = { born: tickN, home: dw, ...mission };
+  const what = { settle: 'con colonos hacia una tierra nueva', invade: 'con soldados hacia ' + (mission.tname || 'tierra enemiga'), trade: 'para comerciar' }[mission.kind];
+  if (what) addLog(`${c.name} bota un barco ${what}.`, mission.kind === 'invade' ? 'war' : 'found', b);
   for (const p of cargo) { p.aboard = b.id; p.task = null; p.path = null; p.target = null; }
   const ids = new Set(cargo.map(p => p.id));
   units = units.filter(o => !ids.has(o.id));
@@ -80,7 +82,7 @@ function tryOverseas(c, members, explore) {
     const x = Math.round(c.x + Math.cos(ang) * d), y = Math.round(c.y + Math.sin(ang) * d);
     if (x < 2 || y < 2 || x >= W - 2 || y >= H - 2) continue;
     const i = y * W + x;
-    if (owner[i] || region[i] === reg || !region[i] || !TILE[tile[i]].build || !canStand(SP[c.k.race], x, y) || nearCity(x, y, 11)) continue;
+    if (owner[i] || region[i] === reg || !region[i] || !TILE[tile[i]].build || !canStand(SP[c.k.race], x, y) || nearCity(x, y, 11) || (LAWS.separados.on && foreignNear(c.k, x, y, 16))) continue;
     const land = landingFor(x, y); if (!land) continue;
     const crew = members.filter(o => !o.army && !o.settler && o !== c.k.king && o.age >= 16).slice(0, 5);
     if (crew.length < 2) return false;

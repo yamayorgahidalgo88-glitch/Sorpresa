@@ -92,7 +92,7 @@ if (!seenWelcome && !new URLSearchParams(location.search).has('directo')) {
   document.getElementById('wContinue').hidden = !saveMeta().auto && !saveMeta()[1];
 }
 const closeWelcome = () => { welcome.hidden = true; try { sessionStorage.setItem('cdd-welcome', '1'); } catch (e) { } };
-document.getElementById('wPlay').onclick = () => { closeWelcome(); setSpeed(1); curTab = 'dios'; renderTabs(); selectTool(TOOLS.find(t => t.id === 'inspect')); toast('Un mundo vivo. Toca a cualquiera para ver qué piensa.'); };
+document.getElementById('wPlay').onclick = () => { closeWelcome(); setSpeed(1); setHand(true); toast('Un mundo vivo. Con la mano ✋ arrastras el mapa; toca a alguien, un edificio o un barco para verlo.'); };
 document.getElementById('wEmpty').onclick = () => { closeWelcome(); newWorld(192, 112, 'cont', 'few', 'none'); };
 document.getElementById('wContinue').onclick = () => { closeWelcome(); loadSlot(saveMeta().auto ? 'auto' : 1); };
 renderTabs(); renderTools(); setBrush(3); updateHint(); renderStats(); renderSide(); checkRotate();

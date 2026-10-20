@@ -21,10 +21,20 @@ function nameKingdom(k) {
   if (k.custom) { k.name = k.custom; k.fem = k.customFem; return; }
   const t = KT[k.race][k.rank]; k.name = t[0] + ' ' + k.base; k.fem = !!t[1];
 }
+// ¿hay ciudades o territorio de otro reino cerca de (x,y)?
+function foreignNear(k, x, y, r) {
+  for (const c of cities) if (c && c.alive && c.k !== k && dist2(c.x, c.y, x, y) < r * r) return true;
+  for (let yy = Math.max(0, y - r); yy <= Math.min(H - 1, y + r); yy += 2) for (let xx = Math.max(0, x - r); xx <= Math.min(W - 1, x + r); xx += 2) {
+    const o = owner[yy * W + xx]; if (o) { const c = cities[o - 1]; if (c && c.alive && c.k !== k) return true; }
+  }
+  return false;
+}
 function foundCity(u, force) {
   u.settler = null;
   const x = u.x | 0, y = u.y | 0, i = y * W + x;
   if (!force && (owner[i] || !TILE[tile[i]].build || nearCity(x, y, 8))) return null;
+  // ley «Sin pueblos dentro de otros»: ni reinos nuevos ni colonias pegadas a otro reino
+  if (!force && LAWS.separados.on && (!(u.k && u.k.alive) || foreignNear(u.k, x, y, 14))) return null;
   let k = u.k && u.k.alive ? u.k : null;
   const isNew = !k;
   if (!k) k = newKingdom(u.type, u);
@@ -93,14 +103,14 @@ function tryCapture(u, c) {
 }
 function scanCity(c) {
   let houses = 0, fields = 0, owned = 0, food = 0, coast = false;
-  const has = {}; c.towers = []; c.barracks = -1; c.temple = -1; c.docks = -1;
+  const has = {}; c.towers = []; c.barracks = -1; c.temple = -1; c.docks = -1; c.blist = [];
   const r = Math.ceil(c.radius) + 4, id1 = c.id + 1;
   c.ores = [];
   for (let y = Math.max(0, c.y - r); y <= Math.min(H - 1, c.y + r); y++) for (let x = Math.max(0, c.x - r); x <= Math.min(W - 1, c.x + r); x++) {
     const i = y * W + x;
     if (ore[i] && (owner[i] === id1 || (!owner[i] && dist2(x, y, c.x, c.y) < (c.radius + 3) ** 2)) && region[i] !== -1) c.ores.push(i);
     if (owner[i] !== id1) continue;
-    owned++; const b = bld[i]; if (b === 1) houses++; else if (b >= 5) { has[b] = (has[b] || 0) + 1; if (b === B.TOWER) c.towers.push(i); else if (b === B.BARRACKS) c.barracks = i; else if (b === B.TEMPLE) c.temple = i; else if (b === B.DOCKS) c.docks = i; }
+    owned++; const b = bld[i]; if (b === 1) houses++; else if (b >= 5) { has[b] = (has[b] || 0) + 1; c.blist.push({ i, b }); if (b === B.TOWER) c.towers.push(i); else if (b === B.BARRACKS) c.barracks = i; else if (b === B.TEMPLE) c.temple = i; else if (b === B.DOCKS) c.docks = i; }
     const t = tile[i]; if (t === T.FIELD) fields++;
     food += TILE[t].food || 0;
     if ((x > 0 && isWater(tile[i - 1])) || (x < W - 1 && isWater(tile[i + 1])) || (i >= W && isWater(tile[i - W])) || (i < N - W && isWater(tile[i + W]))) { food += .25; coast = true; }
@@ -199,7 +209,7 @@ function cityUpdate(c) {
         const x = Math.round(c.x + Math.cos(ang) * d), y = Math.round(c.y + Math.sin(ang) * d);
         if (x < 2 || y < 2 || x >= W - 2 || y >= H - 2) continue;
         const i = y * W + x;
-        if (!owner[i] && region[i] === reg && TILE[tile[i]].build && canStand(sp, x, y) && !nearCity(x, y, 11)) {
+        if (!owner[i] && region[i] === reg && TILE[tile[i]].build && canStand(sp, x, y) && !nearCity(x, y, 11) && !(LAWS.separados.on && foreignNear(k, x, y, 16))) {
           s.settler = { x, y, t: 0 }; s.city = -1; s.task = null; s.think = 0; s.prof = null; s.food = 100; s.energy = Math.max(s.energy, 80);
           let n = 0;
           for (const o of members) { if (n >= 4) break; if (o === s || o.army || o.settler || o === k.king) continue; o.settler = { x: x + ri(-1, 1), y: y + ri(-1, 1), follow: 1, t: 0 }; o.city = -1; o.task = null; o.think = ri(0, 5); o.prof = null; o.food = 100; o.energy = Math.max(o.energy, 80); n++; }
@@ -213,7 +223,7 @@ function cityUpdate(c) {
   else if (rnd() < .03) tryTrade(c);
   if (c.pop === 0) { if (++c.empty > 10) destroyCity(c, 'queda abandonada'); } else c.empty = 0;
   // rebelión
-  if (LAWS.rebelion.on && modOn('diplomacia') && k.capital !== c.id && c.pop > 10 && year() - k.born > 15) {
+  if (LAWS.rebelion.on && !LAWS.separados.on && modOn('diplomacia') && k.capital !== c.id && c.pop > 10 && year() - k.born > 15) {
     const cap = cities[k.capital];
     const far = cap ? Math.sqrt(dist2(cap.x, cap.y, c.x, c.y)) : 50;
     const kc = cities.filter(o => o && o.alive && o.k === k).length;

@@ -106,10 +106,10 @@ function applyModChange() {
   if (!modOn('trucos') && speed > 5) setSpeed(5);
   sideDirty = true;
 }
-function selectTool(t) { sfx('ui', undefined, undefined, 1, 40); curTool = t; warPick = null; renderTools(); updateHint(); if (t.kind === 'declare' || t.kind === 'peace') toast('Toca el primer pueblo'); }
+function selectTool(t) { sfx('ui', undefined, undefined, 1, 40); if (handMode) setHand(false); curTool = t; warPick = null; renderTools(); updateHint(); if (t.kind === 'declare' || t.kind === 'peace') toast('Toca el primer pueblo'); }
 function updateHint() {
   const h = document.getElementById('hint');
-  let s = curTool.kind === 'scope' ? 'Rasgos' : curTool.n;
+  let s = handMode ? 'Mano ✋ · arrastra para moverte, toca para ver' : curTool.kind === 'scope' ? 'Rasgos' : curTool.n;
   if (hover) {
     const x = hover.x | 0, y = hover.y | 0;
     if (x >= 0 && y >= 0 && x < W && y < H) {
@@ -156,15 +156,7 @@ document.getElementById('sideToggle').onclick = () => { side.classList.toggle('c
 document.getElementById('sideClose').onclick = () => side.classList.add('closed');
 document.querySelectorAll('#sideTabs button[data-p]').forEach(b => b.onclick = () => { sidePane = b.dataset.p; if (sidePane === 'kingdoms') selectedKingdom = null; sideDirty = true; renderSide(); });
 function openSide(p) { sidePane = p; side.classList.remove('closed'); sideDirty = true; renderSide(); }
-function select(u) { selected = u; selectedCity = null; selectedDeadName = null; openSide('ins'); }
-function inspectAt(x, y) {
-  rebuildGrid();
-  const u = nearest(x, y, 2.2, () => true);
-  if (u) { select(u); return; }
-  const xi = x | 0, yi = y | 0;
-  if (xi >= 0 && yi >= 0 && xi < W && yi < H && owner[yi * W + xi]) { const c = cities[owner[yi * W + xi] - 1]; if (c && c.alive) { selected = null; selectedCity = c; openSide('ins'); return; } }
-  toast(`${TILE[tile[yi * W + xi]]?.n || 'Nada'} · nadie aquí`);
-}
+function select(u) { selected = u; selectedCity = null; selectedBld = -1; selectedDeadName = null; openSide('ins'); }
 function resGrid(k) {
   return '<div class="res">' + RESLIST.filter(r => { const m = MAT[MATID[r[0]]]; return !m || modOn(m.mod); }).map(([id, n, c]) => { const v = Math.floor(k.res[id] || 0); return `<span class="${v ? '' : 'zero'}"><i style="background:${css(c)}"></i>${n}<b>${v}</b></span>`; }).join('') + '</div>';
 }
@@ -240,20 +232,21 @@ function renderSide() {
   } else {
     if (selected && !selected.dead) {
       const u = selected;
-      sideBody.innerHTML = unitPanel(u);
+      sideBody.innerHTML = u.def.boat ? boatPanel(u) : unitPanel(u);
+      bindInspect({ city: cities[u.city] });
       sideBody.querySelectorAll('[data-a]').forEach(b => b.onclick = () => unitAct(u, b.dataset.a));
       sideBody.querySelectorAll('[data-u]').forEach(b => b.onclick = () => { const o = unitById(+b.dataset.u); if (o) select(o); });
+    } else if (selectedBld >= 0 && bld[selectedBld]) {
+      const L = bldLevel(selectedBld);
+      sideBody.innerHTML = buildingPanel(selectedBld);
+      bindInspect({ city: L.c });
     } else if (selectedCity && selectedCity.alive) {
-      const c = selectedCity, k = c.k;
-      sideBody.innerHTML = `<div class="ins"><h3>${esc(c.name)}</h3><div class="sub">${k.capital === c.id ? 'Capital ' : 'Ciudad '}${esc(del(k))} · fundada en el año ${c.born}</div>
-        <dl><dt>Población</dt><dd>${c.pop} / ${c.cap}</dd><dt>Casas</dt><dd>${c.houses}</dd><dt>Cultivos</dt><dd>${c.fields}</dd><dt>Comida</dt><dd>${SP[k.race].noFood ? 'no necesita' : c.food.toFixed(0)}</dd><dt>Minas cerca</dt><dd>${c.ores.length}</dd><dt>Ánimo</dt><dd>${Math.round(c.mood ?? 60)}</dd></dl>
-        <h4>Edificios</h4><div class="chips">${Object.entries(c.has || {}).map(([b, n]) => `<span class="chip" title="${esc(BUILDINGS[b]?.d || '')}">${esc(BLD_NAME[b])}${n > 1 ? ' ×' + n : ''}</span>`).join('') || '<span class="empty">Solo casas. Con más población levantarán granero, cuartel, templo…</span>'}</div>
-        <h4>Oficios</h4><div class="chips">${profChips(c)}</div>
-        <button class="tbtn" data-c="kingdom">Ver ${esc(k.name)}</button>
-        ${modOn('trucos') ? `<div class="acts"><button data-c="grow">+10 habitantes</button>${modOn('diplomacia') ? '<button data-c="rebel">Provocar rebelión</button>' : ''}<button data-c="burn" class="bad">Destruir ciudad</button></div>` : ''}</div>`;
+      const c = selectedCity;
+      sideBody.innerHTML = cityPanel(c);
       sideBody.querySelectorAll('[data-c]').forEach(b => b.onclick = () => cityAct(c, b.dataset.c));
+      bindInspect({ city: c });
     } else {
-      sideBody.innerHTML = `<p class="empty">${selectedDeadName ? esc(selectedDeadName) + ' ha muerto. ' : ''}Elige <b>Inspeccionar</b> (pestaña Dios o tecla I) y toca un ser o una ciudad para ver sus rasgos, armas y datos.</p>`;
+      sideBody.innerHTML = `<p class="empty">${selectedDeadName ? esc(selectedDeadName) + ' ha muerto. ' : ''}Pulsa la <b>mano ✋</b> (arriba a la izquierda) o <b>Inspeccionar</b> y toca un ser, un barco, un edificio o una ciudad para ver sus datos.</p>`;
     }
   }
   sideBody.scrollTop = scroll;
