@@ -22,6 +22,7 @@ func _ready() -> void:
 	add_child(turntable)
 	visuals = KartVisuals.new()
 	visuals.config = GameState.kart
+	visuals.avatar = GameState.avatar
 	turntable.add_child(visuals)
 	turntable.rotation.y = -0.6
 	add_child(camera)
@@ -40,6 +41,29 @@ func frame_camera(screen_shift: float) -> void:
 func show_config(cfg: KartConfig) -> void:
 	visuals.rebuild(cfg)
 	_pop()
+
+
+## Modo editor de personaje: muestra solo el avatar, de pie y más cerca de la cámara.
+func show_avatar(cfg: AvatarConfig, pop := true) -> void:
+	if visuals:
+		visuals.queue_free()
+		visuals = null
+	for c in turntable.get_children():
+		c.queue_free()
+	var a := AvatarBuilder.build(cfg)
+	a.scale *= 2.2
+	turntable.add_child(a)
+	var anim := a.find_child("AnimationPlayer", true, false) as AnimationPlayer
+	anim.get_animation("idle").loop_mode = Animation.LOOP_LINEAR
+	anim.play("idle")
+	if pop:
+		_pop()
+
+
+## Encuadre cercano para el editor de personaje.
+func frame_portrait(screen_shift: float) -> void:
+	camera.position = Vector3(-screen_shift, 1.6, 5.2)
+	camera.look_at(Vector3(-screen_shift, 1.05, 0.0))
 
 
 func _process(delta: float) -> void:

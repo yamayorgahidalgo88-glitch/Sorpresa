@@ -9,7 +9,8 @@ const DRIVER_SCALE := 2.0
 const BASE_WHEEL_RADIUS := 0.125
 const DRIFT_COLORS := [Color("#5fc8ff"), Color("#ff9a2a")]
 
-@export var driver_scene: PackedScene = preload("res://assets/kenney/mini-characters/character-female-a.glb")
+## Apariencia del piloto. Si es null se usa un avatar por defecto.
+var avatar: AvatarConfig
 
 ## Piezas a mostrar. Si es null se usa la configuración guardada del jugador.
 var config: KartConfig
@@ -61,16 +62,15 @@ func rebuild(cfg: KartConfig) -> void:
 		_wheels_all.append(w)
 		if w.name.begins_with("wheel-f"):
 			_wheels_front.append(w)
-	driver = driver_scene.instantiate() as Node3D
+	driver = AvatarBuilder.build(avatar if avatar else AvatarConfig.new())
 	driver.position = body["seat"] + Vector3.UP * lift
-	driver.scale = Vector3.ONE * DRIVER_SCALE
+	driver.scale *= DRIVER_SCALE
 	driver.rotation.y = PI
 	model.add_child(driver)
 	driver_anim = driver.find_child("AnimationPlayer", true, false)
 	play_driver("drive" if kart else "idle")
 	var paint_path: String = KartCatalog.PAINTS[cfg.paint]["texture"]
 	ToonLook.apply(car, load(paint_path) if paint_path != "" else null)
-	ToonLook.apply(driver)
 	_build_effects()
 
 

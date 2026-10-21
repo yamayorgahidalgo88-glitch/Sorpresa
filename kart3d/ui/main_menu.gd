@@ -31,7 +31,7 @@ func _ready() -> void:
 	var entries := [
 		["🏁  Carrera", UiStyle.ACCENT, "res://scenes/race.tscn", true],
 		["🔧  Garaje", Color("#8a6fd6"), "res://scenes/garage.tscn", true],
-		["🙂  Personaje (próximamente)", Color("#ffb020"), "", false],
+		["🙂  Personaje", Color("#ffb020"), "res://scenes/avatar_editor.tscn", true],
 	]
 	var first: Button
 	for e in entries:

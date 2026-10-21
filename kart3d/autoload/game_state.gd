@@ -3,9 +3,10 @@ extends Node
 ## El archivo lleva número de versión para poder migrar partidas de versiones anteriores.
 
 const SAVE_PATH := "user://save.json"
-const SAVE_VERSION := 1
+const SAVE_VERSION := 2
 
 var kart := KartConfig.new()
+var avatar := AvatarConfig.new()
 var show_fps := false
 
 
@@ -14,7 +15,7 @@ func _ready() -> void:
 
 
 func save_game() -> void:
-	var data := {"version": SAVE_VERSION, "kart": kart.to_dict()}
+	var data := {"version": SAVE_VERSION, "kart": kart.to_dict(), "avatar": avatar.to_dict()}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f == null:
 		push_warning("No se pudo guardar la partida: %s" % FileAccess.get_open_error())
@@ -31,6 +32,7 @@ func load_game() -> void:
 		return
 	var data := migrate(parsed)
 	kart = KartConfig.from_dict(data.get("kart", {}))
+	avatar = AvatarConfig.from_dict(data.get("avatar", {}))
 
 
 ## Actualiza datos guardados con versiones anteriores al formato actual.
@@ -38,4 +40,8 @@ static func migrate(data: Dictionary) -> Dictionary:
 	var v := int(data.get("version", 0))
 	if v < 1:
 		data = {"version": 1, "kart": data.get("kart", {})}
+	if v < 2:
+		# La versión 2 añade el avatar; las partidas antiguas reciben el avatar por defecto.
+		data["version"] = 2
+		data["avatar"] = AvatarConfig.new().to_dict()
 	return data

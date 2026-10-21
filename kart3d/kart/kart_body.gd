@@ -25,7 +25,7 @@ var boost_time := 0.0
 
 
 ## Crea un kart completo (colisión + presentación) a partir de una configuración de piezas.
-static func create(config: KartConfig = null) -> KartBody:
+static func create(config: KartConfig = null, avatar: AvatarConfig = null) -> KartBody:
 	if config == null:
 		config = KartConfig.new()
 	var kart := KartBody.new()
@@ -39,6 +39,7 @@ static func create(config: KartConfig = null) -> KartBody:
 	var visuals := KartVisuals.new()
 	visuals.name = "KartVisuals"
 	visuals.config = config
+	visuals.avatar = avatar
 	kart.add_child(visuals)
 	return kart
 

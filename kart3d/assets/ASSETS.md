@@ -5,7 +5,7 @@ Cada recurso incluido en el proyecto, con su licencia y su procedencia. No se a�
 | Recurso | Ruta | Licencia | Fuente | Uso |
 |---|---|---|---|---|
 | Kenney Toy Car Kit (subconjunto: 5 vehículos, 3 ruedas, arco de meta, cono, árboles, caja, moneda, humo, texturas de color) | `kenney/toy-car-kit/` | CC0 1.0 (`License.txt`) | https://kenney.nl/assets/toy-car-kit | Karts y decorado |
-| Kenney Mini Characters (12 personajes, gafas) | `kenney/mini-characters/` | CC0 1.0 (`License.txt`) | https://kenney.nl/assets/mini-characters | Pilotos (animación `drive`, `emote-yes`…). Cabeza y cuerpo son mallas separadas sobre un esqueleto común: base para el editor de avatares. |
+| Kenney Mini Characters (12 personajes, gafas) | `kenney/mini-characters/` | CC0 1.0 (`License.txt`) | https://kenney.nl/assets/mini-characters | Pilotos y editor de avatares. **Modificados**: las UV del pelo de las cabezas se movieron a su propia celda de paleta con `tools/split_hair_uv.py` (sin cambio visual). Para regenerarlos, ejecutar ese script sobre los GLB originales. |
 | Fredoka SemiBold | `fonts/Fredoka-SemiBold.ttf` | SIL OFL 1.1 (`fonts/OFL.txt`) | Google Fonts | Interfaz |
 
 ## Recursos generados por código (propios)
@@ -17,3 +17,4 @@ Cada recurso incluido en el proyecto, con su licencia y su procedencia. No se a�
 - **Pista**: tira de malla generada sin textura de asfalto ni relieve.
 - **Karts**: las carrocerías Kenney llevan un casco integrado en la malla, que queda oculto bajo el piloto. No hay alerones ni accesorios intercambiables; para eso hará falta modelar piezas propias.
 - **Pinturas**: son las texturas de color alternativas del kit. Para elegir colores libres hará falta un shader de máscara de color.
+- **Avatar**: los rostros (ojos y boca) van integrados en cada cabeza, así que no se pueden elegir por separado ni cambiar el color de ojos (comparten celda con la boca). Para un editor de caras independiente harán falta cabezas modeladas con ojos y boca como piezas aparte.

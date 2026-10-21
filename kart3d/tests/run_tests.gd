@@ -61,6 +61,7 @@ func _run() -> void:
 	print("== Garaje y guardado")
 	_test_tradeoffs()
 	_test_save_roundtrip()
+	_test_avatar()
 
 	print("== KartBody")
 	await _test_drift_boost()
@@ -110,7 +111,22 @@ func _test_save_roundtrip() -> void:
 	var broken := KartConfig.from_dict({"body": "no-existe", "wheels": 42})
 	_check(broken.body == "speedster" and broken.wheels == "medium", "piezas desconocidas en el guardado se sustituyen por las de serie")
 	var old: Dictionary = root.get_node("/root/GameState").migrate({"kart": {"body": "vintage"}})
-	_check(old["version"] == 1 and old["kart"]["body"] == "vintage", "migra partidas sin número de versión")
+	_check(old["version"] == 2 and old["kart"]["body"] == "vintage" and old.has("avatar"), "migra partidas antiguas al formato actual (versión 2, con avatar)")
+
+
+func _test_avatar() -> void:
+	var a := AvatarConfig.from_dict({"name": "  Ana  ", "head": "melena", "body": "uniforme", "skin": "oscura", "hair_color": "rosa", "outfit_color": "morado", "accessory": "gafas", "head_scale": 9.0})
+	var back := AvatarConfig.from_dict(JSON.parse_string(JSON.stringify(a.to_dict())))
+	_check(back.to_dict() == a.to_dict() and back.name == "Ana", "guardar y cargar conserva el avatar")
+	_check(is_equal_approx(a.head_scale, AvatarConfig.HEAD_SCALE_RANGE.y), "las proporciones fuera de rango se limitan")
+	var bad := AvatarConfig.from_dict({"head": "rizos", "accessory": "gafas_sol"})
+	_check(bad.accessory == "ninguno", "una cabeza con gafas integradas no admite otras gafas")
+	var node := AvatarBuilder.build(a)
+	var skel := node.find_child("Skeleton3D", true, false)
+	var meshes := skel.find_children("*", "MeshInstance3D", false, false)
+	_check(meshes.size() == 2 and node.find_child("AnimationPlayer", true, false) != null, "el avatar combina cabeza y cuerpo de modelos distintos sobre un esqueleto")
+	_check(a.head_remaps().size() == 3 and a.body_remaps().size() == 3, "las tablas de recoloreado incluyen piel, pelo y ropa")
+	node.free()
 
 
 func _test_drift_boost() -> void:

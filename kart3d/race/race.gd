@@ -41,7 +41,7 @@ func _ready() -> void:
 	add_child(track)
 	track.build()
 	var state_node := get_node_or_null("/root/GameState")
-	kart = KartBody.create(state_node.kart if state_node else KartConfig.new())
+	kart = KartBody.create(state_node.kart if state_node else KartConfig.new(), state_node.avatar if state_node else null)
 	kart.input = AIInput.new(track) if autopilot else PlayerInput.new()
 	kart.surface_query = track.surface_at
 	add_child(kart)

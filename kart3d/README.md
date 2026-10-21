@@ -1,4 +1,4 @@
-# Kart3D: prototipo (Fase 3, garaje)
+# Kart3D: prototipo (Fase 4, editor de personaje)
 
 Juego de carreras arcade 3D en **Godot 4.7.2**. Estado: **prototipo jugable con una primera capa visual**. No es la versión final.
 
@@ -6,7 +6,7 @@ Juego de carreras arcade 3D en **Godot 4.7.2**. Estado: **prototipo jugable con 
 1. Descarga Godot 4.7.2 (versión estándar, no .NET) desde godotengine.org.
 2. Abre Godot → *Importar* → elige `kart3d/project.godot` → *Ejecutar* (F5).
 
-Al arrancar se abre el **menú principal**: *Carrera* o *Garaje*. En carrera, **Esc** vuelve al menú y **F3** muestra los FPS.
+Al arrancar se abre el **menú principal**: *Carrera*, *Garaje* o *Personaje*. En carrera, **Esc** vuelve al menú y **F3** muestra los FPS.
 
 Controles: **W/↑** acelerar · **S/↓** frenar y marcha atrás · **A/D o ←/→** girar ·
 **Espacio/Mayús** derrapar (mantén durante la curva y suelta para el mini-turbo) · **R** volver a la pista.
@@ -37,6 +37,14 @@ Mando: A acelerar, B frenar, RB derrapar, Y volver a la pista, stick izquierdo p
 - Las estadísticas (`kart/kart_config.gd`) se traducen en parámetros reales de conducción: punta, aceleración, giro, derrape, choques y agarre fuera de pista. Un test comprueba que ninguna carrocería supera a otra en todo.
 - Guardado versionado en `user://save.json` (`autoload/game_state.gd`) con migración y tolerancia a piezas desconocidas.
 - Transiciones con fundido entre pantallas (`autoload/scene_router.gd`).
+
+## Fase 4 (editor de personaje)
+- Avatar modular (`avatar/`): la cabeza de un modelo y el cuerpo de otro se combinan sobre el mismo esqueleto, así que no hace falta un modelo por combinación.
+- Opciones: 12 cabezas (peinado y rostro), 11 conjuntos de ropa, 4 tonos de piel, 9 colores de pelo, 10 colores de ropa, accesorio (gafas o gafas de sol), tamaño de cabeza, altura y nombre.
+- Recoloreado mediante un shader que redirige celdas de la paleta (`avatar/palette_remap.gdshader`), sin texturas nuevas.
+- Validación de combinaciones incompatibles: las cabezas que ya llevan gafas no admiten otras gafas, y el botón se desactiva con su motivo.
+- El avatar se guarda (guardado versión 2, con migración desde la 1) y es quien conduce en las carreras.
+- Preprocesado reproducible de las cabezas (`tools/split_hair_uv.py`), que separa el pelo de los ojos en la paleta.
 
 ## Rendimiento
 - Interpolación de física activada: elimina los tirones cuando la pantalla va a más de 60 Hz (la física sigue a 60 Hz).
