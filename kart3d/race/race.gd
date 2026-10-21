@@ -40,7 +40,8 @@ func _ready() -> void:
 	track.control_points = PackedVector3Array(TRACK_POINTS)
 	add_child(track)
 	track.build()
-	kart = KartBody.create()
+	var state_node := get_node_or_null("/root/GameState")
+	kart = KartBody.create(state_node.kart if state_node else KartConfig.new())
 	kart.input = AIInput.new(track) if autopilot else PlayerInput.new()
 	kart.surface_query = track.surface_at
 	add_child(kart)
@@ -50,6 +51,7 @@ func _ready() -> void:
 	camera.target = kart
 	camera.current = true
 	camera.snap()
+	camera.reset_physics_interpolation()
 	camera.start_intro(INTRO_TIME)
 	add_child(hud)
 	hud.show_message("¡PREPARADOS!", INTRO_TIME)
@@ -88,7 +90,10 @@ func _update_laps() -> void:
 		kart.controls_enabled = false
 		kart.get_node("KartVisuals").play_driver("emote-yes")
 		camera.start_finish_orbit()
-		hud.show_message("¡META!  " + RaceHud.format_time(race_time), 10.0)
+		hud.show_message("¡META!  " + RaceHud.format_time(race_time), 4.0)
+		get_tree().create_timer(4.0).timeout.connect(func() -> void:
+			if not autopilot:
+				hud.show_message("Pulsa Intro para volver al menú", 600.0))
 		race_finished.emit(race_time)
 	else:
 		hud.show_message("¡ÚLTIMA VUELTA!" if laps.laps_completed == LAPS - 1 else "VUELTA %d" % (laps.laps_completed + 1))
@@ -120,8 +125,7 @@ func _build_environment() -> void:
 	env.glow_enabled = true
 	env.glow_intensity = 0.5
 	env.glow_bloom = 0.05
-	env.ssao_enabled = true
-	env.ssao_intensity = 1.5
+	# SSAO desactivado: es caro en gráficas integradas y aportaba poco en exteriores.
 	env.adjustment_enabled = true
 	env.adjustment_saturation = 1.15
 	env.fog_enabled = true
@@ -138,3 +142,10 @@ func _build_environment() -> void:
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 120.0
 	add_child(sun)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if autopilot:
+		return
+	if event.is_action_pressed("ui_cancel") or (state == State.FINISHED and event.is_action_pressed("ui_accept")):
+		SceneRouter.go("res://scenes/main_menu.tscn")

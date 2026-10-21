@@ -58,6 +58,10 @@ func _run() -> void:
 	t.update(0.0)
 	_check(t.laps_completed == 0, "atajar saltándose checkpoints no suma vuelta")
 
+	print("== Garaje y guardado")
+	_test_tradeoffs()
+	_test_save_roundtrip()
+
 	print("== KartBody")
 	await _test_drift_boost()
 
@@ -66,6 +70,47 @@ func _run() -> void:
 
 	print("Resultado: %d OK, %d fallos" % [_passes, _failures])
 	quit(1 if _failures > 0 else 0)
+
+
+func _test_tradeoffs() -> void:
+	var keys := ["velocidad", "aceleracion", "manejo", "derrape", "todoterreno"]
+	var configs: Array[KartConfig] = []
+	for b in KartCatalog.BODIES:
+		for w in KartCatalog.WHEELS:
+			var c := KartConfig.new()
+			c.body = b
+			c.wheels = w
+			configs.append(c)
+	var dominated := 0
+	for a in configs:
+		for b in configs:
+			if a == b:
+				continue
+			var sa := a.stats()
+			var sb := b.stats()
+			var all_ge := keys.all(func(k: String) -> bool: return sa[k] >= sb[k])
+			var some_gt := keys.any(func(k: String) -> bool: return sa[k] > sb[k])
+			if all_ge and some_gt and a.body != b.body:
+				dominated += 1
+	_check(dominated == 0, "ninguna carrocería supera a otra en todas las estadísticas")
+	var fast := KartConfig.new()
+	fast.body = "drag"
+	var agile := KartConfig.new()
+	agile.body = "vintage"
+	_check(fast.make_tuning().max_speed > agile.make_tuning().max_speed and agile.make_tuning().turn_speed > fast.make_tuning().turn_speed, "las estadísticas cambian la conducción (punta frente a giro)")
+
+
+func _test_save_roundtrip() -> void:
+	var c := KartConfig.new()
+	c.body = "drag"
+	c.wheels = "large"
+	c.paint = "b"
+	var back := KartConfig.from_dict(JSON.parse_string(JSON.stringify(c.to_dict())))
+	_check(back.body == "drag" and back.wheels == "large" and back.paint == "b", "guardar y cargar conserva las piezas")
+	var broken := KartConfig.from_dict({"body": "no-existe", "wheels": 42})
+	_check(broken.body == "speedster" and broken.wheels == "medium", "piezas desconocidas en el guardado se sustituyen por las de serie")
+	var old: Dictionary = root.get_node("/root/GameState").migrate({"kart": {"body": "vintage"}})
+	_check(old["version"] == 1 and old["kart"]["body"] == "vintage", "migra partidas sin número de versión")
 
 
 func _test_drift_boost() -> void:

@@ -6,21 +6,20 @@ extends Node3D
 
 const CAR_SCALE := 2.6
 const DRIVER_SCALE := 2.0
-const DRIVER_SEAT := Vector3(0.0, 0.42, 0.2)
-const WHEEL_RADIUS := 0.125 * CAR_SCALE
+const BASE_WHEEL_RADIUS := 0.125
 const DRIFT_COLORS := [Color("#5fc8ff"), Color("#ff9a2a")]
 
-@export var car_scene: PackedScene = preload("res://assets/kenney/toy-car-kit/vehicle-speedster.glb")
 @export var driver_scene: PackedScene = preload("res://assets/kenney/mini-characters/character-female-a.glb")
-## Textura alternativa de pintura (null = la original del modelo).
-@export var paint_texture: Texture2D
 
+## Piezas a mostrar. Si es null se usa la configuración guardada del jugador.
+var config: KartConfig
 var kart: KartBody
 var model := Node3D.new()
 var driver: Node3D
 var driver_anim: AnimationPlayer
 var _wheels_front: Array[Node3D] = []
 var _wheels_all: Array[Node3D] = []
+var _wheel_radius := BASE_WHEEL_RADIUS * CAR_SCALE
 var _wheel_spin := 0.0
 var _sparks: Array[CPUParticles3D] = []
 var _smoke: Array[CPUParticles3D] = []
@@ -31,21 +30,47 @@ var _bob := 0.0
 func _ready() -> void:
 	kart = get_parent() as KartBody
 	add_child(model)
-	var car := car_scene.instantiate() as Node3D
+	rebuild(config if config else KartConfig.new())
+
+
+## Reconstruye el modelo con otras piezas (lo usa el garaje al cambiar de selección).
+func rebuild(cfg: KartConfig) -> void:
+	config = cfg
+	for c in model.get_children():
+		c.queue_free()
+	_wheels_all.clear()
+	_wheels_front.clear()
+	_sparks.clear()
+	_smoke.clear()
+	_flames.clear()
+	var body: Dictionary = KartCatalog.BODIES[cfg.body]
+	var wheel: Dictionary = KartCatalog.WHEELS[cfg.wheels]
+	var car := (load(body["scene"]) as PackedScene).instantiate() as Node3D
 	car.scale = Vector3.ONE * CAR_SCALE
+	# Ruedas más grandes elevan la carrocería para que sigan apoyadas en el suelo.
+	var lift: float = (wheel["radius"] - BASE_WHEEL_RADIUS) * CAR_SCALE
+	car.position.y = lift
 	model.add_child(car)
-	for w in car.find_children("wheel-*", "Node3D", true, false):
+	_wheel_radius = wheel["radius"] * CAR_SCALE
+	var wheel_node := (load(wheel["scene"]) as PackedScene).instantiate()
+	var wheel_mesh := (wheel_node.find_children("*", "MeshInstance3D", true, false)[0] as MeshInstance3D).mesh
+	wheel_node.free()
+	for w: MeshInstance3D in car.find_children("wheel-*", "MeshInstance3D", true, false):
+		w.mesh = wheel_mesh
+		w.position.y = BASE_WHEEL_RADIUS
 		_wheels_all.append(w)
 		if w.name.begins_with("wheel-f"):
 			_wheels_front.append(w)
 	driver = driver_scene.instantiate() as Node3D
-	driver.position = DRIVER_SEAT
+	driver.position = body["seat"] + Vector3.UP * lift
 	driver.scale = Vector3.ONE * DRIVER_SCALE
 	driver.rotation.y = PI
 	model.add_child(driver)
 	driver_anim = driver.find_child("AnimationPlayer", true, false)
-	play_driver("drive")
-	ToonLook.apply(self, paint_texture)
+	play_driver("drive" if kart else "idle")
+	var paint_path: String = KartCatalog.PAINTS[cfg.paint]["texture"]
+	ToonLook.apply(car, load(paint_path) if paint_path != "" else null)
+	ToonLook.apply(driver)
 	_build_effects()
 
 
@@ -72,7 +97,7 @@ func _process(delta: float) -> void:
 	var rough := 0.04 if kart.surface == &"offroad" and absf(kart.speed) > 2.0 else 0.008 * speed_frac
 	model.position.y = sin(_bob) * rough
 	# Ruedas
-	_wheel_spin -= kart.speed * delta / WHEEL_RADIUS
+	_wheel_spin -= kart.speed * delta / _wheel_radius
 	for w in _wheels_all:
 		w.rotation = Vector3(_wheel_spin, -kart.steer_smoothed * 0.45 if w in _wheels_front else 0.0, 0.0)
 	# Efectos

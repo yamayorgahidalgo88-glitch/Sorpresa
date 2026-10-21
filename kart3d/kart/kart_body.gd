@@ -24,9 +24,12 @@ var drift_tier := 0
 var boost_time := 0.0
 
 
-static func create(kart_tuning: KartTuning = null) -> KartBody:
+## Crea un kart completo (colisión + presentación) a partir de una configuración de piezas.
+static func create(config: KartConfig = null) -> KartBody:
+	if config == null:
+		config = KartConfig.new()
 	var kart := KartBody.new()
-	kart.tuning = kart_tuning if kart_tuning else KartTuning.new()
+	kart.tuning = config.make_tuning()
 	var shape := CollisionShape3D.new()
 	var box := BoxShape3D.new()
 	box.size = Vector3(1.3, 0.7, 2.2)
@@ -35,6 +38,7 @@ static func create(kart_tuning: KartTuning = null) -> KartBody:
 	kart.add_child(shape)
 	var visuals := KartVisuals.new()
 	visuals.name = "KartVisuals"
+	visuals.config = config
 	kart.add_child(visuals)
 	return kart
 
@@ -58,6 +62,7 @@ func place(xform: Transform3D) -> void:
 	velocity = Vector3.ZERO
 	boost_time = 0.0
 	_end_drift(false)
+	reset_physics_interpolation()
 
 
 func _physics_process(delta: float) -> void:

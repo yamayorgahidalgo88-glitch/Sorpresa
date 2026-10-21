@@ -24,6 +24,7 @@ func snap() -> void:
 	_yaw = target.heading
 	global_position = _desired()
 	_aim()
+	reset_physics_interpolation()
 
 
 func _physics_process(delta: float) -> void:
