@@ -8,6 +8,8 @@ const SAVE_VERSION := 2
 var kart := KartConfig.new()
 var avatar := AvatarConfig.new()
 var show_fps := false
+## Estilo visual en prueba: "dulce" (mundo de golosinas) o "juguete" (Kenney).
+var style := "dulce"
 
 
 func _ready() -> void:

@@ -26,6 +26,9 @@ var _sparks: Array[CPUParticles3D] = []
 var _smoke: Array[CPUParticles3D] = []
 var _flames: Array[CPUParticles3D] = []
 var _bob := 0.0
+var _steer_pivots: Array[Node3D] = []
+var _chibi: Chibi
+var _celebrate := false
 
 
 func _ready() -> void:
@@ -44,6 +47,14 @@ func rebuild(cfg: KartConfig) -> void:
 	_sparks.clear()
 	_smoke.clear()
 	_flames.clear()
+	_steer_pivots.clear()
+	_chibi = null
+	_celebrate = false
+	var state_node := get_node_or_null("/root/GameState") if is_inside_tree() else null
+	if state_node and state_node.style == "dulce":
+		_build_candy(cfg)
+		_build_effects()
+		return
 	var body: Dictionary = KartCatalog.BODIES[cfg.body]
 	var wheel: Dictionary = KartCatalog.WHEELS[cfg.wheels]
 	var car := (load(body["scene"]) as PackedScene).instantiate() as Node3D
@@ -74,7 +85,27 @@ func rebuild(cfg: KartConfig) -> void:
 	_build_effects()
 
 
+## Estilo dulce: kart de golosina y piloto de cabeza grande generados por código.
+## Las piezas del garaje se traducen a sus equivalentes dulces.
+func _build_candy(cfg: KartConfig) -> void:
+	var body: String = {"speedster": "fresa", "vintage": "barquillo", "drag": "chocolate"}.get(cfg.body, "fresa")
+	var wheels: String = {"small": "menta", "medium": "donut", "large": "galleta"}.get(cfg.wheels, "donut")
+	var spoiler: String = {"original": "piruleta", "a": "bastones", "b": "barquillo"}.get(cfg.paint, "piruleta")
+	var accent: Color = {"original": Color("#ff4f8b"), "a": Color("#5fc8ff"), "b": Color("#ffb020")}.get(cfg.paint, Color("#ff4f8b"))
+	var k := CandyKart.build(body, wheels, spoiler, accent)
+	model.add_child(k.root)
+	_wheels_all.assign(k.wheels_all)
+	_steer_pivots.assign(k.wheels_front)
+	_wheel_radius = k.wheel_radius
+	_chibi = Chibi.build({}, true)
+	_chibi.root.position = CandyKart.SEAT + Vector3(0, -0.3, 0)
+	k.root.add_child(_chibi.root)
+
+
 func play_driver(anim: String) -> void:
+	if _chibi:
+		_celebrate = anim == "emote-yes"
+		return
 	if driver_anim and driver_anim.has_animation(anim):
 		driver_anim.get_animation(anim).loop_mode = Animation.LOOP_LINEAR if anim in ["drive", "idle"] else Animation.LOOP_NONE
 		driver_anim.play(anim, 0.2)
@@ -100,6 +131,16 @@ func _process(delta: float) -> void:
 	_wheel_spin -= kart.speed * delta / _wheel_radius
 	for w in _wheels_all:
 		w.rotation = Vector3(_wheel_spin, -kart.steer_smoothed * 0.45 if w in _wheels_front else 0.0, 0.0)
+	for p in _steer_pivots:
+		p.rotation.y = -kart.steer_smoothed * 0.45
+	if _chibi:
+		# Brazos al volante (o arriba celebrando) y cabeza que mira hacia la curva.
+		var up := -2.6 if _celebrate else -0.9
+		var wave := sin(_bob * 0.5) * 0.3 if _celebrate else 0.0
+		_chibi.arm_l.rotation.x = lerpf(_chibi.arm_l.rotation.x, up + kart.steer_smoothed * 0.25 + wave, k)
+		_chibi.arm_r.rotation.x = lerpf(_chibi.arm_r.rotation.x, up - kart.steer_smoothed * 0.25 - wave, k)
+		_chibi.head.rotation.y = lerpf(_chibi.head.rotation.y, -kart.steer_smoothed * 0.3, k)
+		_chibi.head.rotation.z = lerpf(_chibi.head.rotation.z, roll * 1.5, k)
 	# Efectos
 	var tier := kart.drift_tier if kart.drifting else 0
 	for s in _sparks:

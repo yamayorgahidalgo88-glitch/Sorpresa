@@ -42,6 +42,12 @@ func _ready() -> void:
 		col.add_child(b)
 		if first == null:
 			first = b
+	var style := UiStyle.button("Estilo: %s" % ("Dulce 🍭" if GameState.style == "dulce" else "Juguete 🧸"), Color("#8f6bff"), 20)
+	style.tooltip_text = "Alterna entre el estilo dulce en prueba y el estilo anterior"
+	style.pressed.connect(func() -> void:
+		GameState.style = "juguete" if GameState.style == "dulce" else "dulce"
+		SceneRouter.go("res://scenes/main_menu.tscn"))
+	col.add_child(style)
 	if not OS.has_feature("web"):
 		var quit := UiStyle.button("Salir", Color("#8a5a3c"), 22)
 		quit.pressed.connect(func() -> void: get_tree().quit())

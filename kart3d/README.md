@@ -46,6 +46,14 @@ Mando: A acelerar, B frenar, RB derrapar, Y volver a la pista, stick izquierdo p
 - El avatar se guarda (guardado versión 2, con migración desde la 1) y es quien conduce en las carreras.
 - Preprocesado reproducible de las cabezas (`tools/split_hair_uv.py`), que separa el pelo de los ojos en la paleta.
 
+## Prueba de estilo dulce (en curso)
+El estilo dulce está activo por defecto, y el botón **Estilo** del menú permite volver al estilo anterior para comparar. Todo se genera por código, sin modelos externos:
+- **Kart de golosina** (`art/candy_kart.gd`): bizcocho de fresa, barquillo o tableta de chocolate; ruedas de donut, galleta o caramelo de menta; alerón de piruletas, bastones o barquillo. Las piezas del garaje se traducen a estas versiones.
+- **Piloto de cabeza grande** (`art/chibi.gd`): la cara se dibuja con un shader (`art/face.gdshader`), así que ojos, cejas y boca son parámetros independientes. Peinados y gorros de dulce. **Todavía no está conectado al editor de personaje**, que sigue editando el avatar anterior.
+- **Circuito de dulces** (`track/candy_scenery.gd`): pista amarilla con fideos, arco de bastón de caramelo, piruletas gigantes, bastones, gominolas, gradas de chocolate y montañas de chocolate con nata.
+- Materiales de golosina procedurales en `art/candy.gdshader`: espiral, rayas, pepitas, barquillo y fideos.
+- Ficha visual para revisar el estilo: `tests/dev/candy_sheet.tscn` (argumentos: `<salida.png> pilotos|karts`).
+
 ## Rendimiento
 - Interpolación de física activada: elimina los tirones cuando la pantalla va a más de 60 Hz (la física sigue a 60 Hz).
 - SSAO desactivado, FXAA en lugar de MSAA y mapa de sombras de 2048 px.

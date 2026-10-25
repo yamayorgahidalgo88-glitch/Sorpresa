@@ -3,7 +3,7 @@ extends Node
 ## Elegir una pieza la monta y la guarda al momento; las barras muestran las estadísticas
 ## resultantes, que se traducen en la conducción mediante KartConfig.make_tuning().
 
-const TABS := [["body", "Carrocería"], ["wheels", "Ruedas"], ["paint", "Pintura"]]
+const TABS := [["body", "Carrocería"], ["wheels", "Ruedas"], ["paint", "Alerón y color"]]
 
 var studio := Studio.new()
 var draft: KartConfig

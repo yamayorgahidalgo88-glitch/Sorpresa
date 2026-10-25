@@ -8,6 +8,8 @@ extends Node3D
 @export var road_width := 14.0
 @export var wall_margin := 7.0
 @export var sample_step := 2.0
+## Tema visual: "dulce" (mundo de golosinas) o "juguete" (decorado Kenney original).
+@export var theme := "dulce"
 
 var curve := Curve3D.new()
 var length := 0.0
@@ -19,7 +21,10 @@ func build() -> void:
 	_build_road()
 	_build_walls()
 	_build_start_line()
-	TrackScenery.new(self).build()
+	if theme == "dulce":
+		CandyScenery.new(self).build()
+	else:
+		TrackScenery.new(self).build()
 
 
 ## Distancia recorrida sobre la línea central más cercana a `world_pos` (0..length).
@@ -91,8 +96,9 @@ func _build_ground() -> void:
 	var noise := FastNoiseLite.new()
 	noise.frequency = 0.02
 	var ramp := Gradient.new()
-	ramp.set_color(0, Color("#6cc77e"))
-	ramp.set_color(1, Color("#9ee08e"))
+	var candy := theme == "dulce"
+	ramp.set_color(0, Color("#ffb8d6") if candy else Color("#6cc77e"))
+	ramp.set_color(1, Color("#ffd6e8") if candy else Color("#9ee08e"))
 	var tex := NoiseTexture2D.new()
 	tex.width = 256
 	tex.height = 256
@@ -133,10 +139,22 @@ func _build_road() -> void:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var half := road_width * 0.5
-	_strip(st, -half, half, 0.03, [Color("#4a4458"), Color("#47415a")])
-	_strip(st, -0.18, 0.18, 0.035, [Color("#f4f1ff"), Color("#4a4458")])
-	_strip(st, -half - 1.2, -half, 0.04, [Color("#ff4f6e"), Color("#ffffff")])
-	_strip(st, half, half + 1.2, 0.04, [Color("#ffffff"), Color("#ff4f6e")])
+	var candy := theme == "dulce"
+	if candy:
+		# Pista de caramelo amarillo con fideos de colores (shader propio, sin línea central).
+		var road := SurfaceTool.new()
+		road.begin(Mesh.PRIMITIVE_TRIANGLES)
+		_strip(road, -half, half, 0.03, [Color.WHITE])
+		var rmi := MeshInstance3D.new()
+		rmi.mesh = road.commit()
+		rmi.material_override = CandyFactory.mat(Color("#ffc83a"), CandyFactory.Pattern.SPRINKLES, Color.WHITE, 3.2, 0.35)
+		add_child(rmi)
+	else:
+		_strip(st, -half, half, 0.03, [Color("#4a4458"), Color("#47415a")])
+		_strip(st, -0.18, 0.18, 0.035, [Color("#f4f1ff"), Color("#4a4458")])
+	var curb := Color("#e8243c") if candy else Color("#ff4f6e")
+	_strip(st, -half - 1.2, -half, 0.04, [curb, Color("#ffffff")])
+	_strip(st, half, half + 1.2, 0.04, [Color("#ffffff"), curb])
 	var m := _mat(Color.WHITE, 0.85)
 	m.vertex_color_use_as_albedo = true
 	m.cull_mode = BaseMaterial3D.CULL_DISABLED
@@ -170,7 +188,7 @@ func _build_walls() -> void:
 			shape.shape = box
 			shape.transform = Transform3D(Basis(Vector3.UP, atan2(-seg.x, -seg.z)), (a + b) * 0.5 + Vector3.UP * 0.8)
 			body.add_child(shape)
-			var c := Color("#ff4f6e") if i % 2 == 0 else Color("#ffffff")
+			var c := (Color("#e8243c") if theme == "dulce" else Color("#ff4f6e")) if i % 2 == 0 else Color("#ffffff")
 			var out := (seg.cross(Vector3.UP)).normalized() * 0.35 * side
 			var h := Vector3.UP * 1.1
 			var a2: Vector3 = a + out

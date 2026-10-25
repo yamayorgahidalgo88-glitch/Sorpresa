@@ -35,11 +35,13 @@ var _last_count := 4
 
 func _ready() -> void:
 	PlayerInput.ensure_actions()
-	_build_environment()
 	track = TrackBuilder.new()
 	track.control_points = PackedVector3Array(TRACK_POINTS)
+	var gs := get_node_or_null("/root/GameState")
+	track.theme = gs.style if gs else "dulce"
 	add_child(track)
 	track.build()
+	_build_environment()
 	var state_node := get_node_or_null("/root/GameState")
 	kart = KartBody.create(state_node.kart if state_node else KartConfig.new(), state_node.avatar if state_node else null)
 	kart.input = AIInput.new(track) if autopilot else PlayerInput.new()
@@ -108,10 +110,11 @@ func respawn() -> void:
 
 func _build_environment() -> void:
 	var sky_mat := ProceduralSkyMaterial.new()
-	sky_mat.sky_top_color = Color("#5fb8ff")
+	var candy := track.theme == "dulce"
+	sky_mat.sky_top_color = Color("#c79bff") if candy else Color("#5fb8ff")
 	sky_mat.sky_horizon_color = Color("#ffd6ec")
 	sky_mat.ground_horizon_color = Color("#ffd6ec")
-	sky_mat.ground_bottom_color = Color("#7ecf8a")
+	sky_mat.ground_bottom_color = Color("#ffc4dd") if candy else Color("#7ecf8a")
 	var sky := Sky.new()
 	sky.sky_material = sky_mat
 	var env := Environment.new()
