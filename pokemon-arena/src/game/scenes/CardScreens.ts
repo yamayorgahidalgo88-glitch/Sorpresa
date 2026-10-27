@@ -4,7 +4,8 @@ import type { Ability, Card } from '../../sim/data/cards';
 import { ELEMENTS, ELEMENT_NAMES, typeMultiplier } from '../../sim/data/elements';
 import type { Element } from '../../sim/data/elements';
 import { validateDeck } from '../../sim/systems/deck';
-import { loadSettings, saveSettings } from '../../persistence/settings';
+import { loadSettings, loadStats, saveSettings } from '../../persistence/settings';
+import { isUnlocked, unlockRequirement } from '../../persistence/progression';
 import type { Settings } from '../../persistence/settings';
 import { play } from '../audio/sfx';
 import { GAME_H, GAME_W } from '../layout';
@@ -82,11 +83,13 @@ export class CollectionScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(COLORS.bg);
     this.add.text(GAME_W / 2, 50, 'Colección', textStyle(44, css(COLORS.gold))).setOrigin(0.5);
     this.add.text(GAME_W / 2, 96, 'Toca una carta para ver su ficha', textStyle(17, '#c9d4f5')).setOrigin(0.5);
+    const trophies = loadStats().trophies;
     const widgets: CardWidget[] = [];
     CARD_IDS.forEach((id, i) => {
       const p = gridPos(i, 130);
       const w = new CardWidget(this, p.x, p.y, GRID_W - 12, GRID_H - 14);
       w.setCard(id);
+      if (!isUnlocked(id, trophies)) w.setLocked(unlockRequirement(id));
       w.root.setSize(GRID_W - 12, GRID_H - 14).setInteractive(new Phaser.Geom.Rectangle(0, 0, GRID_W - 12, GRID_H - 14), Phaser.Geom.Rectangle.Contains);
       w.root.setData('baseY', p.y);
       w.root.on('pointerup', () => {
@@ -105,7 +108,10 @@ export class CollectionScene extends Phaser.Scene {
   }
 
   private show(id: string): void {
-    this.detail.setText(cardDetailLines(getCard(id)).join('\n'));
+    const lines = cardDetailLines(getCard(id));
+    const trophies = loadStats().trophies;
+    if (!isUnlocked(id, trophies)) lines.unshift(`🔒 Se desbloquea con ${unlockRequirement(id)} trofeos (tienes ${trophies}).`);
+    this.detail.setText(lines.join('\n'));
   }
 }
 
@@ -116,6 +122,7 @@ export class DeckScene extends Phaser.Scene {
   private widgets = new Map<string, CardWidget>();
   private info!: Phaser.GameObjects.Text;
   private saveBtn!: Phaser.GameObjects.Container;
+  private trophies = 0;
 
   constructor() {
     super('deck');
@@ -124,6 +131,7 @@ export class DeckScene extends Phaser.Scene {
   create(): void {
     this.settings = loadSettings();
     this.deck = this.settings.deck.slice();
+    this.trophies = loadStats().trophies;
     this.widgets = new Map();
     this.cameras.main.setBackgroundColor(COLORS.bg);
     this.add.text(GAME_W / 2, 50, 'Constructor de mazo', textStyle(40, css(COLORS.gold))).setOrigin(0.5);
@@ -133,6 +141,7 @@ export class DeckScene extends Phaser.Scene {
       const p = gridPos(i, 130);
       const w = new CardWidget(this, p.x, p.y, GRID_W - 12, GRID_H - 14);
       w.setCard(id);
+      if (!isUnlocked(id, this.trophies)) w.setLocked(unlockRequirement(id));
       w.root.setSize(GRID_W - 12, GRID_H - 14).setInteractive(new Phaser.Geom.Rectangle(0, 0, GRID_W - 12, GRID_H - 14), Phaser.Geom.Rectangle.Contains);
       w.root.setData('baseY', p.y);
       w.root.on('pointerup', () => this.toggle(id));
@@ -147,6 +156,12 @@ export class DeckScene extends Phaser.Scene {
   }
 
   private toggle(id: string): void {
+    if (!isUnlocked(id, this.trophies)) {
+      this.widgets.get(id)?.shake();
+      this.info.setText(`🔒 ${getCard(id).name} se desbloquea con ${unlockRequirement(id)} trofeos (tienes ${this.trophies}).`).setColor(css(COLORS.gold));
+      play('rechazo');
+      return;
+    }
     const i = this.deck.indexOf(id);
     if (i >= 0) this.deck.splice(i, 1);
     else if (this.deck.length < 8) this.deck.push(id);

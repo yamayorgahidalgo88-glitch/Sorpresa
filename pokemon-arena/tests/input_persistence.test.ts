@@ -146,6 +146,7 @@ describe('persistencia', () => {
   it('guarda y recupera ajustes y mazo', () => {
     const store = new MemoryStore();
     const deck = ['snorlax', 'charizard', 'geodude', 'jigglypuff', 'squirtle', 'pikachu', 'machop', 'ventisca'];
+    store.setItem('pokemon-arena:estadisticas', JSON.stringify({ wins: 0, losses: 0, draws: 0, trophies: 999 }));
     saveSettings({ difficulty: 'dificil', muted: true, deck }, store);
     expect(loadSettings(store)).toEqual({ difficulty: 'dificil', muted: true, deck });
   });
@@ -159,12 +160,21 @@ describe('persistencia', () => {
     expect(loadSettings(null)).toEqual(DEFAULT_SETTINGS);
   });
 
-  it('registra victorias, derrotas y empates', () => {
+  it('registra victorias, derrotas, empates y trofeos', () => {
     const store = new MemoryStore();
-    recordResult(0, store);
-    recordResult(0, store);
-    recordResult(1, store);
-    recordResult(null, store);
-    expect(loadStats(store)).toEqual({ wins: 2, losses: 1, draws: 1 });
+    recordResult(0, 'normal', store);
+    recordResult(0, 'dificil', store);
+    recordResult(1, 'normal', store);
+    recordResult(null, 'facil', store);
+    expect(loadStats(store)).toEqual({ wins: 2, losses: 1, draws: 1, trophies: 30 + 40 - 15 });
+  });
+
+  it('un mazo guardado con cartas aún bloqueadas vuelve al mazo inicial', () => {
+    const store = new MemoryStore();
+    const deck = ['snorlax', 'charizard', 'geodude', 'jigglypuff', 'squirtle', 'pikachu', 'machop', 'ventisca'];
+    saveSettings({ difficulty: 'normal', muted: false, deck }, store);
+    expect(loadSettings(store).deck).toEqual(DEFAULT_SETTINGS.deck);
+    store.setItem('pokemon-arena:estadisticas', JSON.stringify({ wins: 20, losses: 0, draws: 0, trophies: 300 }));
+    expect(loadSettings(store).deck).toEqual(deck);
   });
 });

@@ -2,6 +2,8 @@ import Phaser from 'phaser';
 import type { Difficulty } from '../../sim/ai/opponent';
 import type { BattleResult } from '../../sim/core/state';
 import { recordResult } from '../../persistence/settings';
+import { rankOf } from '../../persistence/progression';
+import { getCard } from '../../sim/data/cards';
 import { GAME_H, GAME_W } from '../layout';
 import { COLORS, css, textStyle } from '../theme';
 import { makeButton } from '../ui/widgets';
@@ -33,14 +35,14 @@ export class ResultScene extends Phaser.Scene {
 
   create(data: ResultData): void {
     const r = data.result;
-    const stats = recordResult(r.winner);
+    const { stats, progress } = recordResult(r.winner, data.difficulty);
     const title = r.winner === 0 ? '¡VICTORIA!' : r.winner === 1 ? 'DERROTA' : 'EMPATE';
     const color = r.winner === 0 ? COLORS.gold : r.winner === 1 ? COLORS.danger : 0xc9d4f5;
 
     this.add.rectangle(0, 0, GAME_W, GAME_H, 0x0b1022, 0.72).setOrigin(0).setInteractive();
     const panel = this.add.graphics();
-    panel.fillStyle(COLORS.panel, 1).fillRoundedRect(60, 330, GAME_W - 120, 700, 28);
-    panel.lineStyle(4, color, 1).strokeRoundedRect(60, 330, GAME_W - 120, 700, 28);
+    panel.fillStyle(COLORS.panel, 1).fillRoundedRect(60, 300, GAME_W - 120, 780, 28);
+    panel.lineStyle(4, color, 1).strokeRoundedRect(60, 300, GAME_W - 120, 780, 28);
 
     const t = this.add.text(GAME_W / 2, 420, title, textStyle(64, css(color))).setOrigin(0.5).setScale(0.4);
     this.tweens.add({ targets: t, scale: 1, duration: 420, ease: 'Back.Out' });
@@ -64,16 +66,29 @@ export class ResultScene extends Phaser.Scene {
       `Duración: ${Math.floor(r.tick / 20 / 60)}:${String(Math.floor(r.tick / 20) % 60).padStart(2, '0')}   ·   Semilla: ${data.seed}`,
       `Historial: ${stats.wins} V · ${stats.losses} D · ${stats.draws} E`,
     ];
-    lines.forEach((l, i) => this.add.text(GAME_W / 2, 700 + i * 34, l, textStyle(17, '#c9d4f5')).setOrigin(0.5));
+    lines.forEach((l, i) => this.add.text(GAME_W / 2, 690 + i * 32, l, textStyle(17, '#c9d4f5')).setOrigin(0.5));
 
-    makeButton(this, GAME_W / 2, 870, 380, 74, 'Revancha', () => {
+    // Progresión
+    const rank = rankOf(progress.after);
+    const sign = progress.delta > 0 ? '+' : '';
+    const trophyColor = progress.delta > 0 ? css(COLORS.gold) : progress.delta < 0 ? css(COLORS.danger) : '#c9d4f5';
+    this.add.text(GAME_W / 2, 832, `🏆 ${sign}${progress.delta} trofeos · Total ${progress.after} · ${rank.name}`, textStyle(20, trophyColor)).setOrigin(0.5);
+    const news: string[] = [];
+    if (progress.rankUp) news.push(`¡Nuevo rango: ${progress.rankUp}!`);
+    if (progress.newlyUnlocked.length) news.push(`¡Desbloqueado: ${progress.newlyUnlocked.map((id) => getCard(id).name).join(', ')}!`);
+    if (news.length) {
+      const n = this.add.text(GAME_W / 2, 868, news.join('  ·  '), textStyle(19, css(COLORS.ok))).setOrigin(0.5);
+      this.tweens.add({ targets: n, scale: 1.08, yoyo: true, repeat: 3, duration: 260 });
+    }
+
+    makeButton(this, GAME_W / 2, 935, 380, 74, 'Revancha', () => {
       this.scene.stop('battle');
       this.scene.start('battle', { difficulty: data.difficulty, deck: data.deck });
     });
-    makeButton(this, GAME_W / 2, 960, 380, 64, 'Menú principal', () => {
+    makeButton(this, GAME_W / 2, 1025, 380, 64, 'Menú principal', () => {
       this.scene.stop('battle');
       this.scene.start('menu');
     }, COLORS.panelLight);
-    (window as unknown as { __arenaResult?: unknown }).__arenaResult = data.result;
+    (window as unknown as { __arenaResult?: unknown }).__arenaResult = { ...data.result, progress };
   }
 }

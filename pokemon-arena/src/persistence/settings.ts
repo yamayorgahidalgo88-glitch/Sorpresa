@@ -1,6 +1,8 @@
 import type { Difficulty } from '../sim/ai/opponent';
 import { DEFAULT_PLAYER_DECK } from '../sim/data/cards';
 import { validateDeck } from '../sim/systems/deck';
+import type { ProgressUpdate } from './progression';
+import { applyResult, isUnlocked } from './progression';
 
 export interface Settings {
   difficulty: Difficulty;
@@ -12,6 +14,7 @@ export interface Stats {
   wins: number;
   losses: number;
   draws: number;
+  trophies: number;
 }
 
 const SETTINGS_KEY = 'pokemon-arena:ajustes';
@@ -56,7 +59,10 @@ function write(store: KeyValueStore | null, key: string, value: unknown): void {
 export function loadSettings(store: KeyValueStore | null = defaultStore()): Settings {
   const s = read<Settings>(store, SETTINGS_KEY);
   const difficulty = s.difficulty === 'facil' || s.difficulty === 'normal' || s.difficulty === 'dificil' ? s.difficulty : DEFAULT_SETTINGS.difficulty;
-  const deck = Array.isArray(s.deck) && validateDeck(s.deck).ok ? s.deck.slice() : DEFAULT_SETTINGS.deck.slice();
+  // Un mazo guardado solo vale si es válido y todas sus cartas están desbloqueadas.
+  const trophies = loadStats(store).trophies;
+  const deckOk = Array.isArray(s.deck) && validateDeck(s.deck).ok && s.deck.every((id) => isUnlocked(id, trophies));
+  const deck = deckOk ? s.deck!.slice() : DEFAULT_SETTINGS.deck.slice();
   return { difficulty, muted: s.muted === true, deck };
 }
 
@@ -67,14 +73,21 @@ export function saveSettings(settings: Settings, store: KeyValueStore | null = d
 export function loadStats(store: KeyValueStore | null = defaultStore()): Stats {
   const s = read<Stats>(store, STATS_KEY);
   const n = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.floor(v) : 0);
-  return { wins: n(s.wins), losses: n(s.losses), draws: n(s.draws) };
+  return { wins: n(s.wins), losses: n(s.losses), draws: n(s.draws), trophies: n(s.trophies) };
 }
 
-export function recordResult(winner: 0 | 1 | null, store: KeyValueStore | null = defaultStore()): Stats {
+/** Registra el resultado de una partida y aplica la variación de trofeos. */
+export function recordResult(
+  winner: 0 | 1 | null,
+  difficulty: Difficulty,
+  store: KeyValueStore | null = defaultStore(),
+): { stats: Stats; progress: ProgressUpdate } {
   const s = loadStats(store);
   if (winner === 0) s.wins++;
   else if (winner === 1) s.losses++;
   else s.draws++;
+  const progress = applyResult(s.trophies, winner, difficulty);
+  s.trophies = progress.after;
   write(store, STATS_KEY, s);
-  return s;
+  return { stats: s, progress };
 }

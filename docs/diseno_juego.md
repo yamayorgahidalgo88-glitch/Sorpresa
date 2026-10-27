@@ -121,3 +121,22 @@ Las relaciones (qué tipo es eficaz contra cuál) siguen la tabla clásica de lo
 - Todas las cartas quedan entre el **45 % y el 55 %** de victorias (±3,6 %): Bulbasaur 55 %, Charizard 54 % … Jigglypuff 46 %, Onix 45 %.
 - Mazo del jugador contra mazo de la IA: **≈47–50 % en normal** y **≈33–43 % en difícil** (muestras de 60 a 140 partidas, ±8–12 %).
 - Pendiente: los tanques (Onix, Snorlax) se juegan poco (~1 vez por partida) y Ventisca muy poco (0,7), por las heurísticas de la IA. El balance con jugadores humanos sigue sin medirse.
+
+## 10. Progresión (`persistence/progression.ts`)
+
+- **Trofeos**: una victoria suma 20 / 30 / 40 según la dificultad (fácil, normal, difícil); una derrota resta 15 y nunca baja de 0; un empate no cambia nada.
+- **Desbloqueos**: se empieza con las 8 cartas del mazo inicial. El resto se desbloquea por trofeos:
+
+| Carta | Trofeos |
+|---|---|
+| Geodude | 30 |
+| Jigglypuff | 80 |
+| Snorlax | 150 |
+| Ventisca | 220 |
+| Charizard | 300 |
+
+- **Rangos**: Novato (0), Entrenador (100), Líder de Gimnasio (250), Alto Mando (400), Campeón (600).
+- **Sin niveles ni mejoras de carta (decisión deliberada)**: la progresión amplía las opciones del mazo, pero no las estadísticas. Así la partida la decide la estrategia y el balance medido sigue siendo válido para todos los jugadores.
+- La IA usa su mazo completo desde el principio: el jugador ve en acción las cartas que podrá desbloquear.
+- Interfaz: el menú muestra los trofeos, el rango y el próximo desbloqueo. Los resultados muestran la variación de trofeos, el ascenso de rango y las cartas desbloqueadas. El constructor y la colección marcan las cartas bloqueadas con su requisito.
+- Persistencia en `localStorage`, tolerante a fallos: si un mazo guardado contiene cartas bloqueadas o datos corruptos, se vuelve al mazo inicial.

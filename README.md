@@ -29,7 +29,7 @@ npm run dev          # abre http://localhost:5173
 ### Pruebas
 
 ```bash
-npm test             # 100 pruebas unitarias y de simulación
+npm test             # 106 pruebas unitarias y de simulación
 npm run typecheck
 npm run test:e2e     # navegador real: escritorio (ratón) y móvil (táctil)
 npm run simulate -- 50 normal   # partidas IA contra IA
@@ -54,13 +54,12 @@ npm run balance -- 600 normal   # informe de balance por carta
 | 5. Interfaz y efectos visuales | ✅ Prototipo: menú, batalla, resultados, mazo y colección con gráficos vectoriales originales |
 | 6. IA del oponente | ✅ Tres dificultades, sin información oculta |
 | 7. Balance, pruebas y optimización | ✅ Herramienta de balance por carta; todas las cartas entre 45 % y 55 % |
-| 8. Persistencia, progresión y pulido | 🟡 Ajustes, mazo e historial guardados; sin progresión ni desbloqueos |
+| 8. Persistencia, progresión y pulido | ✅ Trofeos, rangos y desbloqueo de cartas (sin niveles de carta, a propósito); ajustes, mazo e historial guardados |
 
 ### Pendientes
 
 - **Balance:** el mazo por defecto del jugador gana ≈47–50 % (normal) y ≈33–43 % (difícil) frente al de la IA en IA contra IA. La IA usa poco los tanques y Ventisca. Falta probar con personas.
 - **Contenido:** solo hay 11 Pokémon y 2 hechizos, a propósito, para validar el sistema antes de ampliarlo. Faltan edificios.
-- **Progresión:** no hay niveles de carta, desbloqueos ni recompensas.
 - **Gráficos:** las fichas vectoriales son marcadores de prototipo. Faltan arte final, música y accesibilidad (daltonismo, tamaño de texto).
 - **REA:** Node 22.22 está por debajo del mínimo (22.23.4) y el servidor MCP no está registrado en el agente (`npx rea-agents setup`). Ver `docs/analisis_mecanicas.md`.
 

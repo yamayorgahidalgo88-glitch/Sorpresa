@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import type { Difficulty } from '../../sim/ai/opponent';
 import { getCard } from '../../sim/data/cards';
 import { loadSettings, loadStats, saveSettings } from '../../persistence/settings';
+import { nextUnlock, rankOf } from '../../persistence/progression';
 import type { Settings } from '../../persistence/settings';
 import { setMuted, unlockAudio } from '../audio/sfx';
 import { GAME_H, GAME_W } from '../layout';
@@ -73,7 +74,15 @@ export class MenuScene extends Phaser.Scene {
     this.add.text(GAME_W / 2, 1010, deckNames, textStyle(15, '#ffffff', { align: 'center', wordWrap: { width: 620 } })).setOrigin(0.5, 0);
 
     const s = loadStats();
-    this.add.text(GAME_W / 2, 1110, `Victorias ${s.wins} · Derrotas ${s.losses} · Empates ${s.draws}`, textStyle(17, '#c9d4f5')).setOrigin(0.5);
+    const rank = rankOf(s.trophies);
+    const next = nextUnlock(s.trophies);
+    this.add.text(GAME_W / 2, 470, `🏆 ${s.trophies} trofeos · ${rank.name}`, textStyle(22, css(COLORS.gold))).setOrigin(0.5);
+    this.add.text(GAME_W / 2, 1100, `Victorias ${s.wins} · Derrotas ${s.losses} · Empates ${s.draws}`, textStyle(17, '#c9d4f5')).setOrigin(0.5);
+    if (next) {
+      this.add
+        .text(GAME_W / 2, 1132, `Próximo desbloqueo: ${getCard(next.cardId).name} a los ${next.trophies} trofeos`, textStyle(16, '#9fe8a8'))
+        .setOrigin(0.5);
+    }
     this.add
       .text(GAME_W / 2, GAME_H - 50, 'Proyecto de fans sin ánimo de lucro. Pokémon es una marca de sus respectivos propietarios.\nGráficos y sonidos originales del prototipo.', textStyle(12, '#8e9bc4', { align: 'center' }))
       .setOrigin(0.5);

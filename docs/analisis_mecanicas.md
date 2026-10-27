@@ -149,4 +149,4 @@ Repositorio oficial: <https://github.com/morluto/rea> (clonado y leído: README,
 
 ### 3.15 Progresión, desbloqueos y mejoras
 - **Inferencia:** el juego de referencia tiene niveles de carta, cofres y trofeos.
-- **Decisión propia:** **fuera del alcance actual**. Solo hay historial de victorias y derrotas y mazo guardado. Ver los pendientes del hito 8.
+- **Decisión propia:** trofeos, rangos y desbloqueo de cartas, **sin niveles ni mejoras de estadísticas** (ver `diseno_juego.md` §10).

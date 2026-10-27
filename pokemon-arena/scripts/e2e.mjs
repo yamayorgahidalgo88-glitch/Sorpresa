@@ -160,8 +160,11 @@ async function scenario(browser, label, contextOpts, mode) {
   await page.screenshot({ path: `${OUT}/${label}-3-resultado.png` });
   const res = await page.evaluate(() => window.__arenaResult);
   check(res?.winner === 0 && res?.reason === 'base_destruida', 'la pantalla de resultados muestra la victoria');
+  check(res?.progress?.delta === 30 && res.progress.newlyUnlocked.includes('geodude'), 'la victoria suma 30 trofeos y desbloquea a Geodude');
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('pokemon-arena:estadisticas') || '{}'));
+  check(saved.trophies === 30 && saved.wins === 1, 'los trofeos y el historial se guardan en el navegador');
 
-  await tap({ x: GAME_W / 2, y: 870 }); // Revancha
+  await tap({ x: GAME_W / 2, y: 935 }); // Revancha
   await page.waitForFunction(() => window.__game.scene.isActive('battle') && window.__arena.battle.tick < 40 && !window.__game.scene.isActive('result'), null, { timeout: 8000 });
   check(true, 'revancha inicia una batalla nueva');
 

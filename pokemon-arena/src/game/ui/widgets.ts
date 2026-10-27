@@ -29,6 +29,7 @@ export class CardWidget {
   private readonly fill: Phaser.GameObjects.Graphics;
   private cardId = '';
   private affordKey = '';
+  private lockOverlay: Phaser.GameObjects.Container | null = null;
   private content: Phaser.GameObjects.GameObject[] = [];
 
   constructor(
@@ -115,6 +116,21 @@ export class CardWidget {
       this.selectGlow.lineStyle(6, COLORS.gold, 1).strokeRoundedRect(-4, -4, this.w + 8, this.h + 8, 15);
     }
     this.scene.tweens.add({ targets: this.root, y: baseY - (selected ? 14 : 0), duration: 110, ease: 'Quad.Out' });
+  }
+
+  /** Marca la carta como bloqueada (requisito en trofeos) o la desbloquea (null). */
+  setLocked(requirement: number | null): void {
+    this.lockOverlay?.destroy();
+    this.lockOverlay = null;
+    if (requirement === null) return;
+    const c = this.scene.add.container(0, 0);
+    const g = this.scene.add.graphics();
+    g.fillStyle(0x0b1022, 0.86).fillRoundedRect(0, 0, this.w, this.h, 12);
+    const lock = this.scene.add.text(this.w / 2, this.h * 0.4, '🔒', textStyle(34)).setOrigin(0.5);
+    const req = this.scene.add.text(this.w / 2, this.h * 0.78, `🏆 ${requirement}`, textStyle(18, css(COLORS.gold))).setOrigin(0.5);
+    c.add([g, lock, req]);
+    this.root.add(c);
+    this.lockOverlay = c;
   }
 
   shake(): void {

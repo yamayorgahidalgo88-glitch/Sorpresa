@@ -5,7 +5,7 @@
 ```bash
 cd pokemon-arena
 npm install
-npm test               # Vitest: 100 pruebas (≈5 s)
+npm test               # Vitest: 106 pruebas (≈5 s)
 npm run typecheck      # tsc --noEmit (modo estricto)
 npm run test:e2e       # compila, sirve y prueba en Chromium (escritorio + móvil); capturas en test-results/
 npm run simulate -- 50 normal   # simulación por lotes IA contra IA
@@ -16,9 +16,9 @@ npm run balance -- 600 normal   # informe de balance por carta (mazos aleatorios
 
 | Comando | Resultado |
 |---|---|
-| `npm test` | **8 archivos, 100/100 pruebas superadas** |
+| `npm test` | **9 archivos, 106/106 pruebas superadas** |
 | `npm run typecheck` | Sin errores |
-| `npm run test:e2e` | **22/22 comprobaciones superadas** (11 en escritorio con ratón y 11 en móvil táctil), sin errores en consola |
+| `npm run test:e2e` | **26/26 comprobaciones superadas** (13 en escritorio con ratón y 13 en móvil táctil), sin errores en consola |
 | `npm audit` | 0 vulnerabilidades |
 
 ## Cobertura de las pruebas obligatorias
@@ -41,6 +41,7 @@ npm run balance -- 600 normal   # informe de balance por carta (mazos aleatorios
 | Reproducibilidad con semilla | `victory_determinism.test.ts` · misma semilla, misma huella; `Battle.replay` reproduce el registro de órdenes |
 | IA legal y sin información oculta | `ai_longrun.test.ts` · claves de la observación, sin la cola del jugador, cartas en mano, coste pagable, zona legal, defensa ante amenazas, no juega al azar, remate con hechizo |
 | Persistencia | `input_persistence.test.ts` · ajustes, mazo, valores corruptos, historial |
+| Progresión | `progression.test.ts` · mazo inicial desbloqueado, catálogo completo con trofeos, suma y resta (sin bajar de 0), desbloqueos y ascensos, rangos; `input_persistence.test.ts` · trofeos guardados, mazo con cartas bloqueadas |
 | Estadísticas y balance | `balance_stats.test.ts` · atribución del daño a carta y equipo, Pokémon derrotados, regresión de balance |
 
 ## Prueba E2E (`scripts/e2e.mjs`)
@@ -51,7 +52,7 @@ Para cada perfil (escritorio 1280×800 con ratón y Pixel 5 táctil):
 3. Se rechaza el despliegue en el campo rival.
 4. Se despliega una carta arrastrándola (ratón, o eventos táctiles por CDP).
 5. La simulación avanza y la IA juega.
-6. Se fuerza la caída de la base rival y aparece la pantalla de resultados con la victoria.
+6. Se fuerza la caída de la base rival y aparece la pantalla de resultados con la victoria, +30 trofeos y el desbloqueo de Geodude, que quedan guardados en `localStorage`.
 7. "Revancha" inicia una batalla nueva.
 8. Se abren el constructor de mazos y la colección.
 9. No hay errores en la consola.
