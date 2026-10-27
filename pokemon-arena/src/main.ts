@@ -1,0 +1,21 @@
+import Phaser from 'phaser';
+import { GAME_H, GAME_W } from './game/layout';
+import { COLORS } from './game/theme';
+import { BattleScene } from './game/scenes/BattleScene';
+import { CollectionScene, DeckScene } from './game/scenes/CardScreens';
+import { MenuScene } from './game/scenes/MenuScene';
+import { ResultScene } from './game/scenes/ResultScene';
+
+const game = new Phaser.Game({
+  type: Phaser.AUTO,
+  parent: 'game',
+  width: GAME_W,
+  height: GAME_H,
+  backgroundColor: COLORS.bg,
+  scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+  input: { activePointers: 2 },
+  render: { antialias: true, roundPixels: false },
+  scene: [MenuScene, BattleScene, ResultScene, DeckScene, CollectionScene],
+});
+
+(window as unknown as { __game?: Phaser.Game }).__game = game;

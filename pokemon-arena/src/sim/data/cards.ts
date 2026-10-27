@@ -83,7 +83,7 @@ export type Card = PokemonCard | SpellCard;
 const POKEMON: PokemonCard[] = [
   {
     kind: 'pokemon', id: 'onix', name: 'Onix', types: ['roca', 'tierra'], role: 'tanque', cost: 5, count: 1,
-    hp: 2400, damage: 150, hitSpeed: 1.5, speed: 0.75, range: 0.8, sight: 7, radius: 0.8, mass: 8,
+    hp: 2700, damage: 150, hitSpeed: 1.5, speed: 0.8, range: 0.8, sight: 7, radius: 0.8, mass: 8,
     locomotion: 'tierra', targets: 'edificios', attack: { kind: 'cuerpo' }, deployTime: 1,
     description: 'Tanque enorme que solo ataca torres. Ideal para abrir camino a otros Pokémon.',
   },
@@ -147,7 +147,7 @@ const POKEMON: PokemonCard[] = [
   },
   {
     kind: 'pokemon', id: 'charizard', name: 'Charizard', types: ['fuego', 'volador'], role: 'area', cost: 5, count: 1,
-    hp: 1250, damage: 165, hitSpeed: 1.7, speed: 1.2, range: 3, sight: 6, radius: 0.7, mass: 5,
+    hp: 1050, damage: 140, hitSpeed: 1.8, speed: 1.2, range: 3, sight: 6, radius: 0.7, mass: 5,
     locomotion: 'aire', targets: 'aire_y_tierra', attack: { kind: 'proyectil', projectileSpeed: 10, splashRadius: 1.5 }, deployTime: 1,
     description: 'Dragón volador con Lanzallamas en área. Caro, pero domina el aire y el suelo.',
   },
