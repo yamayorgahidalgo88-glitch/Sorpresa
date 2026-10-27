@@ -26,7 +26,7 @@ function abilityText(a: Ability | undefined): string {
     case 'aura_curativa':
       return `Cura ${a.amount} PS a los aliados en ${a.radius} casillas cada ${a.interval} s.`;
     case 'autodestruccion':
-      return `Al caer explota: ${a.damage} de daño en ${a.radius} casillas.`;
+      return `Al caer explota: ${a.damage} de daño en ${a.radius} casillas (${Math.round(a.towerFactor * 100)} % a torres).`;
     case 'canto':
       return `Duerme ${a.duration} s a los enemigos en ${a.radius} casillas (cada ${a.interval} s).`;
     case 'cadena':

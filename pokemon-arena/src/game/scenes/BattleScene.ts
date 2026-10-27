@@ -476,6 +476,8 @@ export class BattleScene extends Phaser.Scene {
         seed: this.battle.seed,
         cardsPlayed: this.battle.player(0).cardsPlayed,
         energySpent: this.battle.player(0).energySpent,
+        towerDamage: [this.battle.player(0).towerDamage, this.battle.player(1).towerDamage],
+        defeated: [this.battle.player(0).defeated, this.battle.player(1).defeated],
       });
       this.scene.pause();
     });

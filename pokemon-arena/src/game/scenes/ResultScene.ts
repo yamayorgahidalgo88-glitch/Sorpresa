@@ -13,6 +13,8 @@ export interface ResultData {
   seed: number;
   cardsPlayed: number;
   energySpent: number;
+  towerDamage: [number, number];
+  defeated: [number, number];
 }
 
 const REASONS: Record<BattleResult['reason'], string> = {
@@ -57,6 +59,7 @@ export class ResultScene extends Phaser.Scene {
     row('Rival', r.medals[1], 630, 1);
 
     const lines = [
+      `Daño a torres: ${data.towerDamage[0]} (rival ${data.towerDamage[1]})   ·   Pokémon derrotados: ${data.defeated[0]}`,
       `Cartas jugadas: ${data.cardsPlayed}   ·   Energía gastada: ${data.energySpent}`,
       `Duración: ${Math.floor(r.tick / 20 / 60)}:${String(Math.floor(r.tick / 20) % 60).padStart(2, '0')}   ·   Semilla: ${data.seed}`,
       `Historial: ${stats.wins} V · ${stats.losses} D · ${stats.draws} E`,

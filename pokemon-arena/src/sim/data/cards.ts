@@ -15,7 +15,8 @@ export type Ability =
   /** Cura a los aliados cercanos (incluida ella misma) cada `interval` segundos. */
   | { kind: 'aura_curativa'; radius: number; amount: number; interval: number }
   /** Al morir causa daño de área a los enemigos (tropas y torres). */
-  | { kind: 'autodestruccion'; radius: number; damage: number; element: Element }
+  /** Al morir causa daño de área; las torres reciben `towerFactor` de ese daño. */
+  | { kind: 'autodestruccion'; radius: number; damage: number; element: Element; towerFactor: number }
   /** Cada `interval` segundos duerme (aturde) a los enemigos cercanos. */
   | { kind: 'canto'; radius: number; duration: number; interval: number }
   /** Cada impacto salta a `jumps` enemigos cercanos con daño decreciente. */
@@ -83,7 +84,7 @@ export type Card = PokemonCard | SpellCard;
 const POKEMON: PokemonCard[] = [
   {
     kind: 'pokemon', id: 'onix', name: 'Onix', types: ['roca', 'tierra'], role: 'tanque', cost: 5, count: 1,
-    hp: 2700, damage: 150, hitSpeed: 1.5, speed: 0.8, range: 0.8, sight: 7, radius: 0.8, mass: 8,
+    hp: 3000, damage: 150, hitSpeed: 1.5, speed: 0.8, range: 0.8, sight: 7, radius: 0.8, mass: 8,
     locomotion: 'tierra', targets: 'edificios', attack: { kind: 'cuerpo' }, deployTime: 1,
     description: 'Tanque enorme que solo ataca torres. Ideal para abrir camino a otros Pokémon.',
   },
@@ -127,7 +128,7 @@ const POKEMON: PokemonCard[] = [
   },
   {
     kind: 'pokemon', id: 'pidgeotto', name: 'Pidgeotto', types: ['normal', 'volador'], role: 'rapido', cost: 3, count: 1,
-    hp: 560, damage: 90, hitSpeed: 1.1, speed: 1.6, range: 1.2, sight: 6, radius: 0.5, mass: 2,
+    hp: 620, damage: 100, hitSpeed: 1.1, speed: 1.6, range: 1.2, sight: 6, radius: 0.5, mass: 2,
     locomotion: 'aire', targets: 'aire_y_tierra', attack: { kind: 'cuerpo' }, deployTime: 1,
     description: 'Vuela por encima del río y de las tropas terrestres. Solo lo alcanzan atacantes antiaéreos.',
   },
@@ -135,14 +136,14 @@ const POKEMON: PokemonCard[] = [
     kind: 'pokemon', id: 'geodude', name: 'Geodude', types: ['roca', 'tierra'], role: 'asedio', cost: 2, count: 1,
     hp: 480, damage: 50, hitSpeed: 1.2, speed: 1.4, range: 0.6, sight: 6, radius: 0.45, mass: 3,
     locomotion: 'tierra', targets: 'edificios', attack: { kind: 'cuerpo' }, deployTime: 1,
-    ability: { kind: 'autodestruccion', radius: 2, damage: 260, element: 'roca' },
+    ability: { kind: 'autodestruccion', radius: 2, damage: 260, element: 'roca', towerFactor: 0.6 },
     description: 'Corre hacia las torres. Al caer, explota y daña todo lo que tenga cerca.',
   },
   {
     kind: 'pokemon', id: 'jigglypuff', name: 'Jigglypuff', types: ['normal', 'hada'], role: 'apoyo', cost: 3, count: 1,
-    hp: 620, damage: 50, hitSpeed: 1.5, speed: 1.0, range: 3.5, sight: 5.5, radius: 0.5, mass: 3,
+    hp: 680, damage: 55, hitSpeed: 1.5, speed: 1.0, range: 3.5, sight: 5.5, radius: 0.5, mass: 3,
     locomotion: 'tierra', targets: 'aire_y_tierra', attack: { kind: 'proyectil', projectileSpeed: 9 }, deployTime: 1,
-    ability: { kind: 'canto', radius: 2.5, duration: 1.5, interval: 6 },
+    ability: { kind: 'canto', radius: 2.5, duration: 1.5, interval: 5 },
     description: 'Su Canto duerme a los enemigos cercanos durante un instante.',
   },
   {

@@ -199,8 +199,11 @@ export class OpponentAI {
     const laneX = ARENA.laneX[lane];
     const dir = this.team === 0 ? -1 : 1; // hacia el rival en Y
 
-    // Apoyar una ofensiva propia que ya está en marcha.
-    const pushers = obs.units.filter((u) => u.team === this.team && !this.ownHalf(u.pos.y));
+    // Apoyar una ofensiva propia que ya está en marcha: tropas en campo rival o un tanque
+    // propio que avanza (un tanque solo no rinde: necesita apoyo detrás).
+    const pushers = obs.units.filter(
+      (u) => u.team === this.team && (!this.ownHalf(u.pos.y) || getCard(u.cardId).role === 'tanque'),
+    );
     if (pushers.length > 0 && obs.energy >= 4) {
       const lead = pushers.slice().sort((a, b) => (a.pos.y - b.pos.y) * dir)[pushers.length - 1];
       const support = this.pick(troops, (c) => (c.role === 'distancia' || c.role === 'apoyo' || c.role === 'antigrupo' || c.role === 'area' ? 2 : 0) - c.cost * 0.2);

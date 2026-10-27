@@ -42,16 +42,16 @@ La base empieza **inactiva** (no dispara) y se activa al recibir daño o al caer
 
 | Pokémon | Tipos | Función | Coste | PS | Daño / cadencia | Vel. | Alcance | Ataca | Rasgo |
 |---|---|---|---|---|---|---|---|---|---|
-| Onix | Roca/Tierra | Tanque | 5 | 2700 | 150 / 1,5 s | 0,8 | 0,8 | Solo torres | Muy resistente |
+| Onix | Roca/Tierra | Tanque | 5 | 3000 | 150 / 1,5 s | 0,8 | 0,8 | Solo torres | Muy resistente |
 | Snorlax | Normal | Tanque | 6 | 3000 | 190 / 1,8 s | 0,6 | 1,0 | Tierra | Golpe con área de 1,2 |
 | Pikachu | Eléctrico | Rápido | 3 | 520 | 80 / 0,9 s | 1,8 | 3 | Aire y tierra | Cadena: 2 saltos (x0,6) |
 | Charmeleon | Fuego | Antigrupo | 4 | 900 | 125 / 1,6 s | 1,0 | 2 | Tierra | Llamarada con área de 1,4 |
 | Squirtle | Agua | Distancia | 3 | 480 | 95 / 1,2 s | 1,0 | 5 | Aire y tierra | — |
 | Bulbasaur | Planta/Veneno | Apoyo | 4 | 950 | 60 / 1,4 s | 1,0 | 4 | Aire y tierra | Aura curativa: +70 cada 2 s |
 | Machop ×3 | Lucha | Rápido | 3 | 340 c/u | 75 / 1,0 s | 1,4 | 0,6 | Tierra | Grupo de tres |
-| Pidgeotto | Normal/Volador | Rápido | 3 | 560 | 90 / 1,1 s | 1,6 | 1,2 | Aire y tierra | Vuela |
-| Geodude | Roca/Tierra | Asedio | 2 | 480 | 50 / 1,2 s | 1,4 | 0,6 | Solo torres | Autodestrucción: 260 en 2 casillas |
-| Jigglypuff | Normal/Hada | Apoyo | 3 | 620 | 50 / 1,5 s | 1,0 | 3,5 | Aire y tierra | Canto: duerme 1,5 s (cada 6 s) |
+| Pidgeotto | Normal/Volador | Rápido | 3 | 620 | 100 / 1,1 s | 1,6 | 1,2 | Aire y tierra | Vuela |
+| Geodude | Roca/Tierra | Asedio | 2 | 480 | 50 / 1,2 s | 1,4 | 0,6 | Solo torres | Autodestrucción: 260 en 2 casillas (60 % a torres) |
+| Jigglypuff | Normal/Hada | Apoyo | 3 | 680 | 55 / 1,5 s | 1,0 | 3,5 | Aire y tierra | Canto: duerme 1,5 s (cada 5 s) |
 | Charizard | Fuego/Volador | Área | 5 | 1050 | 140 / 1,8 s | 1,2 | 3 | Aire y tierra | Vuela; área de 1,5 |
 
 **Hechizos**
@@ -103,6 +103,21 @@ Las relaciones (qué tipo es eficaz contra cuál) siguen la tabla clásica de lo
 - La semilla aparece en la pantalla de resultados y se puede fijar con `?seed=1234` en la URL.
 - Los efectos visuales usan `Math.random`, pero no influyen en la simulación.
 
-## 9. Balance (estado actual)
+## 9. Balance
 
-Se mide con partidas IA contra IA (`npm run simulate`). En esta iteración, el análisis carta a carta mostró que Charizard estaba claramente por encima del resto. Se le bajó (PS 1250→1050, daño 165→140, cadencia 1,7→1,8 s) y se mejoró a Onix (PS 2400→2700, velocidad 0,75→0,8). Aun así, el mazo por defecto del jugador gana un 34 % (normal) y un 20 % (difícil) contra el de la IA en partidas IA contra IA. **Queda pendiente para el hito 7.**
+### Método
+- `npm run balance -- 600 normal` juega partidas IA contra IA entre **mazos aleatorios** válidos (con al menos una defensa antiaérea) y estima la tasa de victoria de los mazos que incluyen cada carta, con su intervalo de confianza del 95 %. También mide el emparejamiento de los dos mazos por defecto jugando en ambos lados.
+- El evento de daño indica la carta que lo causa (`sourceCardId`), lo que permite atribuir el daño a torres y a tropas a cada carta y entender *por qué* gana un mazo, no solo *si* gana.
+- `tests/balance_stats.test.ts` es una prueba de regresión con márgenes amplios: detecta cambios que rompan el balance (cifras absurdas o un emparejamiento por defecto fuera de [20 %, 80 %]), pero no lo afina.
+
+### Historial de ajustes
+
+| Iteración | Diagnóstico | Cambio |
+|---|---|---|
+| 1 | Quitar a Charizard del mazo rival subía al del jugador de 19 % a 40 % | Charizard: PS 1250→1050, daño 165→140, cadencia 1,7→1,8 s. Onix: PS 2400→2700, velocidad 0,75→0,8 |
+| 2 | Daño a torres por partida: mazo rival ≈1550 frente a ≈970. Geodude (2 de energía) hacía 326 por partida, sobre todo con su explosión; Onix (5 de energía) solo 78 porque la IA lo enviaba sin apoyo | La explosión de Geodude hace un 60 % a las torres. La IA escolta a sus tanques mientras avanzan. Onix: PS 3000. Pidgeotto: PS 620, daño 100. Jigglypuff: PS 680, daño 55, Canto cada 5 s |
+
+### Estado actual (normal, 600 partidas con mazos aleatorios)
+- Todas las cartas quedan entre el **45 % y el 55 %** de victorias (±3,6 %): Bulbasaur 55 %, Charizard 54 % … Jigglypuff 46 %, Onix 45 %.
+- Mazo del jugador contra mazo de la IA: **≈47–50 % en normal** y **≈33–43 % en difícil** (muestras de 60 a 140 partidas, ±8–12 %).
+- Pendiente: los tanques (Onix, Snorlax) se juegan poco (~1 vez por partida) y Ventisca muy poco (0,7), por las heurísticas de la IA. El balance con jugadores humanos sigue sin medirse.

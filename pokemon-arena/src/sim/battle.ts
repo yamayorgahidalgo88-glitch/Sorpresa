@@ -79,6 +79,8 @@ export class Battle {
         deck: new DeckCycle(opts.decks[team], new Rng(deriveSeed(this.seed, team + 1)), this.rules.handSize),
         cardsPlayed: 0,
         energySpent: 0,
+        towerDamage: 0,
+        defeated: 0,
       }),
     ) as [PlayerState, PlayerState];
 
@@ -337,6 +339,7 @@ export class Battle {
         hitsAir: true,
         includeTowers: true,
         towerFactor: card.towerDamageFactor,
+        sourceCardId: s.cardId,
       });
       if (card.effect) {
         for (const id of hit) {
@@ -506,6 +509,7 @@ export class Battle {
         team: t.team,
         damage: t.damage,
         element: null,
+        sourceCardId: null,
         splashRadius: 0,
         splashHitsAir: false,
       });
@@ -519,6 +523,7 @@ export class Battle {
       team: u.team,
       damage: card.damage,
       element: attackElement(card),
+      sourceCardId: card.id,
       splashRadius: card.attack.splashRadius ?? 0,
       splashHitsAir: card.targets === 'aire_y_tierra',
       chain: ab?.kind === 'cadena' ? { jumps: ab.jumps, radius: ab.radius, falloff: ab.falloff } : undefined,
@@ -543,6 +548,7 @@ export class Battle {
             team: p.team,
             damage: p.damage,
             element: p.element,
+            sourceCardId: p.sourceCardId,
             splashRadius: p.splashRadius,
             splashHitsAir: p.splashHitsAir,
             chain: p.chain,
@@ -573,11 +579,17 @@ export class Battle {
         if (u.dead || u.hp > 0) continue;
         u.dead = true;
         changed = true;
+        w.players[enemyOf(u.team)].defeated++;
         emit(w, { type: 'muerte', unitId: u.id, team: u.team, cardId: u.cardId, pos: { ...u.pos } });
         const ab = (getCard(u.cardId) as PokemonCard).ability;
         if (ab?.kind === 'autodestruccion') {
           emit(w, { type: 'explosion', sourceId: u.id, pos: { ...u.pos }, radius: ab.radius });
-          applySplash(w, u.team, u.pos, ab.radius, ab.damage, ab.element, { hitsAir: false, includeTowers: true });
+          applySplash(w, u.team, u.pos, ab.radius, ab.damage, ab.element, {
+            hitsAir: false,
+            includeTowers: true,
+            towerFactor: ab.towerFactor,
+            sourceCardId: u.cardId,
+          });
         }
       }
       for (const t of w.towers) {

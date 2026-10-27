@@ -11,6 +11,8 @@ export interface HitSpec {
   team: Team;
   damage: number;
   element: Element | null;
+  /** Carta que origina el golpe (null = torre). */
+  sourceCardId: string | null;
   splashRadius: number;
   /** Si el daño en área alcanza a voladores. */
   splashHitsAir: boolean;
@@ -25,7 +27,19 @@ export interface HitSpec {
  * las torres no tienen tipo (x1) pero pueden recibir daño reducido de hechizos.
  * La salud nunca baja de 0. Devuelve el daño realmente aplicado.
  */
-export function applyDamage(world: World, target: Entity, raw: number, element: Element | null, towerFactor = 1): number {
+export interface DamageSource {
+  team: Team;
+  cardId: string | null;
+}
+
+export function applyDamage(
+  world: World,
+  target: Entity,
+  raw: number,
+  element: Element | null,
+  source: DamageSource,
+  towerFactor = 1,
+): number {
   if (!isAlive(target) || raw <= 0) return 0;
   let amount: number;
   let mult = 1;
@@ -41,7 +55,16 @@ export function applyDamage(world: World, target: Entity, raw: number, element: 
   }
   amount = Math.min(amount, target.hp);
   target.hp -= amount;
-  emit(world, { type: 'dano', targetId: target.id, amount, effectiveness: effectivenessLabel(mult), element });
+  if (target.kind === 'tower' && target.team !== source.team) world.players[source.team].towerDamage += amount;
+  emit(world, {
+    type: 'dano',
+    targetId: target.id,
+    amount,
+    effectiveness: effectivenessLabel(mult),
+    element,
+    sourceTeam: source.team,
+    sourceCardId: source.cardId,
+  });
   return amount;
 }
 
@@ -53,7 +76,7 @@ export function applySplash(
   radius: number,
   damage: number,
   element: Element | null,
-  opts: { hitsAir: boolean; includeTowers: boolean; towerFactor?: number; excludeId?: number },
+  opts: { hitsAir: boolean; includeTowers: boolean; towerFactor?: number; excludeId?: number; sourceCardId: string | null },
 ): number[] {
   const foe = enemyOf(team);
   const hit: number[] = [];
@@ -61,7 +84,7 @@ export function applySplash(
     if (u.team !== foe || !isAlive(u) || u.id === opts.excludeId) continue;
     if (u.locomotion === 'aire' && !opts.hitsAir) continue;
     if (dist(u.pos, center) - u.radius <= radius) {
-      applyDamage(world, u, damage, element);
+      applyDamage(world, u, damage, element, { team, cardId: opts.sourceCardId });
       hit.push(u.id);
     }
   }
@@ -69,7 +92,7 @@ export function applySplash(
     for (const t of world.towers) {
       if (t.team !== foe || t.destroyed || t.id === opts.excludeId) continue;
       if (dist(t.pos, center) - t.radius <= radius) {
-        applyDamage(world, t, damage, element, opts.towerFactor ?? 1);
+        applyDamage(world, t, damage, element, { team, cardId: opts.sourceCardId }, opts.towerFactor ?? 1);
         hit.push(t.id);
       }
     }
@@ -95,13 +118,15 @@ export function applyStun(world: World, u: UnitEntity, durationTicks: number): v
 /** Resuelve un impacto (cuerpo a cuerpo o de proyectil) sobre `target` o, si murió, en `at`. */
 export function resolveHit(world: World, spec: HitSpec, target: Entity | undefined, at: Vec): void {
   const targetAlive = isAlive(target);
-  if (targetAlive) applyDamage(world, target!, spec.damage, spec.element, spec.towerFactor ?? 1);
+  const source = { team: spec.team, cardId: spec.sourceCardId };
+  if (targetAlive) applyDamage(world, target!, spec.damage, spec.element, source, spec.towerFactor ?? 1);
   if (spec.splashRadius > 0) {
     const center = targetAlive ? target!.pos : at;
     applySplash(world, spec.team, center, spec.splashRadius, spec.damage, spec.element, {
       hitsAir: spec.splashHitsAir,
       includeTowers: false,
       excludeId: targetAlive ? target!.id : undefined,
+      sourceCardId: spec.sourceCardId,
     });
     emit(world, { type: 'impacto_area', pos: { x: center.x, y: center.y }, radius: spec.splashRadius, element: spec.element });
   }
@@ -132,7 +157,7 @@ function chainFrom(world: World, spec: HitSpec, first: Entity): void {
     }
     if (!best) break;
     visited.add(best.id);
-    applyDamage(world, best, damage, spec.element);
+    applyDamage(world, best, damage, spec.element, { team: spec.team, cardId: spec.sourceCardId });
     points.push({ x: best.pos.x, y: best.pos.y });
     from = best.pos;
   }
@@ -150,6 +175,7 @@ export function spawnProjectile(world: World, source: Entity, target: Entity, sp
     speed,
     damage: spec.damage,
     element: spec.element,
+    sourceCardId: spec.sourceCardId,
     splashRadius: spec.splashRadius,
     splashHitsAir: spec.splashHitsAir,
     chain: spec.chain,

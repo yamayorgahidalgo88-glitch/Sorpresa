@@ -76,6 +76,7 @@ export interface Projectile {
   speed: number;
   damage: number;
   element: Element | null;
+  sourceCardId: string | null;
   splashRadius: number;
   /** Filtro de área: 'tierra' no daña voladores. */
   splashHitsAir: boolean;
@@ -108,6 +109,10 @@ export interface PlayerState {
   deck: DeckCycle;
   cardsPlayed: number;
   energySpent: number;
+  /** Daño total infligido a torres rivales. */
+  towerDamage: number;
+  /** Pokémon rivales derrotados. */
+  defeated: number;
 }
 
 /** Eventos emitidos en cada paso: la interfaz los usa para animaciones y sonido. */
@@ -119,7 +124,8 @@ export type SimEvent =
   | { type: 'proyectil'; projectileId: number; sourceId: number; targetId: number; element: Element | null }
   | { type: 'impacto_area'; pos: Vec; radius: number; element: Element | null }
   | { type: 'cadena'; points: Vec[] }
-  | { type: 'dano'; targetId: number; amount: number; effectiveness: EffectivenessLabel; element: Element | null }
+  /** `sourceCardId`: carta que causó el daño (null = disparo de torre). */
+  | { type: 'dano'; targetId: number; amount: number; effectiveness: EffectivenessLabel; element: Element | null; sourceTeam: Team; sourceCardId: string | null }
   | { type: 'curacion'; targetId: number; amount: number }
   | { type: 'canto'; sourceId: number; pos: Vec; radius: number; targetIds: number[] }
   | { type: 'explosion'; sourceId: number; pos: Vec; radius: number }

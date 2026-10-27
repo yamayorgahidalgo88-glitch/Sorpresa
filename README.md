@@ -29,10 +29,11 @@ npm run dev          # abre http://localhost:5173
 ### Pruebas
 
 ```bash
-npm test             # 96 pruebas unitarias y de simulación
+npm test             # 100 pruebas unitarias y de simulación
 npm run typecheck
 npm run test:e2e     # navegador real: escritorio (ratón) y móvil (táctil)
-npm run simulate -- 50 normal   # partidas IA contra IA (balance)
+npm run simulate -- 50 normal   # partidas IA contra IA
+npm run balance -- 600 normal   # informe de balance por carta
 ```
 
 ### Documentación
@@ -52,12 +53,12 @@ npm run simulate -- 50 normal   # partidas IA contra IA (balance)
 | 4. Cartas, mazo y energía | ✅ |
 | 5. Interfaz y efectos visuales | ✅ Prototipo: menú, batalla, resultados, mazo y colección con gráficos vectoriales originales |
 | 6. IA del oponente | ✅ Tres dificultades, sin información oculta |
-| 7. Balance, pruebas y optimización | 🟡 Pruebas y optimización hechas; balance en curso (ver pendientes) |
+| 7. Balance, pruebas y optimización | ✅ Herramienta de balance por carta; todas las cartas entre 45 % y 55 % |
 | 8. Persistencia, progresión y pulido | 🟡 Ajustes, mazo e historial guardados; sin progresión ni desbloqueos |
 
 ### Pendientes
 
-- **Balance:** en partidas IA contra IA, el mazo por defecto del jugador gana un 34 % (normal) y un 20 % (difícil) frente al mazo de la IA. Hay que revisar las cartas y las heurísticas de la IA, y probar con personas.
+- **Balance:** el mazo por defecto del jugador gana ≈47–50 % (normal) y ≈33–43 % (difícil) frente al de la IA en IA contra IA. La IA usa poco los tanques y Ventisca. Falta probar con personas.
 - **Contenido:** solo hay 11 Pokémon y 2 hechizos, a propósito, para validar el sistema antes de ampliarlo. Faltan edificios.
 - **Progresión:** no hay niveles de carta, desbloqueos ni recompensas.
 - **Gráficos:** las fichas vectoriales son marcadores de prototipo. Faltan arte final, música y accesibilidad (daltonismo, tamaño de texto).

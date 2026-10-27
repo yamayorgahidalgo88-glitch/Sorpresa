@@ -5,17 +5,18 @@
 ```bash
 cd pokemon-arena
 npm install
-npm test               # Vitest: 96 pruebas (≈3 s)
+npm test               # Vitest: 100 pruebas (≈5 s)
 npm run typecheck      # tsc --noEmit (modo estricto)
 npm run test:e2e       # compila, sirve y prueba en Chromium (escritorio + móvil); capturas en test-results/
-npm run simulate -- 50 normal   # simulación por lotes IA contra IA (balance)
+npm run simulate -- 50 normal   # simulación por lotes IA contra IA
+npm run balance -- 600 normal   # informe de balance por carta (mazos aleatorios)
 ```
 
 ## Última ejecución (27-10-2026)
 
 | Comando | Resultado |
 |---|---|
-| `npm test` | **7 archivos, 96/96 pruebas superadas** |
+| `npm test` | **8 archivos, 100/100 pruebas superadas** |
 | `npm run typecheck` | Sin errores |
 | `npm run test:e2e` | **22/22 comprobaciones superadas** (11 en escritorio con ratón y 11 en móvil táctil), sin errores en consola |
 | `npm audit` | 0 vulnerabilidades |
@@ -40,6 +41,7 @@ npm run simulate -- 50 normal   # simulación por lotes IA contra IA (balance)
 | Reproducibilidad con semilla | `victory_determinism.test.ts` · misma semilla, misma huella; `Battle.replay` reproduce el registro de órdenes |
 | IA legal y sin información oculta | `ai_longrun.test.ts` · claves de la observación, sin la cola del jugador, cartas en mano, coste pagable, zona legal, defensa ante amenazas, no juega al azar, remate con hechizo |
 | Persistencia | `input_persistence.test.ts` · ajustes, mazo, valores corruptos, historial |
+| Estadísticas y balance | `balance_stats.test.ts` · atribución del daño a carta y equipo, Pokémon derrotados, regresión de balance |
 
 ## Prueba E2E (`scripts/e2e.mjs`)
 
