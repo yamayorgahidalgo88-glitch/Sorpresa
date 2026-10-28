@@ -7,6 +7,7 @@ import type { Settings } from '../../persistence/settings';
 import { setMuted, unlockAudio } from '../audio/sfx';
 import { GAME_H, GAME_W } from '../layout';
 import { creatureTexture } from '../render/creatureArt';
+import { portraitKey } from '../render/portraits';
 import { COLORS, css, textStyle } from '../theme';
 import { makeButton } from '../ui/widgets';
 
@@ -38,7 +39,8 @@ export class MenuScene extends Phaser.Scene {
     parade.forEach((id, i) => {
       const x = 90 + (i % 4) * 180;
       const y = i < 4 ? 120 : 1260;
-      const g = this.add.image(x, y, creatureTexture(this, id, 34));
+      const key = portraitKey(this, id);
+      const g = key ? this.add.image(x, y, key).setDisplaySize(130, 130) : this.add.image(x, y, creatureTexture(this, id, 34));
       this.tweens.add({ targets: g, y: y - 14, duration: 600 + i * 70, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
     });
 

@@ -36,7 +36,7 @@ La base empieza **inactiva** (no dispara) y se activa al recibir daño o al caer
 - Mazo de **8 cartas distintas**, configurable en el constructor de mazos y guardado en el navegador.
 - **Mano de 4** y "Siguiente" visible. Al jugar una carta, esta va al final de la cola y su hueco lo ocupa la siguiente.
 - Jugar una carta exige tenerla en la mano, energía suficiente y una zona válida. Si no se cumple, se rechaza **sin gastar energía**.
-- Cada carta muestra coste, función táctica, PS, daño y tipos. La ficha completa está en la Colección.
+- Cada carta muestra el retrato vóxel del Pokémon, su coste, función táctica, PS, daño y tipos. Al tocarla en el constructor de mazos o en la Colección se abre su **ficha completa**: PS, daño, daño por segundo, velocidad de ataque, velocidad (lenta, media, rápida o muy rápida), alcance, objetivos, tipo de unidad, cantidad, daño en área, despliegue, habilidad, debilidades y resistencias. En el constructor, la ficha tiene el botón «Añadir al mazo» o «Quitar del mazo».
 
 ## 4. Pokémon (`data/cards.ts`)
 
@@ -90,7 +90,7 @@ Las relaciones (qué tipo es eficaz contra cuál) siguen la tabla clásica de lo
 
 ## 7. Interfaz y controles
 
-- Pantallas: **menú principal** (dificultad, sonido, mazo actual, historial), **batalla**, **resultados** (medallas, motivo, estadísticas, semilla, revancha), **constructor de mazos** (aviso si el mazo no tiene defensa antiaérea, coste medio) y **colección** (ficha técnica con debilidades y resistencias).
+- Pantallas: **menú principal** (dificultad, sonido, mazo actual, historial), **batalla**, **resultados** (medallas, motivo, estadísticas, semilla, revancha), **constructor de mazos** (ficha de cada carta con añadir o quitar, aviso si el mazo no tiene defensa antiaérea, coste medio) y **colección** (ficha de cada carta). La batalla se dibuja en 3D con los Pokémon en estilo vóxel; sin WebGL se usa la vista 2D.
 - Diseño vertical de 720×1420 escalado para encajar en cualquier pantalla. Funciona en móvil y en ordenador.
 - **Controles**: tocar una carta y después el campo, o arrastrar la carta al campo. Tocar de nuevo la carta la deselecciona. Teclas 1-4 para elegir carta y Esc para cancelar. Con una carta seleccionada, las casillas no permitidas se sombrean en rojo, y una vista previa verde o roja muestra el punto de despliegue, el alcance o el radio del hechizo.
 - Combate: barras de salud, anillo de color de equipo (azul jugador, rojo rival), "Zz" para dormido o base inactiva, anillo celeste para ralentizado, embestidas y retrocesos al atacar, proyectiles del color de su tipo, números de daño, curaciones, descargas en cadena, rayos, ventiscas, explosiones, destrucción de torres con sacudida de cámara, avisos de fase ("¡ENERGÍA x2!", "¡PRÓRROGA!") y temporizador en rojo en los últimos 10 s.

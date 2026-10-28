@@ -200,6 +200,23 @@ async function scenario(browser, label, contextOpts, mode, query = '') {
   await sleep(300);
   await page.screenshot({ path: `${OUT}/${label}-4-mazo.png` });
   check(true, 'el constructor de mazo se abre');
+  // Ficha de carta: tocar Onix (primera carta, está en el mazo) abre su ficha; «Quitar del mazo» la quita.
+  await tap({ x: 67 + 69, y: 130 + 72 });
+  await page.waitForFunction(() => !!window.__game.scene.getScene('deck').detail, null, { timeout: 5000 });
+  await sleep(400);
+  await page.screenshot({ path: `${OUT}/${label}-4b-ficha.png` });
+  check(true, 'tocar una carta del mazo abre su ficha');
+  const removeBtn = await page.evaluate(() => {
+    const b = window.__game.scene.getScene('deck').detail.root.list.find((o) => o.getData?.('label') === 'Quitar del mazo');
+    return { x: b.x, y: b.y };
+  });
+  await tap(removeBtn);
+  await sleep(300);
+  const deckState = await page.evaluate(() => {
+    const d = window.__game.scene.getScene('deck');
+    return { open: !!d.detail, hasOnix: d.deck.includes('onix'), size: d.deck.length };
+  });
+  check(!deckState.open && !deckState.hasOnix && deckState.size === 7, 'el botón de la ficha quita la carta del mazo');
   await tap({ x: GAME_W / 2, y: 1420 - 75 });
   await page.waitForFunction(() => window.__game.scene.isActive('menu'));
   await sleep(300);

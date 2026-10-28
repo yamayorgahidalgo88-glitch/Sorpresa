@@ -19,19 +19,20 @@ Requisitos: Node.js 22 o superior y npm.
 ```bash
 cd pokemon-arena
 npm install
-npm run dev          # abre http://localhost:5173 (escena 3D de referencia: /referencia.html)
+npm run dev          # abre http://localhost:5173 (herramientas: /referencia.html y /galeria.html)
 ```
 
 - Compilación de producción: `npm run build` (genera `pokemon-arena/dist/`, servible como web estática; `npm run preview` la sirve en local).
-- Partida reproducible: añade `?seed=1234` a la URL.
+- Partida reproducible: añade `?seed=1234` a la URL. Vista 2D de respaldo: `?vista=2d` (se usa sola si no hay WebGL).
+- La batalla se dibuja en 3D con los Pokémon en estilo vóxel. En el constructor de mazo y en la colección, al tocar una carta se abre su ficha: vida, daño, daño por segundo, velocidad de ataque, velocidad, alcance, objetivos, habilidad y tipos.
 - Controles: toca o haz clic en una carta y después en el campo, o arrastra la carta. Teclas 1-4 para elegir carta y Esc para cancelar.
 
 ### Pruebas
 
 ```bash
-npm test             # 108 pruebas unitarias y de simulación
+npm test             # 116 pruebas unitarias y de simulación
 npm run typecheck
-npm run test:e2e     # navegador real: escritorio (ratón) y móvil (táctil)
+npm run test:e2e     # navegador real: escritorio (ratón) y móvil (táctil) en 3D, y escritorio en 2D
 npm run simulate -- 50 normal   # partidas IA contra IA
 npm run balance -- 600 normal   # informe de balance por carta
 ```
@@ -61,7 +62,7 @@ npm run balance -- 600 normal   # informe de balance por carta
 
 - **Balance:** el mazo por defecto del jugador gana ≈47–50 % (normal) y ≈33–43 % (difícil) frente al de la IA en IA contra IA. La IA usa poco los tanques y Ventisca. Falta probar con personas.
 - **Contenido:** solo hay 11 Pokémon y 2 hechizos, a propósito, para validar el sistema antes de ampliarlo. Faltan edificios.
-- **Gráficos:** salto a 3D en curso (ver `docs/direccion_artistica.md`). La escena de referencia (arena, torres, Pikachu e Impactrueno) está terminada. Faltan el resto de Pokémon (hito F), las cartas y el HUD (hito G) e integrar el 3D en la batalla jugable. También faltan música y accesibilidad (daltonismo, tamaño de texto).
+- **Gráficos:** la batalla jugable ya es 3D. Los 11 Pokémon tienen modelo vóxel y las torres dejan ruinas (hito F terminado). Las cartas y la ficha usan retratos vóxel. Faltan el marco definitivo de las cartas y el HUD (resto del hito G) y la optimización medida en móviles reales (hito H). También faltan música y accesibilidad (daltonismo, tamaño de texto).
 - **REA:** Node 22.22 está por debajo del mínimo (22.23.4) y el servidor MCP no está registrado en el agente (`npx rea-agents setup`). Ver `docs/analisis_mecanicas.md`.
 
 ### Aviso

@@ -1,8 +1,5 @@
 import Phaser from 'phaser';
-import { CARD_IDS, ROLE_NAMES, getCard } from '../../sim/data/cards';
-import type { Ability, Card } from '../../sim/data/cards';
-import { ELEMENTS, ELEMENT_NAMES, typeMultiplier } from '../../sim/data/elements';
-import type { Element } from '../../sim/data/elements';
+import { CARD_IDS, getCard } from '../../sim/data/cards';
 import { validateDeck } from '../../sim/systems/deck';
 import { loadSettings, loadStats, saveSettings } from '../../persistence/settings';
 import { isUnlocked, unlockRequirement } from '../../persistence/progression';
@@ -10,7 +7,8 @@ import type { Settings } from '../../persistence/settings';
 import { play } from '../audio/sfx';
 import { GAME_H, GAME_W } from '../layout';
 import { COLORS, css, textStyle } from '../theme';
-import { CardWidget, makeButton, targetsLabel } from '../ui/widgets';
+import { CardDetail } from '../ui/cardDetail';
+import { CardWidget, makeButton } from '../ui/widgets';
 
 const GRID_W = 150;
 const GRID_H = 158;
@@ -21,97 +19,35 @@ function gridPos(i: number, top: number): { x: number; y: number } {
   return { x: GRID_X + (i % GRID_COLS) * GRID_W, y: top + Math.floor(i / GRID_COLS) * GRID_H };
 }
 
-function abilityText(a: Ability | undefined): string {
-  if (!a) return '';
-  switch (a.kind) {
-    case 'aura_curativa':
-      return `Cura ${a.amount} PS a los aliados en ${a.radius} casillas cada ${a.interval} s.`;
-    case 'autodestruccion':
-      return `Al caer explota: ${a.damage} de daño en ${a.radius} casillas (${Math.round(a.towerFactor * 100)} % a torres).`;
-    case 'canto':
-      return `Duerme ${a.duration} s a los enemigos en ${a.radius} casillas (cada ${a.interval} s).`;
-    case 'cadena':
-      return `La descarga salta a ${a.jumps} enemigos más (x${a.falloff} por salto).`;
-    case 'ralentizar':
-      return `Ralentiza un ${Math.round(a.factor * 100)} % durante ${a.duration} s.`;
-  }
-}
-
-/** Debilidades y resistencias del Pokémon según la tabla de tipos. */
-function matchups(card: Card): { weak: Element[]; resist: Element[] } {
-  const weak: Element[] = [];
-  const resist: Element[] = [];
-  if (card.kind !== 'pokemon') return { weak, resist };
-  for (const e of ELEMENTS) {
-    const m = typeMultiplier(e, card.types);
-    if (m > 1) weak.push(e);
-    else if (m < 1) resist.push(e);
-  }
-  return { weak, resist };
-}
-
-export function cardDetailLines(card: Card): string[] {
-  const types = card.types.map((t) => ELEMENT_NAMES[t]).join(' / ');
-  if (card.kind === 'hechizo') {
-    const eff = card.effect ? (card.effect.kind === 'aturdir' ? `Aturde ${card.effect.duration} s.` : `Ralentiza ${Math.round(card.effect.factor * 100)} % durante ${card.effect.duration} s.`) : '';
-    return [
-      `${card.name} · Hechizo de tipo ${types} · Coste ${card.cost}`,
-      `Daño ${card.damage} en ${card.radius} casillas · A torres: ${Math.round(card.towerDamageFactor * 100)} %`,
-      `${eff} ${card.description}`,
-    ];
-  }
-  const m = matchups(card);
-  return [
-    `${card.name} · ${types} · ${ROLE_NAMES[card.role]} · Coste ${card.cost}${card.count > 1 ? ` · ${card.count} unidades` : ''}`,
-    `PS ${card.hp} · Daño ${card.damage} cada ${card.hitSpeed} s · Velocidad ${card.speed} · Alcance ${card.range}`,
-    `${targetsLabel(card)} · ${card.locomotion === 'aire' ? 'Volador' : 'Terrestre'}${card.attack.splashRadius ? ` · Daño en área (${card.attack.splashRadius})` : ''}`,
-    `Débil a: ${m.weak.map((e) => ELEMENT_NAMES[e]).join(', ') || '—'}`,
-    `Resiste: ${m.resist.map((e) => ELEMENT_NAMES[e]).join(', ') || '—'}`,
-    `${abilityText(card.ability)} ${card.description}`.trim(),
-  ];
-}
-
-/** Colección: todas las cartas con su ficha técnica. */
+/** Colección: todas las cartas; al tocar una se abre su ficha completa. */
 export class CollectionScene extends Phaser.Scene {
-  private detail!: Phaser.GameObjects.Text;
+  detail: CardDetail | null = null;
 
   constructor() {
     super('collection');
   }
 
   create(): void {
+    this.detail = null;
     this.cameras.main.setBackgroundColor(COLORS.bg);
     this.add.text(GAME_W / 2, 50, 'Colección', textStyle(44, css(COLORS.gold))).setOrigin(0.5);
     this.add.text(GAME_W / 2, 96, 'Toca una carta para ver su ficha', textStyle(17, '#c9d4f5')).setOrigin(0.5);
     const trophies = loadStats().trophies;
-    const widgets: CardWidget[] = [];
     CARD_IDS.forEach((id, i) => {
       const p = gridPos(i, 130);
       const w = new CardWidget(this, p.x, p.y, GRID_W - 12, GRID_H - 14);
       w.setCard(id);
-      if (!isUnlocked(id, trophies)) w.setLocked(unlockRequirement(id));
-      w.root.setSize(GRID_W - 12, GRID_H - 14).setInteractive(new Phaser.Geom.Rectangle(0, 0, GRID_W - 12, GRID_H - 14), Phaser.Geom.Rectangle.Contains);
-      w.root.setData('baseY', p.y);
-      w.root.on('pointerup', () => {
-        widgets.forEach((o) => o.setSelected(o === w, o.root.getData('baseY') as number));
-        this.show(id);
+      const locked = !isUnlocked(id, trophies);
+      if (locked) w.setLocked(unlockRequirement(id));
+      w.onTap(() => {
         play('seleccion');
+        this.detail = new CardDetail(this, id, {
+          locked: locked ? `Se desbloquea con ${unlockRequirement(id)} trofeos (tienes ${trophies}).` : undefined,
+          onClose: () => (this.detail = null),
+        });
       });
-      widgets.push(w);
     });
-    const panelY = 130 + Math.ceil(CARD_IDS.length / GRID_COLS) * GRID_H + 10;
-    const g = this.add.graphics();
-    g.fillStyle(COLORS.panel, 1).fillRoundedRect(24, panelY, GAME_W - 48, 300, 18);
-    this.detail = this.add.text(44, panelY + 18, '', textStyle(17, '#ffffff', { wordWrap: { width: GAME_W - 88 }, lineSpacing: 8 }));
-    this.show(CARD_IDS[0]);
     makeButton(this, GAME_W / 2, GAME_H - 70, 360, 70, 'Volver', () => this.scene.start('menu'), COLORS.panelLight);
-  }
-
-  private show(id: string): void {
-    const lines = cardDetailLines(getCard(id));
-    const trophies = loadStats().trophies;
-    if (!isUnlocked(id, trophies)) lines.unshift(`🔒 Se desbloquea con ${unlockRequirement(id)} trofeos (tienes ${trophies}).`);
-    this.detail.setText(lines.join('\n'));
   }
 }
 
@@ -123,6 +59,7 @@ export class DeckScene extends Phaser.Scene {
   private info!: Phaser.GameObjects.Text;
   private saveBtn!: Phaser.GameObjects.Container;
   private trophies = 0;
+  detail: CardDetail | null = null;
 
   constructor() {
     super('deck');
@@ -133,18 +70,18 @@ export class DeckScene extends Phaser.Scene {
     this.deck = this.settings.deck.slice();
     this.trophies = loadStats().trophies;
     this.widgets = new Map();
+    this.detail = null;
     this.cameras.main.setBackgroundColor(COLORS.bg);
     this.add.text(GAME_W / 2, 50, 'Constructor de mazo', textStyle(40, css(COLORS.gold))).setOrigin(0.5);
-    this.add.text(GAME_W / 2, 94, 'Toca para añadir o quitar · 8 cartas distintas', textStyle(17, '#c9d4f5')).setOrigin(0.5);
+    this.add.text(GAME_W / 2, 94, 'Toca una carta para ver su ficha y añadirla o quitarla', textStyle(17, '#c9d4f5')).setOrigin(0.5);
 
     CARD_IDS.forEach((id, i) => {
       const p = gridPos(i, 130);
       const w = new CardWidget(this, p.x, p.y, GRID_W - 12, GRID_H - 14);
       w.setCard(id);
       if (!isUnlocked(id, this.trophies)) w.setLocked(unlockRequirement(id));
-      w.root.setSize(GRID_W - 12, GRID_H - 14).setInteractive(new Phaser.Geom.Rectangle(0, 0, GRID_W - 12, GRID_H - 14), Phaser.Geom.Rectangle.Contains);
       w.root.setData('baseY', p.y);
-      w.root.on('pointerup', () => this.toggle(id));
+      w.onTap(() => this.openDetail(id));
       this.widgets.set(id, w);
     });
 
@@ -153,6 +90,31 @@ export class DeckScene extends Phaser.Scene {
     this.saveBtn = makeButton(this, GAME_W / 2, GAME_H - 170, 380, 76, 'Guardar mazo', () => this.save());
     makeButton(this, GAME_W / 2, GAME_H - 75, 380, 64, 'Volver', () => this.scene.start('menu'), COLORS.panelLight);
     this.refresh();
+  }
+
+  /** Ficha de la carta con la acción de añadirla o quitarla del mazo. */
+  private openDetail(id: string): void {
+    play('seleccion');
+    const locked = !isUnlocked(id, this.trophies);
+    const inDeck = this.deck.includes(id);
+    const actions = locked
+      ? []
+      : [
+          {
+            label: inDeck ? 'Quitar del mazo' : 'Añadir al mazo',
+            color: inDeck ? COLORS.danger : COLORS.ok,
+            onClick: () => {
+              this.detail?.destroy();
+              this.detail = null;
+              this.toggle(id);
+            },
+          },
+        ];
+    this.detail = new CardDetail(this, id, {
+      locked: locked ? `Se desbloquea con ${unlockRequirement(id)} trofeos (tienes ${this.trophies}).` : undefined,
+      actions,
+      onClose: () => (this.detail = null),
+    });
   }
 
   private toggle(id: string): void {
@@ -167,6 +129,7 @@ export class DeckScene extends Phaser.Scene {
     else if (this.deck.length < 8) this.deck.push(id);
     else {
       this.widgets.get(id)?.shake();
+      this.info.setText('El mazo ya tiene 8 cartas: quita una antes de añadir otra.').setColor(css(COLORS.gold));
       play('rechazo');
       return;
     }

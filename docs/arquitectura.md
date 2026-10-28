@@ -32,9 +32,10 @@ pokemon-arena/
 │   │   ├── theme.ts           # Paleta, tipografía
 │   │   ├── input/             # DeployController (lógica de entrada independiente)
 │   │   ├── render/            # Campo, vistas de tropas y torres, efectos, ilustraciones
-│   │   ├── ui/                # Tarjetas de carta, botones
+│   │   ├── ui/                # Tarjetas de carta, botones, ficha de carta (cardDetail.ts)
 │   │   ├── audio/             # Efectos sintetizados con Web Audio
 │   │   └── scenes/            # Menú, Batalla, Resultados, Mazo, Colección
+│   ├── render3d/              # ── CAPA 3D (Three.js): campo, torres, Pokémon vóxel, efectos ──
 │   └── persistence/           # Ajustes, mazo e historial (localStorage, tolerante a fallos)
 ├── tests/                     # Vitest (simulación, IA, controles, persistencia)
 └── scripts/
@@ -92,22 +93,33 @@ Correspondencia con los módulos pedidos:
 
 Phaser entrega el ratón y el táctil como eventos *pointer*. `DeployController` es una máquina de estados pura: reposo → carta seleccionada (toque) o arrastre (al superar 14 px) → despliegue o rechazo. Se prueba con Vitest y, en un navegador real, con Playwright (ratón y táctil emulado con un Pixel 5). En ordenador, además, las teclas 1-4 seleccionan carta y Esc cancela.
 
-## 7. Capa de render 3D (`src/render3d/`, en curso)
+## 7. Capa de render 3D (`src/render3d/`)
 
-Sustituye progresivamente al render 2D del campo (ver `direccion_artistica.md`). Solo **lee** la simulación y sus eventos; no cambia ninguna regla.
+Dibuja el campo de la batalla jugable desde el 29-10-2026 (antes solo existía en la escena de referencia). Sustituye al render 2D del campo (ver `direccion_artistica.md`). Solo **lee** la simulación y sus eventos; no cambia ninguna regla.
 
 | Módulo | Función |
 |---|---|
 | `engine.ts` | Renderizador Three.js, cámara en perspectiva con encuadre automático, luces, sombras, niebla, bloom y niveles de calidad (alto, medio, bajo) |
 | `arena3d.ts` | Plataforma, río con shader de agua, puentes, muro perimetral y decorado instanciado |
 | `towerModel.ts` | Torre guardiana y base (geometría real), con animaciones de disparo, impacto, cristal y bandera |
-| `creatures/rig.ts` y `creatures/pikachu.ts` | Personajes por piezas con pivotes y animación procedural |
-| `creatures/registry.ts` | Registro de modelos; los que faltan usan una cápsula provisional marcada como tal |
+| `creatures/rig.ts`, `creatures/kit.ts` y un archivo por Pokémon | Personajes por piezas con pivotes y animación procedural. `kit.ts` da piezas comunes (elipsoides, articulaciones, cara de pixel art) y un bípedo genérico |
+| `creatures/voxel.ts` | Paso a cubos (vóxel) con caché: las unidades iguales comparten la geometría y cada una tiene sus materiales |
+| `creatures/registry.ts` | Registro de los 11 modelos (una prueba exige que todos los Pokémon del catálogo tengan modelo) |
+| `ruins.ts` | Ruinas deterministas de una torre destruida |
+| `gameLayer.ts` | Capa 3D de la batalla jugable: lienzo bajo el de Phaser, selección de casilla por rayo, fantasma de despliegue y zonas |
+| `portraits.ts` | Retratos de los modelos vóxel para las cartas y la ficha (una sola vez, renderizador temporal) |
 | `fx/particles.ts` y `fx/effects.ts` | Partículas en GPU y biblioteca modular de ataques por familia elemental |
 | `battleView3d.ts` | Sincroniza la batalla con la escena: interpolación, orientación, anticipación (lee `cooldown`), proyectiles en arco, impactos, barras de vida y números |
 | `textures.ts` y `palette.ts` | Texturas procedurales y paleta de la dirección artística |
 
-Por ahora se usa en `referencia.html` (`src/referencia.ts`): escena de referencia con guion de demostración, cámaras de juego, detalle y personaje, y modo de captura determinista (`?captura=1`, `window.__ref.advance(s)`). La integración en `BattleScene` (3D bajo el HUD de Phaser) es el siguiente paso; la entrada deberá proyectar el puntero sobre el plano del suelo con un rayo.
+**Integración en la batalla (`BattleScene` + `gameLayer.ts`):**
+- El lienzo WebGL de Three.js va detrás del de Phaser. Phaser se crea con `transparent: true` y la escena de batalla deja su cámara sin fondo, así que solo dibuja el HUD (marcador arriba, cartas y energía abajo). La capa sigue el rectángulo del lienzo de Phaser en cada fotograma, porque cambia al girar el móvil o redimensionar la ventana.
+- La cámara encaja el campo entre la barra superior y el HUD (`Engine.topFraction` y `hudFraction`).
+- **Entrada:** `DeployController` recibe un `FieldMapping`. En 3D, el punto tocado se convierte en casilla con un rayo de la cámara contra el plano del suelo. Así se despliega exactamente donde se ve, aunque haya perspectiva.
+- **Eventos:** la capa 3D dibuja todos los efectos. `BattleScene` conserva solo el sonido, los avisos y los rótulos.
+- **Respaldo 2D:** sin WebGL, o con `?vista=2d`, se usan las vistas planas de antes. La E2E prueba los dos caminos.
+
+`referencia.html` (escena de demostración) y `galeria.html` (los 11 modelos en fila; `?foco=<id>`, `?pose=`, `?captura=1`) son herramientas de revisión.
 
 ## 8. Uso de REA en el proyecto
 

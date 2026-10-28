@@ -98,9 +98,9 @@ Los tipos elementales conservan su color en efectos y números (eléctrico `#ffe
 | Base principal | 7,55 hasta el vértice (radio 1,6–2,0, corona dorada) |
 | Muro perimetral | 0,87 sobre el terreno exterior |
 | Puente | 3 de ancho, arco de 0,22 |
-| Pikachu | 1,35 × escala visual 1,35 ≈ 1,8 (≈ 16 cubos de 0,085 en estilo vóxel) |
+| Pikachu | 1,35 × escala visual 1,6 ≈ 2,2 (≈ 16 cubos de 0,085 en estilo vóxel) |
 
-**Regla de tamaño de personajes:** altura base = 0,8 + 0,55·log₂(altura real / 0,4 m + 1). Comprime la enorme variación real (de 0,4 m a 8,8 m) en un rango legible de 1,35 a 3,3 casillas. Se multiplica por `UNIT_SCALE = 1,35` para que se lean bien en la cámara de juego. Las alturas reales vienen de PokéAPI (`docs/datos_pokeapi.json`):
+**Regla de tamaño de personajes:** altura base = 0,8 + 0,55·log₂(altura real / 0,4 m + 1). Comprime la enorme variación real (de 0,4 m a 8,8 m) en un rango legible de 1,35 a 3,3 casillas. Se multiplica por `UNIT_SCALE = 1,6` para que se lean bien en la cámara de juego. Era 1,35; se subió al integrar el 3D en la batalla jugable, porque en la pantalla del móvil se veían pequeños. Solo afecta al dibujo: las colisiones no cambian. Las alturas reales vienen de PokéAPI (`docs/datos_pokeapi.json`):
 
 | Pokémon | Altura real | Altura base |
 |---|---|---|
@@ -181,6 +181,13 @@ Todas las texturas son **procedurales y originales** (`src/render3d/textures.ts`
 - Los impactos pequeños (torre contra personaje) usan la mitad de potencia y humo gris, no blanco.
 - La anticipación nace de las mejillas hacia fuera, nunca sobre la cara.
 
+### 8.1 Modelos del hito F
+
+Los diez Pokémon nuevos siguen las mismas reglas que Pikachu: primitivas → vóxel de 0,085, cara de pixel art dibujada a mano y animación procedural.
+- **Bípedos** (`BipedRig`): Squirtle, Charmeleon, Charizard, Machop, Snorlax y Jigglypuff. Comparten respiración, zancada, carga, golpe, daño y aturdimiento. Cada uno añade lo suyo: llama de la cola que ondula y brilla (Charmeleon y Charizard), alas que baten (Charizard), puñetazo con el brazo derecho (Machop), balanceo y panzazo (Snorlax), botes y se hincha al cantar (Jigglypuff).
+- **Con animación propia:** Bulbasaur (cuatro patas en diagonal; el bulbo palpita al cargar), Pidgeotto (vuela batiendo las alas y ataca en picado), Geodude (flota y golpea con los dos puños) y Onix (siete segmentos que ondulan y embiste con la cabeza).
+- Las piezas finas (alas, membranas) usan elipsoides de al menos dos cubos de grosor. La capa delantera se añade la última para que gane al pasar a cubos (membrana azul delante y naranja detrás en Charizard).
+
 ## 9. Criterios de calidad (lista de verificación por recurso)
 
 - [ ] Silueta reconocible desde la cámara de juego, a tamaño de móvil.
@@ -196,7 +203,7 @@ Todas las texturas son **procedurales y originales** (`src/render3d/textures.ts`
 
 | Recurso | Origen | Licencia |
 |---|---|---|
-| Modelos 3D (arena, puentes, torres, Pikachu, árboles, rocas) | **Originales**, construidos con geometría de Three.js en código (`src/render3d/`) | Del proyecto |
+| Modelos 3D (arena, puentes, torres y ruinas, los 11 Pokémon, árboles, rocas) | **Originales**, construidos con geometría de Three.js en código (`src/render3d/`) | Del proyecto |
 | Texturas (piedra, madera, tejas, césped, partículas) | **Originales**, procedurales en `<canvas>` | Del proyecto |
 | Three.js 0.186.1 | npm `three` | MIT |
 | Tipografía *Lilita One* | npm `@fontsource/lilita-one` 5.3.0 | SIL OFL 1.1 |
@@ -227,8 +234,8 @@ No hay ninguna herramienta de ese tipo disponible en este entorno. `creatures/re
 | C. Torre de referencia | ✅ Guardiana y base (variante) con cristal, almenas, balcón, tejado y bandera animada |
 | D. Pokémon de referencia | ✅ Pikachu en estilo vóxel (por defecto) y suave, con todas sus animaciones |
 | E. Ataque completo | ✅ Impactrueno: carga, lanzamiento, vuelo con haz, impacto, reacción, número, limpieza |
-| F. Resto de unidades y torres | ⏳ 10 Pokémon con cápsula **provisional** marcada; falta la torre en ruinas definitiva |
-| G. Cartas y HUD | ⏳ |
-| H. Optimización y pruebas | ⏳ Hay niveles de calidad alto, medio y bajo; falta integrar la capa 3D en el juego y medirla en móviles reales |
+| F. Resto de unidades y torres | ✅ Los 11 Pokémon en vóxel con cara de pixel art y animaciones (`capturas/galeria_*.jpg`). Ruinas de torre: muñón roto, cascotes, vigas, tejado caído, cristal partido, estandarte y humo (`capturas/torre_ruinas.jpg`) |
+| G. Cartas y HUD | 🟡 Cartas, menú y ficha con retratos vóxel de los modelos. Ficha de carta completa (`capturas/juego_ficha_carta_movil.jpg`). Falta rediseñar el marco de las cartas y el HUD |
+| H. Optimización y pruebas | 🟡 La capa 3D ya es la batalla jugable (`capturas/juego_batalla_3d_movil.jpg`), probada en E2E con WebGL por software. Faltan medir en móviles reales y reducir llamadas de dibujo (~550 por fotograma) |
 
 **Capturas (antes y después de la misma escena):** `docs/capturas/` (`comparacion_antes_despues.jpg`, `ref_*.jpg`). Se generan con `node scripts/captura_referencia.mjs` en modo determinista.

@@ -3,6 +3,7 @@ import type { Card } from '../../sim/data/cards';
 import { ROLE_NAMES, getCard } from '../../sim/data/cards';
 import { ELEMENT_COLORS, ELEMENT_NAMES } from '../../sim/data/elements';
 import { bake, drawCreature, drawSpellIcon } from '../render/creatureArt';
+import { portraitKey } from '../render/portraits';
 import { COLORS, css, darken, textStyle } from '../theme';
 
 /** Resumen táctico de una carta (para tarjetas, colección y tooltips). */
@@ -59,8 +60,10 @@ export class CardWidget {
     const r = this.compact ? h * 0.17 : h * 0.16;
     const cr = this.compact ? 12 : 16;
     const pw = this.compact ? 10 : 12;
+    // Retrato vóxel del modelo 3D (si hay WebGL); si no, ficha dibujada en 2D.
+    const portrait = card.kind === 'pokemon' ? portraitKey(scene, card.id) : null;
     // Fondo, ilustración, tipos y burbuja de coste se hornean en una sola textura.
-    const faceKey = bake(scene, `carta-${card.id}-${w}x${h}`, w + 4, h + 6, (g) => {
+    const faceKey = bake(scene, `carta-${card.id}-${w}x${h}${portrait ? '-r' : ''}`, w + 4, h + 6, (g) => {
       g.fillStyle(0x0b1022, 0.6).fillRoundedRect(3, 5, w, h, 12);
       g.fillStyle(darken(color, 0.45), 1).fillRoundedRect(0, 0, w, h, 12);
       g.fillStyle(darken(color, 0.75), 1).fillRoundedRect(4, 4, w - 8, h * 0.58, 9);
@@ -72,10 +75,16 @@ export class CardWidget {
       g.fillStyle(COLORS.energyDark, 1).fillCircle(cr + 2, cr + 2, cr + 2);
       g.fillStyle(COLORS.energy, 1).fillCircle(cr + 2, cr + 2, cr);
       g.translateCanvas(w / 2, h * 0.32);
+      if (portrait) return;
       if (card.kind === 'pokemon') drawCreature(g, card.id, r);
       else drawSpellIcon(g, card.id, r * 1.2);
     });
     this.content.push(scene.add.image(0, 0, faceKey).setOrigin(0));
+    if (portrait) {
+      const art = scene.add.image(w / 2, 4 + h * 0.29, portrait);
+      art.setDisplaySize(h * 0.62, h * 0.62);
+      this.content.push(art);
+    }
 
     const name = scene.add.text(w / 2, h * 0.64, card.name, textStyle(this.compact ? 12 : 17)).setOrigin(0.5);
     this.content.push(name);
@@ -131,6 +140,16 @@ export class CardWidget {
     c.add([g, lock, req]);
     this.root.add(c);
     this.lockOverlay = c;
+  }
+
+  /**
+   * Hace la carta tocable. Se usa una zona propia con origen en la esquina: el área de
+   * pulsación de un contenedor se mide desde su centro y dejaba media carta sin respuesta.
+   */
+  onTap(cb: () => void): void {
+    const zone = this.scene.add.zone(0, 0, this.w, this.h).setOrigin(0).setInteractive({ useHandCursor: true });
+    zone.on('pointerup', cb);
+    this.root.add(zone);
   }
 
   shake(): void {
