@@ -291,6 +291,107 @@
       "altura_m": 2.2,
       "peso_kg": 210,
       "color": "brown"
+    },
+    "ditto": {
+      "tipos": [
+        "normal"
+      ],
+      "altura_m": 0.3,
+      "peso_kg": 4,
+      "color": "purple"
+    },
+    "magnemite": {
+      "tipos": [
+        "electrico",
+        "acero"
+      ],
+      "altura_m": 0.3,
+      "peso_kg": 6,
+      "color": "gray"
+    },
+    "magneton": {
+      "tipos": [
+        "electrico",
+        "acero"
+      ],
+      "altura_m": 1,
+      "peso_kg": 60,
+      "color": "gray"
+    },
+    "voltorb": {
+      "tipos": [
+        "electrico"
+      ],
+      "altura_m": 0.5,
+      "peso_kg": 10.4,
+      "color": "red"
+    },
+    "electrode": {
+      "tipos": [
+        "electrico"
+      ],
+      "altura_m": 1.2,
+      "peso_kg": 66.6,
+      "color": "red"
+    },
+    "chansey": {
+      "tipos": [
+        "normal"
+      ],
+      "altura_m": 1.1,
+      "peso_kg": 34.6,
+      "color": "pink"
+    },
+    "blissey": {
+      "tipos": [
+        "normal"
+      ],
+      "altura_m": 1.5,
+      "peso_kg": 46.8,
+      "color": "pink"
+    },
+    "rattata": {
+      "tipos": [
+        "normal"
+      ],
+      "altura_m": 0.3,
+      "peso_kg": 3.5,
+      "color": "purple"
+    },
+    "raticate": {
+      "tipos": [
+        "normal"
+      ],
+      "altura_m": 0.7,
+      "peso_kg": 18.5,
+      "color": "brown"
+    },
+    "zubat": {
+      "tipos": [
+        "veneno",
+        "volador"
+      ],
+      "altura_m": 0.8,
+      "peso_kg": 7.5,
+      "color": "purple"
+    },
+    "golbat": {
+      "tipos": [
+        "veneno",
+        "volador"
+      ],
+      "altura_m": 1.6,
+      "peso_kg": 55,
+      "color": "purple"
+    },
+    "crobat": {
+      "tipos": [
+        "veneno",
+        "volador"
+      ],
+      "altura_m": 1.8,
+      "peso_kg": 75,
+      "color": "purple"
     }
   },
   "relaciones": {

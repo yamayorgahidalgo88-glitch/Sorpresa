@@ -1,3 +1,5 @@
+import { getCard } from '../src/sim/data/cards';
+import type { PokemonCard } from '../src/sim/data/cards';
 import { describe, expect, it } from 'vitest';
 import type { SimEvent } from '../src/sim/core/state';
 import { disarmTowers, forceInHand, newBattle, setEnergy, steps, tower, unit } from './helpers';
@@ -87,11 +89,14 @@ describe('daño y muerte', () => {
     const evs = steps(b, 40);
     const chain = evs.find((e) => e.type === 'cadena');
     expect(chain && chain.type === 'cadena' && chain.points.length).toBe(3);
-    // eléctrico contra agua x1.5: 80*1.5 = 120; saltos 48*1.5 = 72; 28.8*1.5 = 43
+    // Cifras derivadas del catálogo: eléctrico contra agua x1,5 y cada salto multiplica por `falloff`.
+    const pk = getCard('pikachu') as PokemonCard;
+    const ab = pk.ability as { falloff: number };
+    const first = Math.round(pk.damage * 1.5);
     const amounts = evs.filter((e) => e.type === 'dano').map((e) => e.type === 'dano' && e.amount);
-    expect(amounts).toContain(120);
-    expect(amounts).toContain(72);
-    expect(amounts).toContain(43);
+    expect(amounts).toContain(first);
+    expect(amounts).toContain(Math.round(pk.damage * ab.falloff * 1.5));
+    expect(amounts).toContain(Math.round(pk.damage * ab.falloff * ab.falloff * 1.5));
   });
 
   it('Bulbasaur cura a los aliados heridos cercanos sin superar su salud máxima', () => {
@@ -131,8 +136,9 @@ describe('daño y muerte', () => {
     expect(b.deploy(0, 'rayo', t.pos).ok).toBe(true);
     const evs = steps(b, 8);
     expect(evs.some((e) => e.type === 'hechizo_impacto')).toBe(true);
-    expect(t.hp).toBe(1600 - Math.round(300 * 0.35));
-    expect(unit(b, en)!.hp).toBe(3000 - 300);
+    const rayoDmg = (getCard('rayo') as { damage: number }).damage;
+    expect(t.hp).toBe(1600 - Math.round(rayoDmg * 0.35));
+    expect(unit(b, en)!.hp).toBe(3000 - rayoDmg);
     expect(unit(b, en)!.status.stunUntil).toBeGreaterThan(b.tick);
   });
 });
@@ -193,15 +199,15 @@ describe('habilidad «escudo» (Abra)', () => {
     const b = newBattle();
     const [id] = b.spawnUnchecked(0, 'abra', { x: 9, y: 22 }, { ready: true });
     const u = unit(b, id)!;
-    expect(u.shield).toBe(280);
+    expect(u.shield).toBe(240);
     applyDamage(b.world, u, 200, null, { team: 1, cardId: null });
-    expect(u.shield).toBe(80);
+    expect(u.shield).toBe(40);
     expect(u.hp).toBe(u.maxHp);
     applyDamage(b.world, u, 200, null, { team: 1, cardId: null });
     expect(u.shield).toBe(0);
-    expect(u.hp).toBe(u.maxHp - 120);
+    expect(u.hp).toBe(u.maxHp - 160);
     // Alakazam (fase 3) tiene una Barrera mayor
     const [k] = b.spawnUnchecked(0, 'alakazam', { x: 9, y: 24 }, { ready: true });
-    expect(unit(b, k)!.shield).toBe(350);
+    expect(unit(b, k)!.shield).toBe(300);
   });
 });

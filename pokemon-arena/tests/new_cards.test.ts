@@ -46,13 +46,13 @@ describe('edificios', () => {
 });
 
 describe('Chansey', () => {
-  it('genera 1 de energía cada 8,5 s mientras sigue en pie', () => {
+  it('genera 1 de energía cada 8 s mientras sigue en pie', () => {
     const b = newBattle(1, undefined, [DECK, RIVAL]);
     disarmTowers(b);
     setEnergy(b, 0, 0);
     setEnergy(b, 1, 0);
     b.spawnUnchecked(0, 'chansey', { x: 9, y: 26 }, { ready: true });
-    const evs = steps(b, Math.round(8.5 * 20) + 1);
+    const evs = steps(b, 8 * 20 + 1);
     expect(evs.filter((e) => e.type === 'energia')).toHaveLength(1);
     // El jugador 0 tiene 1 punto más que el rival (que solo regenera)
     expect(b.energy(0) - b.energy(1)).toBeCloseTo(1, 5);

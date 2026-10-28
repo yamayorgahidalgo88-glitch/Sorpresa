@@ -31,7 +31,7 @@ npm run dev          # abre http://localhost:5173 (herramientas: /referencia.htm
 ### Pruebas
 
 ```bash
-npm test             # 133 pruebas unitarias y de simulación
+npm test             # 145 pruebas unitarias y de simulación
 npm run typecheck
 npm run test:e2e     # navegador real: escritorio (ratón) y móvil (táctil) en 3D, y escritorio en 2D
 npm run simulate -- 50 normal   # partidas IA contra IA
@@ -57,14 +57,14 @@ npm run balance -- 600 normal   # informe de balance por carta
 | 4. Cartas, mazo y energía | ✅ |
 | 5. Interfaz y efectos visuales | ✅ Prototipo: menú, batalla, resultados, mazo y colección con gráficos vectoriales originales |
 | 6. IA del oponente | ✅ Tres dificultades, sin información oculta |
-| 7. Balance, pruebas y optimización | ✅ Herramienta de balance por carta; todas las cartas entre 45 % y 55 % |
+| 7. Balance, pruebas y optimización | ✅ Herramienta de balance por carta; todas las cartas base entre el 43 % y el 56 % |
 | 8. Persistencia, progresión y pulido | ✅ Trofeos, rangos, camino de trofeos, monedas, Pokéballs y evoluciones (29-10-2026); ajustes, mazo, colección e historial guardados |
 
 ### Pendientes
 
 - **Balance:** el mazo por defecto del jugador gana ≈47–50 % (normal) y ≈33–43 % (difícil) frente al de la IA en IA contra IA. La IA usa poco los tanques y Ventisca. Falta probar con personas.
-- **Contenido:** 13 líneas evolutivas (34 especies) y 2 hechizos con 3 niveles. Faltan edificios. Las cifras de la economía (precios, probabilidades, costes de evolución) son una primera propuesta y se ajustan en `persistence/economy.ts`.
-- **Gráficos:** la batalla jugable ya es 3D. Las 34 especies tienen modelo vóxel y las torres dejan ruinas (hito F terminado). Cartas, HUD e interfaz con su diseño definitivo (hito G): marco por fase, iconos propios y tipografías del juego. Falta la optimización medida en móviles reales (hito H). También faltan música y accesibilidad (daltonismo, tamaño de texto).
+- **Contenido:** 18 líneas evolutivas (45 especies), Ditto, edificios (Magnemite, Voltorb y el recolector Chansey), enjambres (Rattata, Zubat) y 4 hechizos con 3 niveles. Evolución en combate tras jugar una carta 2 veces. Modos: normal, Desafío, Igualado y repeticiones. Las cifras de la economía (precios, probabilidades, costes de evolución) son una primera propuesta y se ajustan en `persistence/economy.ts`.
+- **Gráficos:** la batalla jugable ya es 3D. Las 46 especies tienen modelo vóxel y las torres dejan ruinas (hito F terminado). Cartas, HUD e interfaz con su diseño definitivo (hito G): marco por fase, iconos propios y tipografías del juego. Falta la optimización medida en móviles reales (hito H). También faltan música y accesibilidad (daltonismo, tamaño de texto).
 - **REA:** Node 22.22 está por debajo del mínimo (22.23.4) y el servidor MCP no está registrado en el agente (`npx rea-agents setup`). Ver `docs/analisis_mecanicas.md`.
 
 ### Aviso

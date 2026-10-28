@@ -98,7 +98,12 @@ function voxelizeGroup(group: THREE.Object3D, size: number, face?: CreatureRig['
     c.updateMatrix();
     c.geometry.computeBoundingBox();
     bounds.union(c.geometry.boundingBox!.clone().applyMatrix4(c.matrix));
-    parts.push({ mesh: c, inverse: c.matrix.clone().invert(), inside: insideTest(c.geometry), material: c.material as THREE.MeshStandardMaterial });
+    // `clipAbove` / `clipBelow` (en coordenadas locales de la pieza): media esfera, casquetes…
+    const base = insideTest(c.geometry);
+    const lo = c.userData.clipAbove as number | undefined;
+    const hi = c.userData.clipBelow as number | undefined;
+    const inside: Inside = lo === undefined && hi === undefined ? base : (q) => (lo === undefined || q.y >= lo) && (hi === undefined || q.y <= hi) && base(q);
+    parts.push({ mesh: c, inverse: c.matrix.clone().invert(), inside, material: c.material as THREE.MeshStandardMaterial });
   }
   if (parts.length === 0) return null;
   bounds.expandByScalar(size);

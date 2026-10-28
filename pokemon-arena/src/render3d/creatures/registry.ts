@@ -6,18 +6,23 @@ import { AbraRig } from './abra';
 import { BulbasaurRig } from './bulbasaur';
 import { CharizardRig } from './charizard';
 import { CharmeleonRig } from './charmeleon';
+import { ChanseyRig } from './chansey';
 import { DittoRig } from './ditto';
 import { DragoniteRig, DratiniRig } from './dratini';
 import { GastlyRig } from './gastly';
 import { GeodudeRig } from './geodude';
 import { JigglypuffRig } from './jigglypuff';
 import { MachopRig } from './machop';
+import { MagnemiteRig } from './magnemite';
 import { OnixRig } from './onix';
 import { PidgeottoRig } from './pidgeotto';
 import { PikachuRig } from './pikachu';
 import { RaichuRig } from './raichu';
+import { RattataRig } from './rattata';
 import { SnorlaxRig } from './snorlax';
 import { SquirtleRig } from './squirtle';
+import { VoltorbRig } from './voltorb';
+import { ZubatRig } from './zubat';
 import type { PoseInput } from './rig';
 import { CreatureRig } from './rig';
 import { voxelizeRig } from './voxel';
@@ -85,6 +90,17 @@ const RIGS: Record<string, (style: CreatureStyle) => CreatureRig> = {
   dragonair: () => new DratiniRig('dragonair'),
   dragonite: () => new DragoniteRig(),
   ditto: () => new DittoRig(),
+  magnemite: () => new MagnemiteRig('magnemite'),
+  magneton: () => new MagnemiteRig('magneton'),
+  voltorb: () => new VoltorbRig('voltorb'),
+  electrode: () => new VoltorbRig('electrode'),
+  chansey: () => new ChanseyRig('chansey'),
+  blissey: () => new ChanseyRig('blissey'),
+  rattata: () => new RattataRig('rattata'),
+  raticate: () => new RattataRig('raticate'),
+  zubat: () => new ZubatRig('zubat'),
+  golbat: () => new ZubatRig('golbat'),
+  crobat: () => new ZubatRig('crobat'),
 };
 
 /** Arista del cubo en el estilo vóxel (casillas, antes de la escala visual). */

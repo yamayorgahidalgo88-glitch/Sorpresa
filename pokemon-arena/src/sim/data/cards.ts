@@ -111,7 +111,7 @@ type BaseFields = 'line' | 'stage';
 const BASE_POKEMON: Omit<PokemonCard, BaseFields>[] = [
   {
     kind: 'pokemon', id: 'onix', name: 'Onix', types: ['roca', 'tierra'], role: 'tanque', cost: 5, count: 1,
-    hp: 3300, damage: 150, hitSpeed: 1.5, speed: 0.8, range: 0.8, sight: 7, radius: 0.8, mass: 8,
+    hp: 3450, damage: 150, hitSpeed: 1.5, speed: 0.8, range: 0.8, sight: 7, radius: 0.8, mass: 8,
     locomotion: 'tierra', targets: 'edificios', attack: { kind: 'cuerpo' }, deployTime: 1,
     description: 'Tanque enorme que solo ataca torres. Ideal para abrir camino a otros Pokémon.',
   },
@@ -123,9 +123,9 @@ const BASE_POKEMON: Omit<PokemonCard, BaseFields>[] = [
   },
   {
     kind: 'pokemon', id: 'pikachu', name: 'Pikachu', types: ['electrico'], role: 'rapido', cost: 3, count: 1,
-    hp: 520, damage: 80, hitSpeed: 0.9, speed: 1.8, range: 3, sight: 5.5, radius: 0.45, mass: 2,
+    hp: 480, damage: 70, hitSpeed: 0.9, speed: 1.8, range: 3, sight: 5.5, radius: 0.45, mass: 2,
     locomotion: 'tierra', targets: 'aire_y_tierra', attack: { kind: 'proyectil', projectileSpeed: 14 }, deployTime: 1,
-    ability: { kind: 'cadena', jumps: 2, radius: 2.5, falloff: 0.6 },
+    ability: { kind: 'cadena', jumps: 2, radius: 2.5, falloff: 0.5 },
     description: 'Muy rápido. Sus descargas saltan a dos enemigos cercanos.',
   },
   {
@@ -182,26 +182,26 @@ const BASE_POKEMON: Omit<PokemonCard, BaseFields>[] = [
   },
   {
     kind: 'pokemon', id: 'magnemite', name: 'Magnemite', types: ['electrico', 'acero'], role: 'edificio', cost: 4, count: 1,
-    hp: 800, damage: 85, hitSpeed: 0.9, speed: 0, range: 5.5, sight: 5.5, radius: 0.55, mass: 1000,
+    hp: 950, damage: 85, hitSpeed: 0.9, speed: 0, range: 5.5, sight: 5.5, radius: 0.55, mass: 1000,
     locomotion: 'tierra', targets: 'aire_y_tierra', attack: { kind: 'proyectil', projectileSpeed: 14 }, deployTime: 1,
-    building: { lifetime: 30 },
+    building: { lifetime: 35 },
     description: 'Torreta flotante: dispara descargas a lo que se acerque (aire y tierra) y atrae a las tropas que van a por edificios.',
   },
   {
     kind: 'pokemon', id: 'voltorb', name: 'Voltorb', types: ['electrico'], role: 'edificio', cost: 4, count: 1,
-    hp: 900, damage: 100, hitSpeed: 1.4, speed: 0, range: 3.5, sight: 3.5, radius: 0.55, mass: 1000,
+    hp: 1100, damage: 120, hitSpeed: 1.4, speed: 0, range: 4, sight: 4, radius: 0.55, mass: 1000,
     locomotion: 'tierra', targets: 'tierra', attack: { kind: 'proyectil', projectileSpeed: 9, splashRadius: 1.2 }, deployTime: 1,
-    building: { lifetime: 25 },
+    building: { lifetime: 30 },
     ability: { kind: 'autodestruccion', radius: 2.5, damage: 200, element: 'electrico', towerFactor: 0.5 },
     description: 'Bomba defensiva: lanza chispas en área a las tropas de tierra y explota al ser destruida.',
   },
   {
-    kind: 'pokemon', id: 'chansey', name: 'Chansey', types: ['normal'], role: 'edificio', cost: 6, count: 1,
+    kind: 'pokemon', id: 'chansey', name: 'Chansey', types: ['normal'], role: 'edificio', cost: 5, count: 1,
     hp: 1000, damage: 0, hitSpeed: 1, speed: 0, range: 0, sight: 0, radius: 0.6, mass: 1000,
     locomotion: 'tierra', targets: 'tierra', attack: { kind: 'cuerpo' }, deployTime: 1,
     building: { lifetime: 70 },
-    ability: { kind: 'recolector', interval: 8.5, amount: 1 },
-    description: 'Pone un huevo de energía cada 8,5 s mientras sigue en pie (unos 8 en total). No ataca.',
+    ability: { kind: 'recolector', interval: 8, amount: 1 },
+    description: 'Pone un huevo de energía cada 8 s mientras sigue en pie (unos 8 en total). No ataca.',
   },
   {
     kind: 'pokemon', id: 'rattata', name: 'Rattata', types: ['normal'], role: 'rapido', cost: 2, count: 5,
@@ -211,7 +211,7 @@ const BASE_POKEMON: Omit<PokemonCard, BaseFields>[] = [
   },
   {
     kind: 'pokemon', id: 'zubat', name: 'Zubat', types: ['veneno', 'volador'], role: 'rapido', cost: 2, count: 4,
-    hp: 95, damage: 45, hitSpeed: 1.1, speed: 1.9, range: 0.5, sight: 5.5, radius: 0.3, mass: 1,
+    hp: 85, damage: 45, hitSpeed: 1.1, speed: 1.9, range: 0.5, sight: 5.5, radius: 0.3, mass: 1,
     locomotion: 'aire', targets: 'aire_y_tierra', attack: { kind: 'cuerpo' }, deployTime: 1,
     description: 'Bandada de cuatro murciélagos voladores muy rápidos y frágiles.',
   },
@@ -226,7 +226,7 @@ const BASE_POKEMON: Omit<PokemonCard, BaseFields>[] = [
     kind: 'pokemon', id: 'abra', name: 'Abra', types: ['psiquico'], role: 'distancia', cost: 4, count: 1,
     hp: 560, damage: 115, hitSpeed: 1.5, speed: 1.0, range: 5, sight: 6.5, radius: 0.45, mass: 2,
     locomotion: 'tierra', targets: 'aire_y_tierra', attack: { kind: 'proyectil', projectileSpeed: 11 }, deployTime: 1,
-    ability: { kind: 'escudo', amount: 280 },
+    ability: { kind: 'escudo', amount: 240 },
     description: 'Aparece protegido por una Barrera psíquica que absorbe daño. Ataca desde muy lejos.',
   },
   {
@@ -337,7 +337,7 @@ function buildLine(base: Omit<PokemonCard, BaseFields>): PokemonCard[] {
 const BASE_SPELLS: Omit<SpellCard, BaseFields>[] = [
   {
     kind: 'hechizo', id: 'rayo', name: 'Rayo', types: ['electrico'], role: 'hechizo', cost: 3,
-    radius: 2.5, damage: 300, towerDamageFactor: 0.35, delay: 0.4,
+    radius: 2.5, damage: 320, towerDamageFactor: 0.35, delay: 0.4,
     effect: { kind: 'aturdir', duration: 0.5 },
     description: 'Descarga instantánea en área que aturde brevemente. Daño reducido a torres.',
   },
@@ -354,7 +354,7 @@ const BASE_SPELLS: Omit<SpellCard, BaseFields>[] = [
   },
   {
     kind: 'hechizo', id: 'ventisca', name: 'Ventisca', types: ['hielo'], role: 'hechizo', cost: 4,
-    radius: 3, damage: 170, towerDamageFactor: 0.4, delay: 0.6,
+    radius: 3, damage: 190, towerDamageFactor: 0.4, delay: 0.6,
     effect: { kind: 'ralentizar', factor: 0.4, duration: 4 },
     description: 'Tormenta helada en una zona amplia que ralentiza movimiento y ataques.',
   },

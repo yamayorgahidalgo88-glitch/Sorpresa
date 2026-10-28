@@ -14,12 +14,12 @@ Leyenda:
 | Partida | Hecho: 3 min y prórroga de hasta 2 min. Gana quien derriba la torre del rey o más torres; si no, la torre con menos salud pierde | Sin datos (las reseñas lo describen como «igual que Clash Royale») | 3 min + 1 min de prórroga con muerte súbita; desempate por salud total de las torres |
 | Recurso | Hecho: elixir pasivo, máximo 10, x2 en el último minuto y x3 en el último minuto de la prórroga | Opinión: «maná»; un usuario cuenta un fallo en el que no pasaba de 4 | Energía máxima 10, x2 en el último minuto y x3 en la prórroga |
 | Mazo | Hecho: 8 cartas, 4 en la mano | Hecho (guías): mazos de 8 | 8 cartas, 4 en la mano y la siguiente visible |
-| Tipos de carta | Hecho: tropas, edificios y hechizos | Hecho (guías): tropas, edificios (Cannon, Bomb tower, Mana collector), hechizos (Arrows, Poison, Heal tiny, Ice tiny), generadores (Cemetery, Faun horde) y una carta que copia (Mirror) | Pokémon (tropas) y hechizos. **No hay edificios** |
-| Catálogo | Más de 100 cartas en 6 rarezas (de Común a Héroe) | Hecho (ficha): más de 80 cartas gratis | 13 líneas evolutivas (34 especies) y 2 hechizos con 3 niveles |
-| Mejora de cartas | Hecho: copias + oro → nivel; los niveles suben también la «King Level», que fortalece las torres. Desde 2023, «Evoluciones» que se activan **dentro de la partida** tras jugar la carta varias veces | Hecho (ficha): **todas las cartas al mismo nivel**; no hay mejoras | Copias + monedas → evolución permanente (+12 % y +25 %) |
+| Tipos de carta | Hecho: tropas, edificios y hechizos | Hecho (guías): tropas, edificios (Cannon, Bomb tower, Mana collector), hechizos (Arrows, Poison, Heal tiny, Ice tiny), generadores (Cemetery, Faun horde) y una carta que copia (Mirror) | Pokémon (tropas), edificios (Magnemite, Voltorb y el recolector Chansey), enjambres y hechizos (Rayo, Ventisca, Poción y Tóxico) |
+| Catálogo | Más de 100 cartas en 6 rarezas (de Común a Héroe) | Hecho (ficha): más de 80 cartas gratis | 18 líneas evolutivas (45 especies), Ditto y 4 hechizos con 3 niveles |
+| Mejora de cartas | Hecho: copias + oro → nivel; los niveles suben también la «King Level», que fortalece las torres. Desde 2023, «Evoluciones» que se activan **dentro de la partida** tras jugar la carta varias veces | Hecho (ficha): **todas las cartas al mismo nivel**; no hay mejoras | Copias + monedas → evolución permanente (+12 % y +25 %), y evolución **en combate** tras jugar la carta 2 veces |
 | Cómo se consiguen cartas | Hecho: cofres, tienda y peticiones al clan. Los temporizadores de cofres se quitaron en abril de 2025 y se cambiaron por «lucky drops» | Hecho: casi todo disponible desde el principio | Pokéballs compradas con monedas o ganadas en el camino de trofeos, abiertas al instante |
 | Emparejamiento | Trofeos | Hecho (ficha): por medallas, **no por nivel de cartas**; «juego limpio» | IA cuyas evoluciones aumentan con tus trofeos |
-| Modos | Hecho: 1 contra 1, 2 contra 2, desafíos (hasta 3 derrotas, incluido el de draft), guerras de clanes, liga clasificatoria, Merge Tactics y eventos | Hecho: 1 contra 1 en tiempo real. Las notas de versión mencionan chat y **compartir repeticiones** | 1 contra 1 contra la IA, en tres dificultades |
+| Modos | Hecho: 1 contra 1, 2 contra 2, desafíos (hasta 3 derrotas, incluido el de draft), guerras de clanes, liga clasificatoria, Merge Tactics y eventos | Hecho: 1 contra 1 en tiempo real. Las notas de versión mencionan chat y **compartir repeticiones** | 1 contra 1 contra la IA (tres dificultades), Desafío (12 victorias / 3 derrotas), Igualado y repeticiones |
 | Monetización | Hecho: gratuito con compras, «Pass Royale» mensual y escasez artificial de recursos | Hecho: gemas de 4,99 a 49,99 $, anuncios. Opinión: «no es pagar para ganar», aunque algunos dicen que sin pagar cuesta progresar y que hay demasiados anuncios | Sin dinero real (proyecto de fans) |
 | Críticas públicas | Hecho: recepción mixta del emparejamiento y de la escasez de recursos | Opinión: le falta pulido, tiene errores («parse error», el maná se queda bloqueado) y un chat global sin moderar | — |
 
@@ -36,20 +36,20 @@ Leyenda:
 
 ## 3. Propuestas para Pokémon Arena (por orden de valor y esfuerzo)
 
-Las marcadas con ⚠ cambian decisiones de diseño: necesitan tu visto bueno antes de hacerlas. **Hechas (29-10-2026): 1, 2 y 3.**
+Las marcadas con ⚠ cambian decisiones de diseño: necesitan tu visto bueno antes de hacerlas. **Hechas (29-10-2026): todas, de la 1 a la 10.** La 6 usa Rattata ×5 en lugar de ×6, para que encaje en el balance.
 
 | # | Propuesta | Inspiración | Esfuerzo | Encaje Pokémon |
 |---|---|---|---|---|
 | 1 ✅ | **Ver la repetición** de la última partida desde la pantalla de resultados (la simulación ya la reproduce exacta) | Boom Arena: compartir repeticiones | Bajo | — |
 | 2 ✅ | ⚠ **Rival ajustado a tu mazo**: sus evoluciones dependen de la fase media de tu mazo (± margen), no solo de tus trofeos | Emparejamiento justo de Boom Arena | Bajo | — |
 | 3 ✅ | **Carta de copia** | Mirror (Boom Arena) | Medio | **Ditto**: copia la última carta que jugaste, por 1 de energía más |
-| 4 | **Edificios** (nuevo tipo de carta: fijo, pierde vida con el tiempo y distrae a las tropas) | Cannon, Bomb tower | Medio-alto | **Magnemite** (torreta eléctrica) y **Voltorb** (explota al ser destruido) |
-| 5 | **Recolector de energía** (edificio que genera energía) | Mana collector, recolector de elixir | Medio | **Chansey**, que pone huevos de energía |
-| 6 | **Enjambre barato** | Faun horde, ejércitos de esqueletos | Bajo | **Rattata ×6** (terrestre) o **Zubat ×4** (volador) |
-| 7 | **Hechizos nuevos**: curación en área y veneno con daño en el tiempo | Heal tiny, Poison | Bajo-medio | **Poción** y **Tóxico** |
-| 8 | ⚠ **Evolución en combate**: tras jugar una carta 2 veces en la partida, la siguiente sale evolucionada | Evoluciones de Clash Royale | Medio | Muy natural en Pokémon |
-| 9 | **Desafío**: racha contra la IA hasta 3 derrotas, con premios por victoria | Desafíos de Clash Royale | Medio | Liga Pokémon / gimnasios |
-| 10 | ⚠ **Modo igualado**: todas las cartas en la misma fase | Boom Arena | Bajo | «Combate de exhibición» |
+| 4 ✅ | **Edificios** (nuevo tipo de carta: fijo, pierde vida con el tiempo y distrae a las tropas) | Cannon, Bomb tower | Medio-alto | **Magnemite** (torreta eléctrica) y **Voltorb** (explota al ser destruido) |
+| 5 ✅ | **Recolector de energía** (edificio que genera energía) | Mana collector, recolector de elixir | Medio | **Chansey**, que pone huevos de energía |
+| 6 ✅ | **Enjambre barato** | Faun horde, ejércitos de esqueletos | Bajo | **Rattata ×6** (terrestre) o **Zubat ×4** (volador) |
+| 7 ✅ | **Hechizos nuevos**: curación en área y veneno con daño en el tiempo | Heal tiny, Poison | Bajo-medio | **Poción** y **Tóxico** |
+| 8 ✅ | ⚠ **Evolución en combate**: tras jugar una carta 2 veces en la partida, la siguiente sale evolucionada | Evoluciones de Clash Royale | Medio | Muy natural en Pokémon |
+| 9 ✅ | **Desafío**: racha contra la IA hasta 3 derrotas, con premios por victoria | Desafíos de Clash Royale | Medio | Liga Pokémon / gimnasios |
+| 10 ✅ | ⚠ **Modo igualado**: todas las cartas en la misma fase | Boom Arena | Bajo | «Combate de exhibición» |
 
 **No recomendado:**
 - Chat global, anuncios y compras con dinero real: es un proyecto de fans sin ánimo de lucro, y son justo los puntos más criticados.

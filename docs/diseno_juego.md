@@ -40,13 +40,13 @@ La base empieza **inactiva** (no dispara) y se activa al recibir daño o al caer
 
 ## 4. Pokémon y líneas evolutivas (`data/cards.ts`)
 
-Cada carta es una **línea evolutiva**. Se empieza con la primera fase y se evoluciona con copias y monedas (§10). Las fases 2 y 3 tienen **+12 % y +25 %** de PS y daño (también de curación, explosión y barrera); el coste y el comportamiento no cambian, salvo lo indicado en *Cambios al evolucionar*. Los tipos de las 34 especies coinciden con PokéAPI (`docs/datos_pokeapi.json`, comprobado en `tests/pokeapi.test.ts`).
+Cada carta es una **línea evolutiva**. Se empieza con la primera fase y se evoluciona con copias y monedas (§10). Las fases 2 y 3 tienen **+12 % y +25 %** de PS y daño (también de curación, explosión y barrera); el coste y el comportamiento no cambian, salvo lo indicado en *Cambios al evolucionar*. Los tipos de las 46 especies (con Ditto) coinciden con PokéAPI (`docs/datos_pokeapi.json`, comprobado en `tests/pokeapi.test.ts`).
 
 | Fase 1 | Fase 2 | Fase 3 | Tipos (fase 1) | Función | Coste | PS | Daño / cadencia | Vel. | Alcance | Ataca | Rasgo |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| Onix | Steelix | — | Roca/Tierra | Tanque | 5 | 3300 | 150 / 1,5 s | 0,8 | 0,8 | Solo torres | Muy resistente. Steelix es Acero/Tierra |
+| Onix | Steelix | — | Roca/Tierra | Tanque | 5 | 3450 | 150 / 1,5 s | 0,8 | 0,8 | Solo torres | Muy resistente. Steelix es Acero/Tierra |
 | Snorlax | — | — | Normal | Tanque | 6 | 3000 | 190 / 1,8 s | 0,6 | 1,0 | Tierra | Golpe con área de 1,2. No evoluciona |
-| Pikachu | Raichu | — | Eléctrico | Rápido | 3 | 520 | 80 / 0,9 s | 1,8 | 3 | Aire y tierra | Cadena: 2 saltos (x0,6) |
+| Pikachu | Raichu | — | Eléctrico | Rápido | 3 | 480 | 70 / 0,9 s | 1,8 | 3 | Aire y tierra | Cadena: 2 saltos (x0,5) |
 | Charmander | Charmeleon | Charizard | Fuego | Antigrupo | 4 | 950 | 125 / 1,5 s | 1,0 | 2 | Tierra | Área de 1,4 |
 | Squirtle | Wartortle | Blastoise | Agua | Distancia | 3 | 480 | 95 / 1,2 s | 1,0 | 5 | Aire y tierra | — |
 | Bulbasaur | Ivysaur | Venusaur | Planta/Veneno | Apoyo | 4 | 950 | 60 / 1,4 s | 1,0 | 4 | Aire y tierra | Aura curativa: +60 cada 2 s |
@@ -55,12 +55,17 @@ Cada carta es una **línea evolutiva**. Se empieza con la primera fase y se evol
 | Geodude | Graveler | Golem | Roca/Tierra | Asedio | 2 | 480 | 50 / 1,2 s | 1,4 | 0,6 | Solo torres | Autodestrucción: 260 en 2 casillas (60 % a torres) |
 | Jigglypuff | Wigglytuff | — | Normal/Hada | Apoyo | 3 | 760 | 60 / 1,5 s | 1,0 | 3,5 | Aire y tierra | Canto: duerme 1,5 s (cada 5 s) |
 | **Gastly** | Haunter | Gengar | Fantasma/Veneno | Distancia | 3 | 430 | 70 / 1,1 s | 1,4 | 3,5 | Aire y tierra | Flota (volador). Cada golpe ralentiza un 35 % durante 1,5 s |
-| **Abra** | Kadabra | Alakazam | Psíquico | Distancia | 4 | 560 | 115 / 1,5 s | 1,0 | 5 | Aire y tierra | **Barrera**: escudo de 280 que absorbe daño antes que la salud |
+| **Abra** | Kadabra | Alakazam | Psíquico | Distancia | 4 | 560 | 115 / 1,5 s | 1,0 | 5 | Aire y tierra | **Barrera**: escudo de 240 que absorbe daño antes que la salud |
 | **Dratini** | Dragonair | Dragonite | Dragón | Tanque | 4 | 1250 | 120 / 1,4 s | 1,0 | 1,0 | Tierra | Barrido con área de 0,9 |
+| **Magnemite** | Magneton | — | Eléctrico/Acero | **Edificio** | 4 | 950 | 85 / 0,9 s | — | 5,5 | Aire y tierra | Torreta fija; dura 35 s |
+| **Voltorb** | Electrode | — | Eléctrico | **Edificio** | 4 | 1100 | 120 / 1,4 s (área 1,2) | — | 4 | Tierra | Dura 30 s. Al caer explota: 200 en 2,5 casillas (50 % a torres) |
+| **Chansey** | Blissey | — | Normal | **Edificio** | 5 | 1000 | — | — | — | — | **Recolector**: +1 de energía cada 8 s durante 70 s |
+| **Rattata ×5** | Raticate ×5 | — | Normal | Enjambre | 2 | 130 c/u | 50 / 1,0 s | 1,7 | 0,5 | Tierra | Grupo de cinco |
+| **Zubat ×4** | Golbat ×4 | Crobat ×4 | Veneno/Volador | Enjambre | 2 | 85 c/u | 45 / 1,1 s | 1,9 | 0,5 | Aire y tierra | Vuela; grupo de cuatro |
 
 | **Ditto** | — | — | Normal | Apoyo | Carta copiada **+1** | — | — | — | — | — | **Transformación**: se convierte en la última carta que jugaste (Pokémon o hechizo, en tu fase), por 1 de energía más (máx. 10). Si aún no has jugado nada, no se puede usar |
 
-En negrita, las líneas nuevas. Ditto se inspira en la carta «Mirror» de Boom Arena y Clash Royale (ver `comparativa_diseno.md`). La IA no lo usa, porque su valor depende de la carta anterior. La habilidad **Barrera** (`escudo`) es nueva en la simulación (`UnitEntity.shield`, aplicada en `applyDamage`).
+En negrita, las líneas nuevas. **Edificios** (desde el 29-10-2026, inspirados en Cannon, Bomb tower y el recolector de maná de Boom Arena): no se mueven, pierden vida con el tiempo (`lifetime`) hasta desaparecer y atraen a las tropas que atacan «solo edificios» (Onix, Geodude), que los prefieren a las torres. Chansey no ataca: genera energía para su dueño hasta el máximo de 10. Ditto se inspira en la carta «Mirror» de Boom Arena y Clash Royale (ver `comparativa_diseno.md`). La IA no lo usa, porque su valor depende de la carta anterior. La habilidad **Barrera** (`escudo`) es nueva en la simulación (`UnitEntity.shield`, aplicada en `applyDamage`).
 
 **Cambios al evolucionar:** Charizard pasa a Fuego/Volador, vuela, ataca a aire y tierra con alcance 3 y área 1,5. Dragonite pasa a Dragón/Volador y vuela. Steelix pasa a Acero/Tierra.
 
@@ -68,10 +73,14 @@ En negrita, las líneas nuevas. Ditto se inspira en la carta «Mirror» de Boom 
 
 | Hechizo | Tipo | Coste | Radio | Daño Nv 1/2/3 | A torres | Efecto |
 |---|---|---|---|---|---|---|
-| Rayo | Eléctrico | 3 | 2,5 | 300 / 336 / 375 | 35 % | Aturde 0,5 s |
-| Ventisca | Hielo | 4 | 3 | 170 / 190 / 213 | 40 % | Ralentiza un 40 % durante 4 s |
+| Rayo | Eléctrico | 3 | 2,5 | 320 / 358 / 400 | 35 % | Aturde 0,5 s |
+| Ventisca | Hielo | 4 | 3 | 190 / 213 / 238 | 40 % | Ralentiza un 40 % durante 4 s |
+| **Poción** | Normal | 2 | 2,8 | Cura 260 / 291 / 325 | — | Cura al instante a tus Pokémon de la zona (no a las torres) |
+| **Tóxico** | Veneno | 4 | 3 | 50 por segundo × 8 s (400) | 35 % | Nube que daña cada segundo y frena un 15 % |
 
 **Tipo Acero** añadido a la tabla de tipos (`data/elements.ts`), con todas sus relaciones contrastadas con PokéAPI.
+
+**Evolución en combate** (desde el 29-10-2026, inspirada en las Evoluciones de Clash Royale): cada vez que juegas una carta de una línea que puede evolucionar, suma un contador de esa línea. Tras **2 jugadas**, la siguiente sale **en la fase siguiente** a la tuya (con su modelo, estadísticas y cambios) y el contador vuelve a 0. La carta muestra la insignia «EVO» cuando está lista y aparece un aviso al jugarla. Vale para los dos bandos y para Ditto. Regla: `rules.evolveAfterPlays` (`battle.ts`, `effectiveCard`).
 
 Todas las tropas tardan 1 s en desplegarse; mientras tanto no actúan, pero se las puede atacar.
 
@@ -98,6 +107,7 @@ Las relaciones (qué tipo es eficaz contra cuál) siguen la tabla clásica de lo
 - Sus acciones pasan por la misma validación que las del jugador (`Battle.deploy`).
 - Prioridades: (1) **rematar** una torre con un hechizo si basta para destruirla; (2) **defender** cuando una amenaza lleva cierto tiempo en su campo o cerca de sus torres, eligiendo la carta por ventaja de tipo, daño en área contra grupos, capacidad antiaérea y resistencia, y colocándola entre la amenaza y su torre; (3) **apoyar** una ofensiva propia en marcha; (4) **atacar** con tanque por detrás o con una unidad rápida en el puente cuando acumula energía (o para no desperdiciarla con 10).
 - Dificultad configurable (`DIFFICULTIES`): intervalo entre decisiones, tiempo de reacción, umbral de energía para atacar, probabilidad de dudar y si tiene en cuenta los tipos y los remates.
+- Lanza **Poción** sobre sus Pokémon heridos (`findHeal`) y valora **Tóxico** por su daño total (pulsos × daño). No usa Ditto.
 - Toda su aleatoriedad usa un generador con semilla, así que es reproducible.
 
 ## 7. Interfaz y controles
@@ -130,9 +140,10 @@ Las relaciones (qué tipo es eficaz contra cuál) siguen la tabla clásica de lo
 | 2 | Daño a torres por partida: mazo rival ≈1550 frente a ≈970. Geodude (2 de energía) hacía 326 por partida, sobre todo con su explosión; Onix (5 de energía) solo 78 porque la IA lo enviaba sin apoyo | La explosión de Geodude hace un 60 % a las torres. La IA escolta a sus tanques mientras avanzan. Onix: PS 3000. Pidgeotto: PS 620, daño 100. Jigglypuff: PS 680, daño 55, Canto cada 5 s |
 
 ### Estado actual (29-10-2026, normal, 700 partidas con mazos aleatorios de cartas base)
+- **Iteración 4** (edificios, enjambres y hechizos nuevos): Pikachu y Rayo dominaban contra los enjambres, y Onix y Jigglypuff quedaban bajos. Cambios: Pikachu PS 520→480, daño 80→70, caída de la cadena 0,6→0,5; Rayo 300→320; Ventisca 170→190; Barrera 280→240; Onix PS 3300→3450. Resultado: **todas las cartas base entre el 43 % y el 56 %** (±4,3 %). La IA juega Poción 3,4 veces por partida y Tóxico 1,3.
 - Se mide el equilibrio de las **cartas base** (fase 1). Las evoluciones son más fuertes a propósito, y el rival también las saca (§10).
 - Iteración 3: con las líneas nuevas, Abra (56 %) y Bulbasaur (57 %) quedaban altos y Jigglypuff, Charmander y Onix bajos. Cambios: Barrera 320→280; curación 70→60; Jigglypuff PS 680→760 y daño 55→60; Charmander PS 900→950 y cadencia 1,6→1,5 s; Onix PS 3000→3300.
-- Resultado: todas las cartas entre el **44 % y el 56 %** (±3,6 %): Abra 56 %, Pikachu 55 %, Gastly 54 % … Machop 46 %, Onix 44 %.
+- Resultado de la iteración 3: todas las cartas entre el **44 % y el 56 %** (±3,6 %): Abra 56 %, Pikachu 55 %, Gastly 54 % … Machop 46 %, Onix 44 %.
 - Mazo del jugador contra mazo de la IA (sin evoluciones): **≈54–57 %** (140 partidas, ±8 %).
 - Pendiente: la IA juega poco los tanques (Onix, Snorlax: ~0,9 veces por partida) y Ventisca (0,7). El balance con jugadores humanos sigue sin medirse.
 
@@ -140,7 +151,7 @@ Las relaciones (qué tipo es eficaz contra cuál) siguen la tabla clásica de lo
 
 - **Trofeos**: una victoria suma 20 / 30 / 40 según la dificultad (fácil, normal, difícil); una derrota resta 15 y nunca baja de 0; un empate no cambia nada.
 - **Rangos**: Novato (0), Entrenador (100), Líder de Gimnasio (250), Alto Mando (400), Campeón (600).
-- **Cartas iniciales (9)**: Onix, Pikachu, Charmander, Squirtle, Bulbasaur, Machop, Pidgey, Geodude y Rayo (el mazo usa 8). Snorlax, Jigglypuff, Ventisca, Gastly, Abra y Dratini salen de las Pokéballs.
+- **Cartas iniciales (9)**: Onix, Pikachu, Charmander, Squirtle, Bulbasaur, Machop, Pidgey, Geodude y Rayo (el mazo usa 8). El resto (Snorlax, Jigglypuff, Gastly, Abra, Dratini, Ditto, Magnemite, Voltorb, Chansey, Rattata, Zubat, Ventisca, Poción y Tóxico) sale de las Pokéballs.
 - **Monedas por partida**: 30 por ganar, 12 por empatar y 6 por perder, más 5 por medalla. Se empieza con 100.
 - **Pokéballs** (los cofres). Cada hueco puede ser una carta que aún no tienes (la primera copia la desbloquea):
 
@@ -168,6 +179,8 @@ Las relaciones (qué tipo es eficaz contra cuál) siguen la tabla clásica de lo
   - Con un mazo en primera fase, el rival casi no evoluciona; si evolucionas, él también.
   - Es determinista con la semilla de la partida.
   - Antes dependía solo de los trofeos; se cambió siguiendo la idea de juego limpio de Boom Arena.
+- **Modo Desafío** (como los desafíos de Clash Royale): una racha contra la IA que acaba con **12 victorias o 3 derrotas**. La IA se endurece con cada victoria (fácil hasta 3, normal hasta 7, difícil después) y sus cartas evolucionan más. Cada victoria da 10 + 5 × victorias monedas. Premio final según las victorias: 3 → Pokéball, 6 → Superball, 9 → Ultraball, 12 → Master Ball. No cambia los trofeos. Se guarda en el perfil (`Profile.challenge`), así que se puede dejar a medias; también se puede abandonar y cobrar el premio alcanzado.
+- **Modo Igualado** (como el juego limpio de Boom Arena): las cartas de los dos bandos están en su **fase máxima**. No da trofeos ni monedas.
 - **Repeticiones**: desde los resultados, «Repetición» vuelve a jugar la partida con la misma semilla, los mazos sin barajar y las órdenes de los dos bandos (`Battle.commandLog`). No cuenta para trofeos ni monedas.
 - **Interfaz**:
   - El menú muestra las monedas y un aviso con las Pokéballs pendientes de abrir.

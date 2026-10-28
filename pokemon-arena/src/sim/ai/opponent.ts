@@ -73,6 +73,8 @@ export class OpponentAI {
       const finisher = this.findFinisher(obs, affordable);
       if (finisher) return finisher;
     }
+    const heal = this.findHeal(obs, affordable);
+    if (heal) return heal;
     const threats = this.noticedThreats(obs);
     if (threats.length > 0) {
       const defense = this.planDefense(obs, threats, affordable);
@@ -141,10 +143,13 @@ export class OpponentAI {
 
   private defenseScore(card: Card, focus: ObservedUnit, cluster: ObservedUnit[]): number {
     if (card.kind === 'hechizo') {
+      if (card.heal) return -Infinity; // la Poción no daña (se usa en findHeal)
+      // Las zonas de veneno no alcanzan todos sus golpes: se cuenta el 60 %.
+      const total = card.damage * (card.dot ? card.dot.pulses * 0.6 : 1);
       let value = 0;
       for (const u of cluster) {
         const mult = this.params.typeAware ? typeMultiplier(card.types[0], u.types) : 1;
-        value += Math.min(card.damage * mult, u.hp);
+        value += Math.min(total * mult, u.hp);
       }
       if (value < card.cost * 120) return -Infinity; // no compensa
       return value / 150 - card.cost * 0.35 + (cluster.length >= 3 ? 1 : 0);
@@ -179,13 +184,30 @@ export class OpponentAI {
 
   // -------------------------------------------------------------- ataque
 
+  /** Poción: cura cuando varios aliados heridos están juntos (y compensa su coste). */
+  private findHeal(obs: Observation, affordable: string[]): AiAction | null {
+    for (const id of affordable) {
+      const card = getCard(id);
+      if (card.kind !== 'hechizo' || !card.heal) continue;
+      const hurt = obs.units.filter((u) => u.team === this.team && u.hp < u.maxHp * 0.7);
+      let best: { pos: Vec; value: number } | null = null;
+      for (const h of hurt) {
+        const value = hurt.filter((u) => dist(u.pos, h.pos) <= card.radius).reduce((s, u) => s + Math.min(card.heal!, u.maxHp - u.hp), 0);
+        if (!best || value > best.value) best = { pos: { x: h.pos.x, y: h.pos.y }, value };
+      }
+      if (best && best.value >= card.cost * 160) return { cardId: id, pos: best.pos, intent: 'apoyo' };
+    }
+    return null;
+  }
+
   private findFinisher(obs: Observation, affordable: string[]): AiAction | null {
     for (const id of affordable) {
       const card = getCard(id);
       if (card.kind !== 'hechizo') continue;
       for (const t of obs.towers) {
         if (t.team === this.team || t.destroyed) continue;
-        if (t.hp <= Math.round(card.damage * card.towerDamageFactor)) {
+        if (card.heal) continue;
+        if (t.hp <= Math.round(card.damage * (card.dot?.pulses ?? 1) * card.towerDamageFactor)) {
           return { cardId: id, pos: { x: t.pos.x, y: t.pos.y }, intent: 'remate' };
         }
       }

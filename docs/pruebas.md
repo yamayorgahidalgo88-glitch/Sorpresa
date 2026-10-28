@@ -5,7 +5,7 @@
 ```bash
 cd pokemon-arena
 npm install
-npm test               # Vitest: 133 pruebas (≈6 s)
+npm test               # Vitest: 145 pruebas (≈6 s)
 npm run typecheck      # tsc --noEmit (modo estricto)
 npm run test:e2e       # compila, sirve y prueba en Chromium (escritorio y móvil en 3D, escritorio en 2D); capturas en test-results/
 node scripts/captura_galeria.mjs   # capturas de los 11 modelos vóxel (tras npx vite build)
@@ -17,10 +17,10 @@ npm run balance -- 600 normal   # informe de balance por carta (mazos aleatorios
 
 | Comando | Resultado |
 |---|---|
-| `npm test` | **14 archivos, 133/133 pruebas superadas** |
+| `npm test` | **16 archivos, 145/145 pruebas superadas** |
 | `npm run captura:referencia` | Escena 3D de referencia en calidades alta, media y baja: **sin errores de consola**; 14 capturas revisadas a mano en `docs/capturas/` |
 | `npm run typecheck` | Sin errores |
-| `npm run test:e2e` | **64/64 comprobaciones superadas**: 22 en escritorio con ratón (3D), 22 en móvil táctil (3D) y 20 en escritorio con la vista 2D de respaldo. Sin errores en consola |
+| `npm run test:e2e` | **Todas las comprobaciones superadas** en los tres perfiles: escritorio con ratón (3D), móvil táctil (3D) y escritorio con la vista 2D de respaldo. Incluye las nuevas de Desafío e Igualado. Sin errores en consola |
 | `npm audit` | 0 vulnerabilidades |
 
 ## Cobertura de las pruebas obligatorias
@@ -46,7 +46,9 @@ npm run balance -- 600 normal   # informe de balance por carta (mazos aleatorios
 | Progresión | `progression.test.ts` · mazo inicial desbloqueado, catálogo completo con trofeos, suma y resta (sin bajar de 0), desbloqueos y ascensos, rangos; `input_persistence.test.ts` · trofeos guardados, mazo con cartas bloqueadas |
 | Ditto y repeticiones | `ditto_replay.test.ts` · Ditto no se juega sin carta previa, copia Pokémon y hechizos con +1 de coste y su zona, la IA no lo usa; una partida con Ditto se reproduce exacta (`Battle.replay`) |
 | Economía y evoluciones | `economy.test.ts` · fases coherentes por línea (mejoran sin cambiar coste), 9 cartas iniciales, mazo sin dos fases de una línea, precios, cartas distintas y copias de cada Pokéball, evolucionadas solo en Ultra y Master (garantía en Master), cartas nuevas y mejora automática, repetidas → monedas, evolucionar (copias, monedas, fase máxima), monedas por partida, camino de trofeos cobrado una vez, rival con más evoluciones con más trofeos; `combat_towers.test.ts` · Barrera de Abra; `input_persistence.test.ts` · migración de mazos antiguos y monedas por partida |
-| Modelos 3D (hito F) | `models.test.ts` · las 34 especies tienen modelo, se pasan a vóxel, animan sin valores inválidos, tienen punto de ataque y altura coherente; la caché comparte geometría pero no materiales |
+| Edificios, enjambres y hechizos nuevos | `new_cards.test.ts` · los edificios no se mueven y pierden su salud en su tiempo de vida, quienes solo atacan edificios van a por ellos antes que a las torres, Magnemite dispara a voladores y Voltorb explota al caer, Chansey genera 1 de energía cada 8 s, salen 5 Rattata y 4 Zubat, Poción cura a los aliados sin dañar, Tóxico golpea 8 veces con daño reducido a torres |
+| Evolución en combate y modos | `combat_evolution.test.ts` · la tercera jugada de una línea sale una fase por encima y la cuenta se reinicia, las cartas en fase máxima y los hechizos no cambian, el rival también evoluciona y la regla se puede desactivar; `economy.test.ts` · Desafío (monedas por victoria, dificultad creciente, premios a 3/6/9/12, fin con 3 derrotas o 12 victorias, retirarse cobra el premio alcanzado) |
+| Modelos 3D (hito F) | `models.test.ts` · las 46 especies tienen modelo, se pasan a vóxel, animan sin valores inválidos, tienen punto de ataque y altura coherente; la caché comparte geometría pero no materiales |
 | Ficha de carta | `card_detail.test.ts` · las estadísticas salen del catálogo (PS, daño, DPS, velocidad de ataque, alcance, objetivos, cantidad, área), categorías de velocidad, hechizos, debilidades por tabla de tipos |
 | Estadísticas y balance | `balance_stats.test.ts` · atribución del daño a carta y equipo, Pokémon derrotados, regresión de balance |
 
@@ -63,7 +65,8 @@ Para cada perfil (escritorio 1280×800 con ratón y Pixel 5 táctil, ambos con l
 7. «Repetición» abre la partida en modo repetición con sus órdenes y no cambia el historial; después se inicia una batalla nueva.
 8. Constructor de mazos: tocar Geodude (colección) abre su ficha; «Usar» y tocar Onix (mazo) los intercambia y se guarda.
 9. Tienda: comprar una Pokéball descuenta monedas, se abre con su animación y da cartas.
-10. No hay errores en la consola.
+10. Desafío: se empieza, se gana una partida y cuenta la victoria y las monedas. Igualado: todas las cartas de los dos bandos están en su fase máxima.
+11. No hay errores en la consola.
 
 Las capturas (`test-results/*.png`) sirven para revisar la interfaz visualmente.
 

@@ -183,6 +183,15 @@ Todas las texturas son **procedurales y originales** (`src/render3d/textures.ts`
 
 ### 8.1 Modelos del hito F (11 especies) y ampliación a 34 especies (29-10-2026)
 
+**Ampliación a 46 especies (29-10-2026, propuestas 3 a 7):** mismas reglas y referencias (ilustración oficial de PokéAPI solo como guía de forma y color).
+- **Ditto:** masa lila asimétrica que tiembla. En batalla se ve un instante, con un destello, antes de convertirse en la carta copiada.
+- **Edificios:**
+  - Magnemite: esfera de acero con ojo, tornillo e imanes en U. Los imanes son piezas de caja, porque como elipsoides se partían en cubos sueltos. Magneton: tres unidos.
+  - Voltorb y Electrode: esfera en dos mitades (recorte con `userData.clipAbove` / `clipBelow` en `voxel.ts`), con la mirada enfadada o la sonrisa.
+  - Chansey y Blissey: huevo rosa con el huevo blanco en la bolsa. Se estira al poner un huevo de energía.
+- **Enjambres:** Rattata y Raticate (rata a cuatro patas) y la línea de Zubat (Golbat con la boca abierta, Crobat con cuatro alas). Son pequeños para que el grupo no tape el campo.
+- **Efectos nuevos** (`battleView3d.ts`): destello de transformación (Ditto), resplandor de evolución en combate, burbujas verdes de la Poción, nube morada del Tóxico con pulsos, y huevo de energía que sube desde Chansey.
+
 **Ampliación a 34 especies:**
 - **Referencias:** ilustraciones oficiales que sirve PokéAPI (`sprites/other/official-artwork`), usadas **solo como referencia** de proporciones y rasgos. Los colores salen del análisis de sus colores dominantes. Ninguna imagen se incluye en el juego; los modelos son geometría propia.
 - **Variantes por línea:** cada línea comparte una forma con variantes por fase, y la escala de especie (`CreatureRig.size`, hasta ×1,35) mantiene parecida la densidad de cubos. Rasgos de cada fase:

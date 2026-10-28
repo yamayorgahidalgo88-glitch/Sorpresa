@@ -32,8 +32,9 @@ describe('ficha de carta', () => {
   });
 
   it('los hechizos muestran daño, daño a torres, radio y efecto', () => {
-    expect(value('rayo', 'Daño')).toBe('300');
-    expect(value('rayo', 'Daño a torres')).toBe('105 (35 %)');
+    const rayo = getCard('rayo') as { damage: number; towerDamageFactor: number };
+    expect(value('rayo', 'Daño')).toBe(String(rayo.damage));
+    expect(value('rayo', 'Daño a torres')).toBe(`${Math.round(rayo.damage * rayo.towerDamageFactor)} (35 %)`);
     expect(value('ventisca', 'Efecto')).toContain('Ralentiza');
   });
 

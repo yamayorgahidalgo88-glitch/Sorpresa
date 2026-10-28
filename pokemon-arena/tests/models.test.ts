@@ -30,7 +30,7 @@ describe('modelos 3D (hito F)', () => {
       rig.root.updateMatrixWorld(true);
       const p = rig.emitterWorld(new THREE.Vector3());
       expect(Number.isFinite(p.x + p.y + p.z), id).toBe(true);
-      expect(rig.height, id).toBeGreaterThan(0.9);
+      expect(rig.height, id).toBeGreaterThan(0.6); // los enjambres y Voltorb son pequeños
       // Caja del modelo coherente con su altura declarada (±40 %)
       const box = new THREE.Box3();
       for (const m of meshes) box.expandByObject(m);
