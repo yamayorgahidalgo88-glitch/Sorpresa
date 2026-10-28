@@ -11,7 +11,7 @@
       #stage { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
       #view { position: relative; height: 100%; aspect-ratio: 720 / 1420; max-width: 100%; }
       #view canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-      .chip { position: absolute; top: 2.2%; left: 50%; transform: translateX(-50%); padding: 0.45em 1.1em; border-radius: 999px;
+      .chip { position: absolute; top: 7%; left: 50%; transform: translateX(-50%); padding: 0.45em 1.1em; border-radius: 999px;
         background: linear-gradient(#2c3e72, #1b274d); color: #ffe27a; font-family: 'Lilita One', sans-serif; font-size: clamp(12px, 2.1vh, 22px);
         letter-spacing: 0.04em; box-shadow: 0 4px 0 #0c1430, 0 8px 18px rgba(0,0,0,.35); border: 2px solid #ffd23f; white-space: nowrap; }
       .panel { position: absolute; left: 3%; right: 3%; bottom: 2.2%; height: 12%; border-radius: 22px; padding: 2% 3%; box-sizing: border-box;
@@ -24,6 +24,8 @@
         background: linear-gradient(#ffe27a, #ffc21a); box-shadow: 0 4px 0 #b9770a; cursor: pointer; }
       button.alt { color: #fff; background: linear-gradient(#5d7fd6, #3a59b0); box-shadow: 0 4px 0 #23397a; }
       button:active { transform: translateY(3px); box-shadow: 0 1px 0 #b9770a; }
+      .back { position: absolute; top: 2.4%; left: 3%; padding: 0.35em 0.8em; border-radius: 12px; text-decoration: none; color: #fff;
+        font-family: 'Lilita One', sans-serif; font-size: clamp(11px, 1.6vh, 16px); background: linear-gradient(#5d7fd6, #3a59b0); box-shadow: 0 3px 0 #23397a; z-index: 2; }
       #fps { position: absolute; top: 2.5%; right: 3%; color: #fff; font: 700 12px system-ui; text-shadow: 0 1px 2px #000; opacity: .8; }
     </style>
   </head>
@@ -32,6 +34,7 @@
       <div id="view">
         <canvas id="c"></canvas>
         <div class="chip">ESCENA DE REFERENCIA · HITOS B–E</div>
+        <a class="back" href="./">← Juego</a>
         <div id="fps"></div>
         <div class="panel">
           <div>
