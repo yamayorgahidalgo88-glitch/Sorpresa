@@ -63,7 +63,7 @@ npm run balance -- 600 normal   # informe de balance por carta
 
 - **Balance:** el mazo por defecto del jugador gana ≈47–50 % (normal) y ≈33–43 % (difícil) frente al de la IA en IA contra IA. La IA usa poco los tanques y Ventisca. Falta probar con personas.
 - **Contenido:** 13 líneas evolutivas (34 especies) y 2 hechizos con 3 niveles. Faltan edificios. Las cifras de la economía (precios, probabilidades, costes de evolución) son una primera propuesta y se ajustan en `persistence/economy.ts`.
-- **Gráficos:** la batalla jugable ya es 3D. Los 11 Pokémon tienen modelo vóxel y las torres dejan ruinas (hito F terminado). Cartas, HUD e interfaz con su diseño definitivo (hito G): marco por fase, iconos propios y tipografías del juego. Falta la optimización medida en móviles reales (hito H). También faltan música y accesibilidad (daltonismo, tamaño de texto).
+- **Gráficos:** la batalla jugable ya es 3D. Las 34 especies tienen modelo vóxel y las torres dejan ruinas (hito F terminado). Cartas, HUD e interfaz con su diseño definitivo (hito G): marco por fase, iconos propios y tipografías del juego. Falta la optimización medida en móviles reales (hito H). También faltan música y accesibilidad (daltonismo, tamaño de texto).
 - **REA:** Node 22.22 está por debajo del mínimo (22.23.4) y el servidor MCP no está registrado en el agente (`npx rea-agents setup`). Ver `docs/analisis_mecanicas.md`.
 
 ### Aviso
