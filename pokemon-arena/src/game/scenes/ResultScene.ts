@@ -3,7 +3,6 @@ import type { Difficulty } from '../../sim/ai/opponent';
 import type { BattleResult } from '../../sim/core/state';
 import { recordResult } from '../../persistence/settings';
 import { rankOf } from '../../persistence/progression';
-import { getCard } from '../../sim/data/cards';
 import { GAME_H, GAME_W } from '../layout';
 import { COLORS, css, textStyle } from '../theme';
 import { makeButton } from '../ui/widgets';
@@ -35,7 +34,7 @@ export class ResultScene extends Phaser.Scene {
 
   create(data: ResultData): void {
     const r = data.result;
-    const { stats, progress } = recordResult(r.winner, data.difficulty);
+    const { stats, progress, coins, road } = recordResult(r.winner, data.difficulty, undefined, r.medals[0]);
     const title = r.winner === 0 ? '¡VICTORIA!' : r.winner === 1 ? 'DERROTA' : 'EMPATE';
     const color = r.winner === 0 ? COLORS.gold : r.winner === 1 ? COLORS.danger : 0xc9d4f5;
 
@@ -72,10 +71,11 @@ export class ResultScene extends Phaser.Scene {
     const rank = rankOf(progress.after);
     const sign = progress.delta > 0 ? '+' : '';
     const trophyColor = progress.delta > 0 ? css(COLORS.gold) : progress.delta < 0 ? css(COLORS.danger) : '#c9d4f5';
-    this.add.text(GAME_W / 2, 832, `🏆 ${sign}${progress.delta} trofeos · Total ${progress.after} · ${rank.name}`, textStyle(20, trophyColor)).setOrigin(0.5);
+    this.add.text(GAME_W / 2, 818, `🏆 ${sign}${progress.delta} trofeos · Total ${progress.after} · ${rank.name}   🪙 +${coins}`, textStyle(20, trophyColor)).setOrigin(0.5);
     const news: string[] = [];
     if (progress.rankUp) news.push(`¡Nuevo rango: ${progress.rankUp}!`);
-    if (progress.newlyUnlocked.length) news.push(`¡Desbloqueado: ${progress.newlyUnlocked.map((id) => getCard(id).name).join(', ')}!`);
+    const prize = { poke: 'Pokéball', super: 'Superball', ultra: 'Ultraball', master: 'Master Ball' };
+    for (const rw of road) news.push(`¡Premio del camino: ${rw.ball ? prize[rw.ball] : `${rw.coins} monedas`}!`);
     if (news.length) {
       const n = this.add.text(GAME_W / 2, 868, news.join('  ·  '), textStyle(19, css(COLORS.ok))).setOrigin(0.5);
       this.tweens.add({ targets: n, scale: 1.08, yoyo: true, repeat: 3, duration: 260 });
@@ -89,6 +89,6 @@ export class ResultScene extends Phaser.Scene {
       this.scene.stop('battle');
       this.scene.start('menu');
     }, COLORS.panelLight);
-    (window as unknown as { __arenaResult?: unknown }).__arenaResult = { ...data.result, progress };
+    (window as unknown as { __arenaResult?: unknown }).__arenaResult = { ...data.result, progress, coins, road };
   }
 }

@@ -60,7 +60,9 @@ describe('energía', () => {
 describe('costes de cartas', () => {
   it('desplegar descuenta exactamente el coste de cada carta', () => {
     for (const id of Object.keys(CARDS)) {
-      const deck = [id, ...Object.keys(CARDS).filter((c) => c !== id).slice(0, 7)];
+      // Relleno con cartas de otras líneas (no se pueden llevar dos fases de la misma).
+      const others = Object.values(CARDS).filter((c) => c.line !== CARDS[id].line && c.stage === 1).map((c) => c.id);
+      const deck = [id, ...others.slice(0, 7)];
       const b = newBattle(3, undefined, [deck, deck]);
       forceInHand(b, 0, id);
       setEnergy(b, 0, 10);

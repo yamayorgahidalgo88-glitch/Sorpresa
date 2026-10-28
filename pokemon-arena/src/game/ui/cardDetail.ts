@@ -33,7 +33,9 @@ function abilityText(a: Ability): string {
     case 'cadena':
       return `La descarga salta a ${a.jumps} enemigos más (x${a.falloff} por salto).`;
     case 'ralentizar':
-      return `Ralentiza un ${Math.round(a.factor * 100)} % durante ${a.duration} s.`;
+      return `Cada golpe ralentiza un ${Math.round(a.factor * 100)} % durante ${a.duration} s.`;
+    case 'escudo':
+      return `Aparece con una Barrera que absorbe ${a.amount} de daño.`;
   }
 }
 
@@ -102,7 +104,7 @@ export class CardDetail {
   constructor(
     scene: Phaser.Scene,
     cardId: string,
-    opts: { locked?: string; actions?: CardDetailAction[]; onClose?: () => void } = {},
+    opts: { locked?: string; notes?: string[]; actions?: CardDetailAction[]; onClose?: () => void } = {},
   ) {
     const card = getCard(cardId);
     const color = ELEMENT_COLORS[card.types[0]];
@@ -126,6 +128,7 @@ export class CardDetail {
       lines.push(`Débil a: ${m.weak.map((e) => ELEMENT_NAMES[e]).join(', ') || '—'}`);
       lines.push(`Resiste: ${m.resist.map((e) => ELEMENT_NAMES[e]).join(', ') || '—'}`);
     }
+    if (opts.notes) lines.push(...opts.notes);
     if (opts.locked) lines.push(`🔒 ${opts.locked}`);
     const th = 70;
     const tilesH = Math.ceil(tiles.length / 2) * (th + 10);

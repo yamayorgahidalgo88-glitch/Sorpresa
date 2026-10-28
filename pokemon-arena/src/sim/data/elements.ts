@@ -22,6 +22,7 @@ export const ELEMENTS = [
   'fantasma',
   'dragon',
   'hada',
+  'acero',
 ] as const;
 
 export type Element = (typeof ELEMENTS)[number];
@@ -42,36 +43,37 @@ type Relation = { eficaz?: Element[]; poco_eficaz?: Element[]; casi_inmune?: Ele
 
 /** Atacante -> relaciones con tipos defensores. Lo que no aparece es neutro. */
 export const TYPE_CHART: Record<Element, Relation> = {
-  normal: { poco_eficaz: ['roca'], casi_inmune: ['fantasma'] },
-  fuego: { eficaz: ['planta', 'hielo'], poco_eficaz: ['fuego', 'agua', 'roca', 'dragon'] },
+  normal: { poco_eficaz: ['roca', 'acero'], casi_inmune: ['fantasma'] },
+  fuego: { eficaz: ['planta', 'hielo', 'acero'], poco_eficaz: ['fuego', 'agua', 'roca', 'dragon'] },
   agua: { eficaz: ['fuego', 'tierra', 'roca'], poco_eficaz: ['agua', 'planta', 'dragon'] },
   planta: {
     eficaz: ['agua', 'tierra', 'roca'],
-    poco_eficaz: ['fuego', 'planta', 'veneno', 'volador', 'dragon'],
+    poco_eficaz: ['fuego', 'planta', 'veneno', 'volador', 'dragon', 'acero'],
   },
   electrico: {
     eficaz: ['agua', 'volador'],
     poco_eficaz: ['planta', 'electrico', 'dragon'],
     casi_inmune: ['tierra'],
   },
-  hielo: { eficaz: ['planta', 'tierra', 'volador', 'dragon'], poco_eficaz: ['fuego', 'agua', 'hielo'] },
+  hielo: { eficaz: ['planta', 'tierra', 'volador', 'dragon'], poco_eficaz: ['fuego', 'agua', 'hielo', 'acero'] },
   lucha: {
-    eficaz: ['normal', 'hielo', 'roca'],
+    eficaz: ['normal', 'hielo', 'roca', 'acero'],
     poco_eficaz: ['veneno', 'volador', 'psiquico', 'hada'],
     casi_inmune: ['fantasma'],
   },
-  veneno: { eficaz: ['planta', 'hada'], poco_eficaz: ['veneno', 'tierra', 'roca', 'fantasma'] },
+  veneno: { eficaz: ['planta', 'hada'], poco_eficaz: ['veneno', 'tierra', 'roca', 'fantasma'], casi_inmune: ['acero'] },
   tierra: {
-    eficaz: ['fuego', 'electrico', 'veneno', 'roca'],
+    eficaz: ['fuego', 'electrico', 'veneno', 'roca', 'acero'],
     poco_eficaz: ['planta'],
     casi_inmune: ['volador'],
   },
-  volador: { eficaz: ['planta', 'lucha'], poco_eficaz: ['electrico', 'roca'] },
-  psiquico: { eficaz: ['lucha', 'veneno'], poco_eficaz: ['psiquico'] },
-  roca: { eficaz: ['fuego', 'hielo', 'volador'], poco_eficaz: ['lucha', 'tierra'] },
+  volador: { eficaz: ['planta', 'lucha'], poco_eficaz: ['electrico', 'roca', 'acero'] },
+  psiquico: { eficaz: ['lucha', 'veneno'], poco_eficaz: ['psiquico', 'acero'] },
+  roca: { eficaz: ['fuego', 'hielo', 'volador'], poco_eficaz: ['lucha', 'tierra', 'acero'] },
   fantasma: { eficaz: ['psiquico', 'fantasma'], casi_inmune: ['normal'] },
-  dragon: { eficaz: ['dragon'], casi_inmune: ['hada'] },
-  hada: { eficaz: ['lucha', 'dragon'], poco_eficaz: ['fuego', 'veneno'] },
+  dragon: { eficaz: ['dragon'], poco_eficaz: ['acero'], casi_inmune: ['hada'] },
+  hada: { eficaz: ['lucha', 'dragon'], poco_eficaz: ['fuego', 'veneno', 'acero'] },
+  acero: { eficaz: ['hielo', 'roca', 'hada'], poco_eficaz: ['fuego', 'agua', 'electrico', 'acero'] },
 };
 
 /** Multiplicador de un tipo atacante contra UN tipo defensor. */
@@ -119,6 +121,7 @@ export const ELEMENT_NAMES: Record<Element, string> = {
   fantasma: 'Fantasma',
   dragon: 'Dragón',
   hada: 'Hada',
+  acero: 'Acero',
 };
 
 /** Colores de interfaz por tipo (paleta propia). */
@@ -138,4 +141,5 @@ export const ELEMENT_COLORS: Record<Element, number> = {
   fantasma: 0x6f5a9c,
   dragon: 0x6f38f2,
   hada: 0xf0a6c8,
+  acero: 0x9fb1c2,
 };

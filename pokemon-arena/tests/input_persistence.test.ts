@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DeployController, DRAG_THRESHOLD } from '../src/game/input/deployController';
 import { cardSlotRect, isInField, screenToTile, tileToScreen } from '../src/game/layout';
-import { DEFAULT_SETTINGS, loadSettings, loadStats, recordResult, saveSettings } from '../src/persistence/settings';
+import { DEFAULT_SETTINGS, loadProfile, saveProfile, loadSettings, loadStats, recordResult, saveSettings } from '../src/persistence/settings';
 import type { KeyValueStore } from '../src/persistence/settings';
 
 /**
@@ -145,10 +145,14 @@ class MemoryStore implements KeyValueStore {
 describe('persistencia', () => {
   it('guarda y recupera ajustes y mazo', () => {
     const store = new MemoryStore();
-    const deck = ['snorlax', 'charizard', 'geodude', 'jigglypuff', 'squirtle', 'pikachu', 'machop', 'ventisca'];
+    const deck = ['snorlax', 'charmander', 'geodude', 'jigglypuff', 'squirtle', 'pikachu', 'machop', 'ventisca'];
+    // Jugador de la versión anterior con 999 trofeos: conserva Snorlax, Jigglypuff y Ventisca.
     store.setItem('pokemon-arena:estadisticas', JSON.stringify({ wins: 0, losses: 0, draws: 0, trophies: 999 }));
     saveSettings({ difficulty: 'dificil', muted: true, deck }, store);
     expect(loadSettings(store)).toEqual({ difficulty: 'dificil', muted: true, deck });
+    // Un mazo antiguo con fases (Charizard, Pidgeotto) se traduce a sus líneas.
+    saveSettings({ difficulty: 'normal', muted: false, deck: ['snorlax', 'charizard', 'geodude', 'jigglypuff', 'squirtle', 'pikachu', 'pidgeotto', 'ventisca'] }, store);
+    expect(loadSettings(store).deck).toEqual(['snorlax', 'charmander', 'geodude', 'jigglypuff', 'squirtle', 'pikachu', 'pidgey', 'ventisca']);
   });
 
   it('valores corruptos o mazos no válidos vuelven a los valores por defecto', () => {
@@ -169,12 +173,25 @@ describe('persistencia', () => {
     expect(loadStats(store)).toEqual({ wins: 2, losses: 1, draws: 1, trophies: 30 + 40 - 15 });
   });
 
-  it('un mazo guardado con cartas aún bloqueadas vuelve al mazo inicial', () => {
+  it('un mazo guardado con cartas que el jugador no tiene vuelve al mazo inicial', () => {
     const store = new MemoryStore();
-    const deck = ['snorlax', 'charizard', 'geodude', 'jigglypuff', 'squirtle', 'pikachu', 'machop', 'ventisca'];
+    const deck = ['snorlax', 'charmander', 'geodude', 'jigglypuff', 'squirtle', 'pikachu', 'machop', 'ventisca'];
     saveSettings({ difficulty: 'normal', muted: false, deck }, store);
     expect(loadSettings(store).deck).toEqual(DEFAULT_SETTINGS.deck);
-    store.setItem('pokemon-arena:estadisticas', JSON.stringify({ wins: 20, losses: 0, draws: 0, trophies: 300 }));
+    const p = loadProfile(store);
+    for (const l of ['snorlax', 'jigglypuff', 'ventisca']) p.owned[l] = { stage: 1, copies: 0 };
+    saveProfile(p, store);
     expect(loadSettings(store).deck).toEqual(deck);
+  });
+
+  it('cada partida da monedas y cobra el camino de trofeos una sola vez', () => {
+    const store = new MemoryStore();
+    const r = recordResult(0, 'normal', store, 2);
+    expect(r.coins).toBe(30 + 2 * 5);
+    expect(r.road.map((x) => x.trophies)).toEqual([20]);
+    expect(loadProfile(store).coins).toBe(100 + 40 + 100);
+    recordResult(1, 'normal', store, 0); // 30 → 15 trofeos
+    const again = recordResult(0, 'normal', store, 0); // 45: el hito de 20 ya estaba cobrado
+    expect(again.road).toEqual([]);
   });
 });

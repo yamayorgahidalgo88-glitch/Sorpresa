@@ -2,7 +2,9 @@ import Phaser from 'phaser';
 import { GAME_H, GAME_W } from './game/layout';
 import { COLORS } from './game/theme';
 import { BattleScene } from './game/scenes/BattleScene';
-import { CollectionScene, DeckScene } from './game/scenes/CardScreens';
+import { DeckScene } from './game/scenes/CardScreens';
+import { OpenBallScene, ShopScene, TrophyRoadScene } from './game/scenes/ShopScenes';
+import { CARDS } from './sim/data/cards';
 import { MenuScene } from './game/scenes/MenuScene';
 import { ResultScene } from './game/scenes/ResultScene';
 
@@ -17,7 +19,9 @@ const game = new Phaser.Game({
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
   input: { activePointers: 2 },
   render: { antialias: true, roundPixels: false },
-  scene: [MenuScene, BattleScene, ResultScene, DeckScene, CollectionScene],
+  scene: [MenuScene, BattleScene, ResultScene, DeckScene, ShopScene, OpenBallScene, TrophyRoadScene],
 });
 
-(window as unknown as { __game?: Phaser.Game }).__game = game;
+(window as unknown as { __game?: Phaser.Game; __cards?: unknown }).__game = game;
+// Catálogo accesible para las pruebas de extremo a extremo.
+(window as unknown as { __cards?: unknown }).__cards = CARDS;

@@ -4,7 +4,9 @@ import type { DeployFailure } from '../../sim/battle';
 import { DIFFICULTIES, OpponentAI } from '../../sim/ai/opponent';
 import type { Difficulty } from '../../sim/ai/opponent';
 import { observe } from '../../sim/ai/observation';
-import { deriveSeed } from '../../sim/core/rng';
+import { Rng, deriveSeed } from '../../sim/core/rng';
+import { battleDeck, loadProfile, loadStats } from '../../persistence/settings';
+import { rivalDeck } from '../../persistence/economy';
 import type { SimEvent, Team } from '../../sim/core/state';
 import type { Vec } from '../../sim/core/vec';
 import { ARENA, snapToTile } from '../../sim/data/arena';
@@ -100,7 +102,10 @@ export class BattleScene extends Phaser.Scene {
 
   create(): void {
     const seed = (this.data_.seed ?? (Date.now() ^ Math.floor(Math.random() * 0x7fffffff))) >>> 0;
-    this.battle = new Battle({ seed, decks: [this.data_.deck, DEFAULT_RIVAL_DECK] });
+    // El jugador lleva cada línea en su fase; el rival puede sacar evoluciones (más con más trofeos).
+    const profile = loadProfile();
+    const rival = rivalDeck(DEFAULT_RIVAL_DECK, loadStats().trophies, new Rng(deriveSeed(seed, 11)));
+    this.battle = new Battle({ seed, decks: [battleDeck(this.data_.deck, profile), rival] });
     this.stepMs = 1000 / this.battle.rules.tickRate;
     this.ai = new OpponentAI(1, DIFFICULTIES[this.data_.difficulty], deriveSeed(seed, 7));
 

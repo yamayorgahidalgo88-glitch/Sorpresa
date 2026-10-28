@@ -31,6 +31,7 @@ export class CardWidget {
   private cardId = '';
   private affordKey = '';
   private lockOverlay: Phaser.GameObjects.Container | null = null;
+  private progress: Phaser.GameObjects.Container | null = null;
   private content: Phaser.GameObjects.GameObject[] = [];
 
   constructor(
@@ -127,19 +128,45 @@ export class CardWidget {
     this.scene.tweens.add({ targets: this.root, y: baseY - (selected ? 14 : 0), duration: 110, ease: 'Quad.Out' });
   }
 
-  /** Marca la carta como bloqueada (requisito en trofeos) o la desbloquea (null). */
-  setLocked(requirement: number | null): void {
+  /** Marca la carta como no conseguida (texto bajo el candado) o la desbloquea (null). */
+  setLocked(label: string | null): void {
     this.lockOverlay?.destroy();
     this.lockOverlay = null;
-    if (requirement === null) return;
+    if (label === null) return;
     const c = this.scene.add.container(0, 0);
     const g = this.scene.add.graphics();
     g.fillStyle(0x0b1022, 0.86).fillRoundedRect(0, 0, this.w, this.h, 12);
     const lock = this.scene.add.text(this.w / 2, this.h * 0.4, '🔒', textStyle(34)).setOrigin(0.5);
-    const req = this.scene.add.text(this.w / 2, this.h * 0.78, `🏆 ${requirement}`, textStyle(18, css(COLORS.gold))).setOrigin(0.5);
+    const req = this.scene.add.text(this.w / 2, this.h * 0.78, label, textStyle(14, css(COLORS.gold), { align: 'center' })).setOrigin(0.5);
     c.add([g, lock, req]);
     this.root.add(c);
     this.lockOverlay = c;
+  }
+
+  /**
+   * Barra de evolución bajo la carta (como el progreso de nivel de los juegos de cartas):
+   * fase actual y copias reunidas / necesarias. `needed` null = fase máxima.
+   */
+  setProgress(stage: number, maxStage: number, copies: number, needed: number | null, ready: boolean): void {
+    this.progress?.destroy();
+    const c = this.scene.add.container(0, this.h + 6);
+    const g = this.scene.add.graphics();
+    const w = this.w;
+    g.fillStyle(0x0b1022, 1).fillRoundedRect(0, 0, w, 20, 8);
+    if (needed !== null) {
+      const f = Math.min(1, copies / needed);
+      g.fillStyle(ready ? COLORS.ok : 0x4f8ff0, 1).fillRoundedRect(2, 2, Math.max(8, (w - 4) * f), 16, 7);
+    } else {
+      g.fillStyle(COLORS.gold, 1).fillRoundedRect(2, 2, w - 4, 16, 7);
+    }
+    const label = needed === null ? (maxStage > 1 ? 'Fase máxima' : 'Única') : ready ? '¡Evolucionar!' : `${copies}/${needed}`;
+    const t = this.scene.add.text(maxStage > 1 ? w / 2 + 10 : w / 2, 10, label, textStyle(12)).setOrigin(0.5);
+    // Puntos de fase (●●○)
+    const pips = this.scene.add.text(6, 10, '●'.repeat(stage) + '○'.repeat(maxStage - stage), textStyle(10, css(COLORS.gold))).setOrigin(0, 0.5);
+    c.add([g, t]);
+    if (maxStage > 1) c.add(pips);
+    this.root.add(c);
+    this.progress = c;
   }
 
   /**

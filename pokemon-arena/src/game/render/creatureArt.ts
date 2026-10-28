@@ -115,9 +115,10 @@ const PAINTERS: Record<string, Painter> = {
 };
 
 export function drawCreature(g: Phaser.GameObjects.Graphics, cardId: string, r: number): void {
-  const painter = PAINTERS[cardId];
-  if (painter) return painter(g, r);
   const card = getCard(cardId);
+  // Las evoluciones sin dibujo propio usan el de su línea (solo en la vista 2D de respaldo).
+  const painter = PAINTERS[cardId] ?? PAINTERS[card.line];
+  if (painter) return painter(g, r);
   const c = ELEMENT_COLORS[card.types[0]];
   g.fillStyle(c, 1).fillCircle(0, 0, r);
   g.lineStyle(r * 0.1, darken(c, 0.6), 1).strokeCircle(0, 0, r);
@@ -126,7 +127,7 @@ export function drawCreature(g: Phaser.GameObjects.Graphics, cardId: string, r: 
 
 /** Icono de hechizo (para cartas). */
 export function drawSpellIcon(g: Phaser.GameObjects.Graphics, cardId: string, r: number): void {
-  if (cardId === 'rayo') {
+  if (getCard(cardId).line === 'rayo') {
     g.fillStyle(0xffe14d, 1);
     g.fillPoints(
       [

@@ -39,6 +39,8 @@ export interface UnitEntity {
   /** true mientras el objetivo esté dentro del alcance y se le esté atacando. */
   engaged: boolean;
   abilityTimer: number;
+  /** Barrera que absorbe daño antes que la salud (habilidad «escudo»). */
+  shield: number;
   status: StatusEffects;
   dead: boolean;
 }

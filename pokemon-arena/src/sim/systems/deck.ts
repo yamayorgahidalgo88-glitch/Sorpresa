@@ -12,9 +12,14 @@ export function validateDeck(ids: readonly string[], size = 8): DeckValidation {
   if (ids.length !== size) errors.push(`El mazo debe tener ${size} cartas (tiene ${ids.length}).`);
   const seen = new Set<string>();
   for (const id of ids) {
-    if (!CARDS[id]) errors.push(`Carta desconocida: ${id}.`);
-    if (seen.has(id)) errors.push(`Carta repetida: ${id}.`);
-    seen.add(id);
+    const card = CARDS[id];
+    if (!card) {
+      errors.push(`Carta desconocida: ${id}.`);
+      continue;
+    }
+    // Una sola fase por línea evolutiva (no se puede llevar Charmander y Charmeleon).
+    if (seen.has(card.line)) errors.push(`Carta repetida: ${id}.`);
+    seen.add(card.line);
   }
   return { ok: errors.length === 0, errors };
 }

@@ -6,6 +6,8 @@ import type { Element } from './elements';
  * Las cifras son de diseño propio (no proceden de datos internos de ningún juego).
  */
 
+export type Stage = 1 | 2 | 3;
+
 export type Role = 'tanque' | 'rapido' | 'distancia' | 'apoyo' | 'antigrupo' | 'area' | 'asedio' | 'hechizo';
 export type Locomotion = 'tierra' | 'aire';
 /** Qué puede atacar la unidad. */
@@ -22,7 +24,9 @@ export type Ability =
   /** Cada impacto salta a `jumps` enemigos cercanos con daño decreciente. */
   | { kind: 'cadena'; jumps: number; radius: number; falloff: number }
   /** Cada impacto ralentiza al objetivo. */
-  | { kind: 'ralentizar'; factor: number; duration: number };
+  | { kind: 'ralentizar'; factor: number; duration: number }
+  /** Aparece con un escudo que absorbe `amount` de daño antes de perder salud. */
+  | { kind: 'escudo'; amount: number };
 
 export interface AttackDef {
   kind: 'cuerpo' | 'proyectil';
@@ -60,6 +64,9 @@ export interface PokemonCard {
   deployTime: number;
   ability?: Ability;
   description: string;
+  /** Línea evolutiva (id de su primera fase) y fase dentro de ella (1, 2 o 3). */
+  line: string;
+  stage: Stage;
 }
 
 export interface SpellCard {
@@ -77,11 +84,21 @@ export interface SpellCard {
   delay: number;
   effect?: { kind: 'aturdir'; duration: number } | { kind: 'ralentizar'; factor: number; duration: number };
   description: string;
+  /** Los hechizos también tienen "línea": su nivel 1, 2 o 3. */
+  line: string;
+  stage: Stage;
 }
 
 export type Card = PokemonCard | SpellCard;
 
-const POKEMON: PokemonCard[] = [
+type BaseFields = 'line' | 'stage';
+
+/**
+ * Primeras fases (y Snorlax, que no evoluciona). Las cifras son de diseño propio; las fases
+ * siguientes se derivan de estas con STAGE_MULTIPLIER para que la mejora sea moderada y el
+ * equilibrio, controlable.
+ */
+const BASE_POKEMON: Omit<PokemonCard, BaseFields>[] = [
   {
     kind: 'pokemon', id: 'onix', name: 'Onix', types: ['roca', 'tierra'], role: 'tanque', cost: 5, count: 1,
     hp: 3000, damage: 150, hitSpeed: 1.5, speed: 0.8, range: 0.8, sight: 7, radius: 0.8, mass: 8,
@@ -92,7 +109,7 @@ const POKEMON: PokemonCard[] = [
     kind: 'pokemon', id: 'snorlax', name: 'Snorlax', types: ['normal'], role: 'tanque', cost: 6, count: 1,
     hp: 3000, damage: 190, hitSpeed: 1.8, speed: 0.6, range: 1.0, sight: 5.5, radius: 0.9, mass: 10,
     locomotion: 'tierra', targets: 'tierra', attack: { kind: 'cuerpo', splashRadius: 1.2 }, deployTime: 1,
-    description: 'Muro lento que aplasta a los enemigos terrestres cercanos con cada golpe.',
+    description: 'Muro lento que aplasta a los enemigos terrestres cercanos con cada golpe. No evoluciona.',
   },
   {
     kind: 'pokemon', id: 'pikachu', name: 'Pikachu', types: ['electrico'], role: 'rapido', cost: 3, count: 1,
@@ -102,10 +119,10 @@ const POKEMON: PokemonCard[] = [
     description: 'Muy rápido. Sus descargas saltan a dos enemigos cercanos.',
   },
   {
-    kind: 'pokemon', id: 'charmeleon', name: 'Charmeleon', types: ['fuego'], role: 'antigrupo', cost: 4, count: 1,
-    hp: 900, damage: 125, hitSpeed: 1.6, speed: 1.0, range: 2, sight: 5.5, radius: 0.55, mass: 4,
+    kind: 'pokemon', id: 'charmander', name: 'Charmander', types: ['fuego'], role: 'antigrupo', cost: 4, count: 1,
+    hp: 900, damage: 125, hitSpeed: 1.6, speed: 1.0, range: 2, sight: 5.5, radius: 0.5, mass: 4,
     locomotion: 'tierra', targets: 'tierra', attack: { kind: 'proyectil', projectileSpeed: 9, splashRadius: 1.4 }, deployTime: 1,
-    description: 'Llamarada de corto alcance que quema a grupos de enemigos terrestres.',
+    description: 'Ascuas de corto alcance que queman a grupos de enemigos terrestres.',
   },
   {
     kind: 'pokemon', id: 'squirtle', name: 'Squirtle', types: ['agua'], role: 'distancia', cost: 3, count: 1,
@@ -127,8 +144,8 @@ const POKEMON: PokemonCard[] = [
     description: 'Trío de luchadores. Mucho daño combinado, pero vulnerables al daño en área.',
   },
   {
-    kind: 'pokemon', id: 'pidgeotto', name: 'Pidgeotto', types: ['normal', 'volador'], role: 'rapido', cost: 3, count: 1,
-    hp: 620, damage: 100, hitSpeed: 1.1, speed: 1.6, range: 1.2, sight: 6, radius: 0.5, mass: 2,
+    kind: 'pokemon', id: 'pidgey', name: 'Pidgey', types: ['normal', 'volador'], role: 'rapido', cost: 3, count: 1,
+    hp: 620, damage: 100, hitSpeed: 1.1, speed: 1.6, range: 1.2, sight: 6, radius: 0.45, mass: 2,
     locomotion: 'aire', targets: 'aire_y_tierra', attack: { kind: 'cuerpo' }, deployTime: 1,
     description: 'Vuela por encima del río y de las tropas terrestres. Solo lo alcanzan atacantes antiaéreos.',
   },
@@ -147,14 +164,117 @@ const POKEMON: PokemonCard[] = [
     description: 'Su Canto duerme a los enemigos cercanos durante un instante.',
   },
   {
-    kind: 'pokemon', id: 'charizard', name: 'Charizard', types: ['fuego', 'volador'], role: 'area', cost: 5, count: 1,
-    hp: 1050, damage: 140, hitSpeed: 1.8, speed: 1.2, range: 3, sight: 6, radius: 0.7, mass: 5,
-    locomotion: 'aire', targets: 'aire_y_tierra', attack: { kind: 'proyectil', projectileSpeed: 10, splashRadius: 1.5 }, deployTime: 1,
-    description: 'Dragón volador con Lanzallamas en área. Caro, pero domina el aire y el suelo.',
+    kind: 'pokemon', id: 'gastly', name: 'Gastly', types: ['fantasma', 'veneno'], role: 'distancia', cost: 3, count: 1,
+    hp: 430, damage: 70, hitSpeed: 1.1, speed: 1.4, range: 3.5, sight: 6, radius: 0.45, mass: 1,
+    locomotion: 'aire', targets: 'aire_y_tierra', attack: { kind: 'proyectil', projectileSpeed: 10 }, deployTime: 1,
+    ability: { kind: 'ralentizar', factor: 0.35, duration: 1.5 },
+    description: 'Gas flotante: su Lengüetazo ralentiza a quien toca. Los ataques de tipo Normal apenas le afectan.',
+  },
+  {
+    kind: 'pokemon', id: 'abra', name: 'Abra', types: ['psiquico'], role: 'distancia', cost: 4, count: 1,
+    hp: 560, damage: 115, hitSpeed: 1.5, speed: 1.0, range: 5, sight: 6.5, radius: 0.45, mass: 2,
+    locomotion: 'tierra', targets: 'aire_y_tierra', attack: { kind: 'proyectil', projectileSpeed: 11 }, deployTime: 1,
+    ability: { kind: 'escudo', amount: 320 },
+    description: 'Aparece protegido por una Barrera psíquica que absorbe daño. Ataca desde muy lejos.',
+  },
+  {
+    kind: 'pokemon', id: 'dratini', name: 'Dratini', types: ['dragon'], role: 'tanque', cost: 4, count: 1,
+    hp: 1250, damage: 120, hitSpeed: 1.4, speed: 1.0, range: 1.0, sight: 5.5, radius: 0.55, mass: 5,
+    locomotion: 'tierra', targets: 'tierra', attack: { kind: 'cuerpo', splashRadius: 0.9 }, deployTime: 1,
+    description: 'Dragón resistente que barre con la cola a los enemigos de su alrededor.',
   },
 ];
 
-const SPELLS: SpellCard[] = [
+type Evo = Pick<PokemonCard, 'id' | 'name'> & Partial<Omit<PokemonCard, 'kind' | 'id' | 'name' | BaseFields>>;
+
+/** Fases 2 y 3 de cada línea (en orden). Solo se indica lo que cambia además de las estadísticas. */
+const EVOLUTIONS: Record<string, Evo[]> = {
+  charmander: [
+    { id: 'charmeleon', name: 'Charmeleon', radius: 0.55, description: 'Lanzallamas de corto alcance que quema a grupos de enemigos terrestres.' },
+    {
+      id: 'charizard', name: 'Charizard', types: ['fuego', 'volador'], role: 'area', radius: 0.7, locomotion: 'aire', targets: 'aire_y_tierra',
+      range: 3, attack: { kind: 'proyectil', projectileSpeed: 10, splashRadius: 1.5 },
+      description: 'Dragón volador con Lanzallamas en área. Domina el aire y el suelo.',
+    },
+  ],
+  squirtle: [
+    { id: 'wartortle', name: 'Wartortle', radius: 0.5, description: 'Hidropulso de largo alcance. Más resistente que Squirtle.' },
+    { id: 'blastoise', name: 'Blastoise', radius: 0.65, mass: 5, description: 'Sus cañones disparan Hidrobomba desde muy lejos.' },
+  ],
+  bulbasaur: [
+    { id: 'ivysaur', name: 'Ivysaur', radius: 0.6, description: 'El capullo de su lomo cura a los aliados cercanos.' },
+    { id: 'venusaur', name: 'Venusaur', radius: 0.75, mass: 6, description: 'La flor de su lomo cura a los aliados cercanos con más fuerza.' },
+  ],
+  pikachu: [{ id: 'raichu', name: 'Raichu', radius: 0.5, description: 'Descargas más potentes que saltan a dos enemigos cercanos.' }],
+  machop: [
+    { id: 'machoke', name: 'Machoke', radius: 0.47, description: 'Trío de luchadores con cinturón de campeón. Mucho daño combinado.' },
+    { id: 'machamp', name: 'Machamp', radius: 0.52, description: 'Trío de cuatro brazos: golpes rapidísimos.' },
+  ],
+  pidgey: [
+    { id: 'pidgeotto', name: 'Pidgeotto', radius: 0.5, description: 'Ataca en picado desde el aire, por encima del río.' },
+    { id: 'pidgeot', name: 'Pidgeot', radius: 0.6, description: 'Ave majestuosa y veloz que ataca en picado.' },
+  ],
+  geodude: [
+    { id: 'graveler', name: 'Graveler', radius: 0.5, description: 'Rueda hacia las torres y explota al caer.' },
+    { id: 'golem', name: 'Golem', radius: 0.55, mass: 4, description: 'Roca blindada que explota al caer con gran potencia.' },
+  ],
+  jigglypuff: [{ id: 'wigglytuff', name: 'Wigglytuff', radius: 0.55, description: 'Su Canto duerme a los enemigos cercanos.' }],
+  onix: [{ id: 'steelix', name: 'Steelix', types: ['acero', 'tierra'], description: 'Serpiente de acero que solo ataca torres. Muy difícil de derribar.' }],
+  gastly: [
+    { id: 'haunter', name: 'Haunter', radius: 0.5, description: 'Sus manos fantasmales ralentizan a quien tocan.' },
+    { id: 'gengar', name: 'Gengar', radius: 0.55, mass: 2, description: 'Bola Sombra que ralentiza. Los ataques de tipo Normal apenas le afectan.' },
+  ],
+  abra: [
+    { id: 'kadabra', name: 'Kadabra', radius: 0.5, description: 'Su Barrera psíquica absorbe daño. Ataca con su cuchara desde lejos.' },
+    { id: 'alakazam', name: 'Alakazam', radius: 0.55, description: 'Psíquico supremo: Barrera fuerte y ataques de muy largo alcance.' },
+  ],
+  dratini: [
+    { id: 'dragonair', name: 'Dragonair', radius: 0.6, description: 'Dragón sereno que barre con la cola a su alrededor.' },
+    {
+      id: 'dragonite', name: 'Dragonite', types: ['dragon', 'volador'], radius: 0.75, mass: 7, locomotion: 'aire', targets: 'aire_y_tierra',
+      description: 'Dragón volador muy resistente que golpea a todo lo que le rodea.',
+    },
+  ],
+};
+
+/** Mejora de estadísticas por fase: notable pero moderada. */
+export const STAGE_MULTIPLIER: Record<Stage, number> = { 1: 1, 2: 1.12, 3: 1.25 };
+
+const scale = (v: number, stage: Stage) => Math.round(v * STAGE_MULTIPLIER[stage]);
+
+function scaleAbility(a: Ability | undefined, stage: Stage): Ability | undefined {
+  if (!a) return a;
+  switch (a.kind) {
+    case 'aura_curativa':
+      return { ...a, amount: scale(a.amount, stage) };
+    case 'autodestruccion':
+      return { ...a, damage: scale(a.damage, stage) };
+    case 'escudo':
+      return { ...a, amount: scale(a.amount, stage) };
+    default:
+      return a;
+  }
+}
+
+function buildLine(base: Omit<PokemonCard, BaseFields>): PokemonCard[] {
+  const first: PokemonCard = { ...base, line: base.id, stage: 1 };
+  const out = [first];
+  (EVOLUTIONS[base.id] ?? []).forEach((evo, i) => {
+    const stage = (i + 2) as Stage;
+    out.push({
+      ...first,
+      hp: scale(base.hp, stage),
+      damage: scale(base.damage, stage),
+      ability: scaleAbility(base.ability, stage),
+      ...evo,
+      line: base.id,
+      stage,
+    });
+  });
+  return out;
+}
+
+const BASE_SPELLS: Omit<SpellCard, BaseFields>[] = [
   {
     kind: 'hechizo', id: 'rayo', name: 'Rayo', types: ['electrico'], role: 'hechizo', cost: 3,
     radius: 2.5, damage: 300, towerDamageFactor: 0.35, delay: 0.4,
@@ -169,16 +289,49 @@ const SPELLS: SpellCard[] = [
   },
 ];
 
+/** Hechizos de nivel 1 a 3: más daño en cada nivel; el resto no cambia. */
+function buildSpell(base: Omit<SpellCard, BaseFields>): SpellCard[] {
+  return ([1, 2, 3] as Stage[]).map((stage) => ({
+    ...base,
+    id: stage === 1 ? base.id : `${base.id}_${stage}`,
+    name: stage === 1 ? base.name : `${base.name} Nv. ${stage}`,
+    damage: scale(base.damage, stage),
+    line: base.id,
+    stage,
+  }));
+}
+
+const POKEMON: PokemonCard[] = BASE_POKEMON.flatMap(buildLine);
+const SPELLS: SpellCard[] = BASE_SPELLS.flatMap(buildSpell);
+
 export const CARDS: Readonly<Record<string, Card>> = Object.freeze(
   Object.fromEntries([...POKEMON, ...SPELLS].map((c) => [c.id, c])),
 );
 
 export const CARD_IDS: readonly string[] = Object.keys(CARDS);
 
+/** Líneas (cartas coleccionables): el id de su primera fase, en orden de catálogo. */
+export const LINES: readonly string[] = [...BASE_POKEMON.map((c) => c.id), ...BASE_SPELLS.map((c) => c.id)];
+
 export function getCard(id: string): Card {
   const c = CARDS[id];
   if (!c) throw new Error(`Carta desconocida: ${id}`);
   return c;
+}
+
+/** Carta de una línea en una fase concreta (se limita a la última fase que exista). */
+export function cardAtStage(line: string, stage: number): Card {
+  const all = CARD_IDS.map((id) => CARDS[id]).filter((c) => c.line === line);
+  if (all.length === 0) throw new Error(`Línea desconocida: ${line}`);
+  const s = Math.max(1, Math.min(stage, maxStage(line)));
+  return all.find((c) => c.stage === s)!;
+}
+
+/** Última fase de una línea (Snorlax: 1; Pikachu: 2; Charmander: 3; hechizos: 3). */
+export function maxStage(line: string): Stage {
+  let m: Stage = 1;
+  for (const id of CARD_IDS) if (CARDS[id].line === line && CARDS[id].stage > m) m = CARDS[id].stage;
+  return m;
 }
 
 /** Elemento con el que ataca un Pokémon. */
@@ -197,5 +350,7 @@ export const ROLE_NAMES: Record<Role, string> = {
   hechizo: 'Hechizo',
 };
 
-export const DEFAULT_PLAYER_DECK = ['onix', 'pikachu', 'charmeleon', 'squirtle', 'bulbasaur', 'machop', 'pidgeotto', 'rayo'];
-export const DEFAULT_RIVAL_DECK = ['snorlax', 'charizard', 'geodude', 'jigglypuff', 'squirtle', 'pikachu', 'machop', 'ventisca'];
+/** Cartas con las que empieza el jugador (9): elige 8 para su mazo. */
+export const STARTER_LINES: readonly string[] = ['onix', 'pikachu', 'charmander', 'squirtle', 'bulbasaur', 'machop', 'pidgey', 'geodude', 'rayo'];
+export const DEFAULT_PLAYER_DECK = ['onix', 'pikachu', 'charmander', 'squirtle', 'bulbasaur', 'machop', 'pidgey', 'rayo'];
+export const DEFAULT_RIVAL_DECK = ['snorlax', 'charmander', 'geodude', 'jigglypuff', 'squirtle', 'pikachu', 'machop', 'ventisca'];

@@ -52,6 +52,16 @@ export function applyDamage(
   } else {
     mult = typeMultiplier(element, target.types);
     amount = Math.round(raw * mult);
+    // La Barrera absorbe primero (el daño absorbido no cuenta como daño a la salud).
+    if (target.shield > 0 && amount > 0) {
+      const absorbed = Math.min(target.shield, amount);
+      target.shield -= absorbed;
+      amount -= absorbed;
+      if (amount === 0) {
+        emit(world, { type: 'dano', targetId: target.id, amount: 0, effectiveness: effectivenessLabel(mult), element, sourceTeam: source.team, sourceCardId: source.cardId });
+        return 0;
+      }
+    }
   }
   amount = Math.min(amount, target.hp);
   target.hp -= amount;

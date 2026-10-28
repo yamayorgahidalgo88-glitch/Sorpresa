@@ -11,6 +11,15 @@
       "peso_kg": 210,
       "color": "gray"
     },
+    "steelix": {
+      "tipos": [
+        "acero",
+        "tierra"
+      ],
+      "altura_m": 9.2,
+      "peso_kg": 400,
+      "color": "gray"
+    },
     "snorlax": {
       "tipos": [
         "normal"
@@ -27,6 +36,22 @@
       "peso_kg": 6,
       "color": "yellow"
     },
+    "raichu": {
+      "tipos": [
+        "electrico"
+      ],
+      "altura_m": 0.8,
+      "peso_kg": 30,
+      "color": "yellow"
+    },
+    "charmander": {
+      "tipos": [
+        "fuego"
+      ],
+      "altura_m": 0.6,
+      "peso_kg": 8.5,
+      "color": "red"
+    },
     "charmeleon": {
       "tipos": [
         "fuego"
@@ -35,12 +60,37 @@
       "peso_kg": 19,
       "color": "red"
     },
+    "charizard": {
+      "tipos": [
+        "fuego",
+        "volador"
+      ],
+      "altura_m": 1.7,
+      "peso_kg": 90.5,
+      "color": "red"
+    },
     "squirtle": {
       "tipos": [
         "agua"
       ],
       "altura_m": 0.5,
       "peso_kg": 9,
+      "color": "blue"
+    },
+    "wartortle": {
+      "tipos": [
+        "agua"
+      ],
+      "altura_m": 1,
+      "peso_kg": 22.5,
+      "color": "blue"
+    },
+    "blastoise": {
+      "tipos": [
+        "agua"
+      ],
+      "altura_m": 1.6,
+      "peso_kg": 85.5,
       "color": "blue"
     },
     "bulbasaur": {
@@ -52,6 +102,24 @@
       "peso_kg": 6.9,
       "color": "green"
     },
+    "ivysaur": {
+      "tipos": [
+        "planta",
+        "veneno"
+      ],
+      "altura_m": 1,
+      "peso_kg": 13,
+      "color": "green"
+    },
+    "venusaur": {
+      "tipos": [
+        "planta",
+        "veneno"
+      ],
+      "altura_m": 2,
+      "peso_kg": 100,
+      "color": "green"
+    },
     "machop": {
       "tipos": [
         "lucha"
@@ -60,6 +128,31 @@
       "peso_kg": 19.5,
       "color": "gray"
     },
+    "machoke": {
+      "tipos": [
+        "lucha"
+      ],
+      "altura_m": 1.5,
+      "peso_kg": 70.5,
+      "color": "gray"
+    },
+    "machamp": {
+      "tipos": [
+        "lucha"
+      ],
+      "altura_m": 1.6,
+      "peso_kg": 130,
+      "color": "gray"
+    },
+    "pidgey": {
+      "tipos": [
+        "normal",
+        "volador"
+      ],
+      "altura_m": 0.3,
+      "peso_kg": 1.8,
+      "color": "brown"
+    },
     "pidgeotto": {
       "tipos": [
         "normal",
@@ -67,6 +160,15 @@
       ],
       "altura_m": 1.1,
       "peso_kg": 30,
+      "color": "brown"
+    },
+    "pidgeot": {
+      "tipos": [
+        "normal",
+        "volador"
+      ],
+      "altura_m": 1.5,
+      "peso_kg": 39.5,
       "color": "brown"
     },
     "geodude": {
@@ -78,6 +180,24 @@
       "peso_kg": 20,
       "color": "brown"
     },
+    "graveler": {
+      "tipos": [
+        "roca",
+        "tierra"
+      ],
+      "altura_m": 1,
+      "peso_kg": 105,
+      "color": "brown"
+    },
+    "golem": {
+      "tipos": [
+        "roca",
+        "tierra"
+      ],
+      "altura_m": 1.4,
+      "peso_kg": 300,
+      "color": "brown"
+    },
     "jigglypuff": {
       "tipos": [
         "normal",
@@ -87,20 +207,97 @@
       "peso_kg": 5.5,
       "color": "pink"
     },
-    "charizard": {
+    "wigglytuff": {
       "tipos": [
-        "fuego",
+        "normal",
+        "hada"
+      ],
+      "altura_m": 1,
+      "peso_kg": 12,
+      "color": "pink"
+    },
+    "gastly": {
+      "tipos": [
+        "fantasma",
+        "veneno"
+      ],
+      "altura_m": 1.3,
+      "peso_kg": 0.1,
+      "color": "purple"
+    },
+    "haunter": {
+      "tipos": [
+        "fantasma",
+        "veneno"
+      ],
+      "altura_m": 1.6,
+      "peso_kg": 0.1,
+      "color": "purple"
+    },
+    "gengar": {
+      "tipos": [
+        "fantasma",
+        "veneno"
+      ],
+      "altura_m": 1.5,
+      "peso_kg": 40.5,
+      "color": "purple"
+    },
+    "abra": {
+      "tipos": [
+        "psiquico"
+      ],
+      "altura_m": 0.9,
+      "peso_kg": 19.5,
+      "color": "brown"
+    },
+    "kadabra": {
+      "tipos": [
+        "psiquico"
+      ],
+      "altura_m": 1.3,
+      "peso_kg": 56.5,
+      "color": "brown"
+    },
+    "alakazam": {
+      "tipos": [
+        "psiquico"
+      ],
+      "altura_m": 1.5,
+      "peso_kg": 48,
+      "color": "brown"
+    },
+    "dratini": {
+      "tipos": [
+        "dragon"
+      ],
+      "altura_m": 1.8,
+      "peso_kg": 3.3,
+      "color": "blue"
+    },
+    "dragonair": {
+      "tipos": [
+        "dragon"
+      ],
+      "altura_m": 4,
+      "peso_kg": 16.5,
+      "color": "blue"
+    },
+    "dragonite": {
+      "tipos": [
+        "dragon",
         "volador"
       ],
-      "altura_m": 1.7,
-      "peso_kg": 90.5,
-      "color": "red"
+      "altura_m": 2.2,
+      "peso_kg": 210,
+      "color": "brown"
     }
   },
   "relaciones": {
     "normal": {
       "eficaz": [],
       "poco_eficaz": [
+        "acero",
         "roca"
       ],
       "casi_inmune": [
@@ -109,6 +306,7 @@
     },
     "fuego": {
       "eficaz": [
+        "acero",
         "hielo",
         "planta"
       ],
@@ -140,6 +338,7 @@
         "tierra"
       ],
       "poco_eficaz": [
+        "acero",
         "dragon",
         "fuego",
         "planta",
@@ -170,6 +369,7 @@
         "volador"
       ],
       "poco_eficaz": [
+        "acero",
         "agua",
         "fuego",
         "hielo"
@@ -178,6 +378,7 @@
     },
     "lucha": {
       "eficaz": [
+        "acero",
         "hielo",
         "normal",
         "roca"
@@ -203,10 +404,13 @@
         "tierra",
         "veneno"
       ],
-      "casi_inmune": []
+      "casi_inmune": [
+        "acero"
+      ]
     },
     "tierra": {
       "eficaz": [
+        "acero",
         "electrico",
         "fuego",
         "roca",
@@ -225,6 +429,7 @@
         "planta"
       ],
       "poco_eficaz": [
+        "acero",
         "electrico",
         "roca"
       ],
@@ -236,6 +441,7 @@
         "veneno"
       ],
       "poco_eficaz": [
+        "acero",
         "psiquico"
       ],
       "casi_inmune": []
@@ -247,6 +453,7 @@
         "volador"
       ],
       "poco_eficaz": [
+        "acero",
         "lucha",
         "tierra"
       ],
@@ -266,7 +473,9 @@
       "eficaz": [
         "dragon"
       ],
-      "poco_eficaz": [],
+      "poco_eficaz": [
+        "acero"
+      ],
       "casi_inmune": [
         "hada"
       ]
@@ -277,8 +486,23 @@
         "lucha"
       ],
       "poco_eficaz": [
+        "acero",
         "fuego",
         "veneno"
+      ],
+      "casi_inmune": []
+    },
+    "acero": {
+      "eficaz": [
+        "hada",
+        "hielo",
+        "roca"
+      ],
+      "poco_eficaz": [
+        "acero",
+        "agua",
+        "electrico",
+        "fuego"
       ],
       "casi_inmune": []
     }

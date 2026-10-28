@@ -75,7 +75,7 @@ async function handCost(page, slot) {
   return page.evaluate((s) => {
     const b = window.__arena.battle;
     const id = b.hand(0)[s];
-    return { id, cost: { onix: 5, snorlax: 6, pikachu: 3, charmeleon: 4, squirtle: 3, bulbasaur: 4, machop: 3, pidgeotto: 3, geodude: 2, jigglypuff: 3, charizard: 5, rayo: 3, ventisca: 4 }[id] };
+    return { id, cost: window.__cards[id].cost, spell: window.__cards[id].kind === 'hechizo' };
   }, slot);
 }
 
@@ -109,7 +109,7 @@ async function scenario(browser, label, contextOpts, mode, query = '') {
   await waitEnergy(page, c0.cost);
   await tap(slotCenter(0));
   await sleep(150);
-  const target0 = c0.id === 'rayo' || c0.id === 'ventisca' ? await tileCenter(page, 3.5, 7) : await tileCenter(page, 3.5, 22);
+  const target0 = c0.spell ? await tileCenter(page, 3.5, 7) : await tileCenter(page, 3.5, 22);
   await tap(target0);
   await sleep(200);
   const played1 = await page.evaluate(() => window.__arena.battle.player(0).cardsPlayed);
@@ -117,7 +117,7 @@ async function scenario(browser, label, contextOpts, mode, query = '') {
 
   // 2) Toque fuera de zona: debe rechazarse
   const c1 = await handCost(page, 1);
-  if (c1.id !== 'rayo' && c1.id !== 'ventisca') {
+  if (!c1.spell) {
     await waitEnergy(page, c1.cost);
     await tap(slotCenter(1));
     await sleep(120);
@@ -133,7 +133,7 @@ async function scenario(browser, label, contextOpts, mode, query = '') {
   const c2 = await handCost(page, 2);
   await waitEnergy(page, c2.cost);
   const from = await toPage(page, slotCenter(2));
-  const to = await toPage(page, c2.id === 'rayo' || c2.id === 'ventisca' ? await tileCenter(page, 14.5, 7) : await tileCenter(page, 14.5, 21));
+  const to = await toPage(page, c2.spell ? await tileCenter(page, 14.5, 7) : await tileCenter(page, 14.5, 21));
   if (mode === 'touch') {
     const cdp = await context.newCDPSession(page);
     const touch = (type, p) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x: p.x, y: p.y }] });
@@ -183,9 +183,12 @@ async function scenario(browser, label, contextOpts, mode, query = '') {
   await page.screenshot({ path: `${OUT}/${label}-3-resultado.png` });
   const res = await page.evaluate(() => window.__arenaResult);
   check(res?.winner === 0 && res?.reason === 'base_destruida', 'la pantalla de resultados muestra la victoria');
-  check(res?.progress?.delta === 30 && res.progress.newlyUnlocked.includes('geodude'), 'la victoria suma 30 trofeos y desbloquea a Geodude');
-  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('pokemon-arena:estadisticas') || '{}'));
-  check(saved.trophies === 30 && saved.wins === 1, 'los trofeos y el historial se guardan en el navegador');
+  check(res?.progress?.delta === 30 && res.coins === 30 + 3 * 5 && res.road.some((r) => r.trophies === 20), 'la victoria da 30 trofeos, 45 monedas y el premio de 20 trofeos');
+  const saved = await page.evaluate(() => ({
+    stats: JSON.parse(localStorage.getItem('pokemon-arena:estadisticas') || '{}'),
+    profile: JSON.parse(localStorage.getItem('pokemon-arena:perfil') || '{}'),
+  }));
+  check(saved.stats.trophies === 30 && saved.stats.wins === 1 && saved.profile.coins === 100 + 45 + 100, 'trofeos, historial y monedas se guardan en el navegador');
 
   await tap({ x: GAME_W / 2, y: 935 }); // Revancha
   await page.waitForFunction(() => window.__game.scene.isActive('battle') && window.__arena.battle.tick < 40 && !window.__game.scene.isActive('result'), null, { timeout: 45000 });
@@ -200,31 +203,45 @@ async function scenario(browser, label, contextOpts, mode, query = '') {
   await sleep(300);
   await page.screenshot({ path: `${OUT}/${label}-4-mazo.png` });
   check(true, 'el constructor de mazo se abre');
-  // Ficha de carta: tocar Onix (primera carta, está en el mazo) abre su ficha; «Quitar del mazo» la quita.
-  await tap({ x: 67 + 69, y: 130 + 72 });
+  // Mazo estilo Clash: tocar Geodude (colección) → «Usar» → tocar Onix (mazo) los intercambia.
+  await tap({ x: 47 + 73, y: 544 + 75 });
   await page.waitForFunction(() => !!window.__game.scene.getScene('deck').detail, null, { timeout: 5000 });
   await sleep(400);
   await page.screenshot({ path: `${OUT}/${label}-4b-ficha.png` });
-  check(true, 'tocar una carta del mazo abre su ficha');
-  const removeBtn = await page.evaluate(() => {
-    const b = window.__game.scene.getScene('deck').detail.root.list.find((o) => o.getData?.('label') === 'Quitar del mazo');
-    return { x: b.x, y: b.y };
+  check(true, 'tocar una carta abre su ficha');
+  const useBtn = await page.evaluate(() => {
+    const b = window.__game.scene.getScene('deck').detail.root.list.find((o) => o.getData?.('label') === 'Usar');
+    return b ? { x: b.x, y: b.y } : null;
   });
-  await tap(removeBtn);
+  check(!!useBtn, 'la ficha de una carta fuera del mazo ofrece «Usar»');
+  if (useBtn) await tap(useBtn);
   await sleep(300);
-  const deckState = await page.evaluate(() => {
-    const d = window.__game.scene.getScene('deck');
-    return { open: !!d.detail, hasOnix: d.deck.includes('onix'), size: d.deck.length };
-  });
-  check(!deckState.open && !deckState.hasOnix && deckState.size === 7, 'el botón de la ficha quita la carta del mazo');
-  await tap({ x: GAME_W / 2, y: 1420 - 75 });
+  await tap({ x: 47 + 73, y: 90 + 75 });
+  await sleep(300);
+  const deckState = await page.evaluate(() => ({ deck: window.__game.scene.getScene('deck').deck, saved: JSON.parse(localStorage.getItem('pokemon-arena:ajustes') || '{}').deck }));
+  check(deckState.deck[0] === 'geodude' && !deckState.deck.includes('onix') && deckState.saved?.[0] === 'geodude', 'cambiar una carta del mazo funciona y se guarda');
+  await page.screenshot({ path: `${OUT}/${label}-4c-mazo-cambiado.png` });
+
+  // Tienda: comprar y abrir una Pokéball
+  await tap({ x: GAME_W / 2, y: 1420 - 70 });
   await page.waitForFunction(() => window.__game.scene.isActive('menu'));
   await sleep(300);
   await tap({ x: GAME_W / 2 + 112, y: 780 });
-  await page.waitForFunction(() => window.__game.scene.isActive('collection'), null, { timeout: 5000 });
+  await page.waitForFunction(() => window.__game.scene.isActive('tienda'), null, { timeout: 5000 });
   await sleep(300);
-  await page.screenshot({ path: `${OUT}/${label}-5-coleccion.png` });
-  check(true, 'la colección se abre');
+  await page.screenshot({ path: `${OUT}/${label}-5-tienda.png` });
+  await tap({ x: 470, y: 130 + 205 });
+  await page.waitForFunction(() => window.__game.scene.isActive('abrir') && window.__opening && !window.__opening.busy, null, { timeout: 30000 });
+  await sleep(400);
+  await page.screenshot({ path: `${OUT}/${label}-6-pokeball.png` });
+  const copies0 = await page.evaluate(() => window.__opening.data_.drops.reduce((s, d) => s + d.copies, 0));
+  for (let i = 0; i < 4; i++) {
+    await tap({ x: GAME_W / 2, y: 700 });
+    await sleep(250);
+  }
+  await page.screenshot({ path: `${OUT}/${label}-7-resumen.png` });
+  const prof = await page.evaluate(() => JSON.parse(localStorage.getItem('pokemon-arena:perfil') || '{}'));
+  check(prof.coins < 245 && copies0 >= 2, `comprar una Pokéball descuenta monedas y da cartas (${copies0} copias)`);
 
   check(errors.length === 0, `sin errores en consola${errors.length ? ': ' + errors.join(' | ') : ''}`);
   await context.close();

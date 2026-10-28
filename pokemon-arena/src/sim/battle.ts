@@ -257,6 +257,7 @@ export class Battle {
         targetId: null,
         engaged: false,
         abilityTimer: card.ability && 'interval' in card.ability ? secondsToTicks(this.rules, card.ability.interval) : 0,
+        shield: card.ability?.kind === 'escudo' ? card.ability.amount : 0,
         status: { stunUntil: 0, slowUntil: 0, slowFactor: 0 },
         dead: false,
       };

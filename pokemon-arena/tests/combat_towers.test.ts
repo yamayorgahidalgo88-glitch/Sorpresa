@@ -185,3 +185,23 @@ describe('torres', () => {
     expect(Math.hypot(p.pos.x - t.pos.x, p.pos.y - t.pos.y)).toBeGreaterThanOrEqual(t.radius + p.radius - 1e-9);
   });
 });
+
+describe('habilidad «escudo» (Abra)', () => {
+  it('la Barrera absorbe el daño antes que la salud', async () => {
+    const { newBattle, unit } = await import('./helpers');
+    const { applyDamage } = await import('../src/sim/systems/combat');
+    const b = newBattle();
+    const [id] = b.spawnUnchecked(0, 'abra', { x: 9, y: 22 }, { ready: true });
+    const u = unit(b, id)!;
+    expect(u.shield).toBe(320);
+    applyDamage(b.world, u, 200, null, { team: 1, cardId: null });
+    expect(u.shield).toBe(120);
+    expect(u.hp).toBe(u.maxHp);
+    applyDamage(b.world, u, 200, null, { team: 1, cardId: null });
+    expect(u.shield).toBe(0);
+    expect(u.hp).toBe(u.maxHp - 80);
+    // Alakazam (fase 3) tiene una Barrera mayor
+    const [k] = b.spawnUnchecked(0, 'alakazam', { x: 9, y: 24 }, { ready: true });
+    expect(unit(b, k)!.shield).toBe(400);
+  });
+});

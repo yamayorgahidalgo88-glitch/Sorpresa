@@ -8,9 +8,13 @@
 import { writeFileSync } from 'node:fs';
 
 const API = 'https://pokeapi.co/api/v2';
-const POKEMON = ['onix', 'snorlax', 'pikachu', 'charmeleon', 'squirtle', 'bulbasaur', 'machop', 'pidgeotto', 'geodude', 'jigglypuff', 'charizard'];
+const POKEMON = [
+  'onix', 'steelix', 'snorlax', 'pikachu', 'raichu', 'charmander', 'charmeleon', 'charizard', 'squirtle', 'wartortle', 'blastoise',
+  'bulbasaur', 'ivysaur', 'venusaur', 'machop', 'machoke', 'machamp', 'pidgey', 'pidgeotto', 'pidgeot', 'geodude', 'graveler', 'golem',
+  'jigglypuff', 'wigglytuff', 'gastly', 'haunter', 'gengar', 'abra', 'kadabra', 'alakazam', 'dratini', 'dragonair', 'dragonite',
+];
 // Nombres de tipo en PokéAPI (inglés) -> nombres del juego
-const TYPES = { normal: 'normal', fire: 'fuego', water: 'agua', grass: 'planta', electric: 'electrico', ice: 'hielo', fighting: 'lucha', poison: 'veneno', ground: 'tierra', flying: 'volador', psychic: 'psiquico', rock: 'roca', ghost: 'fantasma', dragon: 'dragon', fairy: 'hada' };
+const TYPES = { normal: 'normal', fire: 'fuego', water: 'agua', grass: 'planta', electric: 'electrico', ice: 'hielo', fighting: 'lucha', poison: 'veneno', ground: 'tierra', flying: 'volador', psychic: 'psiquico', rock: 'roca', ghost: 'fantasma', dragon: 'dragon', fairy: 'hada', steel: 'acero' };
 
 const get = async (path) => {
   const r = await fetch(`${API}/${path}`);

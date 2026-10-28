@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DIFFICULTIES } from '../src/sim/ai/opponent';
-import { CARDS, DEFAULT_PLAYER_DECK, DEFAULT_RIVAL_DECK } from '../src/sim/data/cards';
+import { CARDS, DEFAULT_PLAYER_DECK, DEFAULT_RIVAL_DECK, STAGE_MULTIPLIER } from '../src/sim/data/cards';
 import { runAiMatch } from '../src/sim/match';
 import { disarmTowers, newBattle, steps, tower, unit } from './helpers';
 
@@ -45,9 +45,11 @@ describe('regresión de balance (IA contra IA)', () => {
     // Machop es el máximo actual (75 de daño/s por energía) por diseño: trío frágil.
     for (const c of Object.values(CARDS)) {
       if (c.kind !== 'pokemon') continue;
+      // Las evoluciones mejoran a propósito: el límite se escala con su multiplicador de fase.
+      const k = STAGE_MULTIPLIER[c.stage];
       const dps = (c.damage * c.count) / c.hitSpeed;
-      expect(dps / c.cost, `${c.id}: daño por segundo y energía`).toBeLessThan(90);
-      expect((c.hp * c.count) / c.cost, `${c.id}: salud por energía`).toBeLessThan(700);
+      expect(dps / c.cost, `${c.id}: daño por segundo y energía`).toBeLessThan(90 * k);
+      expect((c.hp * c.count) / c.cost, `${c.id}: salud por energía`).toBeLessThan(700 * k);
     }
     let pts = 0;
     const n = 12;

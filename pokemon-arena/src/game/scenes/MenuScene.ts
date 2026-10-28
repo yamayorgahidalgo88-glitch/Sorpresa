@@ -1,8 +1,9 @@
 import Phaser from 'phaser';
 import type { Difficulty } from '../../sim/ai/opponent';
 import { getCard } from '../../sim/data/cards';
-import { loadSettings, loadStats, saveSettings } from '../../persistence/settings';
-import { nextUnlock, rankOf } from '../../persistence/progression';
+import { battleDeck, loadProfile, loadSettings, loadStats, saveSettings } from '../../persistence/settings';
+import { rankOf } from '../../persistence/progression';
+import { TROPHY_ROAD } from '../../persistence/economy';
 import type { Settings } from '../../persistence/settings';
 import { setMuted, unlockAudio } from '../audio/sfx';
 import { GAME_H, GAME_W } from '../layout';
@@ -35,7 +36,7 @@ export class MenuScene extends Phaser.Scene {
     }
 
     // Desfile de fichas
-    const parade = ['pikachu', 'charmeleon', 'squirtle', 'bulbasaur', 'jigglypuff', 'charizard', 'onix', 'machop'];
+    const parade = ['pikachu', 'charmander', 'squirtle', 'bulbasaur', 'gastly', 'dratini', 'abra', 'machop'];
     parade.forEach((id, i) => {
       const x = 90 + (i % 4) * 180;
       const y = i < 4 ? 120 : 1260;
@@ -61,28 +62,37 @@ export class MenuScene extends Phaser.Scene {
       (diffBtn.list[1] as Phaser.GameObjects.Text).setText(`Dificultad: ${DIFF_LABEL[this.settings.difficulty]}`);
     }, COLORS.panelLight);
 
+    const profile = loadProfile();
     makeButton(this, GAME_W / 2 - 112, 780, 216, 70, 'Mazo', () => this.scene.start('deck'), 0x3d8bff);
-    makeButton(this, GAME_W / 2 + 112, 780, 216, 70, 'Colección', () => this.scene.start('collection'), 0x45b36b);
+    makeButton(this, GAME_W / 2 + 112, 780, 216, 70, 'Tienda', () => this.scene.start('tienda'), 0x45b36b);
+    const pending = profile.balls.poke + profile.balls.super + profile.balls.ultra + profile.balls.master;
+    if (pending > 0) {
+      const badge = this.add.text(GAME_W / 2 + 210, 750, String(pending), textStyle(20)).setOrigin(0.5).setDepth(600);
+      const bg = this.add.circle(GAME_W / 2 + 210, 750, 18, COLORS.danger).setDepth(599);
+      this.tweens.add({ targets: [badge, bg], scale: 1.15, yoyo: true, repeat: -1, duration: 500 });
+    }
+    makeButton(this, GAME_W / 2 - 112, 880, 216, 60, 'Trofeos', () => this.scene.start('camino'), 0xf2782f);
+    this.add.text(GAME_W - 24, 20, `🪙 ${profile.coins}`, textStyle(26, '#ffe27a')).setOrigin(1, 0);
 
-    const soundBtn = makeButton(this, GAME_W / 2, 880, 440, 60, this.soundLabel(), () => {
+    const soundBtn = makeButton(this, GAME_W / 2 + 112, 880, 216, 60, this.soundLabel(), () => {
       this.settings.muted = !this.settings.muted;
       setMuted(this.settings.muted);
       saveSettings(this.settings);
       (soundBtn.list[1] as Phaser.GameObjects.Text).setText(this.soundLabel());
     }, COLORS.panelLight);
 
-    const deckNames = this.settings.deck.map((id) => getCard(id).name).join(' · ');
+    const deckNames = battleDeck(this.settings.deck, profile).map((id) => getCard(id).name).join(' · ');
     this.add.text(GAME_W / 2, 975, 'Tu mazo', textStyle(18, '#c9d4f5')).setOrigin(0.5);
     this.add.text(GAME_W / 2, 1010, deckNames, textStyle(15, '#ffffff', { align: 'center', wordWrap: { width: 620 } })).setOrigin(0.5, 0);
 
     const s = loadStats();
     const rank = rankOf(s.trophies);
-    const next = nextUnlock(s.trophies);
+    const next = TROPHY_ROAD.find((r) => r.trophies > s.trophies);
     this.add.text(GAME_W / 2, 470, `🏆 ${s.trophies} trofeos · ${rank.name}`, textStyle(22, css(COLORS.gold))).setOrigin(0.5);
     this.add.text(GAME_W / 2, 1100, `Victorias ${s.wins} · Derrotas ${s.losses} · Empates ${s.draws}`, textStyle(17, '#c9d4f5')).setOrigin(0.5);
     if (next) {
       this.add
-        .text(GAME_W / 2, 1132, `Próximo desbloqueo: ${getCard(next.cardId).name} a los ${next.trophies} trofeos`, textStyle(16, '#9fe8a8'))
+        .text(GAME_W / 2, 1132, `Próximo premio del camino: ${next.ball ? { poke: 'Pokéball', super: 'Superball', ultra: 'Ultraball', master: 'Master Ball' }[next.ball] : `${next.coins} monedas`} a los ${next.trophies} trofeos`, textStyle(16, '#9fe8a8'))
         .setOrigin(0.5);
     }
     this.add
