@@ -102,6 +102,7 @@ export function loadProfile(store: KeyValueStore | null = defaultStore()): Profi
     owned: { ...base.owned },
     balls: { ...base.balls },
     claimedRoad: Array.isArray(raw.claimedRoad) ? raw.claimedRoad.filter((x) => typeof x === 'number') : [],
+    challenge: raw.challenge && typeof raw.challenge === 'object' ? { wins: Math.min(12, n(raw.challenge.wins)), losses: Math.min(3, n(raw.challenge.losses)) } : null,
   };
   if (!fresh) {
     for (const k of BALL_ORDER) p.balls[k as BallKind] = n(raw.balls?.[k as BallKind]);

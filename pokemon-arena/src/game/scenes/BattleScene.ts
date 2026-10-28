@@ -6,11 +6,11 @@ import type { Difficulty } from '../../sim/ai/opponent';
 import { observe } from '../../sim/ai/observation';
 import { Rng, deriveSeed } from '../../sim/core/rng';
 import { battleDeck, loadProfile, loadStats } from '../../persistence/settings';
-import { deckStage, rivalDeck } from '../../persistence/economy';
+import { challengeDifficulty, deckStage, rivalDeck } from '../../persistence/economy';
 import type { SimEvent, Team } from '../../sim/core/state';
 import type { Vec } from '../../sim/core/vec';
 import { ARENA, snapToTile } from '../../sim/data/arena';
-import { DEFAULT_RIVAL_DECK, getCard } from '../../sim/data/cards';
+import { DEFAULT_RIVAL_DECK, cardAtStage, getCard } from '../../sim/data/cards';
 import { ELEMENT_COLORS } from '../../sim/data/elements';
 import { play } from '../audio/sfx';
 import { DeployController, FLAT_MAPPING } from '../input/deployController';
@@ -37,9 +37,13 @@ import { COLORS, css, textStyle } from '../theme';
 import { CardWidget } from '../ui/widgets';
 import { icon, iconKey } from '../ui/icons';
 
+/** Modo de juego: normal (trofeos), desafío (racha con premios) o igualado (fase máxima). */
+export type BattleMode = 'normal' | 'desafio' | 'igualado';
+
 export interface BattleSceneData {
   difficulty: Difficulty;
   deck: string[];
+  mode?: BattleMode;
   seed?: number;
   /** Modo repetición: misma semilla, mismos mazos y las órdenes registradas de los dos bandos. */
   replay?: { seed: number; decks: [string[], string[]]; log: Command[] };
@@ -114,11 +118,22 @@ export class BattleScene extends Phaser.Scene {
     if (replay) {
       this.decksUsed = [replay.decks[0].slice(), replay.decks[1].slice()];
     } else {
-      // El jugador lleva cada línea en su fase; el rival se ajusta a la fuerza de su mazo.
       const profile = loadProfile();
-      const mine = battleDeck(this.data_.deck, profile);
-      const rival = rivalDeck(DEFAULT_RIVAL_DECK, deckStage(mine), loadStats().trophies, new Rng(deriveSeed(seed, 11)));
-      this.decksUsed = [mine, rival];
+      const mode = this.data_.mode ?? 'normal';
+      if (mode === 'igualado') {
+        // Igualado: las cartas de los dos bandos, en su fase máxima
+        const top = (lines: readonly string[]) => lines.map((l) => cardAtStage(getCard(l).line, 3).id);
+        this.decksUsed = [top(this.data_.deck), top(DEFAULT_RIVAL_DECK)];
+      } else {
+        // El jugador lleva cada línea en su fase; el rival se ajusta a la fuerza de su mazo
+        // (en el desafío, algo más fuerte con cada victoria).
+        const mine = battleDeck(this.data_.deck, profile);
+        const wins = mode === 'desafio' ? profile.challenge?.wins ?? 0 : 0;
+        const trophies = mode === 'desafio' ? 0 : loadStats().trophies;
+        const rival = rivalDeck(DEFAULT_RIVAL_DECK, deckStage(mine) + wins * 0.06, trophies, new Rng(deriveSeed(seed, 11)));
+        this.decksUsed = [mine, rival];
+        if (mode === 'desafio') this.data_.difficulty = challengeDifficulty(wins);
+      }
     }
     // Los mazos se guardan sin barajar: con la misma semilla, la repetición baraja igual.
     this.battle = new Battle({ seed, decks: this.decksUsed });
@@ -193,7 +208,10 @@ export class BattleScene extends Phaser.Scene {
       const tag = this.add.text(GAME_W / 2, HUD_Y - 34, 'REPETICIÓN', textStyle(26, css(COLORS.gold))).setOrigin(0.5).setDepth(450);
       this.tweens.add({ targets: tag, alpha: 0.4, yoyo: true, repeat: -1, duration: 700 });
     } else {
-      this.toast('Toca una carta y después el campo · o arrástrala', '#ffffff', 3200);
+      const mode = this.data_.mode ?? 'normal';
+      const wins = loadProfile().challenge?.wins ?? 0;
+      const intro = mode === 'desafio' ? `Desafío · combate ${wins + 1} · ${wins} victorias` : mode === 'igualado' ? 'Combate igualado: todas las cartas en fase máxima' : 'Toca una carta y después el campo · o arrástrala';
+      this.toast(intro, '#ffffff', 3200);
     }
     (window as unknown as { __arena?: unknown }).__arena = { scene: this, battle: this.battle, seed };
   }
@@ -628,6 +646,7 @@ export class BattleScene extends Phaser.Scene {
         towerDamage: [this.battle.player(0).towerDamage, this.battle.player(1).towerDamage],
         defeated: [this.battle.player(0).defeated, this.battle.player(1).defeated],
         replay: { seed: this.battle.seed, decks: this.decksUsed, log: this.battle.commandLog.slice() },
+        mode: this.data_.mode ?? 'normal',
       });
       this.scene.pause();
     });

@@ -5,7 +5,7 @@ import { GAME_H, GAME_W } from './game/layout';
 import { COLORS } from './game/theme';
 import { BattleScene } from './game/scenes/BattleScene';
 import { DeckScene } from './game/scenes/CardScreens';
-import { OpenBallScene, ShopScene, TrophyRoadScene } from './game/scenes/ShopScenes';
+import { ChallengeScene, OpenBallScene, ShopScene, TrophyRoadScene } from './game/scenes/ShopScenes';
 import { CARDS } from './sim/data/cards';
 import { MenuScene } from './game/scenes/MenuScene';
 import { ResultScene } from './game/scenes/ResultScene';
@@ -24,7 +24,7 @@ const game = new Phaser.Game({
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
   input: { activePointers: 2 },
   render: { antialias: true, roundPixels: false },
-  scene: [MenuScene, BattleScene, ResultScene, DeckScene, ShopScene, OpenBallScene, TrophyRoadScene],
+  scene: [MenuScene, BattleScene, ResultScene, DeckScene, ShopScene, OpenBallScene, TrophyRoadScene, ChallengeScene],
 });
 
 (window as unknown as { __game?: Phaser.Game; __cards?: unknown }).__game = game;

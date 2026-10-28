@@ -70,12 +70,14 @@ export interface Profile {
   balls: Record<BallKind, number>;
   /** Trofeos de los hitos del camino ya cobrados. */
   claimedRoad: number[];
+  /** Desafío en curso (null = ninguno). */
+  challenge: { wins: number; losses: number } | null;
 }
 
 export function newProfile(): Profile {
   const owned: Record<string, Owned> = {};
   for (const l of STARTER_LINES) owned[l] = { stage: 1, copies: 0 };
-  return { coins: STARTING_COINS, owned, balls: { poke: 0, super: 0, ultra: 0, master: 0 }, claimedRoad: [] };
+  return { coins: STARTING_COINS, owned, balls: { poke: 0, super: 0, ultra: 0, master: 0 }, claimedRoad: [], challenge: null };
 }
 
 /** Id de la carta que usa el jugador para una línea (según su fase actual). */
@@ -273,4 +275,76 @@ export function rivalDeck(baseLines: readonly string[], playerStage: number, tro
     const stage = Math.max(1, Math.min(maxStage(line), base + (rng.next() < t - base ? 1 : 0)));
     return cardAtStage(line, stage).id;
   });
+}
+
+// ---------------------------------------------------------------- desafío
+
+/**
+ * Desafío: combates seguidos contra la IA hasta 3 derrotas o 12 victorias. Cada victoria da
+ * monedas (más cuantas más llevas) y la IA se endurece. Al terminar se recibe la mejor
+ * Pokéball alcanzada. Los empates no cuentan. No afecta a los trofeos.
+ */
+export const CHALLENGE = {
+  maxWins: 12,
+  maxLosses: 3,
+  prizes: [
+    { wins: 3, ball: 'poke' as BallKind },
+    { wins: 6, ball: 'super' as BallKind },
+    { wins: 9, ball: 'ultra' as BallKind },
+    { wins: 12, ball: 'master' as BallKind },
+  ],
+};
+
+export function challengeWinCoins(winsBefore: number): number {
+  return 10 + 5 * winsBefore;
+}
+
+export function challengeDifficulty(wins: number): 'facil' | 'normal' | 'dificil' {
+  return wins < 4 ? 'facil' : wins < 8 ? 'normal' : 'dificil';
+}
+
+/** Pokéball que corresponde a un número de victorias (null si no llega a la primera). */
+export function challengePrize(wins: number): BallKind | null {
+  let best: BallKind | null = null;
+  for (const p of CHALLENGE.prizes) if (wins >= p.wins) best = p.ball;
+  return best;
+}
+
+export function startChallenge(profile: Profile): void {
+  profile.challenge ??= { wins: 0, losses: 0 };
+}
+
+export interface ChallengeUpdate {
+  wins: number;
+  losses: number;
+  coins: number;
+  ended: boolean;
+  prize: BallKind | null;
+}
+
+/** Registra un combate del desafío. Si termina, entrega la Pokéball y cierra el desafío. */
+export function recordChallenge(profile: Profile, winner: Team | null): ChallengeUpdate {
+  const c = (profile.challenge ??= { wins: 0, losses: 0 });
+  let coins = 0;
+  if (winner === 0) {
+    coins = challengeWinCoins(c.wins);
+    c.wins++;
+    profile.coins += coins;
+  } else if (winner === 1) {
+    c.losses++;
+  }
+  const ended = c.wins >= CHALLENGE.maxWins || c.losses >= CHALLENGE.maxLosses;
+  const out: ChallengeUpdate = { wins: c.wins, losses: c.losses, coins, ended, prize: null };
+  if (ended) out.prize = endChallenge(profile);
+  return out;
+}
+
+/** Termina el desafío (también al abandonarlo): entrega la Pokéball alcanzada. */
+export function endChallenge(profile: Profile): BallKind | null {
+  const c = profile.challenge;
+  profile.challenge = null;
+  if (!c) return null;
+  const prize = challengePrize(c.wins);
+  if (prize) profile.balls[prize]++;
+  return prize;
 }

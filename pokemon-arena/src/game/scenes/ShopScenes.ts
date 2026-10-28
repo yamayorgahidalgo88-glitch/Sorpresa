@@ -1,13 +1,13 @@
 import Phaser from 'phaser';
 import { Rng } from '../../sim/core/rng';
 import { getCard } from '../../sim/data/cards';
-import { BALLS, BALL_ORDER, TROPHY_ROAD, buyBall, openBall } from '../../persistence/economy';
+import { BALLS, BALL_ORDER, CHALLENGE, TROPHY_ROAD, buyBall, challengeDifficulty, challengePrize, challengeWinCoins, endChallenge, openBall, startChallenge } from '../../persistence/economy';
 import type { BallKind, Drop, Profile } from '../../persistence/economy';
-import { loadProfile, loadStats, saveProfile } from '../../persistence/settings';
+import { loadProfile, loadSettings, loadStats, saveProfile } from '../../persistence/settings';
 import { play } from '../audio/sfx';
 import { GAME_H, GAME_W } from '../layout';
 import { drawPokeball } from '../render/pokeball';
-import { iconLabel } from '../ui/icons';
+import { icon, iconLabel } from '../ui/icons';
 import { COLORS, bodyStyle, css, textStyle } from '../theme';
 import { CardWidget, makeButton } from '../ui/widgets';
 
@@ -216,6 +216,69 @@ export class TrophyRoadScene extends Phaser.Scene {
       this.add.text(r.ball ? 330 : 290, y, label, textStyle(20, reached ? '#ffffff' : '#aab4d8')).setOrigin(0, 0.5);
       if (claimed) iconLabel(this, GAME_W - 46, y, 'check', 'Cobrado', 17, css(COLORS.ok), 1);
     });
+    makeButton(this, GAME_W / 2, GAME_H - 70, 380, 70, 'Volver', () => this.scene.start('menu'), COLORS.panelLight);
+  }
+}
+
+/**
+ * Desafío: racha de combates contra la IA hasta 3 derrotas o 12 victorias, con monedas por
+ * victoria y una Pokéball al final según las victorias conseguidas.
+ */
+export class ChallengeScene extends Phaser.Scene {
+  constructor() {
+    super('desafio');
+  }
+
+  create(): void {
+    const profile = loadProfile();
+    const c = profile.challenge;
+    this.cameras.main.setBackgroundColor(COLORS.bg);
+    this.add.text(30, 26, 'Desafío', textStyle(40, css(COLORS.gold)));
+    iconLabel(this, GAME_W - 30, 48, 'moneda', String(profile.coins), 26, '#ffe27a', 1);
+    this.add.text(30, 92, 'Gana hasta 12 combates seguidos antes de perder 3. La IA se endurece con cada victoria, cada victoria da monedas y al final ganas una Pokéball. No afecta a los trofeos.', bodyStyle(18, '#c9d4f5', { wordWrap: { width: GAME_W - 60 } }));
+
+    // Victorias: 12 casillas con las Pokéballs de premio en 3, 6, 9 y 12
+    const wins = c?.wins ?? 0;
+    const losses = c?.losses ?? 0;
+    const g = this.add.graphics();
+    const top = 250;
+    for (let i = 0; i < CHALLENGE.maxWins; i++) {
+      const x = 60 + (i % 6) * 104;
+      const y = top + Math.floor(i / 6) * 150;
+      const done = i < wins;
+      g.fillStyle(done ? COLORS.gold : COLORS.panel, 1).fillRoundedRect(x - 40, y - 40, 80, 80, 16);
+      g.lineStyle(3, done ? 0xffffff : COLORS.panelLight, 1).strokeRoundedRect(x - 40, y - 40, 80, 80, 16);
+      const prize = CHALLENGE.prizes.find((p) => p.wins === i + 1);
+      if (prize) drawPokeball(g, prize.ball, x, y, 26);
+      else this.add.text(x, y, String(i + 1), textStyle(28, done ? '#3a2400' : '#8e9bc4')).setOrigin(0.5);
+      if (done && !prize) icon(this, x + 26, y - 26, 'check', 26);
+    }
+    // Derrotas: tres corazones (coronas vacías = derrotas)
+    this.add.text(GAME_W / 2, 590, 'Derrotas', textStyle(24, '#ffffff')).setOrigin(0.5);
+    for (let i = 0; i < CHALLENGE.maxLosses; i++) {
+      icon(this, GAME_W / 2 + (i - 1) * 80, 650, i < losses ? 'cerrar' : 'medalla', 56).setTint(i < losses ? 0xff4d4d : 0xffffff);
+    }
+    const next = CHALLENGE.prizes.find((p) => p.wins > wins);
+    const now = challengePrize(wins);
+    const prizeName = { poke: 'Pokéball', super: 'Superball', ultra: 'Ultraball', master: 'Master Ball' };
+    this.add.text(GAME_W / 2, 730, now ? `Premio asegurado: ${prizeName[now]}` : 'Aún sin premio', textStyle(24, css(now ? COLORS.ok : 0xc9d4f5))).setOrigin(0.5);
+    if (next) this.add.text(GAME_W / 2, 770, `Siguiente: ${prizeName[next.ball]} con ${next.wins} victorias · próxima victoria: +${challengeWinCoins(wins)} monedas`, bodyStyle(17, '#ffe27a')).setOrigin(0.5);
+    this.add.text(GAME_W / 2, 805, `Dificultad del próximo combate: ${{ facil: 'Fácil', normal: 'Normal', dificil: 'Difícil' }[challengeDifficulty(wins)]}`, bodyStyle(17, '#c9d4f5')).setOrigin(0.5);
+
+    const settings = loadSettings();
+    makeButton(this, GAME_W / 2, 900, 440, 90, c ? 'Siguiente combate' : 'Empezar desafío', () => {
+      startChallenge(profile);
+      saveProfile(profile);
+      this.scene.start('battle', { difficulty: challengeDifficulty(wins), deck: settings.deck, mode: 'desafio' });
+    });
+    if (c) {
+      makeButton(this, GAME_W / 2, 1010, 440, 64, 'Retirarse (cobrar premio)', () => {
+        const prize = endChallenge(profile);
+        saveProfile(profile);
+        play(prize ? 'victoria' : 'rechazo');
+        this.scene.restart();
+      }, COLORS.danger);
+    }
     makeButton(this, GAME_W / 2, GAME_H - 70, 380, 70, 'Volver', () => this.scene.start('menu'), COLORS.panelLight);
   }
 }

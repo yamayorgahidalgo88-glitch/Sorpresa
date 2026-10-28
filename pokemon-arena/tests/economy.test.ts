@@ -11,8 +11,14 @@ import {
   buyBall,
   canEvolve,
   cardIdFor,
+  challengeDifficulty,
+  challengePrize,
+  challengeWinCoins,
   claimRoad,
   deckStage,
+  endChallenge,
+  recordChallenge,
+  startChallenge,
   evolve,
   evolvedValue,
   matchCoins,
@@ -210,5 +216,37 @@ describe('monedas, camino de trofeos y rival', () => {
   it('la fuerza de un mazo ignora las cartas que no evolucionan', () => {
     expect(deckStage(['charmander', 'squirtle', 'snorlax', 'ditto'])).toBe(1);
     expect(deckStage(['charizard', 'wartortle', 'snorlax'])).toBe(2.5);
+  });
+});
+
+describe('desafío', () => {
+  it('suma victorias con monedas crecientes y termina con la Pokéball alcanzada al perder 3', () => {
+    const p = newProfile();
+    startChallenge(p);
+    const c0 = p.coins;
+    for (let i = 0; i < 6; i++) recordChallenge(p, 0);
+    expect(p.coins - c0).toBe([0, 1, 2, 3, 4, 5].reduce((s, w) => s + challengeWinCoins(w), 0));
+    recordChallenge(p, null); // los empates no cuentan
+    recordChallenge(p, 1);
+    recordChallenge(p, 1);
+    expect(p.challenge).toEqual({ wins: 6, losses: 2 });
+    const end = recordChallenge(p, 1);
+    expect(end).toMatchObject({ ended: true, prize: 'super', wins: 6, losses: 3 });
+    expect(p.balls.super).toBe(1);
+    expect(p.challenge).toBeNull();
+  });
+
+  it('12 victorias dan la Master Ball; retirarse cobra lo alcanzado; la IA se endurece', () => {
+    const p = newProfile();
+    startChallenge(p);
+    for (let i = 0; i < 11; i++) expect(recordChallenge(p, 0).ended).toBe(false);
+    expect(recordChallenge(p, 0)).toMatchObject({ ended: true, prize: 'master' });
+    expect(p.balls.master).toBe(1);
+    const q = newProfile();
+    startChallenge(q);
+    for (let i = 0; i < 2; i++) recordChallenge(q, 0);
+    expect(endChallenge(q)).toBeNull(); // con 2 victorias no hay premio
+    expect([challengeDifficulty(0), challengeDifficulty(5), challengeDifficulty(10)]).toEqual(['facil', 'normal', 'dificil']);
+    expect(challengePrize(9)).toBe('ultra');
   });
 });

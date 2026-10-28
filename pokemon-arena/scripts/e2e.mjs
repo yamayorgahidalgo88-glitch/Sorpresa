@@ -210,7 +210,7 @@ async function scenario(browser, label, contextOpts, mode, query = '') {
   await page.evaluate(() => window.__game.scene.getScenes(true).forEach((s) => s.scene.stop()) || window.__game.scene.start('menu'));
   await page.waitForFunction(() => window.__game.scene.isActive('menu'));
   await sleep(300);
-  await tap({ x: GAME_W / 2 - 112, y: 780 });
+  await tap({ x: GAME_W / 2 - 112, y: 846 });
   await page.waitForFunction(() => window.__game.scene.isActive('deck'), null, { timeout: 5000 });
   await sleep(300);
   await page.screenshot({ path: `${OUT}/${label}-4-mazo.png` });
@@ -238,7 +238,7 @@ async function scenario(browser, label, contextOpts, mode, query = '') {
   await tap({ x: GAME_W / 2, y: 1420 - 70 });
   await page.waitForFunction(() => window.__game.scene.isActive('menu'));
   await sleep(300);
-  await tap({ x: GAME_W / 2 + 112, y: 780 });
+  await tap({ x: GAME_W / 2 + 112, y: 846 });
   await page.waitForFunction(() => window.__game.scene.isActive('tienda'), null, { timeout: 5000 });
   await sleep(300);
   await page.screenshot({ path: `${OUT}/${label}-5-tienda.png` });
@@ -254,6 +254,36 @@ async function scenario(browser, label, contextOpts, mode, query = '') {
   await page.screenshot({ path: `${OUT}/${label}-7-resumen.png` });
   const prof = await page.evaluate(() => JSON.parse(localStorage.getItem('pokemon-arena:perfil') || '{}'));
   check(prof.coins < 245 && copies0 >= 2, `comprar una Pokéball descuenta monedas y da cartas (${copies0} copias)`);
+
+  // Modos: desafío (racha con premios) e igualado (fase máxima)
+  await page.evaluate(() => window.__game.scene.getScenes(true).forEach((s) => s.scene.stop()) || window.__game.scene.start('menu'));
+  await page.waitForFunction(() => window.__game.scene.isActive('menu'));
+  await sleep(300);
+  await tap({ x: GAME_W / 2 - 112, y: 666 });
+  await page.waitForFunction(() => window.__game.scene.isActive('desafio'), null, { timeout: 8000 });
+  await sleep(300);
+  await page.screenshot({ path: `${OUT}/${label}-8-desafio.png` });
+  await tap({ x: GAME_W / 2, y: 900 });
+  await page.waitForFunction(() => window.__game.scene.isActive('battle') && window.__arena?.scene?.data_?.mode === 'desafio', null, { timeout: 30000 });
+  await page.evaluate(() => {
+    window.__arena.battle.world.towers.find((t) => t.team === 1 && t.role === 'base').hp = 0;
+  });
+  await page.waitForFunction(() => window.__game.scene.isActive('result'), null, { timeout: 45000 });
+  await sleep(500);
+  const ch = await page.evaluate(() => ({ r: window.__arenaResult, p: JSON.parse(localStorage.getItem('pokemon-arena:perfil') || '{}') }));
+  check(ch.r?.mode === 'desafio' && ch.p.challenge?.wins === 1 && ch.r.challenge?.coins > 0, 'el desafío cuenta la victoria y da monedas');
+  await page.screenshot({ path: `${OUT}/${label}-9-desafio-resultado.png` });
+  await page.evaluate(() => window.__game.scene.getScenes(true).forEach((s) => s.scene.stop()) || window.__game.scene.start('menu'));
+  await page.waitForFunction(() => window.__game.scene.isActive('menu'));
+  await sleep(300);
+  await tap({ x: GAME_W / 2 + 112, y: 666 });
+  await page.waitForFunction(() => window.__game.scene.isActive('battle') && window.__arena?.scene?.data_?.mode === 'igualado', null, { timeout: 30000 });
+  const eq = await page.evaluate(() => {
+    const b = window.__arena.battle;
+    const all = [0, 1].flatMap((t) => b.player(t).deck.hand.concat(b.player(t).deck.queue)).map((id) => window.__cards[id]);
+    return all.every((c) => c.stage === Math.max(...Object.values(window.__cards).filter((x) => x.line === c.line).map((x) => x.stage)));
+  });
+  check(eq, 'en el modo igualado todas las cartas están en su fase máxima');
 
   check(errors.length === 0, `sin errores en consola${errors.length ? ': ' + errors.join(' | ') : ''}`);
   await context.close();

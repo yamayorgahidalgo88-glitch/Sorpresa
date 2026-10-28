@@ -56,7 +56,13 @@ export class MenuScene extends Phaser.Scene {
       this.scene.start('battle', { difficulty: this.settings.difficulty, deck: this.settings.deck, seed: seedFromUrl() });
     });
 
-    const diffBtn = makeButton(this, GAME_W / 2, 680, 440, 70, `Dificultad: ${DIFF_LABEL[this.settings.difficulty]}`, () => {
+    makeButton(this, GAME_W / 2 - 112, 666, 216, 66, 'Desafío', () => this.scene.start('desafio'), 0x8a4fd0);
+    makeButton(this, GAME_W / 2 + 112, 666, 216, 66, 'Igualado', () => {
+      unlockAudio();
+      this.scene.start('battle', { difficulty: this.settings.difficulty, deck: this.settings.deck, mode: 'igualado' });
+    }, 0x2f9a8a);
+
+    const diffBtn = makeButton(this, GAME_W / 2, 756, 440, 62, `Dificultad: ${DIFF_LABEL[this.settings.difficulty]}`, () => {
       const i = DIFF_ORDER.indexOf(this.settings.difficulty);
       this.settings.difficulty = DIFF_ORDER[(i + 1) % DIFF_ORDER.length];
       saveSettings(this.settings);
@@ -64,18 +70,18 @@ export class MenuScene extends Phaser.Scene {
     }, COLORS.panelLight);
 
     const profile = loadProfile();
-    makeButton(this, GAME_W / 2 - 112, 780, 216, 70, 'Mazo', () => this.scene.start('deck'), 0x3d8bff);
-    makeButton(this, GAME_W / 2 + 112, 780, 216, 70, 'Tienda', () => this.scene.start('tienda'), 0x45b36b);
+    makeButton(this, GAME_W / 2 - 112, 846, 216, 66, 'Mazo', () => this.scene.start('deck'), 0x3d8bff);
+    makeButton(this, GAME_W / 2 + 112, 846, 216, 66, 'Tienda', () => this.scene.start('tienda'), 0x45b36b);
     const pending = profile.balls.poke + profile.balls.super + profile.balls.ultra + profile.balls.master;
     if (pending > 0) {
-      const badge = this.add.text(GAME_W / 2 + 210, 750, String(pending), textStyle(20)).setOrigin(0.5).setDepth(600);
-      const bg = this.add.circle(GAME_W / 2 + 210, 750, 18, COLORS.danger).setDepth(599);
+      const badge = this.add.text(GAME_W / 2 + 210, 818, String(pending), textStyle(20)).setOrigin(0.5).setDepth(600);
+      const bg = this.add.circle(GAME_W / 2 + 210, 818, 18, COLORS.danger).setDepth(599);
       this.tweens.add({ targets: [badge, bg], scale: 1.15, yoyo: true, repeat: -1, duration: 500 });
     }
-    makeButton(this, GAME_W / 2 - 112, 880, 216, 60, 'Trofeos', () => this.scene.start('camino'), 0xf2782f);
+    makeButton(this, GAME_W / 2 - 112, 934, 216, 60, 'Trofeos', () => this.scene.start('camino'), 0xf2782f);
     iconLabel(this, GAME_W - 24, 36, 'moneda', String(profile.coins), 26, '#ffe27a', 1);
 
-    const soundBtn = makeButton(this, GAME_W / 2 + 112, 880, 216, 60, this.soundLabel(), () => {
+    const soundBtn = makeButton(this, GAME_W / 2 + 112, 934, 216, 60, this.soundLabel(), () => {
       this.settings.muted = !this.settings.muted;
       setMuted(this.settings.muted);
       saveSettings(this.settings);
@@ -83,17 +89,18 @@ export class MenuScene extends Phaser.Scene {
     }, COLORS.panelLight);
 
     const deckNames = battleDeck(this.settings.deck, profile).map((id) => getCard(id).name).join(' · ');
-    this.add.text(GAME_W / 2, 975, 'Tu mazo', textStyle(18, '#c9d4f5')).setOrigin(0.5);
-    this.add.text(GAME_W / 2, 1010, deckNames, textStyle(15, '#ffffff', { align: 'center', wordWrap: { width: 620 } })).setOrigin(0.5, 0);
+    this.add.text(GAME_W / 2, 1012, 'Tu mazo', textStyle(18, '#c9d4f5')).setOrigin(0.5);
+    this.add.text(GAME_W / 2, 1040, deckNames, textStyle(15, '#ffffff', { align: 'center', wordWrap: { width: 620 } })).setOrigin(0.5, 0);
 
     const s = loadStats();
     const rank = rankOf(s.trophies);
     const next = TROPHY_ROAD.find((r) => r.trophies > s.trophies);
     iconLabel(this, GAME_W / 2, 470, 'trofeo', `${s.trophies} trofeos · ${rank.name}`, 24, css(COLORS.gold), 0.5);
-    this.add.text(GAME_W / 2, 1100, `Victorias ${s.wins} · Derrotas ${s.losses} · Empates ${s.draws}`, textStyle(17, '#c9d4f5')).setOrigin(0.5);
+    this.add.text(GAME_W / 2, 1130, `Victorias ${s.wins} · Derrotas ${s.losses} · Empates ${s.draws}`, textStyle(17, '#c9d4f5')).setOrigin(0.5);
     if (next) {
       this.add
-        .text(GAME_W / 2, 1132, `Próximo premio del camino: ${next.ball ? { poke: 'Pokéball', super: 'Superball', ultra: 'Ultraball', master: 'Master Ball' }[next.ball] : `${next.coins} monedas`} a los ${next.trophies} trofeos`, textStyle(16, '#9fe8a8'))
+        
+        .text(GAME_W / 2, 1162, `Próximo premio del camino: ${next.ball ? { poke: 'Pokéball', super: 'Superball', ultra: 'Ultraball', master: 'Master Ball' }[next.ball] : `${next.coins} monedas`} a los ${next.trophies} trofeos`, textStyle(16, '#9fe8a8'))
         .setOrigin(0.5);
     }
     this.add
