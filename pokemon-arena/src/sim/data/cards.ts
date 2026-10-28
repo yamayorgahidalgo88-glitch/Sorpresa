@@ -101,7 +101,7 @@ type BaseFields = 'line' | 'stage';
 const BASE_POKEMON: Omit<PokemonCard, BaseFields>[] = [
   {
     kind: 'pokemon', id: 'onix', name: 'Onix', types: ['roca', 'tierra'], role: 'tanque', cost: 5, count: 1,
-    hp: 3000, damage: 150, hitSpeed: 1.5, speed: 0.8, range: 0.8, sight: 7, radius: 0.8, mass: 8,
+    hp: 3300, damage: 150, hitSpeed: 1.5, speed: 0.8, range: 0.8, sight: 7, radius: 0.8, mass: 8,
     locomotion: 'tierra', targets: 'edificios', attack: { kind: 'cuerpo' }, deployTime: 1,
     description: 'Tanque enorme que solo ataca torres. Ideal para abrir camino a otros Pokémon.',
   },
@@ -120,7 +120,7 @@ const BASE_POKEMON: Omit<PokemonCard, BaseFields>[] = [
   },
   {
     kind: 'pokemon', id: 'charmander', name: 'Charmander', types: ['fuego'], role: 'antigrupo', cost: 4, count: 1,
-    hp: 900, damage: 125, hitSpeed: 1.6, speed: 1.0, range: 2, sight: 5.5, radius: 0.5, mass: 4,
+    hp: 950, damage: 125, hitSpeed: 1.5, speed: 1.0, range: 2, sight: 5.5, radius: 0.5, mass: 4,
     locomotion: 'tierra', targets: 'tierra', attack: { kind: 'proyectil', projectileSpeed: 9, splashRadius: 1.4 }, deployTime: 1,
     description: 'Ascuas de corto alcance que queman a grupos de enemigos terrestres.',
   },
@@ -134,7 +134,7 @@ const BASE_POKEMON: Omit<PokemonCard, BaseFields>[] = [
     kind: 'pokemon', id: 'bulbasaur', name: 'Bulbasaur', types: ['planta', 'veneno'], role: 'apoyo', cost: 4, count: 1,
     hp: 950, damage: 60, hitSpeed: 1.4, speed: 1.0, range: 4, sight: 5.5, radius: 0.55, mass: 4,
     locomotion: 'tierra', targets: 'aire_y_tierra', attack: { kind: 'proyectil', projectileSpeed: 10 }, deployTime: 1,
-    ability: { kind: 'aura_curativa', radius: 3, amount: 70, interval: 2 },
+    ability: { kind: 'aura_curativa', radius: 3, amount: 60, interval: 2 },
     description: 'Cura periódicamente a los aliados cercanos. Mantiene vivas las ofensivas largas.',
   },
   {
@@ -158,7 +158,7 @@ const BASE_POKEMON: Omit<PokemonCard, BaseFields>[] = [
   },
   {
     kind: 'pokemon', id: 'jigglypuff', name: 'Jigglypuff', types: ['normal', 'hada'], role: 'apoyo', cost: 3, count: 1,
-    hp: 680, damage: 55, hitSpeed: 1.5, speed: 1.0, range: 3.5, sight: 5.5, radius: 0.5, mass: 3,
+    hp: 760, damage: 60, hitSpeed: 1.5, speed: 1.0, range: 3.5, sight: 5.5, radius: 0.5, mass: 3,
     locomotion: 'tierra', targets: 'aire_y_tierra', attack: { kind: 'proyectil', projectileSpeed: 9 }, deployTime: 1,
     ability: { kind: 'canto', radius: 2.5, duration: 1.5, interval: 5 },
     description: 'Su Canto duerme a los enemigos cercanos durante un instante.',
@@ -174,7 +174,7 @@ const BASE_POKEMON: Omit<PokemonCard, BaseFields>[] = [
     kind: 'pokemon', id: 'abra', name: 'Abra', types: ['psiquico'], role: 'distancia', cost: 4, count: 1,
     hp: 560, damage: 115, hitSpeed: 1.5, speed: 1.0, range: 5, sight: 6.5, radius: 0.45, mass: 2,
     locomotion: 'tierra', targets: 'aire_y_tierra', attack: { kind: 'proyectil', projectileSpeed: 11 }, deployTime: 1,
-    ability: { kind: 'escudo', amount: 320 },
+    ability: { kind: 'escudo', amount: 280 },
     description: 'Aparece protegido por una Barrera psíquica que absorbe daño. Ataca desde muy lejos.',
   },
   {

@@ -36,7 +36,8 @@ pokemon-arena/
 │   │   ├── audio/             # Efectos sintetizados con Web Audio
 │   │   └── scenes/            # Menú, Batalla, Resultados, Mazo, Colección
 │   ├── render3d/              # ── CAPA 3D (Three.js): campo, torres, Pokémon vóxel, efectos ──
-│   └── persistence/           # Ajustes, mazo e historial (localStorage, tolerante a fallos)
+│   └── persistence/           # Ajustes, mazo, historial, perfil (monedas, colección, Pokéballs),
+│                              # economía (Pokéballs, evolución, camino de trofeos, rival) — localStorage
 ├── tests/                     # Vitest (simulación, IA, controles, persistencia)
 └── scripts/
     ├── simulate.ts            # Simulación por lotes IA contra IA
@@ -63,7 +64,9 @@ Correspondencia con los módulos pedidos:
 ## 3. Principios
 
 1. **La simulación no conoce la interfaz.** `src/sim` no importa Phaser ni el DOM. Se ejecuta igual en Node (pruebas, simulación por lotes) que en el navegador.
-2. **Datos, no código disperso.** Estadísticas, reglas, geometría y tabla de tipos están en `sim/data`. Para añadir un Pokémon basta con añadir una entrada en `cards.ts` (y, si se quiere, su ilustración en `creatureArt.ts`).
+2. **Datos, no código disperso.** Estadísticas, reglas, geometría y tabla de tipos están en `sim/data`. Para añadir un Pokémon basta con añadir su primera fase en `BASE_POKEMON` y sus evoluciones en `EVOLUTIONS` (`cards.ts`). Las fases se derivan con `STAGE_MULTIPLIER`. Después hay que registrar su modelo en `render3d/creatures/registry.ts`.
+   - Cada carta tiene `line` y `stage`. El mazo guardado contiene líneas, y `battleDeck` las traduce a la fase que tiene el jugador.
+   - La simulación solo ve ids de carta concretos (`charmeleon`, `rayo_2`…), así que las reglas no saben nada de la economía.
 3. **Determinismo.** Paso fijo, energía en aritmética entera, aleatoriedad solo con un generador con semilla, iteración en orden de creación y desempates por id. Las órdenes se registran con su paso (`commandLog`) y `Battle.replay` reproduce la partida exacta. `stateHash()` permite compararlas.
 4. **Eventos como frontera.** `step()` devuelve eventos (`despliegue`, `dano`, `muerte`, `torre_destruida`, `fin`…). La interfaz los consume para animaciones y sonido y nunca modifica el estado de la simulación (salvo con órdenes validadas mediante `deploy`).
 5. **Mismas reglas para todos.** El jugador y la IA usan `Battle.deploy`, que valida mano, energía y zona. La IA solo ve una `Observation` filtrada.
@@ -104,10 +107,10 @@ Dibuja el campo de la batalla jugable desde el 29-10-2026 (antes solo existía e
 | `towerModel.ts` | Torre guardiana y base (geometría real), con animaciones de disparo, impacto, cristal y bandera |
 | `creatures/rig.ts`, `creatures/kit.ts` y un archivo por Pokémon | Personajes por piezas con pivotes y animación procedural. `kit.ts` da piezas comunes (elipsoides, articulaciones, cara de pixel art) y un bípedo genérico |
 | `creatures/voxel.ts` | Paso a cubos (vóxel) con caché: las unidades iguales comparten la geometría y cada una tiene sus materiales |
-| `creatures/registry.ts` | Registro de los 11 modelos (una prueba exige que todos los Pokémon del catálogo tengan modelo) |
+| `creatures/registry.ts` | Registro de los 34 modelos: cada línea comparte forma con variantes por fase y escala de especie (`CreatureRig.size`). Una prueba exige que todo Pokémon del catálogo tenga modelo |
 | `ruins.ts` | Ruinas deterministas de una torre destruida |
 | `gameLayer.ts` | Capa 3D de la batalla jugable: lienzo bajo el de Phaser, selección de casilla por rayo, fantasma de despliegue y zonas |
-| `portraits.ts` | Retratos de los modelos vóxel para las cartas y la ficha (una sola vez, renderizador temporal) |
+| `portraits.ts` | Retratos de los modelos vóxel para las cartas y la ficha (bajo demanda, un estudio compartido) |
 | `fx/particles.ts` y `fx/effects.ts` | Partículas en GPU y biblioteca modular de ataques por familia elemental |
 | `battleView3d.ts` | Sincroniza la batalla con la escena: interpolación, orientación, anticipación (lee `cooldown`), proyectiles en arco, impactos, barras de vida y números |
 | `textures.ts` y `palette.ts` | Texturas procedurales y paleta de la dirección artística |

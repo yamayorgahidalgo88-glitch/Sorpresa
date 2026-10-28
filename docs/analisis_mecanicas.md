@@ -149,4 +149,4 @@ Repositorio oficial: <https://github.com/morluto/rea> (clonado y leído: README,
 
 ### 3.15 Progresión, desbloqueos y mejoras
 - **Inferencia:** el juego de referencia tiene niveles de carta, cofres y trofeos.
-- **Decisión propia:** trofeos, rangos y desbloqueo de cartas, **sin niveles ni mejoras de estadísticas** (ver `diseno_juego.md` §10).
+- **Decisión del usuario (29-10-2026):** cartas como líneas evolutivas que mejoran (+12 % y +25 %) con copias y monedas; Pokéballs como cofres; camino de trofeos con premios. Sustituye a la decisión inicial de no tener mejoras de carta (ver `diseno_juego.md` §10).

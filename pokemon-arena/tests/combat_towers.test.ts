@@ -193,15 +193,15 @@ describe('habilidad «escudo» (Abra)', () => {
     const b = newBattle();
     const [id] = b.spawnUnchecked(0, 'abra', { x: 9, y: 22 }, { ready: true });
     const u = unit(b, id)!;
-    expect(u.shield).toBe(320);
+    expect(u.shield).toBe(280);
     applyDamage(b.world, u, 200, null, { team: 1, cardId: null });
-    expect(u.shield).toBe(120);
+    expect(u.shield).toBe(80);
     expect(u.hp).toBe(u.maxHp);
     applyDamage(b.world, u, 200, null, { team: 1, cardId: null });
     expect(u.shield).toBe(0);
-    expect(u.hp).toBe(u.maxHp - 80);
+    expect(u.hp).toBe(u.maxHp - 120);
     // Alakazam (fase 3) tiene una Barrera mayor
     const [k] = b.spawnUnchecked(0, 'alakazam', { x: 9, y: 24 }, { ready: true });
-    expect(unit(b, k)!.shield).toBe(400);
+    expect(unit(b, k)!.shield).toBe(350);
   });
 });

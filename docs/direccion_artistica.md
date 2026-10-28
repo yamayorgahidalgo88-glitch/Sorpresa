@@ -181,7 +181,23 @@ Todas las texturas son **procedurales y originales** (`src/render3d/textures.ts`
 - Los impactos pequeños (torre contra personaje) usan la mitad de potencia y humo gris, no blanco.
 - La anticipación nace de las mejillas hacia fuera, nunca sobre la cara.
 
-### 8.1 Modelos del hito F
+### 8.1 Modelos del hito F (11 especies) y ampliación a 34 especies (29-10-2026)
+
+**Ampliación a 34 especies:**
+- **Referencias:** ilustraciones oficiales que sirve PokéAPI (`sprites/other/official-artwork`), usadas **solo como referencia** de proporciones y rasgos. Los colores salen del análisis de sus colores dominantes. Ninguna imagen se incluye en el juego; los modelos son geometría propia.
+- **Variantes por línea:** cada línea comparte una forma con variantes por fase, y la escala de especie (`CreatureRig.size`, hasta ×1,35) mantiene parecida la densidad de cubos. Rasgos de cada fase:
+  - Charmander: cabeza redonda, sin cuerno.
+  - Wartortle: orejas y cola de pelo. Blastoise: cañones y borde blanco del caparazón.
+  - Ivysaur: capullo. Venusaur: flor de cinco pétalos.
+  - Machoke y Machamp: calzón y cinturón dorado. Machamp tiene cuatro brazos.
+  - Pidgey: pequeño, con alas plegadas. Pidgeot: melena y cola en abanico.
+  - Graveler: cuatro brazos. Golem: caparazón de placas.
+  - Wigglytuff: cuerpo de huevo y barriga blanca.
+  - Steelix: bloques de acero con púas.
+- **Especies nuevas:** Raichu, Gastly (gas palpitante), Haunter (manos sueltas), Gengar (sonrisa), Abra (sentado, ojos cerrados), Kadabra y Alakazam (cucharas que brillan al cargar), Dratini y Dragonair (serpiente erguida con barrido de cola) y Dragonite (vuela).
+- Lámina: `capturas/galeria_reposo.jpg`.
+
+**Hito F (11 especies):**
 
 Los diez Pokémon nuevos siguen las mismas reglas que Pikachu: primitivas → vóxel de 0,085, cara de pixel art dibujada a mano y animación procedural.
 - **Bípedos** (`BipedRig`): Squirtle, Charmeleon, Charizard, Machop, Snorlax y Jigglypuff. Comparten respiración, zancada, carga, golpe, daño y aturdimiento. Cada uno añade lo suyo: llama de la cola que ondula y brilla (Charmeleon y Charizard), alas que baten (Charizard), puñetazo con el brazo derecho (Machop), balanceo y panzazo (Snorlax), botes y se hincha al cantar (Jigglypuff).

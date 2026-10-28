@@ -33,37 +33,47 @@ La base empieza **inactiva** (no dispara) y se activa al recibir daño o al caer
 
 ## 3. Cartas, mazo y mano (`systems/deck.ts`, `systems/energy.ts`)
 
-- Mazo de **8 cartas distintas**, configurable en el constructor de mazos y guardado en el navegador.
+- Mazo de **8 cartas distintas** (una sola fase por línea evolutiva), configurable en el constructor de mazos y guardado en el navegador.
 - **Mano de 4** y "Siguiente" visible. Al jugar una carta, esta va al final de la cola y su hueco lo ocupa la siguiente.
 - Jugar una carta exige tenerla en la mano, energía suficiente y una zona válida. Si no se cumple, se rechaza **sin gastar energía**.
-- Cada carta muestra el retrato vóxel del Pokémon, su coste, función táctica, PS, daño y tipos. Al tocarla en el constructor de mazos o en la Colección se abre su **ficha completa**: PS, daño, daño por segundo, velocidad de ataque, velocidad (lenta, media, rápida o muy rápida), alcance, objetivos, tipo de unidad, cantidad, daño en área, despliegue, habilidad, debilidades y resistencias. En el constructor, la ficha tiene el botón «Añadir al mazo» o «Quitar del mazo».
+- Cada carta muestra el retrato vóxel del Pokémon, su coste, función táctica, PS, daño y tipos. Al tocarla en el constructor de mazos se abre su **ficha completa**: PS, daño, daño por segundo, velocidad de ataque, velocidad (lenta, media, rápida o muy rápida), alcance, objetivos, tipo de unidad, cantidad, daño en área, despliegue, habilidad, debilidades y resistencias. La ficha también muestra el progreso de evolución y tiene los botones «Usar» (meterla en el mazo) y «Evolucionar» cuando hay copias y monedas suficientes.
 
-## 4. Pokémon (`data/cards.ts`)
+## 4. Pokémon y líneas evolutivas (`data/cards.ts`)
 
-| Pokémon | Tipos | Función | Coste | PS | Daño / cadencia | Vel. | Alcance | Ataca | Rasgo |
-|---|---|---|---|---|---|---|---|---|---|
-| Onix | Roca/Tierra | Tanque | 5 | 3000 | 150 / 1,5 s | 0,8 | 0,8 | Solo torres | Muy resistente |
-| Snorlax | Normal | Tanque | 6 | 3000 | 190 / 1,8 s | 0,6 | 1,0 | Tierra | Golpe con área de 1,2 |
-| Pikachu | Eléctrico | Rápido | 3 | 520 | 80 / 0,9 s | 1,8 | 3 | Aire y tierra | Cadena: 2 saltos (x0,6) |
-| Charmeleon | Fuego | Antigrupo | 4 | 900 | 125 / 1,6 s | 1,0 | 2 | Tierra | Llamarada con área de 1,4 |
-| Squirtle | Agua | Distancia | 3 | 480 | 95 / 1,2 s | 1,0 | 5 | Aire y tierra | — |
-| Bulbasaur | Planta/Veneno | Apoyo | 4 | 950 | 60 / 1,4 s | 1,0 | 4 | Aire y tierra | Aura curativa: +70 cada 2 s |
-| Machop ×3 | Lucha | Rápido | 3 | 340 c/u | 75 / 1,0 s | 1,4 | 0,6 | Tierra | Grupo de tres |
-| Pidgeotto | Normal/Volador | Rápido | 3 | 620 | 100 / 1,1 s | 1,6 | 1,2 | Aire y tierra | Vuela |
-| Geodude | Roca/Tierra | Asedio | 2 | 480 | 50 / 1,2 s | 1,4 | 0,6 | Solo torres | Autodestrucción: 260 en 2 casillas (60 % a torres) |
-| Jigglypuff | Normal/Hada | Apoyo | 3 | 680 | 55 / 1,5 s | 1,0 | 3,5 | Aire y tierra | Canto: duerme 1,5 s (cada 5 s) |
-| Charizard | Fuego/Volador | Área | 5 | 1050 | 140 / 1,8 s | 1,2 | 3 | Aire y tierra | Vuela; área de 1,5 |
+Cada carta es una **línea evolutiva**. Se empieza con la primera fase y se evoluciona con copias y monedas (§10). Las fases 2 y 3 tienen **+12 % y +25 %** de PS y daño (también de curación, explosión y barrera); el coste y el comportamiento no cambian, salvo lo indicado en *Cambios al evolucionar*. Los tipos de las 34 especies coinciden con PokéAPI (`docs/datos_pokeapi.json`, comprobado en `tests/pokeapi.test.ts`).
 
-**Hechizos**
+| Fase 1 | Fase 2 | Fase 3 | Tipos (fase 1) | Función | Coste | PS | Daño / cadencia | Vel. | Alcance | Ataca | Rasgo |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| Onix | Steelix | — | Roca/Tierra | Tanque | 5 | 3300 | 150 / 1,5 s | 0,8 | 0,8 | Solo torres | Muy resistente. Steelix es Acero/Tierra |
+| Snorlax | — | — | Normal | Tanque | 6 | 3000 | 190 / 1,8 s | 0,6 | 1,0 | Tierra | Golpe con área de 1,2. No evoluciona |
+| Pikachu | Raichu | — | Eléctrico | Rápido | 3 | 520 | 80 / 0,9 s | 1,8 | 3 | Aire y tierra | Cadena: 2 saltos (x0,6) |
+| Charmander | Charmeleon | Charizard | Fuego | Antigrupo | 4 | 950 | 125 / 1,5 s | 1,0 | 2 | Tierra | Área de 1,4 |
+| Squirtle | Wartortle | Blastoise | Agua | Distancia | 3 | 480 | 95 / 1,2 s | 1,0 | 5 | Aire y tierra | — |
+| Bulbasaur | Ivysaur | Venusaur | Planta/Veneno | Apoyo | 4 | 950 | 60 / 1,4 s | 1,0 | 4 | Aire y tierra | Aura curativa: +60 cada 2 s |
+| Machop ×3 | Machoke ×3 | Machamp ×3 | Lucha | Rápido | 3 | 340 c/u | 75 / 1,0 s | 1,4 | 0,6 | Tierra | Grupo de tres |
+| Pidgey | Pidgeotto | Pidgeot | Normal/Volador | Rápido | 3 | 620 | 100 / 1,1 s | 1,6 | 1,2 | Aire y tierra | Vuela |
+| Geodude | Graveler | Golem | Roca/Tierra | Asedio | 2 | 480 | 50 / 1,2 s | 1,4 | 0,6 | Solo torres | Autodestrucción: 260 en 2 casillas (60 % a torres) |
+| Jigglypuff | Wigglytuff | — | Normal/Hada | Apoyo | 3 | 760 | 60 / 1,5 s | 1,0 | 3,5 | Aire y tierra | Canto: duerme 1,5 s (cada 5 s) |
+| **Gastly** | Haunter | Gengar | Fantasma/Veneno | Distancia | 3 | 430 | 70 / 1,1 s | 1,4 | 3,5 | Aire y tierra | Flota (volador). Cada golpe ralentiza un 35 % durante 1,5 s |
+| **Abra** | Kadabra | Alakazam | Psíquico | Distancia | 4 | 560 | 115 / 1,5 s | 1,0 | 5 | Aire y tierra | **Barrera**: escudo de 280 que absorbe daño antes que la salud |
+| **Dratini** | Dragonair | Dragonite | Dragón | Tanque | 4 | 1250 | 120 / 1,4 s | 1,0 | 1,0 | Tierra | Barrido con área de 0,9 |
 
-| Hechizo | Tipo | Coste | Radio | Daño | A torres | Efecto |
+En negrita, las líneas nuevas. La habilidad **Barrera** (`escudo`) es nueva en la simulación (`UnitEntity.shield`, aplicada en `applyDamage`).
+
+**Cambios al evolucionar:** Charizard pasa a Fuego/Volador, vuela, ataca a aire y tierra con alcance 3 y área 1,5. Dragonite pasa a Dragón/Volador y vuela. Steelix pasa a Acero/Tierra.
+
+**Hechizos (niveles 1 a 3)**: se mejoran como los Pokémon, con copias y monedas. Cada nivel sube el daño un 12 % y un 25 %.
+
+| Hechizo | Tipo | Coste | Radio | Daño Nv 1/2/3 | A torres | Efecto |
 |---|---|---|---|---|---|---|
-| Rayo | Eléctrico | 3 | 2,5 | 300 | 35 % | Aturde 0,5 s |
-| Ventisca | Hielo | 4 | 3 | 170 | 40 % | Ralentiza un 40 % durante 4 s |
+| Rayo | Eléctrico | 3 | 2,5 | 300 / 336 / 375 | 35 % | Aturde 0,5 s |
+| Ventisca | Hielo | 4 | 3 | 170 / 190 / 213 | 40 % | Ralentiza un 40 % durante 4 s |
+
+**Tipo Acero** añadido a la tabla de tipos (`data/elements.ts`), con todas sus relaciones contrastadas con PokéAPI.
 
 Todas las tropas tardan 1 s en desplegarse; mientras tanto no actúan, pero se las puede atacar.
 
-**Contrapesos de diseño:** Onix y Geodude ignoran a las tropas (presión directa, pero indefensos). Charmeleon arrasa grupos terrestres, pero no alcanza a voladores. Machop tiene mucho daño, pero cae ante el daño en área. Los voladores esquivan a los atacantes de "tierra", pero son débiles frente a Pikachu (Eléctrico x1,5) y a Squirtle. Bulbasaur y Jigglypuff aportan poco daño, pero sostienen o desbaratan las ofensivas.
+**Contrapesos de diseño:** Onix y Geodude ignoran a las tropas (presión directa, pero indefensos). Charmander arrasa grupos terrestres, pero no alcanza a voladores. Machop tiene mucho daño, pero cae ante el daño en área. Los voladores esquivan a los atacantes de "tierra", pero son débiles frente a Pikachu (Eléctrico x1,5) y a Squirtle. Bulbasaur y Jigglypuff aportan poco daño, pero sostienen o desbaratan las ofensivas.
 
 ## 5. Sistema elemental (`data/elements.ts`)
 
@@ -117,26 +127,45 @@ Las relaciones (qué tipo es eficaz contra cuál) siguen la tabla clásica de lo
 | 1 | Quitar a Charizard del mazo rival subía al del jugador de 19 % a 40 % | Charizard: PS 1250→1050, daño 165→140, cadencia 1,7→1,8 s. Onix: PS 2400→2700, velocidad 0,75→0,8 |
 | 2 | Daño a torres por partida: mazo rival ≈1550 frente a ≈970. Geodude (2 de energía) hacía 326 por partida, sobre todo con su explosión; Onix (5 de energía) solo 78 porque la IA lo enviaba sin apoyo | La explosión de Geodude hace un 60 % a las torres. La IA escolta a sus tanques mientras avanzan. Onix: PS 3000. Pidgeotto: PS 620, daño 100. Jigglypuff: PS 680, daño 55, Canto cada 5 s |
 
-### Estado actual (normal, 600 partidas con mazos aleatorios)
-- Todas las cartas quedan entre el **45 % y el 55 %** de victorias (±3,6 %): Bulbasaur 55 %, Charizard 54 % … Jigglypuff 46 %, Onix 45 %.
-- Mazo del jugador contra mazo de la IA: **≈47–50 % en normal** y **≈33–43 % en difícil** (muestras de 60 a 140 partidas, ±8–12 %).
-- Pendiente: los tanques (Onix, Snorlax) se juegan poco (~1 vez por partida) y Ventisca muy poco (0,7), por las heurísticas de la IA. El balance con jugadores humanos sigue sin medirse.
+### Estado actual (29-10-2026, normal, 700 partidas con mazos aleatorios de cartas base)
+- Se mide el equilibrio de las **cartas base** (fase 1). Las evoluciones son más fuertes a propósito, y el rival también las saca (§10).
+- Iteración 3: con las líneas nuevas, Abra (56 %) y Bulbasaur (57 %) quedaban altos y Jigglypuff, Charmander y Onix bajos. Cambios: Barrera 320→280; curación 70→60; Jigglypuff PS 680→760 y daño 55→60; Charmander PS 900→950 y cadencia 1,6→1,5 s; Onix PS 3000→3300.
+- Resultado: todas las cartas entre el **44 % y el 56 %** (±3,6 %): Abra 56 %, Pikachu 55 %, Gastly 54 % … Machop 46 %, Onix 44 %.
+- Mazo del jugador contra mazo de la IA (sin evoluciones): **≈54–57 %** (140 partidas, ±8 %).
+- Pendiente: la IA juega poco los tanques (Onix, Snorlax: ~0,9 veces por partida) y Ventisca (0,7). El balance con jugadores humanos sigue sin medirse.
 
-## 10. Progresión (`persistence/progression.ts`)
+## 10. Progresión y economía (`persistence/progression.ts`, `persistence/economy.ts`)
 
 - **Trofeos**: una victoria suma 20 / 30 / 40 según la dificultad (fácil, normal, difícil); una derrota resta 15 y nunca baja de 0; un empate no cambia nada.
-- **Desbloqueos**: se empieza con las 8 cartas del mazo inicial. El resto se desbloquea por trofeos:
-
-| Carta | Trofeos |
-|---|---|
-| Geodude | 30 |
-| Jigglypuff | 80 |
-| Snorlax | 150 |
-| Ventisca | 220 |
-| Charizard | 300 |
-
 - **Rangos**: Novato (0), Entrenador (100), Líder de Gimnasio (250), Alto Mando (400), Campeón (600).
-- **Sin niveles ni mejoras de carta (decisión deliberada)**: la progresión amplía las opciones del mazo, pero no las estadísticas. Así la partida la decide la estrategia y el balance medido sigue siendo válido para todos los jugadores.
-- La IA usa su mazo completo desde el principio: el jugador ve en acción las cartas que podrá desbloquear.
-- Interfaz: el menú muestra los trofeos, el rango y el próximo desbloqueo. Los resultados muestran la variación de trofeos, el ascenso de rango y las cartas desbloqueadas. El constructor y la colección marcan las cartas bloqueadas con su requisito.
-- Persistencia en `localStorage`, tolerante a fallos: si un mazo guardado contiene cartas bloqueadas o datos corruptos, se vuelve al mazo inicial.
+- **Cartas iniciales (9)**: Onix, Pikachu, Charmander, Squirtle, Bulbasaur, Machop, Pidgey, Geodude y Rayo (el mazo usa 8). Snorlax, Jigglypuff, Ventisca, Gastly, Abra y Dratini salen de las Pokéballs.
+- **Monedas por partida**: 30 por ganar, 12 por empatar y 6 por perder, más 5 por medalla. Se empieza con 100.
+- **Pokéballs** (los cofres). Cada hueco puede ser una carta que aún no tienes (la primera copia la desbloquea):
+
+| Pokéball | Precio | Cartas distintas | Copias de cada una | Carta nueva | Sale evolucionada |
+|---|---|---|---|---|---|
+| Pokéball | 60 | 2 | 1–4 | 10 % | No |
+| Superball | 180 | 3 (Pokémon y hechizos) | 3–7 | 20 % | No |
+| Ultraball | 500 | 5 | 6–12 | 25 % | Fase 2: 8 % · fase 3: 1 % |
+| Master Ball | 1500 | 10 | 10–20 | 30 % | **Al menos una en fase 2 garantizada** · fase 2: 15 % · fase 3: 6 % |
+
+- **Carta evolucionada en una Pokéball**: si te sale Charmeleon o Charizard y tienes Charmander, tu carta sube directamente a esa fase y cambia en tu mazo.
+- **Repetidas → monedas**, por su valor equivalente:
+  - Las copias de una línea que ya está en su fase máxima (o que no evoluciona, como Snorlax) valen 5 monedas cada una.
+  - Una evolución que ya tenías vale lo que cuesta conseguirla: 325 monedas la fase 2 y 1525 la fase 3.
+- **Evolucionar**: desde la ficha de la carta. Fase 1→2: 15 copias y 250 monedas. Fase 2→3: 40 copias y 1000 monedas.
+- **Camino de trofeos**: cada premio se cobra una sola vez (perder trofeos y volver a subir no lo repite).
+
+| Trofeos | 20 | 50 | 75 | 100 | 150 | 200 | 250 | 300 | 350 | 400 | 450 | **500** | 600 | 700 | 750 | 800 | 900 | **1000** |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Premio | 100 🪙 | Poké | Super | Ultra | 250 🪙 | Ultra | Super | Ultra | 400 🪙 | Ultra | Super | **Master** | Ultra | Ultra | 1000 🪙 | Ultra | Ultra | **Master** |
+
+- **Rival con evoluciones**: cada carta del rival puede salir en fase 2 o 3. La probabilidad de fase 2 va del 6 % (0 trofeos) al 55 %, y la de fase 3 del 0 % al 12 %, según tus trofeos. Es determinista con la semilla de la partida.
+- **Interfaz**:
+  - El menú muestra las monedas y un aviso con las Pokéballs pendientes de abrir.
+  - Constructor de mazo como en Clash Royale: mazo arriba, colección abajo y cartas por descubrir con candado. Para cambiar una carta: «Usar» y después tocar la carta del mazo que sale. Cada carta tiene una barra de copias.
+  - Tienda con apertura animada (la Pokéball se agita, destella y muestra cada carta).
+  - Pantalla del camino de trofeos.
+- **Persistencia** en `localStorage` (`pokemon-arena:perfil`), tolerante a fallos. Las partidas guardadas de la versión anterior se migran:
+  - Los mazos con Charmeleon, Pidgeotto o Charizard pasan a su línea.
+  - Se conservan las cartas que ya se habían desbloqueado por trofeos.

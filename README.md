@@ -24,13 +24,14 @@ npm run dev          # abre http://localhost:5173 (herramientas: /referencia.htm
 
 - Compilación de producción: `npm run build` (genera `pokemon-arena/dist/`, servible como web estática; `npm run preview` la sirve en local).
 - Partida reproducible: añade `?seed=1234` a la URL. Vista 2D de respaldo: `?vista=2d` (se usa sola si no hay WebGL).
+- Se empieza con 9 cartas en su primera fase (Charmander, Squirtle, Bulbasaur…). Cada partida da monedas para comprar Pokéballs (Poké, Super, Ultra y Master) que dan copias, cartas nuevas y, en las mejores, Pokémon ya evolucionados. Con copias y monedas se evoluciona cada carta (Charmander → Charmeleon → Charizard). El camino de trofeos da premios, y el rival saca evoluciones más a menudo cuantos más trofeos tienes.
 - La batalla se dibuja en 3D con los Pokémon en estilo vóxel. En el constructor de mazo y en la colección, al tocar una carta se abre su ficha: vida, daño, daño por segundo, velocidad de ataque, velocidad, alcance, objetivos, habilidad y tipos.
 - Controles: toca o haz clic en una carta y después en el campo, o arrastra la carta. Teclas 1-4 para elegir carta y Esc para cancelar.
 
 ### Pruebas
 
 ```bash
-npm test             # 116 pruebas unitarias y de simulación
+npm test             # 127 pruebas unitarias y de simulación
 npm run typecheck
 npm run test:e2e     # navegador real: escritorio (ratón) y móvil (táctil) en 3D, y escritorio en 2D
 npm run simulate -- 50 normal   # partidas IA contra IA
@@ -56,12 +57,12 @@ npm run balance -- 600 normal   # informe de balance por carta
 | 5. Interfaz y efectos visuales | ✅ Prototipo: menú, batalla, resultados, mazo y colección con gráficos vectoriales originales |
 | 6. IA del oponente | ✅ Tres dificultades, sin información oculta |
 | 7. Balance, pruebas y optimización | ✅ Herramienta de balance por carta; todas las cartas entre 45 % y 55 % |
-| 8. Persistencia, progresión y pulido | ✅ Trofeos, rangos y desbloqueo de cartas (sin niveles de carta, a propósito); ajustes, mazo e historial guardados |
+| 8. Persistencia, progresión y pulido | ✅ Trofeos, rangos, camino de trofeos, monedas, Pokéballs y evoluciones (29-10-2026); ajustes, mazo, colección e historial guardados |
 
 ### Pendientes
 
 - **Balance:** el mazo por defecto del jugador gana ≈47–50 % (normal) y ≈33–43 % (difícil) frente al de la IA en IA contra IA. La IA usa poco los tanques y Ventisca. Falta probar con personas.
-- **Contenido:** solo hay 11 Pokémon y 2 hechizos, a propósito, para validar el sistema antes de ampliarlo. Faltan edificios.
+- **Contenido:** 13 líneas evolutivas (34 especies) y 2 hechizos con 3 niveles. Faltan edificios. Las cifras de la economía (precios, probabilidades, costes de evolución) son una primera propuesta y se ajustan en `persistence/economy.ts`.
 - **Gráficos:** la batalla jugable ya es 3D. Los 11 Pokémon tienen modelo vóxel y las torres dejan ruinas (hito F terminado). Las cartas y la ficha usan retratos vóxel. Faltan el marco definitivo de las cartas y el HUD (resto del hito G) y la optimización medida en móviles reales (hito H). También faltan música y accesibilidad (daltonismo, tamaño de texto).
 - **REA:** Node 22.22 está por debajo del mínimo (22.23.4) y el servidor MCP no está registrado en el agente (`npx rea-agents setup`). Ver `docs/analisis_mecanicas.md`.
 
