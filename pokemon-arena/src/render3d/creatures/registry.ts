@@ -2,15 +2,19 @@ import * as THREE from 'three';
 import { getCard } from '../../sim/data/cards';
 import { ELEMENT_COLORS } from '../../sim/data/elements';
 import { plasticMaterial } from '../palette';
+import { AbraRig } from './abra';
 import { BulbasaurRig } from './bulbasaur';
 import { CharizardRig } from './charizard';
 import { CharmeleonRig } from './charmeleon';
+import { DragoniteRig, DratiniRig } from './dratini';
+import { GastlyRig } from './gastly';
 import { GeodudeRig } from './geodude';
 import { JigglypuffRig } from './jigglypuff';
 import { MachopRig } from './machop';
 import { OnixRig } from './onix';
 import { PidgeottoRig } from './pidgeotto';
 import { PikachuRig } from './pikachu';
+import { RaichuRig } from './raichu';
 import { SnorlaxRig } from './snorlax';
 import { SquirtleRig } from './squirtle';
 import type { PoseInput } from './rig';
@@ -46,16 +50,39 @@ class PlaceholderRig extends CreatureRig {
 /** Modelos de producción disponibles. Añadir aquí cada Pokémon a medida que se termine. */
 const RIGS: Record<string, (style: CreatureStyle) => CreatureRig> = {
   pikachu: (style) => new PikachuRig(style === 'voxel'),
-  squirtle: () => new SquirtleRig(),
-  charmeleon: () => new CharmeleonRig(),
+  raichu: () => new RaichuRig(),
+  charmander: () => new CharmeleonRig('charmander'),
+  charmeleon: () => new CharmeleonRig('charmeleon'),
   charizard: () => new CharizardRig(),
-  machop: () => new MachopRig(),
+  squirtle: () => new SquirtleRig('squirtle'),
+  wartortle: () => new SquirtleRig('wartortle'),
+  blastoise: () => new SquirtleRig('blastoise'),
+  bulbasaur: () => new BulbasaurRig('bulbasaur'),
+  ivysaur: () => new BulbasaurRig('ivysaur'),
+  venusaur: () => new BulbasaurRig('venusaur'),
+  machop: () => new MachopRig('machop'),
+  machoke: () => new MachopRig('machoke'),
+  machamp: () => new MachopRig('machamp'),
+  pidgey: () => new PidgeottoRig('pidgey'),
+  pidgeotto: () => new PidgeottoRig('pidgeotto'),
+  pidgeot: () => new PidgeottoRig('pidgeot'),
+  geodude: () => new GeodudeRig('geodude'),
+  graveler: () => new GeodudeRig('graveler'),
+  golem: () => new GeodudeRig('golem'),
+  jigglypuff: () => new JigglypuffRig('jigglypuff'),
+  wigglytuff: () => new JigglypuffRig('wigglytuff'),
+  onix: () => new OnixRig('onix'),
+  steelix: () => new OnixRig('steelix'),
   snorlax: () => new SnorlaxRig(),
-  jigglypuff: () => new JigglypuffRig(),
-  bulbasaur: () => new BulbasaurRig(),
-  pidgeotto: () => new PidgeottoRig(),
-  geodude: () => new GeodudeRig(),
-  onix: () => new OnixRig(),
+  gastly: () => new GastlyRig('gastly'),
+  haunter: () => new GastlyRig('haunter'),
+  gengar: () => new GastlyRig('gengar'),
+  abra: () => new AbraRig('abra'),
+  kadabra: () => new AbraRig('kadabra'),
+  alakazam: () => new AbraRig('alakazam'),
+  dratini: () => new DratiniRig('dratini'),
+  dragonair: () => new DratiniRig('dragonair'),
+  dragonite: () => new DragoniteRig(),
 };
 
 /** Arista del cubo en el estilo vóxel (casillas, antes de la escala visual). */

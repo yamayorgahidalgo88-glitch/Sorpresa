@@ -23,12 +23,12 @@ engine.scene.add(ground);
 
 const ids = Object.values(CARDS).filter((c) => c.kind === 'pokemon').map((c) => c.id);
 const rigs: { id: string; rig: CreatureRig }[] = [];
-const cols = 4;
+const cols = 7;
 ids.forEach((id, i) => {
   const rig = createRig(id, style);
   const row = Math.floor(i / cols);
   const col = i % cols;
-  rig.root.position.set((col - (cols - 1) / 2) * 3.6 + (row % 2) * 1.2, 0, row * -4.6);
+  rig.root.position.set((col - (cols - 1) / 2) * 3.4 + (row % 2) * 1.2, 0, row * -4.4);
   rig.root.scale.setScalar(UNIT_SCALE);
   rig.root.rotation.y = -0.35;
   engine.scene.add(rig.root);
@@ -54,8 +54,8 @@ function resize(): void {
     engine.camera.position.set(0, h * 0.95, h * 2.6 + 1.5);
     engine.camera.lookAt(0, h * 0.5, 0);
   } else {
-    engine.camera.position.set(0, 13, 19);
-    engine.camera.lookAt(0, 1.2, -4.4);
+    engine.camera.position.set(0, 22, 18);
+    engine.camera.lookAt(0, 1.2, -8.5);
   }
   engine.camera.updateProjectionMatrix();
   engine.fitFog(60);

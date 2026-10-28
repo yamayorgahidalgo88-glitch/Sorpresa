@@ -3,41 +3,52 @@ import * as THREE from 'three';
 import { BipedRig, eyeMaterials } from './kit';
 
 /**
- * Jigglypuff (modelo original): bola rosa con mechón rizado, orejas puntiagudas y ojos
- * azules enormes. Avanza dando botes y se hincha al cantar. Altura base 1,44 (0,5 m reales).
+ * Jigglypuff y Wigglytuff (modelos originales):
+ * - Jigglypuff: bola rosa con mechón rizado, orejas puntiagudas y ojos azules enormes.
+ * - Wigglytuff: cuerpo de huevo alto con barriga blanca, orejas largas y mechón grande.
+ * Avanzan dando botes y se hinchan al cantar.
  */
 export class JigglypuffRig extends BipedRig {
-  readonly height = 1.2;
+  readonly height: number;
   private readonly earL: THREE.Group;
   private readonly earR: THREE.Group;
 
-  constructor() {
+  constructor(variant: 'jigglypuff' | 'wigglytuff' = 'jigglypuff') {
     super();
-    const pink = this.mat(0xf6a5c0);
+    const tall = variant === 'wigglytuff';
+    this.height = tall ? 1.75 : 1.2;
+    const pink = this.mat(tall ? 0xf3c9d2 : 0xf6a5c0);
+    const belly = this.mat(0xf6eef2);
     const inner = this.mat(0x4a2c40);
     const blue = this.mat(0x3fa6d8, { roughness: 0.2 });
     const dark = this.mat(0x7a2a4a);
     const { white } = eyeMaterials();
-    this.hopHeight = 0.3;
+    this.hopHeight = tall ? 0.16 : 0.3;
     this.cadence = 9;
 
-    this.blob(this.body, 0.46, [1, 0.98, 1], [0, 0.56, 0], pink);
+    const cy = tall ? 0.78 : 0.56;
+    this.blob(this.body, 0.46, tall ? [1, 1.45, 0.95] : [1, 0.98, 1], [0, cy, 0], pink);
+    if (tall) this.blob(this.body, 0.36, [0.95, 0.95, 0.6], [0, cy - 0.22, 0.2], belly, [0, 0, 0], 0);
+    const top = tall ? cy + 0.66 : cy + 0.44;
     // Mechón rizado
-    this.blob(this.body, 0.13, [1.1, 1, 0.8], [0, 1.0, 0.14], pink);
-    this.blob(this.body, 0.08, [1, 1, 1], [0.06, 1.04, 0.27], pink);
-    this.face(this.body, ['.WBB..WBB.', '.BBB..BBB.', '.BBB..BBB.', '..........', '....dd....'], { W: white, B: blue, d: dark }, 0.72);
-    this.setMouth(this.body, [0, 0.42, 0.46]);
+    this.blob(this.body, tall ? 0.17 : 0.13, [1.1, 1, 0.8], [0, top, 0.14], pink);
+    this.blob(this.body, tall ? 0.11 : 0.08, [1, 1, 1], [0.06, top + 0.04, 0.29], pink);
+    const eyes = ['.WBB..WBB.', '.BBB..BBB.', '.BBB..BBB.', '..........', '....dd....'];
+    this.face(this.body, eyes, { W: white, B: blue, d: dark }, tall ? cy + 0.56 : cy + 0.16);
+    this.setMouth(this.body, [0, tall ? cy + 0.1 : cy - 0.14, 0.46]);
     this.body.add(this.head); // sin cabeza separada: la bola es cabeza y cuerpo
 
-    this.earL = this.joint(this.body, [-0.28, 0.9, 0]);
-    this.earR = this.joint(this.body, [0.28, 0.9, 0]);
+    const earY = tall ? cy + 0.52 : cy + 0.34;
+    const earK = tall ? 1.5 : 1;
+    this.earL = this.joint(this.body, [-0.28, earY, 0]);
+    this.earR = this.joint(this.body, [0.28, earY, 0]);
     for (const [g, s] of [[this.earL, -1], [this.earR, 1]] as const) {
-      this.blob(g, 0.12, [0.85, 1.5, 0.5], [0.04 * s, 0.1, 0], pink, [0, 0, -0.5 * s]);
-      this.blob(g, 0.08, [0.8, 1.3, 0.4], [0.04 * s, 0.1, 0.04], inner, [0, 0, -0.5 * s], 0);
+      this.blob(g, 0.12 * earK, [0.85, 1.5, 0.5], [0.04 * s, 0.1 * earK, 0], pink, [0, 0, -0.5 * s]);
+      this.blob(g, 0.08 * earK, [0.8, 1.3, 0.4], [0.04 * s, 0.1 * earK, 0.04], inner, [0, 0, -0.5 * s], 0);
     }
-    this.armL = this.joint(this.body, [-0.44, 0.55, 0.08]);
-    this.armR = this.joint(this.body, [0.44, 0.55, 0.08]);
-    for (const g of [this.armL, this.armR]) this.blob(g, 0.08, [1, 0.8, 1], [0, 0, 0], pink);
+    this.armL = this.joint(this.body, [-0.44, cy, 0.08]);
+    this.armR = this.joint(this.body, [0.44, cy, 0.08]);
+    for (const g of [this.armL, this.armR]) this.blob(g, 0.08, [1, tall ? 1.3 : 0.8, 1], [0, 0, 0], pink);
     this.legL = this.joint(this.body, [-0.17, 0.12, 0.05]);
     this.legR = this.joint(this.body, [0.17, 0.12, 0.05]);
     for (const g of [this.legL, this.legR]) this.blob(g, 0.11, [0.9, 0.6, 1.3], [0, -0.04, 0.04], pink);

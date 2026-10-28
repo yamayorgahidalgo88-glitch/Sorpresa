@@ -26,6 +26,8 @@ const OUTLINE = new THREE.MeshBasicMaterial({ color: PAL.outline, side: THREE.Ba
 
 export abstract class CreatureRig {
   readonly root = new THREE.Group();
+  /** Escala propia de la especie (las evoluciones reutilizan la forma de su línea, más grandes). */
+  readonly size = new THREE.Group();
   /** Pivote del cuerpo (para inclinación y aplastamiento). */
   readonly body = new THREE.Group();
   /** Altura aproximada del modelo (para barras de vida y efectos). */
@@ -38,7 +40,8 @@ export abstract class CreatureRig {
   pixelFace?: { group: THREE.Object3D; rows: string[]; palette: Record<string, THREE.MeshStandardMaterial>; top: number };
 
   constructor() {
-    this.root.add(this.body);
+    this.root.add(this.size);
+    this.size.add(this.body);
   }
 
   /** Añade una malla con contorno opcional y la registra para destellos/transparencia. */
