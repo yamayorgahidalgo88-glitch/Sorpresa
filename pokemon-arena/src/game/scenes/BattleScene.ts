@@ -35,6 +35,7 @@ import { FieldRenderer } from '../render/fieldRenderer';
 import { TowerView, UnitView } from '../render/views';
 import { COLORS, css, textStyle } from '../theme';
 import { CardWidget } from '../ui/widgets';
+import { icon, iconKey } from '../ui/icons';
 
 export interface BattleSceneData {
   difficulty: Difficulty;
@@ -72,7 +73,7 @@ export class BattleScene extends Phaser.Scene {
   private energyText!: Phaser.GameObjects.Text;
   private timerText!: Phaser.GameObjects.Text;
   private phaseText!: Phaser.GameObjects.Text;
-  private medalsGfx!: Phaser.GameObjects.Graphics;
+  private crowns: [Phaser.GameObjects.Image[], Phaser.GameObjects.Image[]] = [[], []];
   private ghost!: Phaser.GameObjects.Graphics;
   private toastText!: Phaser.GameObjects.Text;
   private toastTween: Phaser.Tweens.Tween | null = null;
@@ -93,6 +94,7 @@ export class BattleScene extends Phaser.Scene {
     this.acc = 0;
     this.ending = false;
     this.cards = [];
+    this.crowns = [[], []];
     this.lastEnergyKey = -1;
     this.lastMedalsKey = '';
     this.lastFrame = 0;
@@ -190,34 +192,51 @@ export class BattleScene extends Phaser.Scene {
   // ------------------------------------------------------------------ HUD
 
   private buildHud(): void {
+    // Marcador superior: rival a la izquierda, cronómetro en cápsula, jugador a la derecha
     const top = this.add.graphics().setDepth(190);
-    top.fillStyle(COLORS.panel, 1).fillRect(0, 0, GAME_W, FIELD_Y - 10);
-    top.fillStyle(0x000000, 0.25).fillRect(0, FIELD_Y - 12, GAME_W, 2);
-    this.add.text(20, 14, 'RIVAL', textStyle(14, css(COLORS.team[1]))).setDepth(195);
-    this.add.text(GAME_W - 20, 14, 'TÚ', textStyle(14, css(COLORS.team[0]))).setOrigin(1, 0).setDepth(195);
-    this.medalsGfx = this.add.graphics().setDepth(195);
-    this.timerText = this.add.text(GAME_W / 2, 6, '3:00', textStyle(28)).setOrigin(0.5, 0).setDepth(195);
-    this.phaseText = this.add.text(GAME_W / 2, 38, '', textStyle(12, css(COLORS.gold))).setOrigin(0.5, 0).setDepth(195);
+    const th = FIELD_Y - 10;
+    top.fillGradientStyle(0x26386a, 0x26386a, 0x141d3c, 0x141d3c, 1).fillRect(0, 0, GAME_W, th);
+    top.fillStyle(0x0b1022, 1).fillRect(0, th - 3, GAME_W, 3);
+    top.fillStyle(0xffffff, 0.08).fillRect(0, 0, GAME_W, 3);
+    top.fillStyle(0x0b1022, 1).fillRoundedRect(GAME_W / 2 - 66, 4, 132, th - 4, 14);
+    top.lineStyle(3, COLORS.gold, 1).strokeRoundedRect(GAME_W / 2 - 66, 4, 132, th - 4, 14);
+    this.add.text(16, 8, 'RIVAL', textStyle(15, css(COLORS.team[1]))).setDepth(195);
+    this.add.text(GAME_W - 16, 8, 'TÚ', textStyle(15, css(COLORS.team[0]))).setOrigin(1, 0).setDepth(195);
+    for (let i = 0; i < 3; i++) {
+      this.crowns[1].push(icon(this, 30 + i * 30, 38, 'medalla-vacia', 26).setDepth(195));
+      this.crowns[0].push(icon(this, GAME_W - 30 - i * 30, 38, 'medalla-vacia', 26).setDepth(195));
+    }
+    this.timerText = this.add.text(GAME_W / 2, th / 2 + 1, '3:00', textStyle(30)).setOrigin(0.5).setDepth(195);
+    this.phaseText = this.add.text(GAME_W / 2, th + 14, '', textStyle(16, css(COLORS.gold))).setOrigin(0.5, 0).setDepth(195);
 
+    // Salir: botón redondo con icono
+    const exit = this.add.container(GAME_W / 2 + 120, th / 2 + 2).setDepth(196);
+    const eg = this.add.graphics();
+    eg.fillStyle(0x0b1022, 1).fillCircle(0, 2, 17);
+    eg.fillStyle(0x3a4a80, 1).fillCircle(0, 0, 16);
+    exit.add([eg, icon(this, 0, 0, 'cerrar', 16)]);
+    exit.setSize(40, 40).setInteractive({ useHandCursor: true });
+    exit.on('pointerup', () => this.scene.start('menu'));
+
+    // Panel inferior: cartas, siguiente y energía
     const bottom = this.add.graphics().setDepth(190);
-    bottom.fillStyle(COLORS.panel, 1).fillRect(0, HUD_Y, GAME_W, GAME_H - HUD_Y);
-    bottom.fillStyle(0x000000, 0.3).fillRect(0, HUD_Y, GAME_W, 3);
+    bottom.fillGradientStyle(0x22325f, 0x22325f, 0x0f1630, 0x0f1630, 1).fillRect(0, HUD_Y, GAME_W, GAME_H - HUD_Y);
+    bottom.fillStyle(0x0b1022, 1).fillRect(0, HUD_Y, GAME_W, 4);
+    bottom.fillStyle(0x4a5c9a, 1).fillRect(0, HUD_Y + 4, GAME_W, 2);
+    bottom.fillStyle(0x0b1022, 0.45).fillRoundedRect(10, HAND_Y + 22, NEXT_W + 12, 116, 12);
 
-    this.add.text(16 + NEXT_W / 2, HAND_Y + 6, 'Siguiente', textStyle(13, '#c9d4f5')).setOrigin(0.5, 0).setDepth(201);
-    this.nextCard = new CardWidget(this, 16, HAND_Y + 28, NEXT_W, 106, true);
+    this.add.text(16 + NEXT_W / 2, HAND_Y + 4, 'Siguiente', textStyle(14, '#c9d4f5')).setOrigin(0.5, 0).setDepth(201);
+    this.nextCard = new CardWidget(this, 16, HAND_Y + 28, NEXT_W, 104, true);
     for (let i = 0; i < 4; i++) {
       const r = cardSlotRect(i);
       this.cards.push(new CardWidget(this, r.x, r.y, CARD_W, CARD_H));
     }
 
     this.energyBar = this.add.graphics().setDepth(201);
-    this.energyText = this.add.text(16 + NEXT_W / 2, ENERGY_Y + 17, '5', textStyle(24)).setOrigin(0.5).setDepth(203);
+    icon(this, 16 + NEXT_W / 2, ENERGY_Y + 15, 'energia', 54).setDepth(202);
+    this.energyText = this.add.text(16 + NEXT_W / 2, ENERGY_Y + 19, '5', textStyle(26)).setOrigin(0.5).setDepth(203);
 
-    this.toastText = this.add.text(GAME_W / 2, HUD_Y - 40, '', textStyle(20)).setOrigin(0.5).setDepth(400).setAlpha(0);
-
-    // Botón para abandonar
-    const exit = this.add.text(GAME_W / 2 + 120, 12, '✕ Salir', textStyle(14, '#c9d4f5')).setDepth(196).setInteractive({ useHandCursor: true });
-    exit.on('pointerup', () => this.scene.start('menu'));
+    this.toastText = this.add.text(GAME_W / 2, HUD_Y - 40, '', textStyle(22)).setOrigin(0.5).setDepth(400).setAlpha(0);
   }
 
   private renderHud(): void {
@@ -254,35 +273,27 @@ export class BattleScene extends Phaser.Scene {
     const g = this.energyBar;
     const x0 = 16 + NEXT_W + 12;
     const w = GAME_W - 16 - x0;
-    const h = 30;
+    const h = 32;
+    const y = ENERGY_Y + 1;
+    const fw = Math.max(0, (w - 8) * (energy / 10));
     g.clear();
-    g.fillStyle(COLORS.energyDark, 1).fillCircle(16 + NEXT_W / 2, ENERGY_Y + 17, 22);
-    g.fillStyle(COLORS.energy, 1).fillCircle(16 + NEXT_W / 2, ENERGY_Y + 17, 18);
-    g.fillStyle(0x0b1022, 1).fillRoundedRect(x0, ENERGY_Y + 2, w, h, 10);
-    g.fillStyle(COLORS.energy, 1).fillRoundedRect(x0 + 3, ENERGY_Y + 5, Math.max(0, (w - 6) * (energy / 10)), h - 6, 8);
-    g.fillStyle(0xffffff, 0.18).fillRect(x0 + 3, ENERGY_Y + 6, Math.max(0, (w - 6) * (energy / 10)), 6);
-    g.lineStyle(2, 0x0b1022, 0.8);
-    for (let i = 1; i < 10; i++) {
-      const sx = x0 + (w * i) / 10;
-      g.lineBetween(sx, ENERGY_Y + 4, sx, ENERGY_Y + h);
+    g.fillStyle(0x05080f, 1).fillRoundedRect(x0, y, w, h, 12);
+    g.fillStyle(0x1c1240, 1).fillRoundedRect(x0 + 3, y + 3, w - 6, h - 6, 10);
+    if (fw > 0) {
+      g.fillGradientStyle(0xf07af0, 0xf07af0, 0xa82fb8, 0xa82fb8, 1).fillRoundedRect(x0 + 4, y + 4, fw, h - 8, 9);
+      g.fillStyle(0xffffff, 0.3).fillRoundedRect(x0 + 8, y + 6, Math.max(0, fw - 8), 5, 3);
     }
+    // Divisiones de cada punto de energía
+    g.fillStyle(0x05080f, 0.85);
+    for (let i = 1; i < 10; i++) g.fillRect(x0 + 4 + ((w - 8) * i) / 10 - 1.5, y + 4, 3, h - 8);
   }
 
   private drawMedals(): void {
     const b = this.battle;
-    const m = this.medalsGfx;
-    m.clear();
-    const drawMedals = (team: Team, x: number, dir: number) => {
+    for (const team of [0, 1] as Team[]) {
       const count = b.medals(team);
-      for (let i = 0; i < 3; i++) {
-        const cx = x + dir * i * 26;
-        m.fillStyle(0x0b1022, 1).fillCircle(cx, 44, 11);
-        m.fillStyle(i < count ? COLORS.gold : 0x3a4670, 1).fillCircle(cx, 44, 9);
-        if (i < count) m.lineStyle(2, COLORS.team[team], 1).strokeCircle(cx, 44, 10);
-      }
-    };
-    drawMedals(1, 30, 1);
-    drawMedals(0, GAME_W - 30, -1);
+      this.crowns[team].forEach((img, i) => img.setTexture(iconKey(this, i < count ? 'medalla' : 'medalla-vacia')).setDisplaySize(26, 26));
+    }
   }
 
   private toast(text: string, color = '#ffffff', ms = 1100): void {

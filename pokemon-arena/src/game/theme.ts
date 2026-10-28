@@ -24,7 +24,9 @@ export const COLORS = {
   teamDark: [0x1d4ea8, 0xa52a1f] as const,
 };
 
-export const FONT = '"Trebuchet MS", "Segoe UI", Verdana, sans-serif';
+/** Tipografías del juego (SIL OFL 1.1, paquetes @fontsource): títulos y cifras / texto corrido. */
+export const FONT = '"Lilita One", "Trebuchet MS", sans-serif';
+export const BODY_FONT = '"Nunito", "Segoe UI", Verdana, sans-serif';
 
 export function teamColor(team: Team): number {
   return COLORS.team[team];
@@ -45,10 +47,14 @@ export function textStyle(size: number, color = '#ffffff', extra: Phaser.Types.G
   return {
     fontFamily: FONT,
     fontSize: `${size}px`,
-    fontStyle: 'bold',
     color,
     stroke: '#0b1022',
     strokeThickness: Math.max(2, Math.round(size / 7)),
     ...extra,
   };
+}
+
+/** Texto corrido (descripciones, ayudas): Nunito en negrita, más legible en tamaños pequeños. */
+export function bodyStyle(size: number, color = '#dfe7ff', extra: Phaser.Types.GameObjects.Text.TextStyle = {}): Phaser.Types.GameObjects.Text.TextStyle {
+  return { fontFamily: BODY_FONT, fontSize: `${size}px`, fontStyle: '800', color, stroke: '#0b1022', strokeThickness: Math.max(1, Math.round(size / 9)), ...extra };
 }

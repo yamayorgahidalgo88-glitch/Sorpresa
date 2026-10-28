@@ -4,6 +4,7 @@ import type { BattleResult } from '../../sim/core/state';
 import { recordResult } from '../../persistence/settings';
 import { rankOf } from '../../persistence/progression';
 import { GAME_H, GAME_W } from '../layout';
+import { icon, iconLabel } from '../ui/icons';
 import { COLORS, css, textStyle } from '../theme';
 import { makeButton } from '../ui/widgets';
 
@@ -48,13 +49,9 @@ export class ResultScene extends Phaser.Scene {
     this.add.text(GAME_W / 2, 490, REASONS[r.reason], textStyle(20, '#dfe7ff')).setOrigin(0.5);
 
     // Medallas
-    const g = this.add.graphics();
     const row = (label: string, count: number, y: number, team: 0 | 1) => {
       this.add.text(150, y, label, textStyle(22, css(COLORS.team[team]))).setOrigin(0, 0.5);
-      for (let i = 0; i < 3; i++) {
-        g.fillStyle(0x0b1022, 1).fillCircle(420 + i * 54, y, 21);
-        g.fillStyle(i < count ? COLORS.gold : 0x3a4670, 1).fillCircle(420 + i * 54, y, 17);
-      }
+      for (let i = 0; i < 3; i++) icon(this, 420 + i * 58, y, i < count ? 'medalla' : 'medalla-vacia', 46);
     };
     row('Tú', r.medals[0], 570, 0);
     row('Rival', r.medals[1], 630, 1);
@@ -71,7 +68,8 @@ export class ResultScene extends Phaser.Scene {
     const rank = rankOf(progress.after);
     const sign = progress.delta > 0 ? '+' : '';
     const trophyColor = progress.delta > 0 ? css(COLORS.gold) : progress.delta < 0 ? css(COLORS.danger) : '#c9d4f5';
-    this.add.text(GAME_W / 2, 818, `🏆 ${sign}${progress.delta} trofeos · Total ${progress.after} · ${rank.name}   🪙 +${coins}`, textStyle(20, trophyColor)).setOrigin(0.5);
+    iconLabel(this, GAME_W / 2 - 60, 818, 'trofeo', `${sign}${progress.delta} · Total ${progress.after} · ${rank.name}`, 21, trophyColor, 0.5);
+    iconLabel(this, GAME_W - 150, 818, 'moneda', `+${coins}`, 21, '#ffe27a', 0);
     const news: string[] = [];
     if (progress.rankUp) news.push(`¡Nuevo rango: ${progress.rankUp}!`);
     const prize = { poke: 'Pokéball', super: 'Superball', ultra: 'Ultraball', master: 'Master Ball' };

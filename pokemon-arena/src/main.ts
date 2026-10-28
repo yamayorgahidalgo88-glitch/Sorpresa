@@ -1,3 +1,5 @@
+import '@fontsource/lilita-one';
+import '@fontsource/nunito/800.css';
 import Phaser from 'phaser';
 import { GAME_H, GAME_W } from './game/layout';
 import { COLORS } from './game/theme';
@@ -7,6 +9,9 @@ import { OpenBallScene, ShopScene, TrophyRoadScene } from './game/scenes/ShopSce
 import { CARDS } from './sim/data/cards';
 import { MenuScene } from './game/scenes/MenuScene';
 import { ResultScene } from './game/scenes/ResultScene';
+
+// Las tipografías deben estar cargadas antes de que Phaser rasterice el primer texto.
+await Promise.all([document.fonts.load('32px "Lilita One"'), document.fonts.load('800 16px "Nunito"')]).catch(() => undefined);
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,

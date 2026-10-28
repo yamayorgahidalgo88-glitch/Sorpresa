@@ -7,7 +7,8 @@ import { loadProfile, loadStats, saveProfile } from '../../persistence/settings'
 import { play } from '../audio/sfx';
 import { GAME_H, GAME_W } from '../layout';
 import { drawPokeball } from '../render/pokeball';
-import { COLORS, css, textStyle } from '../theme';
+import { iconLabel } from '../ui/icons';
+import { COLORS, bodyStyle, css, textStyle } from '../theme';
 import { CardWidget, makeButton } from '../ui/widgets';
 
 function ballSummary(kind: BallKind): string {
@@ -33,8 +34,8 @@ export class ShopScene extends Phaser.Scene {
     this.profile = loadProfile();
     this.cameras.main.setBackgroundColor(COLORS.bg);
     this.add.text(30, 26, 'Tienda de Pokéballs', textStyle(36, css(COLORS.gold)));
-    this.add.text(GAME_W - 30, 34, `🪙 ${this.profile.coins}`, textStyle(26, '#ffe27a')).setOrigin(1, 0);
-    this.add.text(30, 80, 'Gana monedas en cada partida (más si ganas y derribas torres).', textStyle(16, '#c9d4f5'));
+    iconLabel(this, GAME_W - 30, 48, 'moneda', String(this.profile.coins), 26, '#ffe27a', 1);
+    this.add.text(30, 82, 'Gana monedas en cada partida (más si ganas y derribas torres).', bodyStyle(17, '#c9d4f5'));
 
     BALL_ORDER.forEach((kind, i) => {
       const y = 130 + i * 270;
@@ -44,10 +45,10 @@ export class ShopScene extends Phaser.Scene {
       g.lineStyle(3, kind === 'master' ? 0xb06ae8 : COLORS.panelLight, 1).strokeRoundedRect(20, y, GAME_W - 40, 250, 22);
       drawPokeball(g, kind, 120, y + 110, 66);
       this.add.text(220, y + 22, def.name, textStyle(32));
-      this.add.text(220, y + 68, ballSummary(kind), textStyle(16, '#dfe7ff', { wordWrap: { width: GAME_W - 270 }, lineSpacing: 4 }));
+      this.add.text(220, y + 68, ballSummary(kind), bodyStyle(17, '#dfe7ff', { wordWrap: { width: GAME_W - 270 }, lineSpacing: 2 }));
       const owned = this.profile.balls[kind];
       const affordable = this.profile.coins >= def.price;
-      const buy = makeButton(this, owned > 0 ? 340 : 470, y + 205, 240, 62, `${def.price} 🪙`, () => this.buy(kind), affordable ? COLORS.gold : 0x5a6488);
+      const buy = makeButton(this, owned > 0 ? 340 : 470, y + 205, 240, 62, `${def.price}`, () => this.buy(kind), affordable ? COLORS.gold : 0x5a6488, 'moneda');
       buy.setData('ball', kind);
       if (owned > 0) {
         const open = makeButton(this, 590, y + 205, 190, 62, `Abrir (${owned})`, () => this.open(kind), COLORS.ok);
@@ -161,7 +162,7 @@ export class OpenBallScene extends Phaser.Scene {
     const lines: [string, string][] = [[`x${d.copies}`, '#ffffff']];
     if (d.isNew) lines.unshift(['¡NUEVA CARTA!', css(COLORS.ok)]);
     if (d.upgradedTo) lines.push([`¡Tu carta pasa a ${card.name}!`, css(COLORS.gold)]);
-    if (d.coins > 0) lines.push([`Repetida: +${d.coins} 🪙`, '#ffe27a']);
+    if (d.coins > 0) lines.push([`Repetida: +${d.coins} monedas`, '#ffe27a']);
     lines.forEach(([t, c], i) => this.stageObjs.push(this.add.text(GAME_W / 2, GAME_H * 0.42 + 140 + i * 48, t, textStyle(i === 0 && d.isNew ? 36 : 30, c)).setOrigin(0.5)));
     this.stageObjs.push(this.add.text(GAME_W / 2, GAME_H - 140, `${this.index + 1}/${drops.length} · Toca para continuar`, textStyle(18, '#c9d4f5')).setOrigin(0.5));
     play(d.isNew || d.upgradedTo ? 'eficaz' : 'seleccion');
@@ -176,11 +177,11 @@ export class OpenBallScene extends Phaser.Scene {
     const coins = drops.reduce((s, d) => s + d.coins, 0);
     drops.forEach((d, i) => {
       const card = getCard(d.cardId);
-      const tags = [d.isNew ? 'NUEVA' : '', d.upgradedTo ? `→ ${card.name}` : '', d.coins ? `+${d.coins} 🪙` : ''].filter(Boolean).join(' · ');
+      const tags = [d.isNew ? 'NUEVA' : '', d.upgradedTo ? `→ ${card.name}` : '', d.coins ? `+${d.coins} monedas` : ''].filter(Boolean).join(' · ');
       this.add.text(90, 280 + i * 78, `${card.name}  x${d.copies}`, textStyle(24));
       this.add.text(90, 312 + i * 78, tags || ' ', textStyle(16, d.isNew ? css(COLORS.ok) : '#ffe27a'));
     });
-    if (coins > 0) this.add.text(GAME_W / 2, 1110, `Monedas por repetidas: +${coins} 🪙`, textStyle(20, '#ffe27a')).setOrigin(0.5);
+    if (coins > 0) this.add.text(GAME_W / 2, 1110, `Monedas por repetidas: +${coins}`, textStyle(20, '#ffe27a')).setOrigin(0.5);
     makeButton(this, GAME_W / 2, GAME_H - 140, 380, 76, 'Continuar', () => this.scene.start(this.data_.back));
   }
 }
@@ -196,7 +197,7 @@ export class TrophyRoadScene extends Phaser.Scene {
     const profile = loadProfile();
     this.cameras.main.setBackgroundColor(COLORS.bg);
     this.add.text(30, 26, 'Camino de trofeos', textStyle(36, css(COLORS.gold)));
-    this.add.text(GAME_W - 30, 34, `🏆 ${trophies}`, textStyle(26, '#ffe27a')).setOrigin(1, 0);
+    iconLabel(this, GAME_W - 30, 48, 'trofeo', String(trophies), 26, '#ffe27a', 1);
     this.add.text(30, 80, 'Al llegar a cada hito recibes su premio (una sola vez). Las Pokéballs se abren en la Tienda.', textStyle(15, '#c9d4f5', { wordWrap: { width: GAME_W - 60 } }));
     const rowH = 60;
     const top = 140;
@@ -209,11 +210,11 @@ export class TrophyRoadScene extends Phaser.Scene {
       const g = this.add.graphics();
       g.fillStyle(reached ? COLORS.gold : 0x3a4670, 1).fillCircle(80, y, 14);
       g.fillStyle(reached ? COLORS.panelLight : COLORS.panel, 1).fillRoundedRect(120, y - 25, GAME_W - 150, 50, 14);
-      this.add.text(140, y, `${r.trophies} 🏆`, textStyle(20, reached ? '#ffe27a' : '#8e9bc4')).setOrigin(0, 0.5);
+      iconLabel(this, 140, y, 'trofeo', String(r.trophies), 20, reached ? '#ffe27a' : '#8e9bc4', 0);
       if (r.ball) drawPokeball(g, r.ball, 300, y, 18);
       const label = r.ball ? BALLS[r.ball].name : `${r.coins} monedas`;
       this.add.text(r.ball ? 330 : 290, y, label, textStyle(20, reached ? '#ffffff' : '#aab4d8')).setOrigin(0, 0.5);
-      this.add.text(GAME_W - 46, y, claimed ? '✔ Cobrado' : reached ? 'Listo' : '', textStyle(16, css(COLORS.ok))).setOrigin(1, 0.5);
+      if (claimed) iconLabel(this, GAME_W - 46, y, 'check', 'Cobrado', 17, css(COLORS.ok), 1);
     });
     makeButton(this, GAME_W / 2, GAME_H - 70, 380, 70, 'Volver', () => this.scene.start('menu'), COLORS.panelLight);
   }

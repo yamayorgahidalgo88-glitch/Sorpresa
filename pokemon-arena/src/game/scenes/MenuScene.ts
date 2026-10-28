@@ -9,6 +9,7 @@ import { setMuted, unlockAudio } from '../audio/sfx';
 import { GAME_H, GAME_W } from '../layout';
 import { creatureTexture } from '../render/creatureArt';
 import { portraitKey } from '../render/portraits';
+import { iconLabel } from '../ui/icons';
 import { COLORS, css, textStyle } from '../theme';
 import { makeButton } from '../ui/widgets';
 
@@ -72,7 +73,7 @@ export class MenuScene extends Phaser.Scene {
       this.tweens.add({ targets: [badge, bg], scale: 1.15, yoyo: true, repeat: -1, duration: 500 });
     }
     makeButton(this, GAME_W / 2 - 112, 880, 216, 60, 'Trofeos', () => this.scene.start('camino'), 0xf2782f);
-    this.add.text(GAME_W - 24, 20, `🪙 ${profile.coins}`, textStyle(26, '#ffe27a')).setOrigin(1, 0);
+    iconLabel(this, GAME_W - 24, 36, 'moneda', String(profile.coins), 26, '#ffe27a', 1);
 
     const soundBtn = makeButton(this, GAME_W / 2 + 112, 880, 216, 60, this.soundLabel(), () => {
       this.settings.muted = !this.settings.muted;
@@ -88,7 +89,7 @@ export class MenuScene extends Phaser.Scene {
     const s = loadStats();
     const rank = rankOf(s.trophies);
     const next = TROPHY_ROAD.find((r) => r.trophies > s.trophies);
-    this.add.text(GAME_W / 2, 470, `🏆 ${s.trophies} trofeos · ${rank.name}`, textStyle(22, css(COLORS.gold))).setOrigin(0.5);
+    iconLabel(this, GAME_W / 2, 470, 'trofeo', `${s.trophies} trofeos · ${rank.name}`, 24, css(COLORS.gold), 0.5);
     this.add.text(GAME_W / 2, 1100, `Victorias ${s.wins} · Derrotas ${s.losses} · Empates ${s.draws}`, textStyle(17, '#c9d4f5')).setOrigin(0.5);
     if (next) {
       this.add

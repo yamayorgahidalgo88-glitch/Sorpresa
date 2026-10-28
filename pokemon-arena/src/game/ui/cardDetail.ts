@@ -6,8 +6,9 @@ import type { Element } from '../../sim/data/elements';
 import { GAME_H, GAME_W } from '../layout';
 import { bake, drawCreature, drawSpellIcon } from '../render/creatureArt';
 import { portraitKey } from '../render/portraits';
-import { COLORS, css, darken, textStyle } from '../theme';
+import { COLORS, bodyStyle, css, darken, textStyle } from '../theme';
 import { makeButton } from './widgets';
+import type { IconName } from './icons';
 
 /** Una casilla de la ficha: etiqueta y valor, como en los juegos de cartas de estrategia. */
 export interface StatTile {
@@ -90,6 +91,7 @@ export function matchups(card: PokemonCard): { weak: Element[]; resist: Element[
 export interface CardDetailAction {
   label: string;
   color?: number;
+  icon?: IconName;
   onClick: () => void;
 }
 
@@ -123,13 +125,13 @@ export class CardDetail {
     const tiles = cardStatTiles(card);
     const lines: string[] = [];
     if (card.kind === 'pokemon') {
-      if (card.ability) lines.push(`✦ Habilidad: ${abilityText(card.ability)}`);
+      if (card.ability) lines.push(`Habilidad: ${abilityText(card.ability)}`);
       const m = matchups(card);
       lines.push(`Débil a: ${m.weak.map((e) => ELEMENT_NAMES[e]).join(', ') || '—'}`);
       lines.push(`Resiste: ${m.resist.map((e) => ELEMENT_NAMES[e]).join(', ') || '—'}`);
     }
     if (opts.notes) lines.push(...opts.notes);
-    if (opts.locked) lines.push(`🔒 ${opts.locked}`);
+    if (opts.locked) lines.push(`Bloqueada: ${opts.locked}`);
     const th = 70;
     const tilesH = Math.ceil(tiles.length / 2) * (th + 10);
     // Las líneas largas (habilidad) ocupan dos renglones
@@ -181,7 +183,7 @@ export class CardDetail {
     }
     c.add(scene.add.text(hx, py + 160, ROLE_NAMES[card.role] + (card.kind === 'hechizo' ? '' : card.locomotion === 'aire' ? ' · Volador' : ' · Terrestre'), textStyle(20, css(0xffe9a8))));
     c.add(
-      scene.add.text(hx, py + 200, card.description, textStyle(17, '#dfe7ff', { wordWrap: { width: px + pw - hx - 24 }, lineSpacing: 4 })),
+      scene.add.text(hx, py + 200, card.description, bodyStyle(18, '#dfe7ff', { wordWrap: { width: px + pw - hx - 24 }, lineSpacing: 2 })),
     );
 
     // Casillas de estadísticas (2 columnas)
@@ -197,21 +199,21 @@ export class CardDetail {
       g.fillStyle(COLORS.panelLight, 1).fillRoundedRect(x, ty, gw, th, 14);
       g.fillStyle(0xffffff, 0.06).fillRoundedRect(x + 4, ty + 4, gw - 8, 22, 10);
       c.add(g);
-      c.add(scene.add.text(x + 16, ty + 10, t.label, textStyle(15, '#a9b8e6')));
+      c.add(scene.add.text(x + 16, ty + 8, t.label, bodyStyle(16, '#a9b8e6')));
       c.add(scene.add.text(x + 16, ty + 34, t.value, textStyle(23)));
     });
     y += tilesH + 8;
 
     // Habilidad y tabla de tipos
     if (lines.length) {
-      c.add(scene.add.text(gx + 4, y, lines.join('\n'), textStyle(17, '#ffffff', { wordWrap: { width: pw - 52 }, lineSpacing: 8 })));
+      c.add(scene.add.text(gx + 4, y, lines.join('\n'), bodyStyle(18, '#ffffff', { wordWrap: { width: pw - 52 }, lineSpacing: 6 })));
     }
 
     // Acciones
     const actions: CardDetailAction[] = [...(opts.actions ?? []), { label: 'Cerrar', color: COLORS.panelLight, onClick: close }];
     const bw = (pw - 44 - (actions.length - 1) * 16) / actions.length;
     actions.forEach((a, i) => {
-      const b = makeButton(scene, gx + bw / 2 + i * (bw + 16), py + ph - 62, bw, 76, a.label, a.onClick, a.color);
+      const b = makeButton(scene, gx + bw / 2 + i * (bw + 16), py + ph - 62, bw, 76, a.label, a.onClick, a.color, a.icon);
       b.setDepth(1001);
       c.add(b);
     });

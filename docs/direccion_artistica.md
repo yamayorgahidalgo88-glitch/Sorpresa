@@ -222,8 +222,10 @@ Los diez Pokémon nuevos siguen las mismas reglas que Pikachu: primitivas → v�
 | Modelos 3D (arena, puentes, torres y ruinas, los 11 Pokémon, árboles, rocas) | **Originales**, construidos con geometría de Three.js en código (`src/render3d/`) | Del proyecto |
 | Texturas (piedra, madera, tejas, césped, partículas) | **Originales**, procedurales en `<canvas>` | Del proyecto |
 | Three.js 0.186.1 | npm `three` | MIT |
-| Tipografía *Lilita One* | npm `@fontsource/lilita-one` 5.3.0 | SIL OFL 1.1 |
-| Tipografía *Nunito* | npm `@fontsource/nunito` 5.3.0 | SIL OFL 1.1 |
+| Tipografía *Lilita One* (títulos y cifras del juego) | npm `@fontsource/lilita-one` 5.3.0 | SIL OFL 1.1 |
+| Tipografía *Nunito* 800 (texto corrido del juego) | npm `@fontsource/nunito` 5.3.0 | SIL OFL 1.1 |
+| Iconos de la interfaz (moneda, trofeo, energía, corona, candado, estrella) | **Originales**, dibujados con primitivas en `game/ui/icons.ts` | Del proyecto |
+| Pokéballs de la tienda | **Originales**, dibujadas con primitivas en `game/render/pokeball.ts` | Del proyecto |
 | Datos de referencia (tipos, alturas, colores) | PokéAPI v2 (catálogo *public-apis*), `scripts/pokeapi_datos.mjs` → `docs/datos_pokeapi.json` | Datos de PokéAPI; **no se usan sus sprites** (son recursos de juegos comerciales) |
 
 **Sobre los modelos, con honestidad:** son mallas 3D reales (geometría, normales y materiales PBR) **construidas por código**. No proceden de una herramienta de modelado ni tienen esqueleto con *skinning*: cada personaje es una jerarquía de piezas rígidas animadas proceduralmente. Es adecuado para personajes *chibi* de piezas redondeadas. Un acabado con deformación de malla requeriría:
@@ -241,6 +243,24 @@ No hay ninguna herramienta de ese tipo disponible en este entorno. `creatures/re
 
 ---
 
+## 12. Cartas e interfaz (hito G, 29-10-2026)
+
+- **Tipografías:** *Lilita One* en títulos, cifras, botones y nombres, y *Nunito* (800) en el texto corrido: descripciones, resúmenes y fichas. Ambas son SIL OFL 1.1 y se cargan antes de arrancar Phaser, para que ningún texto se rasterice con la fuente de reserva.
+- **Iconos propios** (`game/ui/icons.ts`), dibujados con primitivas y rasterizados una vez: moneda, trofeo, gota de energía, corona (medalla) llena y vacía, candado, estrella llena y vacía, confirmación y cerrar. **Se eliminan todos los emojis** de la interfaz, porque cambian de aspecto en cada sistema.
+- **Marco de carta** (`CardWidget`):
+  - **Retrato:** vóxel a sangre sobre una ventana con degradado y halo del color del tipo.
+  - **Marco por fase:** plata en fase 1, oro en fase 2 y morado épico en fase 3; los hechizos usan el mismo esquema por nivel.
+  - **Indicadores:** gota de energía con el coste arriba a la izquierda, puntos de tipo arriba a la derecha, cinta oscura con el nombre (ajustado al ancho) y estrellas de fase sobre la cinta.
+  - Debajo, en el mazo, la barra de copias para evolucionar.
+- **HUD de batalla:**
+  - **Marcador:** degradado azul, con «RIVAL» y «TÚ» en los colores de equipo y tres coronas por bando que se llenan al derribar torres.
+  - **Cronómetro:** en una cápsula con borde dorado; al lado, un botón redondo para salir.
+  - **Panel inferior:** degradado con filo de luz, carta «Siguiente» en su hueco y barra de energía rosa con 10 divisiones, brillo y gota con la cifra.
+- **Resto de pantallas:**
+  - Coronas en los resultados.
+  - Monedas y trofeos con su icono en el menú, el mazo, la tienda, el camino de trofeos y los resultados.
+  - Botones de precio con el icono de moneda.
+
 ## 11. Estado por hitos visuales
 
 | Hito | Estado |
@@ -251,7 +271,7 @@ No hay ninguna herramienta de ese tipo disponible en este entorno. `creatures/re
 | D. Pokémon de referencia | ✅ Pikachu en estilo vóxel (por defecto) y suave, con todas sus animaciones |
 | E. Ataque completo | ✅ Impactrueno: carga, lanzamiento, vuelo con haz, impacto, reacción, número, limpieza |
 | F. Resto de unidades y torres | ✅ Los 11 Pokémon en vóxel con cara de pixel art y animaciones (`capturas/galeria_*.jpg`). Ruinas de torre: muñón roto, cascotes, vigas, tejado caído, cristal partido, estandarte y humo (`capturas/torre_ruinas.jpg`) |
-| G. Cartas y HUD | 🟡 Cartas, menú y ficha con retratos vóxel de los modelos. Ficha de carta completa (`capturas/juego_ficha_carta_movil.jpg`). Falta rediseñar el marco de las cartas y el HUD |
+| G. Cartas y HUD | ✅ Marco de carta definitivo, HUD de batalla, iconos propios y tipografías del juego en todas las pantallas (§12, `capturas/juego_*.jpg`) |
 | H. Optimización y pruebas | 🟡 La capa 3D ya es la batalla jugable (`capturas/juego_batalla_3d_movil.jpg`), probada en E2E con WebGL por software. Faltan medir en móviles reales y reducir llamadas de dibujo (~550 por fotograma) |
 
 **Capturas (antes y después de la misma escena):** `docs/capturas/` (`comparacion_antes_despues.jpg`, `ref_*.jpg`). Se generan con `node scripts/captura_referencia.mjs` en modo determinista.

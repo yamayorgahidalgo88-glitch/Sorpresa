@@ -7,6 +7,7 @@ import { loadProfile, loadSettings, saveProfile, saveSettings } from '../../pers
 import type { Settings } from '../../persistence/settings';
 import { play } from '../audio/sfx';
 import { GAME_H, GAME_W } from '../layout';
+import { iconLabel } from '../ui/icons';
 import { COLORS, css, textStyle } from '../theme';
 import { CardDetail } from '../ui/cardDetail';
 import type { CardDetailAction } from '../ui/cardDetail';
@@ -52,7 +53,7 @@ export class DeckScene extends Phaser.Scene {
   detail: CardDetail | null = null;
   private layer: Phaser.GameObjects.GameObject[] = [];
   private info!: Phaser.GameObjects.Text;
-  private coinsText!: Phaser.GameObjects.Text;
+  private coins!: ReturnType<typeof iconLabel>;
 
   constructor() {
     super('deck');
@@ -67,7 +68,7 @@ export class DeckScene extends Phaser.Scene {
     this.layer = [];
     this.cameras.main.setBackgroundColor(COLORS.bg);
     this.add.text(30, 26, 'Mazo de batalla', textStyle(36, css(COLORS.gold)));
-    this.coinsText = this.add.text(GAME_W - 30, 34, '', textStyle(24, '#ffe27a')).setOrigin(1, 0);
+    this.coins = iconLabel(this, GAME_W - 30, 48, 'moneda', '0', 26, '#ffe27a', 1);
     this.info = this.add.text(GAME_W / 2, 1270, '', textStyle(19, '#ffffff', { align: 'center', wordWrap: { width: GAME_W - 60 } })).setOrigin(0.5, 0);
     makeButton(this, GAME_W / 2, GAME_H - 70, 380, 70, 'Volver', () => this.scene.start('menu'), COLORS.panelLight);
     this.renderAll();
@@ -77,7 +78,7 @@ export class DeckScene extends Phaser.Scene {
     for (const o of this.layer) o.destroy();
     this.layer = [];
     const p = this.profile;
-    this.coinsText.setText(`🪙 ${p.coins}`);
+    this.coins.set(String(p.coins));
 
     // Mazo
     const deckTop = 90;
@@ -121,7 +122,7 @@ export class DeckScene extends Phaser.Scene {
       w.setLocked('En Pokéballs');
     } else {
       const c = evolveCost(p, line);
-      w.setProgress(own.stage, maxStage(line), own.copies, c ? c.copies : null, canEvolve(p, line));
+      w.setProgress(maxStage(line), own.copies, c ? c.copies : null, canEvolve(p, line));
     }
     if (inDeck && this.swapping) w.setSelected(true, pos.y + 14);
     w.onTap(() => this.tap(line, inDeck));
@@ -171,7 +172,8 @@ export class DeckScene extends Phaser.Scene {
     if (own && canEvolve(p, line)) {
       const c = evolveCost(p, line)!;
       actions.push({
-        label: `Evolucionar · ${c.coins} 🪙`,
+        label: `Evolucionar · ${c.coins}`,
+        icon: 'moneda',
         color: 0xf2782f,
         onClick: () => {
           const before = getCard(cardIdFor(p, line)).name;
