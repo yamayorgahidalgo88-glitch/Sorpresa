@@ -44,6 +44,7 @@ npm run balance -- 600 normal   # informe de balance por carta
 - [Diseño del juego](docs/diseno_juego.md)
 - [Arquitectura](docs/arquitectura.md)
 - [Pruebas](docs/pruebas.md)
+- [Comparativa de diseño con Clash Royale y Boom Arena](docs/comparativa_diseno.md)
 - [Dirección artística y salto visual 3D](docs/direccion_artistica.md) · [capturas antes/después](docs/capturas/comparacion_antes_despues.jpg)
 
 ### Estado por hitos
