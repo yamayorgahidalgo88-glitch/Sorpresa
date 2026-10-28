@@ -15,7 +15,7 @@ import type { World } from './core/world';
 import { emit, getEntity, isAlive, nextId } from './core/world';
 import { ARENA, TOWERS, inRiverBand, mirrorForTeam, snapToTile } from './data/arena';
 import type { Card, PokemonCard, SpellCard } from './data/cards';
-import { attackElement, getCard, isTransform } from './data/cards';
+import { attackElement, cardAtStage, getCard, isTransform, maxStage } from './data/cards';
 import type { Rules } from './data/rules';
 import { DEFAULT_RULES, secondsToTicks } from './data/rules';
 import type { HitSpec } from './systems/combat';
@@ -81,6 +81,7 @@ export class Battle {
         deck: new DeckCycle(opts.decks[team], new Rng(deriveSeed(this.seed, team + 1)), this.rules.handSize),
         cardsPlayed: 0,
         lastPlayed: null,
+        evoCount: {},
         energySpent: 0,
         towerDamage: 0,
         defeated: 0,
@@ -185,9 +186,17 @@ export class Battle {
    * Carta que se juega realmente y su coste: Ditto se convierte en la última carta jugada
    * por su equipo (con 1 de energía más, máximo 10). null si Ditto no tiene nada que copiar.
    */
-  effectiveCard(team: Team, cardId: string): { card: Card; cost: number } | null {
+  effectiveCard(team: Team, cardId: string): { card: Card; cost: number; evolved?: boolean } | null {
     const card = getCard(cardId);
-    if (!isTransform(card)) return { card, cost: card.cost };
+    if (!isTransform(card)) {
+      // Evolución en combate: la línea ya se ha jugado las veces necesarias
+      const n = this.rules.evolveAfterPlays;
+      const played = this.world.players[team].evoCount[card.line] ?? 0;
+      if (card.kind === 'pokemon' && n > 0 && played >= n && card.stage < maxStage(card.line)) {
+        return { card: cardAtStage(card.line, card.stage + 1), cost: card.cost, evolved: true };
+      }
+      return { card, cost: card.cost };
+    }
     const last = this.world.players[team].lastPlayed;
     if (!last) return null;
     const copied = getCard(last);
@@ -223,8 +232,12 @@ export class Battle {
     const check = this.canDeploy(team, cardId, rawPos);
     if (!check.ok) return check;
     const p = this.world.players[team];
-    const { card, cost } = this.effectiveCard(team, cardId)!;
-    const via = card.id !== cardId ? cardId : undefined;
+    const { card, cost, evolved } = this.effectiveCard(team, cardId)!;
+    const via = card.id !== cardId && !evolved ? cardId : undefined;
+    const played = getCard(cardId);
+    if (!isTransform(played) && played.kind === 'pokemon') {
+      p.evoCount[played.line] = evolved ? 0 : (p.evoCount[played.line] ?? 0) + 1;
+    }
     spend(p.energy, cost);
     p.deck.play(p.deck.indexOf(cardId));
     p.cardsPlayed++;
@@ -240,7 +253,7 @@ export class Battle {
       return { ok: true, unitIds: [], pos };
     }
     const unitIds = this.spawnUnits(team, card, pos);
-    emit(this.world, { type: 'despliegue', team, cardId: card.id, pos, unitIds, via });
+    emit(this.world, { type: 'despliegue', team, cardId: card.id, pos, unitIds, via, evolved: evolved || undefined });
     return { ok: true, unitIds, pos };
   }
 

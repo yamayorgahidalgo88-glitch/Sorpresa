@@ -79,6 +79,7 @@ export class CardWidget {
   private affordKey = '';
   private lockOverlay: Phaser.GameObjects.Container | null = null;
   private progress: Phaser.GameObjects.Container | null = null;
+  private evoBadge: Phaser.GameObjects.Container | null = null;
   private content: Phaser.GameObjects.GameObject[] = [];
 
   constructor(
@@ -165,6 +166,26 @@ export class CardWidget {
       this.selectGlow.lineStyle(6, COLORS.gold, 1).strokeRoundedRect(-4, -4, this.w + 8, this.h + 8, 15);
     }
     this.scene.tweens.add({ targets: this.root, y: baseY - (selected ? 14 : 0), duration: 110, ease: 'Quad.Out' });
+  }
+
+  /** Distintivo «¡EVO!»: la próxima vez que se juegue saldrá evolucionada (en combate). */
+  setEvoReady(ready: boolean): void {
+    if (ready === !!this.evoBadge) return;
+    this.evoBadge?.destroy();
+    this.evoBadge = null;
+    if (!ready) return;
+    const c = this.scene.add.container(this.w / 2, -6);
+    const g = this.scene.add.graphics();
+    g.fillStyle(0x0b1022, 1).fillRoundedRect(-36, -13, 72, 28, 12);
+    g.fillStyle(0xf7f2ff, 1).fillRoundedRect(-33, -11, 66, 23, 10);
+    const t = this.scene.add.text(0, 0, '¡EVO!', textStyle(17, '#7b3fc4')).setOrigin(0.5);
+    const glow = this.scene.add.graphics();
+    glow.lineStyle(5, 0xd08cff, 0.9).strokeRoundedRect(-this.w / 2 - 3, 3, this.w + 6, this.h + 6, 14);
+    c.add([glow, g, t]);
+    this.root.add(c);
+    this.scene.tweens.add({ targets: [g, t], scale: 1.12, yoyo: true, repeat: -1, duration: 420 });
+    this.scene.tweens.add({ targets: glow, alpha: 0.35, yoyo: true, repeat: -1, duration: 420 });
+    this.evoBadge = c;
   }
 
   /** Marca la carta como no conseguida (texto bajo el candado) o la desbloquea (null). */

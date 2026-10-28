@@ -131,11 +131,13 @@ export interface PlayerState {
   defeated: number;
   /** Última carta jugada (la que copia Ditto); null al empezar. */
   lastPlayed: string | null;
+  /** Veces que se ha jugado cada línea desde su última evolución en combate. */
+  evoCount: Record<string, number>;
 }
 
 /** Eventos emitidos en cada paso: la interfaz los usa para animaciones y sonido. */
 export type SimEvent =
-  | { type: 'despliegue'; team: Team; cardId: string; pos: Vec; unitIds: number[]; via?: string }
+  | { type: 'despliegue'; team: Team; cardId: string; pos: Vec; unitIds: number[]; via?: string; evolved?: boolean }
   | { type: 'hechizo_lanzado'; team: Team; cardId: string; pos: Vec; delayTicks: number; via?: string }
   | { type: 'hechizo_impacto'; team: Team; cardId: string; pos: Vec; radius: number }
   | { type: 'ataque'; sourceId: number; targetId: number; melee: boolean }

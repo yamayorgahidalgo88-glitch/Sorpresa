@@ -19,6 +19,11 @@ export interface Rules {
   secondsPerEnergy: number;
   handSize: number;
   deckSize: number;
+  /**
+   * Evolución en combate: tras jugar una línea de Pokémon estas veces en la partida, la
+   * siguiente vez sale una fase por encima (si existe) y la cuenta vuelve a 0. 0 = desactivada.
+   */
+  evolveAfterPlays: number;
 }
 
 export const DEFAULT_RULES: Rules = {
@@ -32,6 +37,7 @@ export const DEFAULT_RULES: Rules = {
   secondsPerEnergy: 2.8,
   handSize: 4,
   deckSize: 8,
+  evolveAfterPlays: 2,
 };
 
 export function secondsToTicks(rules: Rules, seconds: number): number {

@@ -275,7 +275,9 @@ export class BattleScene extends Phaser.Scene {
     const energy = b.energy(0);
     hand.forEach((id, i) => {
       this.cards[i].setCard(id);
-      this.cards[i].setAffordability(energy, b.effectiveCard(0, id)?.cost ?? Infinity);
+      const eff = b.effectiveCard(0, id);
+      this.cards[i].setAffordability(energy, eff?.cost ?? Infinity);
+      this.cards[i].setEvoReady(!!eff?.evolved);
     });
     this.nextCard.setCard(b.nextCard(0));
 
@@ -458,6 +460,11 @@ export class BattleScene extends Phaser.Scene {
       switch (e.type) {
         case 'despliegue':
           if (e.team === 0) play('despliegue');
+          if (e.evolved) {
+            const name = getCard(e.cardId).name;
+            this.toast(e.team === 0 ? `¡Evolución en combate: ${name}!` : `¡El rival evoluciona a ${name}!`, e.team === 0 ? '#e9c8ff' : css(COLORS.danger), 1500);
+            play('eficaz');
+          }
           break;
         case 'hechizo_lanzado':
           play('hechizo');
@@ -509,8 +516,10 @@ export class BattleScene extends Phaser.Scene {
         }
         case 'hechizo_impacto': {
           const s = tileToScreen(e.pos);
-          if (e.cardId === 'rayo') this.fx.lightningStrike(s.x, s.y, e.radius * TILE);
-          else this.fx.blizzard(s.x, s.y, e.radius * TILE);
+          const line = getCard(e.cardId).line;
+          if (line === 'rayo') this.fx.lightningStrike(s.x, s.y, e.radius * TILE);
+          else if (line === 'ventisca') this.fx.blizzard(s.x, s.y, e.radius * TILE);
+          else this.fx.ring(s.x, s.y, e.radius * TILE, line === 'pocion' ? 0x8cf0a0 : 0xb45fe0, 500);
           break;
         }
         case 'ataque': {
@@ -578,6 +587,16 @@ export class BattleScene extends Phaser.Scene {
             const s = tileToScreen(t.pos);
             this.fx.towerCollapse(s.x, s.y);
           }
+          break;
+        }
+        case 'veneno': {
+          const s = tileToScreen(e.pos);
+          this.fx.ring(s.x, s.y, e.radius * TILE, 0xb45fe0, 600);
+          break;
+        }
+        case 'energia': {
+          const s = this.screenOf(e.unitId);
+          if (s) this.fx.floatText(s.x, s.y - 26, `+${e.amount}`, '#ff7ae0', 18);
           break;
         }
         default:

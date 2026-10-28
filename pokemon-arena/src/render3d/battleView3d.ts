@@ -337,6 +337,7 @@ export class BattleView3D {
           }
           this.fx.deployBurst(toWorld(e.pos), PAL.team[e.team]);
           if (e.via) this.transformFx(toWorld(e.pos, 0.6));
+          if (e.evolved) this.evolveFx(toWorld(e.pos, 0.8));
           break;
         case 'ataque': {
           const uv = this.units.get(e.sourceId);
@@ -425,7 +426,29 @@ export class BattleView3D {
           const i = this.telegraphs.findIndex((t) => t.key === key);
           if (i >= 0) this.removeTelegraph(i);
           const at = toWorld(e.pos, 0.3);
-          if (e.cardId === 'rayo') {
+          const spell = getCard(e.cardId);
+          if (spell.line === 'pocion') {
+            // Curación: anillo rosa y destellos que suben
+            this.fx.groundRing(at, 0xff9ad0, e.radius, 0.7);
+            for (let k = 0; k < 40; k++) {
+              const a = this.fx.rand(0, Math.PI * 2);
+              const d = Math.sqrt(this.fx.rand(0, 1)) * e.radius;
+              this.fx.additive.emit({
+                pos: at.clone().add(new THREE.Vector3(Math.cos(a) * d, 0, Math.sin(a) * d)),
+                vel: new THREE.Vector3(0, this.fx.rand(1.2, 2.5), 0),
+                color: new THREE.Color(k % 2 ? 0x8cf0a0 : 0xffffff),
+                size: this.fx.rand(0.12, 0.24),
+                life: this.fx.rand(0.6, 1),
+                drag: 0.4,
+              });
+            }
+            break;
+          }
+          if (spell.line === 'toxico') {
+            this.fx.groundRing(at, 0xb45fe0, e.radius, 0.6);
+            break;
+          }
+          if (spell.line === 'rayo') {
             const fam = familyFor('electrico');
             for (let k = 0; k < 5; k++) {
               const a = this.fx.rand(0, Math.PI * 2);
@@ -451,6 +474,35 @@ export class BattleView3D {
             }
             this.fx.impact(at, fam, 1.4);
             this.fx.groundRing(at, 0x9fe8ff, e.radius, 0.8);
+          }
+          break;
+        }
+        case 'veneno': {
+          // Cada pulso de Tóxico: nube morada que burbujea
+          const at = toWorld(e.pos, 0.2);
+          this.fx.groundRing(at, 0x9a4fd0, e.radius, 0.9);
+          for (let k = 0; k < 22; k++) {
+            const a = this.fx.rand(0, Math.PI * 2);
+            const d = Math.sqrt(this.fx.rand(0, 1)) * e.radius;
+            this.fx.soft.emit({
+              pos: at.clone().add(new THREE.Vector3(Math.cos(a) * d, this.fx.rand(0, 0.3), Math.sin(a) * d)),
+              vel: new THREE.Vector3(this.fx.rand(-0.2, 0.2), this.fx.rand(0.3, 0.9), this.fx.rand(-0.2, 0.2)),
+              color: new THREE.Color(this.fx.pick([0xb45fe0, 0x8a3fc0, 0xd59af0])),
+              size: this.fx.rand(0.4, 0.7),
+              life: this.fx.rand(0.8, 1.2),
+              drag: 0.9,
+              grow: 1.6,
+            });
+          }
+          break;
+        }
+        case 'energia': {
+          // Chansey pone un huevo de energía: destello y «+1» rosa
+          const uv = this.units.get(e.unitId);
+          if (uv) {
+            const at = uv.root.position.clone().add(new THREE.Vector3(0, uv.rig.height * UNIT_SCALE + 0.2, 0));
+            this.fx.flash(at, 0xff7ae0, 0.9, 0.3);
+            this.fx.healNumber(at, e.amount);
           }
           break;
         }
@@ -487,6 +539,23 @@ export class BattleView3D {
         default:
           break;
       }
+    }
+  }
+
+  /** Evolución en combate: columna de luz blanca, destello y estrellas que suben. */
+  private evolveFx(at: THREE.Vector3): void {
+    this.fx.flash(at, 0xffffff, 2.6, 0.45);
+    this.fx.groundRing(at, 0xd08cff, 2.2, 0.8);
+    for (let k = 0; k < 36; k++) {
+      const a = (k / 36) * Math.PI * 2;
+      this.fx.additive.emit({
+        pos: at.clone().add(new THREE.Vector3(Math.cos(a) * 0.6, this.fx.rand(-0.6, 0.2), Math.sin(a) * 0.6)),
+        vel: new THREE.Vector3(Math.cos(a) * 0.3, this.fx.rand(2.5, 4.5), Math.sin(a) * 0.3),
+        color: new THREE.Color(k % 3 ? 0xffffff : 0xd08cff),
+        size: this.fx.rand(0.15, 0.3),
+        life: this.fx.rand(0.6, 1),
+        drag: 0.6,
+      });
     }
   }
 
