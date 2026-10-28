@@ -1,13 +1,13 @@
 import Phaser from 'phaser';
 import type { Ability, Card, PokemonCard } from '../../sim/data/cards';
-import { ROLE_NAMES, getCard } from '../../sim/data/cards';
+import { ROLE_NAMES, getCard, isTransform } from '../../sim/data/cards';
 import { ELEMENTS, ELEMENT_COLORS, ELEMENT_NAMES, typeMultiplier } from '../../sim/data/elements';
 import type { Element } from '../../sim/data/elements';
 import { GAME_H, GAME_W } from '../layout';
 import { bake, drawCreature, drawSpellIcon } from '../render/creatureArt';
 import { portraitKey } from '../render/portraits';
 import { COLORS, bodyStyle, css, darken, textStyle } from '../theme';
-import { makeButton } from './widgets';
+import { costLabel, makeButton } from './widgets';
 import type { IconName } from './icons';
 
 /** Una casilla de la ficha: etiqueta y valor, como en los juegos de cartas de estrategia. */
@@ -37,6 +37,8 @@ function abilityText(a: Ability): string {
       return `Cada golpe ralentiza un ${Math.round(a.factor * 100)} % durante ${a.duration} s.`;
     case 'escudo':
       return `Aparece con una Barrera que absorbe ${a.amount} de daño.`;
+    case 'transformacion':
+      return `Transformación: copia tu última carta por ${a.extraCost} de energía más.`;
   }
 }
 
@@ -57,6 +59,14 @@ export function cardStatTiles(card: Card): StatTile[] {
       );
     }
     return tiles;
+  }
+  if (isTransform(card)) {
+    return [
+      { label: 'Coste', value: `Carta copiada +${card.ability.extraCost}` },
+      { label: 'Copia', value: 'Tu última carta' },
+      { label: 'Puede copiar', value: 'Pokémon y hechizos' },
+      { label: 'Fase', value: 'La que tengas' },
+    ];
   }
   const melee = card.range <= 1.2;
   const targets = card.targets === 'edificios' ? 'Solo torres' : card.targets === 'tierra' ? 'Tierra' : 'Aire y tierra';
@@ -170,7 +180,7 @@ export class CardDetail {
     const cost = scene.add.graphics();
     cost.fillStyle(COLORS.energyDark, 1).fillCircle(px + pw - 52, py + 62, 36);
     cost.fillStyle(COLORS.energy, 1).fillCircle(px + pw - 52, py + 62, 31);
-    c.add([cost, scene.add.text(px + pw - 52, py + 62, String(card.cost), textStyle(34)).setOrigin(0.5)]);
+    c.add([cost, scene.add.text(px + pw - 52, py + 62, costLabel(card), textStyle(34)).setOrigin(0.5)]);
     let tx = hx;
     for (const t of card.types) {
       const label = scene.add.text(0, 0, ELEMENT_NAMES[t], textStyle(18)).setOrigin(0, 0.5);

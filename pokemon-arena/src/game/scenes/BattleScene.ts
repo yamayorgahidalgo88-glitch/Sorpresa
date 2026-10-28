@@ -1,12 +1,12 @@
 import Phaser from 'phaser';
 import { Battle } from '../../sim/battle';
-import type { DeployFailure } from '../../sim/battle';
+import type { Command, DeployFailure } from '../../sim/battle';
 import { DIFFICULTIES, OpponentAI } from '../../sim/ai/opponent';
 import type { Difficulty } from '../../sim/ai/opponent';
 import { observe } from '../../sim/ai/observation';
 import { Rng, deriveSeed } from '../../sim/core/rng';
 import { battleDeck, loadProfile, loadStats } from '../../persistence/settings';
-import { rivalDeck } from '../../persistence/economy';
+import { deckStage, rivalDeck } from '../../persistence/economy';
 import type { SimEvent, Team } from '../../sim/core/state';
 import type { Vec } from '../../sim/core/vec';
 import { ARENA, snapToTile } from '../../sim/data/arena';
@@ -41,6 +41,8 @@ export interface BattleSceneData {
   difficulty: Difficulty;
   deck: string[];
   seed?: number;
+  /** Modo repetición: misma semilla, mismos mazos y las órdenes registradas de los dos bandos. */
+  replay?: { seed: number; decks: [string[], string[]]; log: Command[] };
 }
 
 const REJECT_TEXT: Record<DeployFailure, string> = {
@@ -48,6 +50,7 @@ const REJECT_TEXT: Record<DeployFailure, string> = {
   carta_no_en_mano: 'Esa carta ya no está en tu mano',
   energia_insuficiente: '¡Energía insuficiente!',
   zona_no_permitida: 'No puedes desplegar ahí',
+  nada_que_copiar: 'Ditto necesita que antes juegues otra carta',
 };
 
 /** Escena de combate: une simulación, IA, entrada, vistas y HUD. */
@@ -65,6 +68,8 @@ export class BattleScene extends Phaser.Scene {
   private readonly projViews = new Map<number, Phaser.GameObjects.Arc>();
   private prevPos = new Map<number, Vec>();
   private acc = 0;
+  private replayIndex = 0;
+  private decksUsed: [string[], string[]] = [[], []];
   private stepMs = 50;
   private ending = false;
   private cards: CardWidget[] = [];
@@ -103,11 +108,20 @@ export class BattleScene extends Phaser.Scene {
   }
 
   create(): void {
-    const seed = (this.data_.seed ?? (Date.now() ^ Math.floor(Math.random() * 0x7fffffff))) >>> 0;
-    // El jugador lleva cada línea en su fase; el rival puede sacar evoluciones (más con más trofeos).
-    const profile = loadProfile();
-    const rival = rivalDeck(DEFAULT_RIVAL_DECK, loadStats().trophies, new Rng(deriveSeed(seed, 11)));
-    this.battle = new Battle({ seed, decks: [battleDeck(this.data_.deck, profile), rival] });
+    const replay = this.data_.replay;
+    this.replayIndex = 0;
+    const seed = (replay?.seed ?? this.data_.seed ?? (Date.now() ^ Math.floor(Math.random() * 0x7fffffff))) >>> 0;
+    if (replay) {
+      this.decksUsed = [replay.decks[0].slice(), replay.decks[1].slice()];
+    } else {
+      // El jugador lleva cada línea en su fase; el rival se ajusta a la fuerza de su mazo.
+      const profile = loadProfile();
+      const mine = battleDeck(this.data_.deck, profile);
+      const rival = rivalDeck(DEFAULT_RIVAL_DECK, deckStage(mine), loadStats().trophies, new Rng(deriveSeed(seed, 11)));
+      this.decksUsed = [mine, rival];
+    }
+    // Los mazos se guardan sin barajar: con la misma semilla, la repetición baraja igual.
+    this.battle = new Battle({ seed, decks: this.decksUsed });
     this.stepMs = 1000 / this.battle.rules.tickRate;
     this.ai = new OpponentAI(1, DIFFICULTIES[this.data_.difficulty], deriveSeed(seed, 7));
 
@@ -147,7 +161,7 @@ export class BattleScene extends Phaser.Scene {
       },
       onSelect: (slot) => {
         this.cards.forEach((c, i) => c.setSelected(i === slot, HAND_Y));
-        const cardId = slot === null ? null : this.battle.hand(0)[slot];
+        const cardId = slot === null ? null : this.playedAs(this.battle.hand(0)[slot]);
         if (this.layer3d) this.layer3d.showZones(0, cardId);
         else this.field?.showZones(this.battle, 0, cardId);
         if (slot !== null) play('seleccion');
@@ -170,8 +184,24 @@ export class BattleScene extends Phaser.Scene {
       });
     }
 
-    this.toast('Toca una carta y después el campo · o arrástrala', '#ffffff', 3200);
+    if (replay) {
+      // En la repetición no se juega: solo se mira (la «x» sale al menú).
+      this.input.removeAllListeners('pointerdown');
+      this.input.removeAllListeners('pointermove');
+      this.input.removeAllListeners('pointerup');
+      this.input.keyboard?.removeAllListeners();
+      const tag = this.add.text(GAME_W / 2, HUD_Y - 34, 'REPETICIÓN', textStyle(26, css(COLORS.gold))).setOrigin(0.5).setDepth(450);
+      this.tweens.add({ targets: tag, alpha: 0.4, yoyo: true, repeat: -1, duration: 700 });
+    } else {
+      this.toast('Toca una carta y después el campo · o arrástrala', '#ffffff', 3200);
+    }
     (window as unknown as { __arena?: unknown }).__arena = { scene: this, battle: this.battle, seed };
+  }
+
+  /** Carta que saldrá al jugar `cardId` (Ditto se ve como la carta que copiará). */
+  private playedAs(cardId: string | undefined): string | null {
+    if (!cardId) return null;
+    return this.battle.effectiveCard(0, cardId)?.card.id ?? cardId;
   }
 
   /** Traducción pantalla → casilla: plana en 2D, con un rayo contra el suelo en 3D. */
@@ -245,7 +275,7 @@ export class BattleScene extends Phaser.Scene {
     const energy = b.energy(0);
     hand.forEach((id, i) => {
       this.cards[i].setCard(id);
-      this.cards[i].setAffordability(energy);
+      this.cards[i].setAffordability(energy, b.effectiveCard(0, id)?.cost ?? Infinity);
     });
     this.nextCard.setCard(b.nextCard(0));
 
@@ -324,7 +354,7 @@ export class BattleScene extends Phaser.Scene {
     const alpha = this.battle.isOver ? 1 : this.acc / this.stepMs;
     if (this.layer3d) {
       const pv = this.controller.preview;
-      this.layer3d.setGhost(pv ? this.battle.hand(0)[pv.slot] ?? null : null, pv?.tile ?? null, pv?.valid ?? false);
+      this.layer3d.setGhost(pv ? this.playedAs(this.battle.hand(0)[pv.slot]) : null, pv?.tile ?? null, pv?.valid ?? false);
       this.layer3d.render(alpha, Math.min(delta, 100) / 1000);
     } else {
       this.renderWorld(alpha, time);
@@ -337,8 +367,17 @@ export class BattleScene extends Phaser.Scene {
   /** Un paso de simulación: la IA decide con la información visible y se avanza la batalla. */
   simStep(): void {
     const b = this.battle;
-    const action = this.ai.decide(observe(b, 1));
-    if (action) b.deploy(1, action.cardId, action.pos);
+    const replay = this.data_.replay;
+    if (replay) {
+      // Reproduce las órdenes de ambos bandos en su paso exacto
+      while (this.replayIndex < replay.log.length && replay.log[this.replayIndex].tick === b.tick) {
+        const c = replay.log[this.replayIndex++];
+        b.deploy(c.team, c.cardId, { x: c.x, y: c.y });
+      }
+    } else {
+      const action = this.ai.decide(observe(b, 1));
+      if (action) b.deploy(1, action.cardId, action.pos);
+    }
     this.prevPos = new Map();
     for (const u of b.world.units) this.prevPos.set(u.id, { x: u.pos.x, y: u.pos.y });
     for (const p of b.world.projectiles) this.prevPos.set(p.id, { x: p.pos.x, y: p.pos.y });
@@ -381,7 +420,7 @@ export class BattleScene extends Phaser.Scene {
     g.clear();
     const pv = this.controller.preview;
     if (!pv) return;
-    const cardId = this.battle.hand(0)[pv.slot];
+    const cardId = this.playedAs(this.battle.hand(0)[pv.slot]);
     if (!cardId) return;
     const card = getCard(cardId);
     const s = tileToScreen(snapToTile(pv.tile));
@@ -553,6 +592,12 @@ export class BattleScene extends Phaser.Scene {
     this.controller.cancel();
     const r = this.battle.result!;
     play(r.winner === 0 ? 'victoria' : r.winner === 1 ? 'derrota' : 'seleccion');
+    if (this.data_.replay) {
+      // Fin de la repetición: no cuenta para trofeos ni monedas
+      this.banner('FIN DE LA REPETICIÓN', COLORS.gold);
+      this.time.delayedCall(2200, () => this.scene.start('menu'));
+      return;
+    }
     this.time.delayedCall(1300, () => {
       this.scene.launch('result', {
         result: r,
@@ -563,6 +608,7 @@ export class BattleScene extends Phaser.Scene {
         energySpent: this.battle.player(0).energySpent,
         towerDamage: [this.battle.player(0).towerDamage, this.battle.player(1).towerDamage],
         defeated: [this.battle.player(0).defeated, this.battle.player(1).defeated],
+        replay: { seed: this.battle.seed, decks: this.decksUsed, log: this.battle.commandLog.slice() },
       });
       this.scene.pause();
     });

@@ -24,14 +24,14 @@ npm run dev          # abre http://localhost:5173 (herramientas: /referencia.htm
 
 - Compilación de producción: `npm run build` (genera `pokemon-arena/dist/`, servible como web estática; `npm run preview` la sirve en local).
 - Partida reproducible: añade `?seed=1234` a la URL. Vista 2D de respaldo: `?vista=2d` (se usa sola si no hay WebGL).
-- Se empieza con 9 cartas en su primera fase (Charmander, Squirtle, Bulbasaur…). Cada partida da monedas para comprar Pokéballs (Poké, Super, Ultra y Master) que dan copias, cartas nuevas y, en las mejores, Pokémon ya evolucionados. Con copias y monedas se evoluciona cada carta (Charmander → Charmeleon → Charizard). El camino de trofeos da premios, y el rival saca evoluciones más a menudo cuantos más trofeos tienes.
+- Se empieza con 9 cartas en su primera fase (Charmander, Squirtle, Bulbasaur…). Cada partida da monedas para comprar Pokéballs (Poké, Super, Ultra y Master) que dan copias, cartas nuevas y, en las mejores, Pokémon ya evolucionados. Con copias y monedas se evoluciona cada carta (Charmander → Charmeleon → Charizard). El camino de trofeos da premios, y el rival se ajusta a la fuerza de tu mazo. Ditto copia tu última carta y cada partida se puede ver de nuevo con «Repetición».
 - La batalla se dibuja en 3D con los Pokémon en estilo vóxel. En el constructor de mazo y en la colección, al tocar una carta se abre su ficha: vida, daño, daño por segundo, velocidad de ataque, velocidad, alcance, objetivos, habilidad y tipos.
 - Controles: toca o haz clic en una carta y después en el campo, o arrastra la carta. Teclas 1-4 para elegir carta y Esc para cancelar.
 
 ### Pruebas
 
 ```bash
-npm test             # 127 pruebas unitarias y de simulación
+npm test             # 133 pruebas unitarias y de simulación
 npm run typecheck
 npm run test:e2e     # navegador real: escritorio (ratón) y móvil (táctil) en 3D, y escritorio en 2D
 npm run simulate -- 50 normal   # partidas IA contra IA

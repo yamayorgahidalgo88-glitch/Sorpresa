@@ -36,13 +36,13 @@ Leyenda:
 
 ## 3. Propuestas para Pokémon Arena (por orden de valor y esfuerzo)
 
-Las marcadas con ⚠ cambian decisiones de diseño: necesitan tu visto bueno antes de hacerlas.
+Las marcadas con ⚠ cambian decisiones de diseño: necesitan tu visto bueno antes de hacerlas. **Hechas (29-10-2026): 1, 2 y 3.**
 
 | # | Propuesta | Inspiración | Esfuerzo | Encaje Pokémon |
 |---|---|---|---|---|
-| 1 | **Ver la repetición** de la última partida desde la pantalla de resultados (la simulación ya la reproduce exacta) | Boom Arena: compartir repeticiones | Bajo | — |
-| 2 | ⚠ **Rival ajustado a tu mazo**: sus evoluciones dependen de la fase media de tu mazo (± margen), no solo de tus trofeos | Emparejamiento justo de Boom Arena | Bajo | — |
-| 3 | **Carta de copia** | Mirror (Boom Arena) | Medio | **Ditto**: copia la última carta que jugaste, por 1 de energía más |
+| 1 ✅ | **Ver la repetición** de la última partida desde la pantalla de resultados (la simulación ya la reproduce exacta) | Boom Arena: compartir repeticiones | Bajo | — |
+| 2 ✅ | ⚠ **Rival ajustado a tu mazo**: sus evoluciones dependen de la fase media de tu mazo (± margen), no solo de tus trofeos | Emparejamiento justo de Boom Arena | Bajo | — |
+| 3 ✅ | **Carta de copia** | Mirror (Boom Arena) | Medio | **Ditto**: copia la última carta que jugaste, por 1 de energía más |
 | 4 | **Edificios** (nuevo tipo de carta: fijo, pierde vida con el tiempo y distrae a las tropas) | Cannon, Bomb tower | Medio-alto | **Magnemite** (torreta eléctrica) y **Voltorb** (explota al ser destruido) |
 | 5 | **Recolector de energía** (edificio que genera energía) | Mana collector, recolector de elixir | Medio | **Chansey**, que pone huevos de energía |
 | 6 | **Enjambre barato** | Faun horde, ejércitos de esqueletos | Bajo | **Rattata ×6** (terrestre) o **Zubat ×4** (volador) |

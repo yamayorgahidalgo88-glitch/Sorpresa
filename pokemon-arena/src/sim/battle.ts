@@ -14,8 +14,8 @@ import { dist, moveTowards } from './core/vec';
 import type { World } from './core/world';
 import { emit, getEntity, isAlive, nextId } from './core/world';
 import { ARENA, TOWERS, inRiverBand, mirrorForTeam, snapToTile } from './data/arena';
-import type { PokemonCard, SpellCard } from './data/cards';
-import { attackElement, getCard } from './data/cards';
+import type { Card, PokemonCard, SpellCard } from './data/cards';
+import { attackElement, getCard, isTransform } from './data/cards';
 import type { Rules } from './data/rules';
 import { DEFAULT_RULES, secondsToTicks } from './data/rules';
 import type { HitSpec } from './systems/combat';
@@ -33,7 +33,7 @@ export interface BattleOptions {
   rules?: Partial<Rules>;
 }
 
-export type DeployFailure = 'partida_terminada' | 'carta_no_en_mano' | 'energia_insuficiente' | 'zona_no_permitida';
+export type DeployFailure = 'partida_terminada' | 'carta_no_en_mano' | 'energia_insuficiente' | 'zona_no_permitida' | 'nada_que_copiar';
 
 export type DeployResult = { ok: true; unitIds: number[]; pos: Vec } | { ok: false; reason: DeployFailure };
 
@@ -78,6 +78,7 @@ export class Battle {
         energy: createEnergy(this.rules),
         deck: new DeckCycle(opts.decks[team], new Rng(deriveSeed(this.seed, team + 1)), this.rules.handSize),
         cardsPlayed: 0,
+        lastPlayed: null,
         energySpent: 0,
         towerDamage: 0,
         defeated: 0,
@@ -177,20 +178,36 @@ export class Battle {
     return 1;
   }
 
+  /**
+   * Carta que se juega realmente y su coste: Ditto se convierte en la última carta jugada
+   * por su equipo (con 1 de energía más, máximo 10). null si Ditto no tiene nada que copiar.
+   */
+  effectiveCard(team: Team, cardId: string): { card: Card; cost: number } | null {
+    const card = getCard(cardId);
+    if (!isTransform(card)) return { card, cost: card.cost };
+    const last = this.world.players[team].lastPlayed;
+    if (!last) return null;
+    const copied = getCard(last);
+    return { card: copied, cost: Math.min(10, copied.cost + card.ability.extraCost) };
+  }
+
   /** Valida un despliegue sin ejecutarlo. */
   canDeploy(team: Team, cardId: string, rawPos: Vec): DeployResult {
     if (this.result) return { ok: false, reason: 'partida_terminada' };
     const p = this.world.players[team];
     if (p.deck.indexOf(cardId) < 0) return { ok: false, reason: 'carta_no_en_mano' };
-    const card = getCard(cardId);
-    if (!canAfford(p.energy, card.cost)) return { ok: false, reason: 'energia_insuficiente' };
+    const eff = this.effectiveCard(team, cardId);
+    if (!eff) return { ok: false, reason: 'nada_que_copiar' };
+    const card = eff.card;
+    if (!canAfford(p.energy, eff.cost)) return { ok: false, reason: 'energia_insuficiente' };
     const pos = snapToTile(rawPos);
     if (!isDeployAllowed(team, card, pos, this.world.towers)) return { ok: false, reason: 'zona_no_permitida' };
     return { ok: true, unitIds: [], pos };
   }
 
   isDeployZone(team: Team, cardId: string, rawPos: Vec): boolean {
-    return isDeployAllowed(team, getCard(cardId), snapToTile(rawPos), this.world.towers);
+    const card = this.effectiveCard(team, cardId)?.card ?? getCard(cardId);
+    return isDeployAllowed(team, card, snapToTile(rawPos), this.world.towers);
   }
 
   // ------------------------------------------------------------------ órdenes
@@ -203,22 +220,24 @@ export class Battle {
     const check = this.canDeploy(team, cardId, rawPos);
     if (!check.ok) return check;
     const p = this.world.players[team];
-    const card = getCard(cardId);
-    spend(p.energy, card.cost);
+    const { card, cost } = this.effectiveCard(team, cardId)!;
+    const via = card.id !== cardId ? cardId : undefined;
+    spend(p.energy, cost);
     p.deck.play(p.deck.indexOf(cardId));
     p.cardsPlayed++;
-    p.energySpent += card.cost;
+    p.energySpent += cost;
+    p.lastPlayed = card.id;
     const pos = check.pos;
     this.commandLog.push({ tick: this.world.tick, team, cardId, x: pos.x, y: pos.y });
 
     if (card.kind === 'hechizo') {
       const delayTicks = secondsToTicks(this.rules, card.delay);
-      this.world.spells.push({ id: nextId(this.world), team, cardId, pos, ticksLeft: delayTicks });
-      emit(this.world, { type: 'hechizo_lanzado', team, cardId, pos, delayTicks });
+      this.world.spells.push({ id: nextId(this.world), team, cardId: card.id, pos, ticksLeft: delayTicks });
+      emit(this.world, { type: 'hechizo_lanzado', team, cardId: card.id, pos, delayTicks, via });
       return { ok: true, unitIds: [], pos };
     }
     const unitIds = this.spawnUnits(team, card, pos);
-    emit(this.world, { type: 'despliegue', team, cardId, pos, unitIds });
+    emit(this.world, { type: 'despliegue', team, cardId: card.id, pos, unitIds, via });
     return { ok: true, unitIds, pos };
   }
 

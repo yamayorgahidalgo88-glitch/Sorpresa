@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import type { Card } from '../../sim/data/cards';
-import { getCard, maxStage } from '../../sim/data/cards';
+import { getCard, isTransform, maxStage } from '../../sim/data/cards';
 import { ELEMENT_COLORS, ELEMENT_NAMES } from '../../sim/data/elements';
 import { iconKey } from './icons';
 import type { IconName } from './icons';
@@ -20,6 +20,11 @@ export function targetsLabel(card: Card): string {
   if (card.targets === 'edificios') return 'Solo torres';
   if (card.targets === 'tierra') return 'Ataca: tierra';
   return 'Ataca: aire y tierra';
+}
+
+/** Coste que se muestra en la carta: Ditto enseña «+1» (cuesta la carta copiada más 1). */
+export function costLabel(card: Card): string {
+  return isTransform(card) ? `+${card.ability.extraCost}` : String(card.cost);
 }
 
 /** Color del marco según la fase (o el nivel del hechizo): plata, oro y épico. */
@@ -120,7 +125,7 @@ export class CardWidget {
     // Coste: gota de energía con la cifra
     const drop = Math.round(this.compact ? h * 0.3 : h * 0.24);
     this.content.push(scene.add.image(drop * 0.55, drop * 0.55, iconKey(scene, 'energia')).setDisplaySize(drop * 1.1, drop * 1.1));
-    this.content.push(scene.add.text(drop * 0.55, drop * 0.62, String(card.cost), textStyle(Math.round(drop * 0.55))).setOrigin(0.5));
+    this.content.push(scene.add.text(drop * 0.55, drop * 0.62, costLabel(card), textStyle(Math.round(drop * (isTransform(card) ? 0.42 : 0.55)))).setOrigin(0.5));
 
     // Fase: estrellas sobre la cinta (solo si la carta evoluciona)
     if (top > 1 && !this.compact) {
@@ -139,17 +144,18 @@ export class CardWidget {
   }
 
   /** Oscurece la carta según la energía disponible (progreso hasta poder pagarla). */
-  setAffordability(energy: number): void {
-    const card = getCard(this.cardId);
+  setAffordability(energy: number, costOverride?: number): void {
+    // Ditto cuesta según la carta que copia (Infinity = aún no puede jugarse).
+    const cost = costOverride ?? getCard(this.cardId).cost;
     // Solo se redibuja cuando cambia de forma visible (evita trabajo en cada fotograma).
-    const key = `${this.cardId}|${energy >= card.cost ? 'ok' : Math.floor((energy / card.cost) * 40)}`;
+    const key = `${this.cardId}|${energy >= cost ? 'ok' : Number.isFinite(cost) ? Math.floor((energy / cost) * 40) : 'x'}`;
     if (key === this.affordKey) return;
     this.affordKey = key;
     this.dim.clear();
     this.fill.clear();
-    if (energy >= card.cost) return;
+    if (energy >= cost) return;
     this.dim.fillStyle(0x0b1022, 0.55).fillRoundedRect(0, 0, this.w, this.h, 12);
-    const p = Math.max(0, Math.min(1, energy / card.cost));
+    const p = Number.isFinite(cost) ? Math.max(0, Math.min(1, energy / cost)) : 0;
     this.fill.fillStyle(COLORS.energy, 0.25).fillRect(4, this.h - 6 - (this.h - 12) * p, this.w - 8, (this.h - 12) * p);
   }
 

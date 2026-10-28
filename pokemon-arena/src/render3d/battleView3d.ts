@@ -336,6 +336,7 @@ export class BattleView3D {
             if (u && u.kind === 'unit') this.units.set(id, new UnitView3D(id, u.team, u.cardId, this.scene, this.shadowTex, this.style));
           }
           this.fx.deployBurst(toWorld(e.pos), PAL.team[e.team]);
+          if (e.via) this.transformFx(toWorld(e.pos, 0.6));
           break;
         case 'ataque': {
           const uv = this.units.get(e.sourceId);
@@ -402,6 +403,7 @@ export class BattleView3D {
           break;
         }
         case 'hechizo_lanzado': {
+          if (e.via) this.transformFx(toWorld(e.pos, 0.6));
           const card = getCard(e.cardId);
           if (card.kind !== 'hechizo') break;
           const color = ELEMENT_COLORS[card.types[0]];
@@ -485,6 +487,23 @@ export class BattleView3D {
         default:
           break;
       }
+    }
+  }
+
+  /** Transformación de Ditto: destello y burbujas lilas donde aparece la copia. */
+  private transformFx(at: THREE.Vector3): void {
+    this.fx.flash(at, 0xe0b8f0, 1.8, 0.35);
+    this.fx.groundRing(at, 0xc49ad8, 1.6, 0.6);
+    for (let k = 0; k < 18; k++) {
+      this.fx.soft.emit({
+        pos: at.clone().add(new THREE.Vector3(this.fx.rand(-0.5, 0.5), this.fx.rand(-0.3, 0.6), this.fx.rand(-0.5, 0.5))),
+        vel: new THREE.Vector3(this.fx.rand(-1, 1), this.fx.rand(0.5, 1.8), this.fx.rand(-1, 1)),
+        color: new THREE.Color(k % 2 ? 0xc49ad8 : 0xf3dcff),
+        size: this.fx.rand(0.25, 0.5),
+        life: this.fx.rand(0.5, 0.9),
+        drag: 0.85,
+        grow: 1.4,
+      });
     }
   }
 

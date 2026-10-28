@@ -5,7 +5,7 @@
 ```bash
 cd pokemon-arena
 npm install
-npm test               # Vitest: 127 pruebas (≈6 s)
+npm test               # Vitest: 133 pruebas (≈6 s)
 npm run typecheck      # tsc --noEmit (modo estricto)
 npm run test:e2e       # compila, sirve y prueba en Chromium (escritorio y móvil en 3D, escritorio en 2D); capturas en test-results/
 node scripts/captura_galeria.mjs   # capturas de los 11 modelos vóxel (tras npx vite build)
@@ -17,10 +17,10 @@ npm run balance -- 600 normal   # informe de balance por carta (mazos aleatorios
 
 | Comando | Resultado |
 |---|---|
-| `npm test` | **13 archivos, 127/127 pruebas superadas** |
+| `npm test` | **14 archivos, 133/133 pruebas superadas** |
 | `npm run captura:referencia` | Escena 3D de referencia en calidades alta, media y baja: **sin errores de consola**; 14 capturas revisadas a mano en `docs/capturas/` |
 | `npm run typecheck` | Sin errores |
-| `npm run test:e2e` | **55/55 comprobaciones superadas**: 19 en escritorio con ratón (3D), 19 en móvil táctil (3D) y 17 en escritorio con la vista 2D de respaldo. Sin errores en consola |
+| `npm run test:e2e` | **64/64 comprobaciones superadas**: 22 en escritorio con ratón (3D), 22 en móvil táctil (3D) y 20 en escritorio con la vista 2D de respaldo. Sin errores en consola |
 | `npm audit` | 0 vulnerabilidades |
 
 ## Cobertura de las pruebas obligatorias
@@ -44,6 +44,7 @@ npm run balance -- 600 normal   # informe de balance por carta (mazos aleatorios
 | IA legal y sin información oculta | `ai_longrun.test.ts` · claves de la observación, sin la cola del jugador, cartas en mano, coste pagable, zona legal, defensa ante amenazas, no juega al azar, remate con hechizo |
 | Persistencia | `input_persistence.test.ts` · ajustes, mazo, valores corruptos, historial |
 | Progresión | `progression.test.ts` · mazo inicial desbloqueado, catálogo completo con trofeos, suma y resta (sin bajar de 0), desbloqueos y ascensos, rangos; `input_persistence.test.ts` · trofeos guardados, mazo con cartas bloqueadas |
+| Ditto y repeticiones | `ditto_replay.test.ts` · Ditto no se juega sin carta previa, copia Pokémon y hechizos con +1 de coste y su zona, la IA no lo usa; una partida con Ditto se reproduce exacta (`Battle.replay`) |
 | Economía y evoluciones | `economy.test.ts` · fases coherentes por línea (mejoran sin cambiar coste), 9 cartas iniciales, mazo sin dos fases de una línea, precios, cartas distintas y copias de cada Pokéball, evolucionadas solo en Ultra y Master (garantía en Master), cartas nuevas y mejora automática, repetidas → monedas, evolucionar (copias, monedas, fase máxima), monedas por partida, camino de trofeos cobrado una vez, rival con más evoluciones con más trofeos; `combat_towers.test.ts` · Barrera de Abra; `input_persistence.test.ts` · migración de mazos antiguos y monedas por partida |
 | Modelos 3D (hito F) | `models.test.ts` · las 34 especies tienen modelo, se pasan a vóxel, animan sin valores inválidos, tienen punto de ataque y altura coherente; la caché comparte geometría pero no materiales |
 | Ficha de carta | `card_detail.test.ts` · las estadísticas salen del catálogo (PS, daño, DPS, velocidad de ataque, alcance, objetivos, cantidad, área), categorías de velocidad, hechizos, debilidades por tabla de tipos |
@@ -59,7 +60,7 @@ Para cada perfil (escritorio 1280×800 con ratón y Pixel 5 táctil, ambos con l
 4. Se despliega una carta arrastrándola (ratón, o eventos táctiles por CDP).
 5. La simulación avanza y la IA juega. En 3D se comprueba que la escena se dibuje y que el lienzo 3D esté alineado con el del HUD.
 6. Se fuerza la caída de la base rival y aparece la pantalla de resultados con la victoria, +30 trofeos, +45 monedas y el premio de 20 trofeos del camino, que quedan guardados en `localStorage`.
-7. "Revancha" inicia una batalla nueva.
+7. «Repetición» abre la partida en modo repetición con sus órdenes y no cambia el historial; después se inicia una batalla nueva.
 8. Constructor de mazos: tocar Geodude (colección) abre su ficha; «Usar» y tocar Onix (mazo) los intercambia y se guarda.
 9. Tienda: comprar una Pokéball descuenta monedas, se abre con su animación y da cartas.
 10. No hay errores en la consola.

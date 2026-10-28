@@ -12,6 +12,7 @@ import {
   canEvolve,
   cardIdFor,
   claimRoad,
+  deckStage,
   evolve,
   evolvedValue,
   matchCoins,
@@ -187,15 +188,25 @@ describe('monedas, camino de trofeos y rival', () => {
     expect(claimRoad(p, 520)).toEqual([]);
   });
 
-  it('el rival saca más evoluciones cuantos más trofeos tienes, de forma reproducible', () => {
-    const evolved = (trophies: number) => {
-      let n = 0;
-      for (let s = 0; s < 200; s++) n += rivalDeck(DEFAULT_RIVAL_DECK, trophies, new Rng(s)).filter((id) => getCard(id).stage > 1).length;
-      return n;
+  it('el rival se ajusta a la fuerza de tu mazo (emparejamiento justo) y es reproducible', () => {
+    const mean = (playerStage: number, trophies: number) => {
+      let sum = 0;
+      for (let s = 0; s < 300; s++) sum += deckStage(rivalDeck(DEFAULT_RIVAL_DECK, playerStage, trophies, new Rng(s)));
+      return sum / 300;
     };
-    expect(evolved(0)).toBeGreaterThan(0);
-    expect(evolved(400)).toBeGreaterThan(evolved(0) * 2);
-    expect(rivalDeck(DEFAULT_RIVAL_DECK, 300, new Rng(9))).toEqual(rivalDeck(DEFAULT_RIVAL_DECK, 300, new Rng(9)));
-    for (let s = 0; s < 50; s++) expect(validateDeck(rivalDeck(DEFAULT_RIVAL_DECK, 900, new Rng(s))).ok).toBe(true);
+    // Con tu mazo en primera fase, el rival casi no evoluciona; con tu mazo evolucionado, sí.
+    expect(mean(1, 0)).toBeLessThan(1.15);
+    expect(Math.abs(mean(2, 0) - 2)).toBeLessThan(0.2);
+    expect(mean(2.6, 0)).toBeGreaterThan(mean(2, 0) + 0.3);
+    // Los trofeos solo añaden un pequeño margen (hasta +0,25)
+    expect(mean(1.5, 1000) - mean(1.5, 0)).toBeGreaterThan(0.1);
+    expect(mean(1.5, 1000) - mean(1.5, 0)).toBeLessThan(0.35);
+    expect(rivalDeck(DEFAULT_RIVAL_DECK, 2, 300, new Rng(9))).toEqual(rivalDeck(DEFAULT_RIVAL_DECK, 2, 300, new Rng(9)));
+    for (let s = 0; s < 50; s++) expect(validateDeck(rivalDeck(DEFAULT_RIVAL_DECK, 3, 900, new Rng(s))).ok).toBe(true);
+  });
+
+  it('la fuerza de un mazo ignora las cartas que no evolucionan', () => {
+    expect(deckStage(['charmander', 'squirtle', 'snorlax', 'ditto'])).toBe(1);
+    expect(deckStage(['charizard', 'wartortle', 'snorlax'])).toBe(2.5);
   });
 });

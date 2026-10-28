@@ -13,7 +13,7 @@ import { DIFFICULTIES, type Difficulty } from '../src/sim/ai/opponent';
 import { DEFAULT_PLAYER_DECK, DEFAULT_RIVAL_DECK, LINES, getCard } from '../src/sim/data/cards';
 
 /** Se mide el equilibrio de las cartas BASE (fase 1): las evoluciones son más fuertes a propósito. */
-const CARD_IDS = LINES;
+const CARD_IDS = LINES.filter((l) => l !== 'ditto'); // Ditto no lo juega la IA
 import { Rng } from '../src/sim/core/rng';
 
 const games = Number(process.argv[2] ?? 400);

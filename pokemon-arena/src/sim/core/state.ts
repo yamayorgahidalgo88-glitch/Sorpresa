@@ -115,12 +115,14 @@ export interface PlayerState {
   towerDamage: number;
   /** Pokémon rivales derrotados. */
   defeated: number;
+  /** Última carta jugada (la que copia Ditto); null al empezar. */
+  lastPlayed: string | null;
 }
 
 /** Eventos emitidos en cada paso: la interfaz los usa para animaciones y sonido. */
 export type SimEvent =
-  | { type: 'despliegue'; team: Team; cardId: string; pos: Vec; unitIds: number[] }
-  | { type: 'hechizo_lanzado'; team: Team; cardId: string; pos: Vec; delayTicks: number }
+  | { type: 'despliegue'; team: Team; cardId: string; pos: Vec; unitIds: number[]; via?: string }
+  | { type: 'hechizo_lanzado'; team: Team; cardId: string; pos: Vec; delayTicks: number; via?: string }
   | { type: 'hechizo_impacto'; team: Team; cardId: string; pos: Vec; radius: number }
   | { type: 'ataque'; sourceId: number; targetId: number; melee: boolean }
   | { type: 'proyectil'; projectileId: number; sourceId: number; targetId: number; element: Element | null }

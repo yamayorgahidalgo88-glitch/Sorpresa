@@ -60,6 +60,7 @@ describe('energía', () => {
 describe('costes de cartas', () => {
   it('desplegar descuenta exactamente el coste de cada carta', () => {
     for (const id of Object.keys(CARDS)) {
+      if (id === 'ditto') continue; // su coste depende de la carta copiada (ditto.test.ts)
       // Relleno con cartas de otras líneas (no se pueden llevar dos fases de la misma).
       const others = Object.values(CARDS).filter((c) => c.line !== CARDS[id].line && c.stage === 1).map((c) => c.id);
       const deck = [id, ...others.slice(0, 7)];

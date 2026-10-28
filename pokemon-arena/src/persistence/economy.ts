@@ -1,7 +1,7 @@
 import type { Rng } from '../sim/core/rng';
 import type { Team } from '../sim/core/state';
 import type { Stage } from '../sim/data/cards';
-import { LINES, STARTER_LINES, cardAtStage, maxStage } from '../sim/data/cards';
+import { LINES, STARTER_LINES, cardAtStage, getCard, maxStage } from '../sim/data/cards';
 
 /**
  * Economía y colección (cifras de diseño propio, ajustables aquí):
@@ -248,15 +248,29 @@ export function claimRoad(profile: Profile, trophies: number): RoadReward[] {
 // ---------------------------------------------------------------- rival
 
 /**
- * Mazo del rival con evoluciones al azar: cuantos más trofeos tengas, más probable es que
- * saque segundas (y, raramente, terceras) fases. Determinista con la semilla de la partida.
+ * Fuerza de un mazo: fase media de sus cartas, contando solo las que pueden evolucionar
+ * (Snorlax o Ditto no bajan la media). 1 = todo en primera fase, 3 = todo al máximo.
  */
-export function rivalDeck(baseLines: readonly string[], trophies: number, rng: Rng): string[] {
-  const p2 = Math.min(0.55, 0.06 + trophies / 900);
-  const p3 = Math.min(0.12, trophies / 5000);
+export function deckStage(cardIds: readonly string[]): number {
+  const evolvable = cardIds.map((id) => getCard(id)).filter((c) => maxStage(c.line) > 1);
+  if (evolvable.length === 0) return 1;
+  return evolvable.reduce((s, c) => s + c.stage, 0) / evolvable.length;
+}
+
+/** Margen máximo que el rival puede llevar por encima de tu mazo gracias a los trofeos. */
+export const RIVAL_TROPHY_BONUS = 0.25;
+
+/**
+ * Mazo del rival ajustado a TU mazo (emparejamiento justo): cada carta sale en una fase
+ * cuya media coincide con la fase media de tu mazo, más un pequeño extra según tus trofeos
+ * (hasta +0,25) y una variación de ±0,3 por carta. Determinista con la semilla de la partida.
+ */
+export function rivalDeck(baseLines: readonly string[], playerStage: number, trophies: number, rng: Rng): string[] {
+  const target = playerStage + Math.min(RIVAL_TROPHY_BONUS, trophies / 2000);
   return baseLines.map((line) => {
-    const r = rng.next();
-    const stage = r < p3 ? 3 : r < p3 + p2 ? 2 : 1;
+    const t = target + (rng.next() - 0.5) * 0.6;
+    const base = Math.floor(t);
+    const stage = Math.max(1, Math.min(maxStage(line), base + (rng.next() < t - base ? 1 : 0)));
     return cardAtStage(line, stage).id;
   });
 }

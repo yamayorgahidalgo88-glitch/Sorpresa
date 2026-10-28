@@ -6,6 +6,7 @@ import { AbraRig } from './abra';
 import { BulbasaurRig } from './bulbasaur';
 import { CharizardRig } from './charizard';
 import { CharmeleonRig } from './charmeleon';
+import { DittoRig } from './ditto';
 import { DragoniteRig, DratiniRig } from './dratini';
 import { GastlyRig } from './gastly';
 import { GeodudeRig } from './geodude';
@@ -83,6 +84,7 @@ const RIGS: Record<string, (style: CreatureStyle) => CreatureRig> = {
   dratini: () => new DratiniRig('dratini'),
   dragonair: () => new DratiniRig('dragonair'),
   dragonite: () => new DragoniteRig(),
+  ditto: () => new DittoRig(),
 };
 
 /** Arista del cubo en el estilo vóxel (casillas, antes de la escala visual). */

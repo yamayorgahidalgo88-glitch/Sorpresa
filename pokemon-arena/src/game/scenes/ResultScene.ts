@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { Difficulty } from '../../sim/ai/opponent';
 import type { BattleResult } from '../../sim/core/state';
+import type { Command } from '../../sim/battle';
 import { recordResult } from '../../persistence/settings';
 import { rankOf } from '../../persistence/progression';
 import { GAME_H, GAME_W } from '../layout';
@@ -17,6 +18,7 @@ export interface ResultData {
   energySpent: number;
   towerDamage: [number, number];
   defeated: [number, number];
+  replay: { seed: number; decks: [string[], string[]]; log: Command[] };
 }
 
 const REASONS: Record<BattleResult['reason'], string> = {
@@ -79,10 +81,14 @@ export class ResultScene extends Phaser.Scene {
       this.tweens.add({ targets: n, scale: 1.08, yoyo: true, repeat: 3, duration: 260 });
     }
 
-    makeButton(this, GAME_W / 2, 935, 380, 74, 'Revancha', () => {
+    makeButton(this, GAME_W / 2 - 100, 935, 260, 74, 'Revancha', () => {
       this.scene.stop('battle');
       this.scene.start('battle', { difficulty: data.difficulty, deck: data.deck });
     });
+    makeButton(this, GAME_W / 2 + 140, 935, 200, 74, 'Repetición', () => {
+      this.scene.stop('battle');
+      this.scene.start('battle', { difficulty: data.difficulty, deck: data.deck, replay: data.replay });
+    }, 0x3d8bff);
     makeButton(this, GAME_W / 2, 1025, 380, 64, 'Menú principal', () => {
       this.scene.stop('battle');
       this.scene.start('menu');

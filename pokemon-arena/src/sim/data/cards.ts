@@ -26,7 +26,9 @@ export type Ability =
   /** Cada impacto ralentiza al objetivo. */
   | { kind: 'ralentizar'; factor: number; duration: number }
   /** Aparece con un escudo que absorbe `amount` de daño antes de perder salud. */
-  | { kind: 'escudo'; amount: number };
+  | { kind: 'escudo'; amount: number }
+  /** Ditto: se transforma en la última carta jugada por su equipo; cuesta lo mismo + `extraCost`. */
+  | { kind: 'transformacion'; extraCost: number };
 
 export interface AttackDef {
   kind: 'cuerpo' | 'proyectil';
@@ -162,6 +164,13 @@ const BASE_POKEMON: Omit<PokemonCard, BaseFields>[] = [
     locomotion: 'tierra', targets: 'aire_y_tierra', attack: { kind: 'proyectil', projectileSpeed: 9 }, deployTime: 1,
     ability: { kind: 'canto', radius: 2.5, duration: 1.5, interval: 5 },
     description: 'Su Canto duerme a los enemigos cercanos durante un instante.',
+  },
+  {
+    kind: 'pokemon', id: 'ditto', name: 'Ditto', types: ['normal'], role: 'apoyo', cost: 1, count: 1,
+    hp: 400, damage: 40, hitSpeed: 1.2, speed: 1.0, range: 0.6, sight: 5, radius: 0.45, mass: 2,
+    locomotion: 'tierra', targets: 'tierra', attack: { kind: 'cuerpo' }, deployTime: 1,
+    ability: { kind: 'transformacion', extraCost: 1 },
+    description: 'Se transforma en la última carta que jugaste (Pokémon o hechizo, en tu misma fase) y cuesta 1 de energía más que ella.',
   },
   {
     kind: 'pokemon', id: 'gastly', name: 'Gastly', types: ['fantasma', 'veneno'], role: 'distancia', cost: 3, count: 1,
@@ -332,6 +341,11 @@ export function maxStage(line: string): Stage {
   let m: Stage = 1;
   for (const id of CARD_IDS) if (CARDS[id].line === line && CARDS[id].stage > m) m = CARDS[id].stage;
   return m;
+}
+
+/** ¿Es una carta que copia a otra (Ditto)? */
+export function isTransform(card: Card): card is PokemonCard & { ability: { kind: 'transformacion'; extraCost: number } } {
+  return card.kind === 'pokemon' && card.ability?.kind === 'transformacion';
 }
 
 /** Elemento con el que ataca un Pokémon. */

@@ -190,9 +190,21 @@ async function scenario(browser, label, contextOpts, mode, query = '') {
   }));
   check(saved.stats.trophies === 30 && saved.stats.wins === 1 && saved.profile.coins === 100 + 45 + 100, 'trofeos, historial y monedas se guardan en el navegador');
 
-  await tap({ x: GAME_W / 2, y: 935 }); // Revancha
-  await page.waitForFunction(() => window.__game.scene.isActive('battle') && window.__arena.battle.tick < 40 && !window.__game.scene.isActive('result'), null, { timeout: 45000 });
-  check(true, 'revancha inicia una batalla nueva');
+  // Repetición: reproduce la partida con su semilla y sus órdenes, sin poder jugar
+  await tap({ x: GAME_W / 2 + 140, y: 935 });
+  await page.waitForFunction(() => window.__game.scene.isActive('battle') && !!window.__arena?.scene?.data_?.replay && window.__arena.battle.tick > 60, null, { timeout: 45000 });
+  const rep = await page.evaluate(() => ({ log: window.__arena.scene.data_.replay.log.length, played: window.__arena.battle.player(0).cardsPlayed + window.__arena.battle.player(1).cardsPlayed }));
+  check(rep.log > 0, `la repetición se abre con las órdenes registradas (${rep.log})`);
+  await page.screenshot({ path: `${OUT}/${label}-3b-repeticion.png` });
+  const statsBefore = await page.evaluate(() => localStorage.getItem('pokemon-arena:estadisticas'));
+  await page.evaluate(() => window.__game.scene.getScene('battle').scene.start('menu'));
+  await page.waitForFunction(() => window.__game.scene.isActive('menu'));
+  const statsAfter = await page.evaluate(() => localStorage.getItem('pokemon-arena:estadisticas'));
+  check(statsBefore === statsAfter, 'la repetición no cuenta para el historial');
+  await page.evaluate((d) => window.__game.scene.getScene('menu').scene.start('battle', { difficulty: 'normal', deck: d }), ['onix', 'pikachu', 'charmander', 'squirtle', 'bulbasaur', 'machop', 'pidgey', 'rayo']);
+  check(true, 'revancha: nueva batalla tras la repetición');
+  await page.waitForFunction(() => window.__game.scene.isActive('battle') && !window.__arena.scene.data_.replay && window.__arena.battle.tick < 60 && !window.__game.scene.isActive('result'), null, { timeout: 45000 });
+  check(true, 'se inicia una batalla nueva');
 
   // Constructor de mazo y colección accesibles desde el menú
   await page.evaluate(() => window.__game.scene.getScenes(true).forEach((s) => s.scene.stop()) || window.__game.scene.start('menu'));

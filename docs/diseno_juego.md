@@ -58,7 +58,9 @@ Cada carta es una **línea evolutiva**. Se empieza con la primera fase y se evol
 | **Abra** | Kadabra | Alakazam | Psíquico | Distancia | 4 | 560 | 115 / 1,5 s | 1,0 | 5 | Aire y tierra | **Barrera**: escudo de 280 que absorbe daño antes que la salud |
 | **Dratini** | Dragonair | Dragonite | Dragón | Tanque | 4 | 1250 | 120 / 1,4 s | 1,0 | 1,0 | Tierra | Barrido con área de 0,9 |
 
-En negrita, las líneas nuevas. La habilidad **Barrera** (`escudo`) es nueva en la simulación (`UnitEntity.shield`, aplicada en `applyDamage`).
+| **Ditto** | — | — | Normal | Apoyo | Carta copiada **+1** | — | — | — | — | — | **Transformación**: se convierte en la última carta que jugaste (Pokémon o hechizo, en tu fase), por 1 de energía más (máx. 10). Si aún no has jugado nada, no se puede usar |
+
+En negrita, las líneas nuevas. Ditto se inspira en la carta «Mirror» de Boom Arena y Clash Royale (ver `comparativa_diseno.md`). La IA no lo usa, porque su valor depende de la carta anterior. La habilidad **Barrera** (`escudo`) es nueva en la simulación (`UnitEntity.shield`, aplicada en `applyDamage`).
 
 **Cambios al evolucionar:** Charizard pasa a Fuego/Volador, vuela, ataca a aire y tierra con alcance 3 y área 1,5. Dragonite pasa a Dragón/Volador y vuela. Steelix pasa a Acero/Tierra.
 
@@ -160,7 +162,13 @@ Las relaciones (qué tipo es eficaz contra cuál) siguen la tabla clásica de lo
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Premio | 100 🪙 | Poké | Super | Ultra | 250 🪙 | Ultra | Super | Ultra | 400 🪙 | Ultra | Super | **Master** | Ultra | Ultra | 1000 🪙 | Ultra | Ultra | **Master** |
 
-- **Rival con evoluciones**: cada carta del rival puede salir en fase 2 o 3. La probabilidad de fase 2 va del 6 % (0 trofeos) al 55 %, y la de fase 3 del 0 % al 12 %, según tus trofeos. Es determinista con la semilla de la partida.
+- **Rival ajustado a tu mazo (emparejamiento justo, desde el 29-10-2026):**
+  - Las fases del rival tienen la misma media que la **fuerza de tu mazo**: la fase media de tus cartas que pueden evolucionar.
+  - Se añade un pequeño extra por trofeos (hasta +0,25) y una variación de ±0,3 por carta.
+  - Con un mazo en primera fase, el rival casi no evoluciona; si evolucionas, él también.
+  - Es determinista con la semilla de la partida.
+  - Antes dependía solo de los trofeos; se cambió siguiendo la idea de juego limpio de Boom Arena.
+- **Repeticiones**: desde los resultados, «Repetición» vuelve a jugar la partida con la misma semilla, los mazos sin barajar y las órdenes de los dos bandos (`Battle.commandLog`). No cuenta para trofeos ni monedas.
 - **Interfaz**:
   - El menú muestra las monedas y un aviso con las Pokéballs pendientes de abrir.
   - Constructor de mazo como en Clash Royale: mazo arriba, colección abajo y cartas por descubrir con candado. Para cambiar una carta: «Usar» y después tocar la carta del mazo que sale. Cada carta tiene una barra de copias.

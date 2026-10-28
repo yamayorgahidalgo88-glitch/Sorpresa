@@ -5,7 +5,7 @@ import type { Vec } from '../core/vec';
 import { dist } from '../core/vec';
 import { ARENA, MID_Y, snapToTile } from '../data/arena';
 import type { Card, PokemonCard } from '../data/cards';
-import { attackElement, getCard } from '../data/cards';
+import { attackElement, getCard, isTransform } from '../data/cards';
 import { typeMultiplier } from '../data/elements';
 import { isDeployAllowed } from '../systems/deployment';
 import type { Observation, ObservedTower, ObservedUnit } from './observation';
@@ -65,7 +65,8 @@ export class OpponentAI {
     this.nextDecision = obs.tick + this.params.decisionInterval;
     if (this.params.hesitation > 0 && this.rng.next() < this.params.hesitation) return null;
 
-    const affordable = obs.hand.filter((id) => getCard(id).cost <= obs.energy);
+    // Ditto (copia) no lo usa la IA: su valor depende de la carta anterior.
+    const affordable = obs.hand.filter((id) => getCard(id).cost <= obs.energy && !isTransform(getCard(id)));
     if (affordable.length === 0) return null;
 
     if (this.params.opportunist) {
