@@ -55,6 +55,24 @@ Las primitivas 2D de Phaser no pueden ofrecer volumen, luz, sombras ni perspecti
 - **Detalle:** suficiente para parecer terminado (almenas, ménsulas, estandartes, flores), concentrado fuera de las zonas de lectura del combate.
 - **Prohibido:** emojis, iconos o ilustraciones planas en lugar de modelos, y aspecto de "rectángulos y círculos HTML".
 
+### 2.1 Decisión de estilo de los Pokémon (28-10-2026): vóxel, "píxel 3D"
+
+A petición del usuario ("que los Pokémon sean rollo pixel"), se compararon tres opciones en la misma escena. Lámina: `capturas/comparacion_estilos.jpg`.
+
+| Opción | Resultado | Decisión |
+|---|---|---|
+| A. Suave (volúmenes redondeados) | Limpio y legible, pero más genérico | Se conserva como alternativa (`?estilo=suave`) |
+| **B. Vóxel** (cubos + cara de pixel art) | Identidad propia y retro, encaja con la cámara cenital, conserva luz, sombras y animación | **Elegida** (por defecto) |
+| C. Escena entera pixelada (render a 1/3 y ampliación nítida) | Arena borrosa y números de vida ilegibles ("1600" deformado) | Descartada |
+
+Reglas del estilo vóxel (`src/render3d/creatures/voxel.ts`):
+- **Tamaño del cubo: 0,085 casillas.** Pikachu mide ~16 cubos de alto y su cabeza ~10 de ancho, como un sprite clásico de 16 px. Con cubos de 0,055 cada cubo ocupaba ~1 píxel en la cámara de juego y el estilo no se percibía; con 0,11 se perdía la forma.
+- **Una rejilla por pieza animada** (cabeza, orejas, brazos, pies, cola). La animación procedural sigue igual.
+- **Oclusión ambiental por vértice** y ±6 % de variación de tono por cubo. Solo se generan las caras exteriores.
+- **La cara se dibuja a mano, píxel a píxel** (8×4: ojos 2×2 con brillo, boca, mejillas), y se pinta sobre el cubo más frontal de cada columna. Derivarla de esferas diminutas daba ojos asimétricos y una boca de mancha. Las mejillas usan su propio material: se siguen encendiendo al cargar.
+- **Formas macizas para piezas finas.** Las orejas pasan de cono a elipsoide para no partirse al convertirlas en cubos.
+- **La arena se mantiene suave y estilizada** (juguete 3D). Los personajes vóxel destacan sobre ella y la lectura del combate no se resiente.
+
 ## 3. Paleta (`src/render3d/palette.ts`)
 
 | Uso | Color |
@@ -80,7 +98,7 @@ Los tipos elementales conservan su color en efectos y números (eléctrico `#ffe
 | Base principal | 7,55 hasta el vértice (radio 1,6–2,0, corona dorada) |
 | Muro perimetral | 0,87 sobre el terreno exterior |
 | Puente | 3 de ancho, arco de 0,22 |
-| Pikachu | 1,35 × escala visual 1,35 ≈ 1,8 |
+| Pikachu | 1,35 × escala visual 1,35 ≈ 1,8 (≈ 16 cubos de 0,085 en estilo vóxel) |
 
 **Regla de tamaño de personajes:** altura base = 0,8 + 0,55·log₂(altura real / 0,4 m + 1). Comprime la enorme variación real (de 0,4 m a 8,8 m) en un rango legible de 1,35 a 3,3 casillas. Se multiplica por `UNIT_SCALE = 1,35` para que se lean bien en la cámara de juego. Las alturas reales vienen de PokéAPI (`docs/datos_pokeapi.json`):
 
@@ -123,7 +141,7 @@ Todas las texturas son **procedurales y originales** (`src/render3d/textures.ts`
 
 ## 7. Cámara
 
-- **Juego:** perspectiva de 28°, inclinación de 50°, el jugador abajo. El encuadre se calcula para que el campo completo, incluida la punta del tejado de la base rival, quepa por encima de la franja del HUD (15,5 % inferior).
+- **Juego:** perspectiva de 28°, inclinación de **58°** (más cenital, como en los juegos de estrategia móviles: los personajes se leen desde arriba sin perder el volumen de las torres), el jugador abajo. El encuadre se calcula para que el campo completo, incluida la punta del tejado de la base rival, quepa por encima de la franja del HUD (15,5 % inferior).
 - **Detalle y personaje:** solo para revisión. La pantalla vertical tiene un campo de visión horizontal estrecho (~18°), así que estas cámaras **alinean al personaje y su objetivo con la dirección de la vista**.
 
 ## 8. Animación y efectos
@@ -207,7 +225,7 @@ No hay ninguna herramienta de ese tipo disponible en este entorno. `creatures/re
 | A. Auditoría | ✅ (§1) |
 | B. Escenario de prueba con luz, cámara y materiales | ✅ `referencia.html` |
 | C. Torre de referencia | ✅ Guardiana y base (variante) con cristal, almenas, balcón, tejado y bandera animada |
-| D. Pokémon de referencia | ✅ Pikachu con todas sus animaciones |
+| D. Pokémon de referencia | ✅ Pikachu en estilo vóxel (por defecto) y suave, con todas sus animaciones |
 | E. Ataque completo | ✅ Impactrueno: carga, lanzamiento, vuelo con haz, impacto, reacción, número, limpieza |
 | F. Resto de unidades y torres | ⏳ 10 Pokémon con cápsula **provisional** marcada; falta la torre en ruinas definitiva |
 | G. Cartas y HUD | ⏳ |

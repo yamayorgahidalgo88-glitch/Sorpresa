@@ -5,6 +5,10 @@ import { plasticMaterial } from '../palette';
 import { PikachuRig } from './pikachu';
 import type { PoseInput } from './rig';
 import { CreatureRig } from './rig';
+import { voxelizeRig } from './voxel';
+
+/** Estilo de los personajes: 'suave' (volúmenes redondeados) o 'voxel' (píxel 3D). */
+export type CreatureStyle = 'suave' | 'voxel';
 
 /**
  * PROVISIONAL (hito F): cápsula con el color del tipo para los Pokémon que aún no tienen
@@ -30,12 +34,20 @@ class PlaceholderRig extends CreatureRig {
 }
 
 /** Modelos de producción disponibles. Añadir aquí cada Pokémon a medida que se termine. */
-const RIGS: Record<string, () => CreatureRig> = {
-  pikachu: () => new PikachuRig(),
+const RIGS: Record<string, (style: CreatureStyle) => CreatureRig> = {
+  pikachu: (style) => new PikachuRig(style === 'voxel'),
 };
 
-export function createRig(cardId: string): CreatureRig {
-  return RIGS[cardId]?.() ?? new PlaceholderRig(cardId);
+/** Arista del cubo en el estilo vóxel (casillas, antes de la escala visual). */
+let voxelSize = 0.085;
+export function setVoxelSize(size: number): void {
+  voxelSize = size;
+}
+
+export function createRig(cardId: string, style: CreatureStyle = 'suave'): CreatureRig {
+  const rig = RIGS[cardId]?.(style) ?? new PlaceholderRig(cardId);
+  if (style === 'voxel') voxelizeRig(rig, voxelSize);
+  return rig;
 }
 
 export function hasProductionModel(cardId: string): boolean {

@@ -39,7 +39,9 @@ export class Engine {
   /** Fracción inferior de la pantalla reservada al HUD (el campo no se dibuja debajo). */
   hudFraction = 0.16;
   /** Inclinación de la cámara de juego (grados sobre la horizontal). */
-  pitchDeg = 50;
+  pitchDeg = 58;
+  /** >1: la escena se dibuja a resolución reducida y se amplía con píxeles nítidos (estilo pixel art). */
+  pixelScale = 1;
 
   constructor(readonly canvas: HTMLCanvasElement, readonly quality: Quality = defaultQuality()) {
     this.settings = QUALITY[quality];
@@ -93,6 +95,10 @@ export class Engine {
   }
 
   resize(width: number, height: number): void {
+    if (this.pixelScale > 1) {
+      this.renderer.setPixelRatio(1 / this.pixelScale);
+      this.canvas.style.imageRendering = 'pixelated';
+    }
     this.renderer.setSize(width, height, false);
     this.composer?.setSize(width, height);
     this.bloom?.resolution.set(width / 2, height / 2);

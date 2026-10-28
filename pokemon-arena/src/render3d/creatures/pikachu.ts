@@ -26,14 +26,14 @@ export class PikachuRig extends CreatureRig {
   private readonly footR = new THREE.Group();
   private readonly tail = new THREE.Group();
   private readonly cheekMat: THREE.MeshPhysicalMaterial;
-  private cheekL!: THREE.Mesh;
-  private readonly cheeks: THREE.Mesh[] = [];
+  private cheekL!: THREE.Object3D;
+  private readonly cheeks: THREE.Object3D[] = [];
   private readonly eyes: THREE.Group[] = [];
   private blinkT = 2;
   private twitchT = 3;
   private twitch = 0;
 
-  constructor() {
+  constructor(private readonly blocky = false) {
     super();
     const fur = plasticMaterial(YELLOW, { roughness: 0.5, clearcoat: 0.25 });
     const brown = plasticMaterial(BROWN, { roughness: 0.6 });
@@ -65,42 +65,73 @@ export class PikachuRig extends CreatureRig {
       g.position.set(0.2 * side, 0.22, -0.02);
       g.rotation.z = -0.38 * side;
       this.head.add(g);
-      const ear = this.part(new THREE.ConeGeometry(0.105, 0.52, 18), fur, g);
-      ear.position.y = 0.26;
-      ear.scale.set(1, 1, 0.62);
-      const tip = this.part(new THREE.ConeGeometry(0.062, 0.2, 18), black, g, 0.03);
-      tip.position.y = 0.43;
-      tip.scale.set(1, 1, 0.62);
+      if (this.blocky) {
+        // Versión vóxel: formas macizas que no se rompen al pasarlas a cubos.
+        const ear = this.part(new THREE.SphereGeometry(0.115, 16, 12), fur, g);
+        ear.position.y = 0.25;
+        ear.scale.set(1, 2.5, 0.7);
+        const tip = this.part(new THREE.SphereGeometry(0.09, 12, 10), black, g, 0.03);
+        tip.position.y = 0.47;
+        tip.scale.set(1, 1.5, 0.8);
+      } else {
+        const ear = this.part(new THREE.ConeGeometry(0.105, 0.52, 18), fur, g);
+        ear.position.y = 0.26;
+        ear.scale.set(1, 1, 0.62);
+        const tip = this.part(new THREE.ConeGeometry(0.062, 0.2, 18), black, g, 0.03);
+        tip.position.y = 0.43;
+        tip.scale.set(1, 1, 0.62);
+      }
     }
 
-    // Ojos brillantes con reflejo
-    for (const side of [-1, 1]) {
-      const eye = new THREE.Group();
-      eye.position.set(0.15 * side, 0.03, 0.31);
-      this.head.add(eye);
-      const ball = this.part(new THREE.SphereGeometry(0.068, 18, 14), black, eye, 0);
-      ball.scale.set(1, 1.15, 0.55);
-      const hl = new THREE.Mesh(new THREE.SphereGeometry(0.024, 10, 8), white);
-      hl.position.set(-0.018 * side, 0.03, 0.03);
-      eye.add(hl);
-      this.eyes.push(eye);
-    }
-    // Nariz y boca
-    const nose = this.part(new THREE.SphereGeometry(0.018, 10, 8), black, this.head, 0);
-    nose.position.set(0, -0.04, 0.36);
-    for (const side of [-1, 1]) {
-      const mouth = this.part(new THREE.TorusGeometry(0.03, 0.009, 6, 12, Math.PI), black, this.head, 0);
-      mouth.position.set(0.028 * side, -0.085, 0.345);
-      mouth.rotation.set(0, 0, Math.PI);
-    }
-    // Mejillas eléctricas
-    for (const side of [-1, 1]) {
-      const c = this.part(new THREE.SphereGeometry(0.075, 16, 12), this.cheekMat, this.head, 0);
-      c.position.set(0.25 * side, -0.07, 0.24);
-      c.scale.set(1, 1, 0.45);
-      c.lookAt(c.position.clone().multiplyScalar(3));
-      if (side < 0) this.cheekL = c;
-      this.cheeks.push(c);
+    if (this.blocky) {
+      // Cara de pixel art diseñada a mano (8×4 píxeles) pintada sobre los cubos frontales.
+      // W brillo, K ojo, k boca, R mejilla (material propio: se enciende al cargar).
+      this.materials.push(this.cheekMat, white);
+      this.pixelFace = {
+        group: this.head,
+        rows: ['.WK..WK.', '.KK..KK.', 'R..kk..R', 'R......R'],
+        palette: { W: white, K: black, k: brown, R: this.cheekMat },
+        top: 0.085,
+      };
+      // Anclajes invisibles de las mejillas (origen de las chispas de carga).
+      for (const side of [-1, 1]) {
+        const a = new THREE.Object3D();
+        a.position.set(0.3 * side, -0.1, 0.27);
+        this.head.add(a);
+        if (side < 0) this.cheekL = a;
+        this.cheeks.push(a);
+      }
+    } else {
+      // Ojos brillantes con reflejo
+      for (const side of [-1, 1]) {
+        const eye = new THREE.Group();
+        eye.position.set(0.15 * side, 0.03, 0.31);
+        this.head.add(eye);
+        const ball = this.part(new THREE.SphereGeometry(0.068, 18, 14), black, eye, 0);
+        ball.scale.set(1, 1.15, 0.55);
+        const hl = new THREE.Mesh(new THREE.SphereGeometry(0.024, 10, 8), white);
+        hl.position.set(-0.018 * side, 0.03, 0.03);
+        hl.userData.part = true;
+        eye.add(hl);
+        this.eyes.push(eye);
+      }
+      // Nariz y boca
+      const nose = this.part(new THREE.SphereGeometry(0.018, 10, 8), black, this.head, 0);
+      nose.position.set(0, -0.04, 0.36);
+      for (const side of [-1, 1]) {
+        const mouth = this.part(new THREE.TorusGeometry(0.03, 0.009, 6, 12, Math.PI), black, this.head, 0);
+        mouth.position.set(0.028 * side, -0.085, 0.345);
+        mouth.rotation.set(0, 0, Math.PI);
+      }
+      // Mejillas eléctricas
+      for (const side of [-1, 1]) {
+        const c = this.part(new THREE.SphereGeometry(0.075, 16, 12), this.cheekMat, this.head, 0);
+        c.position.set(0.25 * side, -0.07, 0.24);
+        c.scale.set(1, 1, 0.45);
+        c.lookAt(c.position.clone().multiplyScalar(3));
+        if (side < 0) this.cheekL = c;
+        this.cheeks.push(c);
+      }
     }
 
     // Brazos

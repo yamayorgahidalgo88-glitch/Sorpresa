@@ -7,6 +7,7 @@ import type { PokemonCard } from '../sim/data/cards';
 import { ELEMENT_COLORS } from '../sim/data/elements';
 import type { CreatureRig, PoseInput } from './creatures/rig';
 import { createRig } from './creatures/registry';
+import type { CreatureStyle } from './creatures/registry';
 import type { Effects } from './fx/effects';
 import { ProjectileVisual, familyFor } from './fx/effects';
 import { PAL } from './palette';
@@ -104,10 +105,10 @@ class UnitView3D {
   deathAge = -1;
   readonly flyer: boolean;
 
-  constructor(readonly id: number, readonly team: 0 | 1, readonly cardId: string, scene: THREE.Scene, shadowTex: THREE.Texture) {
+  constructor(readonly id: number, readonly team: 0 | 1, readonly cardId: string, scene: THREE.Scene, shadowTex: THREE.Texture, style: CreatureStyle) {
     const card = getCard(cardId) as PokemonCard;
     this.flyer = card.locomotion === 'aire';
-    this.rig = createRig(cardId);
+    this.rig = createRig(cardId, style);
     this.root.add(this.rig.root);
     this.yaw = team === 0 ? Math.PI : 0;
     this.shadow = new THREE.Mesh(
@@ -253,7 +254,12 @@ export class BattleView3D {
   private readonly shadowTex = softDiscTexture('rgba(0,0,0,1)', 'rgba(0,0,0,0)');
   private readonly tmp = new THREE.Vector3();
 
-  constructor(private readonly battle: Battle, private readonly scene: THREE.Scene, private readonly fx: Effects) {
+  constructor(
+    private readonly battle: Battle,
+    private readonly scene: THREE.Scene,
+    private readonly fx: Effects,
+    private readonly style: CreatureStyle = 'suave',
+  ) {
     for (const t of battle.world.towers) this.towers.set(t.id, new TowerView3D(t, scene));
   }
 
@@ -285,7 +291,7 @@ export class BattleView3D {
         case 'despliegue':
           for (const id of e.unitIds) {
             const u = w.entities.get(id);
-            if (u && u.kind === 'unit') this.units.set(id, new UnitView3D(id, u.team, u.cardId, this.scene, this.shadowTex));
+            if (u && u.kind === 'unit') this.units.set(id, new UnitView3D(id, u.team, u.cardId, this.scene, this.shadowTex, this.style));
           }
           this.fx.deployBurst(toWorld(e.pos), PAL.team[e.team]);
           break;

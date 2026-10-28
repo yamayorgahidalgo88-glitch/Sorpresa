@@ -7,6 +7,7 @@ import { Arena3D } from './render3d/arena3d';
 import { BattleView3D } from './render3d/battleView3d';
 import { Engine } from './render3d/engine';
 import { Effects } from './render3d/fx/effects';
+import { setVoxelSize } from './render3d/creatures/registry';
 
 /**
  * Escena de referencia (hitos B–E): arena completa, torres, Pikachu y su ataque, todo movido
@@ -24,6 +25,13 @@ const canvas = document.getElementById('c') as HTMLCanvasElement;
 const view = document.getElementById('view') as HTMLDivElement;
 const engine = new Engine(canvas); // calidad: ?calidad=alto|medio|bajo o automática
 engine.hudFraction = 0.155;
+// Estilo de los Pokémon: vóxel (píxel 3D, por defecto) o ?estilo=suave. ?pixel=3 pixela toda la escena
+// (opción descartada por legibilidad, se conserva para comparar),
+// ?inclinacion=50 (grados de la cámara de juego).
+const style = params.get('estilo') === 'suave' ? 'suave' : 'voxel';
+engine.pixelScale = Math.max(1, Number(params.get('pixel') ?? 1) || 1);
+engine.pitchDeg = Number(params.get('inclinacion') ?? engine.pitchDeg) || engine.pitchDeg;
+if (params.get('voxel')) setVoxelSize(Number(params.get('voxel')) || 0.085);
 const arena = new Arena3D();
 engine.scene.add(arena.group);
 const fx = new Effects(engine.scene, 4242);
@@ -37,7 +45,7 @@ const enemyTowerId = () => battle.world.towers.find((t) => t.team === 1 && t.rol
 function newBattle(): void {
   battle = new Battle({ seed: 7, decks: [DEFAULT_PLAYER_DECK, DEFAULT_RIVAL_DECK] });
   // La base rival despierta para que el escenario muestre todas las torres activas.
-  view3d = new BattleView3D(battle, engine.scene, fx);
+  view3d = new BattleView3D(battle, engine.scene, fx, style);
 }
 newBattle();
 
@@ -73,6 +81,7 @@ function resize(): void {
   engine.camera.getWorldDirection(dir);
   gamePose.target.copy(engine.camera.position).addScaledVector(dir, engine.camera.position.y / -dir.y);
   const ph = r.height * engine.renderer.getPixelRatio();
+  // (el tamaño de las partículas se calcula en píxeles del lienzo real)
   fx.additive.setViewport(ph, engine.camera.fov);
   fx.soft.setViewport(ph, engine.camera.fov);
   const pose = poseFor(camName);
@@ -164,6 +173,17 @@ pauseBtn.addEventListener('click', () => {
   pauseBtn.textContent = paused ? 'Seguir' : 'Pausa';
 });
 
+const styleBtn = document.getElementById('style')!;
+const styleName = style === 'voxel' ? (engine.pixelScale > 1 ? 'vóxel + píxel' : 'vóxel') : engine.pixelScale > 1 ? 'suave + píxel' : 'suave';
+styleBtn.textContent = `Estilo: ${styleName}`;
+styleBtn.addEventListener('click', () => {
+  // Alterna vóxel ↔ suave (recarga la escena con el otro estilo).
+  const q = new URLSearchParams(location.search);
+  q.delete('pixel');
+  if (style === 'voxel') q.set('estilo', 'suave');
+  else q.delete('estilo');
+  location.search = q.toString();
+});
 const fpsEl = document.getElementById('fps')!;
 let fpsFrames = 0;
 let fpsTime = 0;

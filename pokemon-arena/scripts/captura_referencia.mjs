@@ -1,6 +1,6 @@
 /**
  * Capturas deterministas de la escena de referencia 3D (modo ?captura=1).
- * Uso: npx vite build && node scripts/captura_referencia.mjs [carpeta=../docs/capturas] [calidad=alto]
+ * Uso: npx vite build && node scripts/captura_referencia.mjs [carpeta=../docs/capturas] [calidad=alto] [parametros extra, p. ej. "estilo=voxel&pixel=3"]
  * Avanza el tiempo con pasos fijos y fotografía instantes concretos del guion.
  */
 import { spawn } from 'node:child_process';
@@ -13,8 +13,9 @@ try { pw = require('playwright'); } catch { pw = require('/opt/node-tools/node_m
 
 const OUT = process.argv[2] ?? '../docs/capturas';
 const QUALITY = process.argv[3] ?? 'alto';
+const EXTRA = process.argv[4] ? `&${process.argv[4]}` : '';
 mkdirSync(OUT, { recursive: true });
-const PORT = 4191;
+const PORT = Number(process.env.PORT ?? 4191);
 const server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort', '--host', '127.0.0.1'], { stdio: 'ignore' });
 await sleep(2500);
 const browser = await pw.chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader-webgl', '--enable-unsafe-swiftshader'] });
@@ -23,7 +24,7 @@ const errors = [];
 page.on('pageerror', (e) => errors.push(String(e)));
 // Se ignoran los avisos de rendimiento del controlador por software al leer píxeles para la captura.
 page.on('console', (m) => (m.type() === 'error' || m.type() === 'warning') && !m.text().includes('GL Driver Message') && errors.push(`${m.type()}: ${m.text()}`));
-await page.goto(`http://127.0.0.1:${PORT}/referencia.html?captura=1&calidad=${QUALITY}`);
+await page.goto(`http://127.0.0.1:${PORT}/referencia.html?captura=1&calidad=${QUALITY}${EXTRA}`);
 await page.waitForFunction(() => window.__ref?.ready, null, { timeout: 60000 });
 
 const shots = [

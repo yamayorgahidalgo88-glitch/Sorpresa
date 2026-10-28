@@ -30,7 +30,12 @@ export abstract class CreatureRig {
   readonly body = new THREE.Group();
   /** Altura aproximada del modelo (para barras de vida y efectos). */
   abstract readonly height: number;
-  protected readonly materials: THREE.MeshStandardMaterial[] = [];
+  readonly materials: THREE.MeshStandardMaterial[] = [];
+  /**
+   * Cara de pixel art para el estilo vóxel: filas de caracteres centradas en x = 0 del grupo,
+   * con la fila 0 empezando en `top`; cada carácter de la paleta pinta el cubo más frontal.
+   */
+  pixelFace?: { group: THREE.Object3D; rows: string[]; palette: Record<string, THREE.MeshStandardMaterial>; top: number };
 
   constructor() {
     this.root.add(this.body);
@@ -40,6 +45,7 @@ export abstract class CreatureRig {
   protected part(geo: THREE.BufferGeometry, mat: THREE.MeshStandardMaterial, parent: THREE.Object3D, outline = 0.045): THREE.Mesh {
     const m = new THREE.Mesh(geo, mat);
     m.castShadow = true;
+    m.userData.part = true; // pieza del modelo (el vozelizador la convierte en cubos)
     parent.add(m);
     if (!this.materials.includes(mat)) this.materials.push(mat);
     if (outline > 0) {
