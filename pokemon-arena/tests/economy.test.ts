@@ -31,9 +31,11 @@ describe('catálogo con evoluciones', () => {
         expect(c.cost, c.id).toBe(stages[0].cost);
         if (c.kind === 'pokemon' && stages[0].kind === 'pokemon') {
           expect(c.hp, c.id).toBeGreaterThan(stages[0].hp);
-          expect(c.damage, c.id).toBeGreaterThan(stages[0].damage);
+          if (stages[0].damage > 0) expect(c.damage, c.id).toBeGreaterThan(stages[0].damage);
         } else if (c.kind === 'hechizo' && stages[0].kind === 'hechizo') {
-          expect(c.damage, c.id).toBeGreaterThan(stages[0].damage);
+          // Los hechizos mejoran su daño (o su curación, la Poción)
+          if (stages[0].heal) expect(c.heal!, c.id).toBeGreaterThan(stages[0].heal);
+          else expect(c.damage, c.id).toBeGreaterThan(stages[0].damage);
         }
       }
     }

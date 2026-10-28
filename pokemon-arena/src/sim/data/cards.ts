@@ -8,7 +8,7 @@ import type { Element } from './elements';
 
 export type Stage = 1 | 2 | 3;
 
-export type Role = 'tanque' | 'rapido' | 'distancia' | 'apoyo' | 'antigrupo' | 'area' | 'asedio' | 'hechizo';
+export type Role = 'tanque' | 'rapido' | 'distancia' | 'apoyo' | 'antigrupo' | 'area' | 'asedio' | 'edificio' | 'hechizo';
 export type Locomotion = 'tierra' | 'aire';
 /** Qué puede atacar la unidad. */
 export type TargetFilter = 'tierra' | 'aire_y_tierra' | 'edificios';
@@ -28,7 +28,9 @@ export type Ability =
   /** Aparece con un escudo que absorbe `amount` de daño antes de perder salud. */
   | { kind: 'escudo'; amount: number }
   /** Ditto: se transforma en la última carta jugada por su equipo; cuesta lo mismo + `extraCost`. */
-  | { kind: 'transformacion'; extraCost: number };
+  | { kind: 'transformacion'; extraCost: number }
+  /** Edificio que genera `amount` de energía cada `interval` segundos mientras sigue en pie. */
+  | { kind: 'recolector'; interval: number; amount: number };
 
 export interface AttackDef {
   kind: 'cuerpo' | 'proyectil';
@@ -65,6 +67,8 @@ export interface PokemonCard {
   /** Segundos que tarda en poder actuar tras desplegarse. */
   deployTime: number;
   ability?: Ability;
+  /** Edificio: no se mueve, distrae a las tropas y pierde toda su salud en `lifetime` segundos. */
+  building?: { lifetime: number };
   description: string;
   /** Línea evolutiva (id de su primera fase) y fase dentro de ella (1, 2 o 3). */
   line: string;
@@ -85,6 +89,10 @@ export interface SpellCard {
   /** Segundos entre el lanzamiento y el impacto. */
   delay: number;
   effect?: { kind: 'aturdir'; duration: number } | { kind: 'ralentizar'; factor: number; duration: number };
+  /** Curación a los aliados de la zona (en lugar de daño). */
+  heal?: number;
+  /** Zona persistente: `pulses` golpes de `damage`, uno cada `interval` segundos. */
+  dot?: { pulses: number; interval: number };
   description: string;
   /** Los hechizos también tienen "línea": su nivel 1, 2 o 3. */
   line: string;
@@ -173,6 +181,41 @@ const BASE_POKEMON: Omit<PokemonCard, BaseFields>[] = [
     description: 'Se transforma en la última carta que jugaste (Pokémon o hechizo, en tu misma fase) y cuesta 1 de energía más que ella.',
   },
   {
+    kind: 'pokemon', id: 'magnemite', name: 'Magnemite', types: ['electrico', 'acero'], role: 'edificio', cost: 4, count: 1,
+    hp: 800, damage: 85, hitSpeed: 0.9, speed: 0, range: 5.5, sight: 5.5, radius: 0.55, mass: 1000,
+    locomotion: 'tierra', targets: 'aire_y_tierra', attack: { kind: 'proyectil', projectileSpeed: 14 }, deployTime: 1,
+    building: { lifetime: 30 },
+    description: 'Torreta flotante: dispara descargas a lo que se acerque (aire y tierra) y atrae a las tropas que van a por edificios.',
+  },
+  {
+    kind: 'pokemon', id: 'voltorb', name: 'Voltorb', types: ['electrico'], role: 'edificio', cost: 4, count: 1,
+    hp: 900, damage: 100, hitSpeed: 1.4, speed: 0, range: 3.5, sight: 3.5, radius: 0.55, mass: 1000,
+    locomotion: 'tierra', targets: 'tierra', attack: { kind: 'proyectil', projectileSpeed: 9, splashRadius: 1.2 }, deployTime: 1,
+    building: { lifetime: 25 },
+    ability: { kind: 'autodestruccion', radius: 2.5, damage: 200, element: 'electrico', towerFactor: 0.5 },
+    description: 'Bomba defensiva: lanza chispas en área a las tropas de tierra y explota al ser destruida.',
+  },
+  {
+    kind: 'pokemon', id: 'chansey', name: 'Chansey', types: ['normal'], role: 'edificio', cost: 6, count: 1,
+    hp: 1000, damage: 0, hitSpeed: 1, speed: 0, range: 0, sight: 0, radius: 0.6, mass: 1000,
+    locomotion: 'tierra', targets: 'tierra', attack: { kind: 'cuerpo' }, deployTime: 1,
+    building: { lifetime: 70 },
+    ability: { kind: 'recolector', interval: 8.5, amount: 1 },
+    description: 'Pone un huevo de energía cada 8,5 s mientras sigue en pie (unos 8 en total). No ataca.',
+  },
+  {
+    kind: 'pokemon', id: 'rattata', name: 'Rattata', types: ['normal'], role: 'rapido', cost: 2, count: 5,
+    hp: 130, damage: 50, hitSpeed: 1.0, speed: 1.7, range: 0.5, sight: 5, radius: 0.32, mass: 1,
+    locomotion: 'tierra', targets: 'tierra', attack: { kind: 'cuerpo' }, deployTime: 1,
+    description: 'Enjambre de cinco: barato y rápido, rodea a los enemigos grandes, pero cae ante el daño en área.',
+  },
+  {
+    kind: 'pokemon', id: 'zubat', name: 'Zubat', types: ['veneno', 'volador'], role: 'rapido', cost: 2, count: 4,
+    hp: 95, damage: 45, hitSpeed: 1.1, speed: 1.9, range: 0.5, sight: 5.5, radius: 0.3, mass: 1,
+    locomotion: 'aire', targets: 'aire_y_tierra', attack: { kind: 'cuerpo' }, deployTime: 1,
+    description: 'Bandada de cuatro murciélagos voladores muy rápidos y frágiles.',
+  },
+  {
     kind: 'pokemon', id: 'gastly', name: 'Gastly', types: ['fantasma', 'veneno'], role: 'distancia', cost: 3, count: 1,
     hp: 430, damage: 70, hitSpeed: 1.1, speed: 1.4, range: 3.5, sight: 6, radius: 0.45, mass: 1,
     locomotion: 'aire', targets: 'aire_y_tierra', attack: { kind: 'proyectil', projectileSpeed: 10 }, deployTime: 1,
@@ -237,6 +280,14 @@ const EVOLUTIONS: Record<string, Evo[]> = {
     { id: 'kadabra', name: 'Kadabra', radius: 0.5, description: 'Su Barrera psíquica absorbe daño. Ataca con su cuchara desde lejos.' },
     { id: 'alakazam', name: 'Alakazam', radius: 0.55, description: 'Psíquico supremo: Barrera fuerte y ataques de muy largo alcance.' },
   ],
+  magnemite: [{ id: 'magneton', name: 'Magneton', radius: 0.7, description: 'Tres Magnemite unidos: torreta eléctrica más resistente y potente.' }],
+  voltorb: [{ id: 'electrode', name: 'Electrode', radius: 0.62, description: 'Bomba defensiva más potente que explota al ser destruida.' }],
+  chansey: [{ id: 'blissey', name: 'Blissey', radius: 0.65, description: 'Recolectora de energía mucho más resistente.' }],
+  rattata: [{ id: 'raticate', name: 'Raticate', radius: 0.38, description: 'Enjambre de cinco con colmillos más duros.' }],
+  zubat: [
+    { id: 'golbat', name: 'Golbat', radius: 0.36, description: 'Bandada de cuatro, más resistente.' },
+    { id: 'crobat', name: 'Crobat', radius: 0.38, description: 'Bandada de cuatro, la más veloz.' },
+  ],
   dratini: [
     { id: 'dragonair', name: 'Dragonair', radius: 0.6, description: 'Dragón sereno que barre con la cola a su alrededor.' },
     {
@@ -291,6 +342,17 @@ const BASE_SPELLS: Omit<SpellCard, BaseFields>[] = [
     description: 'Descarga instantánea en área que aturde brevemente. Daño reducido a torres.',
   },
   {
+    kind: 'hechizo', id: 'pocion', name: 'Poción', types: ['normal'], role: 'hechizo', cost: 2,
+    radius: 2.8, damage: 0, heal: 260, towerDamageFactor: 0, delay: 0.3,
+    description: 'Cura al instante a tus Pokémon de la zona.',
+  },
+  {
+    kind: 'hechizo', id: 'toxico', name: 'Tóxico', types: ['veneno'], role: 'hechizo', cost: 4,
+    radius: 3, damage: 50, dot: { pulses: 8, interval: 1 }, towerDamageFactor: 0.35, delay: 0.4,
+    effect: { kind: 'ralentizar', factor: 0.15, duration: 1.2 },
+    description: 'Nube venenosa que daña y frena un poco a los enemigos de la zona durante 8 s (400 de daño en total).',
+  },
+  {
     kind: 'hechizo', id: 'ventisca', name: 'Ventisca', types: ['hielo'], role: 'hechizo', cost: 4,
     radius: 3, damage: 170, towerDamageFactor: 0.4, delay: 0.6,
     effect: { kind: 'ralentizar', factor: 0.4, duration: 4 },
@@ -305,6 +367,7 @@ function buildSpell(base: Omit<SpellCard, BaseFields>): SpellCard[] {
     id: stage === 1 ? base.id : `${base.id}_${stage}`,
     name: stage === 1 ? base.name : `${base.name} Nv. ${stage}`,
     damage: scale(base.damage, stage),
+    heal: base.heal ? scale(base.heal, stage) : undefined,
     line: base.id,
     stage,
   }));
@@ -361,6 +424,7 @@ export const ROLE_NAMES: Record<Role, string> = {
   antigrupo: 'Antigrupo',
   area: 'Área',
   asedio: 'Asedio',
+  edificio: 'Edificio',
   hechizo: 'Hechizo',
 };
 

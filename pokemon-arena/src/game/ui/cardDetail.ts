@@ -37,6 +37,8 @@ function abilityText(a: Ability): string {
       return `Cada golpe ralentiza un ${Math.round(a.factor * 100)} % durante ${a.duration} s.`;
     case 'escudo':
       return `Aparece con una Barrera que absorbe ${a.amount} de daño.`;
+    case 'recolector':
+      return `Genera ${a.amount} de energía cada ${a.interval} s mientras sigue en pie.`;
     case 'transformacion':
       return `Transformación: copia tu última carta por ${a.extraCost} de energía más.`;
   }

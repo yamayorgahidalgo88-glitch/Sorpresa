@@ -12,11 +12,16 @@ export function edgeDistance(a: Entity, b: Entity): number {
   return Math.max(0, dist(a.pos, b.pos) - a.radius - b.radius);
 }
 
+/** ¿Es un edificio (Magnemite, Voltorb, Chansey…)? */
+export function isBuilding(e: Entity): boolean {
+  return e.kind === 'unit' && !!(getCard(e.cardId) as PokemonCard).building;
+}
+
 /** ¿Puede una unidad con este filtro atacar a `target`? */
 export function canTarget(filter: TargetFilter, target: Entity): boolean {
   if (!isAlive(target)) return false;
   if (target.kind === 'tower') return true;
-  if (filter === 'edificios') return false;
+  if (filter === 'edificios') return isBuilding(target);
   if (filter === 'tierra') return target.locomotion === 'tierra';
   return true;
 }
@@ -42,7 +47,8 @@ export function selectUnitTarget(world: World, u: UnitEntity): void {
   let best: Entity | null = null;
   let bestD = Infinity;
 
-  if (card.targets !== 'edificios') {
+  {
+    // Los que solo atacan edificios ven también los edificios rivales (no las tropas).
     for (const e of world.units) {
       if (e.team !== foe || !canTarget(card.targets, e)) continue;
       const d = edgeDistance(u, e);
@@ -61,7 +67,8 @@ export function selectUnitTarget(world: World, u: UnitEntity): void {
     }
   }
 
-  if (!best) best = nearestTowerByTravel(world, u);
+  // Un edificio no se mueve: si no tiene a nadie a la vista, se queda sin objetivo.
+  if (!best && !card.building) best = nearestTowerByTravel(world, u);
   u.targetId = best ? best.id : null;
   u.engaged = false;
 }

@@ -1,5 +1,5 @@
 import type { Rules } from '../data/rules';
-import type { Entity, PendingSpell, PlayerState, Projectile, SimEvent, TowerEntity, UnitEntity } from './state';
+import type { Entity, PendingSpell, PoisonZone, PlayerState, Projectile, SimEvent, TowerEntity, UnitEntity } from './state';
 
 /** Estado mutable compartido por los sistemas de la simulación. */
 export interface World {
@@ -10,6 +10,7 @@ export interface World {
   towers: TowerEntity[];
   projectiles: Projectile[];
   spells: PendingSpell[];
+  poisons: PoisonZone[];
   players: [PlayerState, PlayerState];
   events: SimEvent[];
   entities: Map<number, Entity>;

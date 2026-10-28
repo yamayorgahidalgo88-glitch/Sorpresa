@@ -51,6 +51,8 @@ const FORMATIONS: Record<number, Vec[]> = {
   1: [{ x: 0, y: 0 }],
   2: [{ x: -0.45, y: 0 }, { x: 0.45, y: 0 }],
   3: [{ x: 0, y: -0.5 }, { x: -0.55, y: 0.35 }, { x: 0.55, y: 0.35 }],
+  4: [{ x: -0.45, y: -0.45 }, { x: 0.45, y: -0.45 }, { x: -0.45, y: 0.45 }, { x: 0.45, y: 0.45 }],
+  5: [{ x: 0, y: 0 }, { x: -0.6, y: -0.45 }, { x: 0.6, y: -0.45 }, { x: -0.6, y: 0.45 }, { x: 0.6, y: 0.45 }],
 };
 
 /**
@@ -92,6 +94,7 @@ export class Battle {
       towers: [],
       projectiles: [],
       spells: [],
+      poisons: [],
       players,
       events: [],
       entities: new Map(),
@@ -277,6 +280,8 @@ export class Battle {
         engaged: false,
         abilityTimer: card.ability && 'interval' in card.ability ? secondsToTicks(this.rules, card.ability.interval) : 0,
         shield: card.ability?.kind === 'escudo' ? card.ability.amount : 0,
+        decayRate: card.building ? card.hp / (card.building.lifetime * this.rules.tickRate) : 0,
+        decayAcc: 0,
         status: { stunUntil: 0, slowUntil: 0, slowFactor: 0 },
         dead: false,
       };
@@ -307,7 +312,9 @@ export class Battle {
     for (const p of w.players) regenerate(p.energy, mult);
 
     this.updateSpells();
+    this.updatePoisons();
     this.updateStatuses();
+    this.updateBuildings();
     this.updateAbilities();
     for (const u of w.units) if (this.canAct(u)) selectUnitTarget(w, u);
     for (const t of w.towers) selectTowerTarget(w, t);
@@ -355,6 +362,34 @@ export class Battle {
         continue;
       }
       const card = getCard(s.cardId) as SpellCard;
+      emit(w, { type: 'hechizo_impacto', team: s.team, cardId: s.cardId, pos: s.pos, radius: card.radius });
+      if (card.heal) {
+        // Poción: cura a los aliados de la zona (no daña)
+        for (const a of w.units) {
+          if (a.team !== s.team || !isAlive(a) || a.hp >= a.maxHp) continue;
+          if (dist(a.pos, s.pos) - a.radius > card.radius) continue;
+          const amount = Math.min(card.heal, a.maxHp - a.hp);
+          a.hp += amount;
+          emit(w, { type: 'curacion', targetId: a.id, amount });
+        }
+        continue;
+      }
+      if (card.dot) {
+        // Tóxico: zona que golpea `pulses` veces (la primera, ahora)
+        w.poisons.push({ id: nextId(w), team: s.team, cardId: s.cardId, pos: s.pos, pulsesLeft: card.dot.pulses, timer: 0 });
+        continue;
+      }
+      this.spellHit(s.team, s.cardId, s.pos);
+    }
+    w.spells = remaining;
+  }
+
+  /** Golpe de un hechizo de daño: área, efecto (aturdir o ralentizar) y factor contra torres. */
+  private spellHit(team: Team, cardId: string, pos: Vec): void {
+    const w = this.world;
+    const card = getCard(cardId) as SpellCard;
+    {
+      const s = { team, cardId, pos };
       const hit = applySplash(w, s.team, s.pos, card.radius, card.damage, card.types[0], {
         hitsAir: true,
         includeTowers: true,
@@ -370,9 +405,42 @@ export class Battle {
           else applySlow(w, e, card.effect.factor, ticks);
         }
       }
-      emit(w, { type: 'hechizo_impacto', team: s.team, cardId: s.cardId, pos: s.pos, radius: card.radius });
     }
-    w.spells = remaining;
+  }
+
+  /** Zonas de veneno: un golpe cada `interval` segundos hasta agotar sus pulsos. */
+  private updatePoisons(): void {
+    const w = this.world;
+    const remaining = [];
+    for (const z of w.poisons) {
+      const card = getCard(z.cardId) as SpellCard;
+      if (z.timer > 0) {
+        z.timer--;
+        remaining.push(z);
+        continue;
+      }
+      this.spellHit(z.team, z.cardId, z.pos);
+      z.pulsesLeft--;
+      emit(w, { type: 'veneno', team: z.team, pos: z.pos, radius: card.radius, final: z.pulsesLeft <= 0 });
+      if (z.pulsesLeft > 0) {
+        z.timer = secondsToTicks(this.rules, card.dot!.interval) - 1;
+        remaining.push(z);
+      }
+    }
+    w.poisons = remaining;
+  }
+
+  /** Los edificios pierden salud con el tiempo (en enteros: el resto se acumula). */
+  private updateBuildings(): void {
+    for (const u of this.world.units) {
+      if (u.decayRate <= 0 || u.deployTicks > 0 || !isAlive(u)) continue;
+      u.decayAcc += u.decayRate;
+      const d = Math.floor(u.decayAcc);
+      if (d > 0) {
+        u.decayAcc -= d;
+        u.hp = Math.max(0, u.hp - d);
+      }
+    }
   }
 
   private updateStatuses(): void {
@@ -387,12 +455,18 @@ export class Battle {
       if (!this.canAct(u)) continue;
       const card = getCard(u.cardId) as PokemonCard;
       const ab = card.ability;
-      if (!ab || (ab.kind !== 'aura_curativa' && ab.kind !== 'canto')) continue;
+      if (!ab || (ab.kind !== 'aura_curativa' && ab.kind !== 'canto' && ab.kind !== 'recolector')) continue;
       if (u.abilityTimer > 0) {
         u.abilityTimer--;
         continue;
       }
-      if (ab.kind === 'aura_curativa') {
+      if (ab.kind === 'recolector') {
+        // Chansey: pone un huevo de energía
+        const e = w.players[u.team].energy;
+        e.sub = Math.min(e.maxSub, e.sub + ab.amount * e.subPerPoint);
+        emit(w, { type: 'energia', team: u.team, unitId: u.id, amount: ab.amount });
+        u.abilityTimer = secondsToTicks(this.rules, ab.interval);
+      } else if (ab.kind === 'aura_curativa') {
         for (const a of w.units) {
           if (a.team !== u.team || !isAlive(a) || a.hp >= a.maxHp) continue;
           if (dist(a.pos, u.pos) - a.radius > ab.radius) continue;
@@ -432,6 +506,7 @@ export class Battle {
       const target = getEntity(w, u.targetId);
       if (!target) continue;
       const card = getCard(u.cardId) as PokemonCard;
+      if (card.building) continue;
       const step = (card.speed * this.slowMul(u)) / this.rules.tickRate;
       const prev = { x: u.pos.x, y: u.pos.y };
       const next = moveTowards(u.pos, waypoint(u, target.pos), step);
@@ -509,7 +584,7 @@ export class Battle {
       if (!this.canAct(u)) continue;
       const card = getCard(u.cardId) as PokemonCard;
       if (u.cooldown > 0) u.cooldown = Math.max(0, u.cooldown - this.slowMul(u));
-      if (!u.engaged || u.cooldown > 0) continue;
+      if (!u.engaged || u.cooldown > 0 || card.damage <= 0) continue;
       const target = getEntity(w, u.targetId);
       if (!target || !isAlive(target)) continue;
       const spec = this.hitSpecFor(u, card);

@@ -41,6 +41,9 @@ export interface UnitEntity {
   abilityTimer: number;
   /** Barrera que absorbe daño antes que la salud (habilidad «escudo»). */
   shield: number;
+  /** Edificios: salud que pierden por paso y resto acumulado (0 en las tropas). */
+  decayRate: number;
+  decayAcc: number;
   status: StatusEffects;
   dead: boolean;
 }
@@ -84,6 +87,17 @@ export interface Projectile {
   splashHitsAir: boolean;
   chain?: { jumps: number; radius: number; falloff: number };
   slow?: { factor: number; duration: number };
+}
+
+/** Zona persistente de un hechizo con daño en el tiempo (Tóxico). */
+export interface PoisonZone {
+  id: number;
+  team: Team;
+  cardId: string;
+  pos: Vec;
+  pulsesLeft: number;
+  /** Pasos hasta el siguiente golpe. */
+  timer: number;
 }
 
 export interface PendingSpell {
@@ -131,6 +145,8 @@ export type SimEvent =
   /** `sourceCardId`: carta que causó el daño (null = disparo de torre). */
   | { type: 'dano'; targetId: number; amount: number; effectiveness: EffectivenessLabel; element: Element | null; sourceTeam: Team; sourceCardId: string | null }
   | { type: 'curacion'; targetId: number; amount: number }
+  | { type: 'energia'; team: Team; unitId: number; amount: number }
+  | { type: 'veneno'; team: Team; pos: Vec; radius: number; final: boolean }
   | { type: 'canto'; sourceId: number; pos: Vec; radius: number; targetIds: number[] }
   | { type: 'explosion'; sourceId: number; pos: Vec; radius: number }
   | { type: 'muerte'; unitId: number; team: Team; cardId: string; pos: Vec }

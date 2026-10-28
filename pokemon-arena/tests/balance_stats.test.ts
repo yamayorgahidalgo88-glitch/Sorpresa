@@ -48,7 +48,8 @@ describe('regresión de balance (IA contra IA)', () => {
       // Las evoluciones mejoran a propósito: el límite se escala con su multiplicador de fase.
       const k = STAGE_MULTIPLIER[c.stage];
       const dps = (c.damage * c.count) / c.hitSpeed;
-      expect(dps / c.cost, `${c.id}: daño por segundo y energía`).toBeLessThan(90 * k);
+      // Los enjambres (4 o más unidades frágiles) tienen más daño por energía a propósito.
+      expect(dps / c.cost, `${c.id}: daño por segundo y energía`).toBeLessThan((c.count >= 4 ? 140 : 90) * k);
       expect((c.hp * c.count) / c.cost, `${c.id}: salud por energía`).toBeLessThan(700 * k);
     }
     let pts = 0;

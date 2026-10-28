@@ -87,15 +87,23 @@ describe('costes de cartas', () => {
       expect(c.cost).toBeLessThanOrEqual(10);
       if (c.kind === 'pokemon') {
         expect(c.hp).toBeGreaterThan(0);
-        expect(c.damage).toBeGreaterThan(0);
         expect(c.hitSpeed).toBeGreaterThan(0);
-        expect(c.speed).toBeGreaterThan(0);
-        expect(c.range).toBeGreaterThan(0);
         expect(c.sight).toBeGreaterThanOrEqual(c.range);
+        if (c.building) {
+          // Edificios: no se mueven y tienen tiempo de vida (Chansey no ataca: recolecta energía)
+          expect(c.speed, c.id).toBe(0);
+          expect(c.building.lifetime, c.id).toBeGreaterThan(0);
+          if (c.ability?.kind !== 'recolector') expect(c.damage, c.id).toBeGreaterThan(0);
+        } else {
+          expect(c.damage, c.id).toBeGreaterThan(0);
+          expect(c.speed, c.id).toBeGreaterThan(0);
+          expect(c.range, c.id).toBeGreaterThan(0);
+        }
         expect(c.count).toBeGreaterThanOrEqual(1);
       } else {
         expect(c.radius).toBeGreaterThan(0);
-        expect(c.towerDamageFactor).toBeGreaterThan(0);
+        // La Poción no daña (ni a torres): cura
+        if (!c.heal) expect(c.towerDamageFactor, c.id).toBeGreaterThan(0);
         expect(c.towerDamageFactor).toBeLessThanOrEqual(1);
       }
     }
