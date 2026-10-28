@@ -228,7 +228,22 @@ function voxelizeGroup(group: THREE.Object3D, size: number, face?: CreatureRig['
   geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
   geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
   for (const part of parts) part.mesh.visible = false; // se conservan como anclajes
-  const mesh = new THREE.Mesh(geo, materials);
+  return finishMesh(new THREE.Mesh(geo, materials));
+}
+
+interface CachedVoxels {
+  /** Por cada grupo con piezas (en orden de recorrido): geometría y materiales (índices en rig.materials). */
+  groups: ({ geo: THREE.BufferGeometry; mats: number[] } | null)[];
+}
+
+/**
+ * Caché por modelo: vozelizar cuesta unos milisegundos y en batalla aparecen muchas unidades
+ * iguales. La geometría se comparte (no se libera al morir la unidad); los materiales son de
+ * cada unidad, para que los destellos y la transparencia sean independientes.
+ */
+const cache = new Map<string, CachedVoxels>();
+
+function finishMesh(mesh: THREE.Mesh): THREE.Mesh {
   mesh.castShadow = true;
   mesh.receiveShadow = true;
   mesh.userData.voxel = true;
@@ -236,13 +251,31 @@ function voxelizeGroup(group: THREE.Object3D, size: number, face?: CreatureRig['
 }
 
 /** Convierte un personaje al estilo vóxel. `size` = arista del cubo en casillas. */
-export function voxelizeRig(rig: CreatureRig, size = 0.055): void {
+export function voxelizeRig(rig: CreatureRig, size = 0.055, cacheKey?: string): void {
   const groups: THREE.Object3D[] = [];
   rig.root.traverse((o) => {
     if (o.children.some((c) => c instanceof THREE.Mesh && c.userData.part)) groups.push(o);
   });
-  const built = groups.map((g) => [g, voxelizeGroup(g, size, rig.pixelFace)] as const);
-  for (const [g, mesh] of built) if (mesh) g.add(mesh);
+  const hit = cacheKey ? cache.get(cacheKey) : undefined;
+  if (hit && hit.groups.length === groups.length) {
+    groups.forEach((g, i) => {
+      for (const c of g.children) if (c instanceof THREE.Mesh && c.userData.part) c.visible = false;
+      const entry = hit.groups[i];
+      if (!entry) return;
+      g.add(finishMesh(new THREE.Mesh(entry.geo, entry.mats.map((m) => rig.materials[m]))));
+    });
+  } else {
+    const built = groups.map((g) => [g, voxelizeGroup(g, size, rig.pixelFace)] as const);
+    for (const [g, mesh] of built) if (mesh) g.add(mesh);
+    if (cacheKey) {
+      const entries = built.map(([, mesh]) => {
+        if (!mesh) return null;
+        mesh.geometry.userData.shared = true;
+        return { geo: mesh.geometry, mats: (mesh.material as THREE.Material[]).map((m) => rig.materials.indexOf(m as THREE.MeshStandardMaterial)) };
+      });
+      if (entries.every((e) => !e || e.mats.every((m) => m >= 0))) cache.set(cacheKey, { groups: entries });
+    }
+  }
   // Materiales mate con color por vértice (el color base pasa a los vértices).
   for (const m of rig.materials) {
     m.vertexColors = true;

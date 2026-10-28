@@ -86,7 +86,7 @@ export abstract class CreatureRig {
 
   dispose(): void {
     this.root.traverse((o) => {
-      if (o instanceof THREE.Mesh) o.geometry.dispose();
+      if (o instanceof THREE.Mesh && !o.geometry.userData.shared) o.geometry.dispose();
     });
     for (const m of this.materials) m.dispose();
   }

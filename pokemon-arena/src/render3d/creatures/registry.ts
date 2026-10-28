@@ -2,7 +2,17 @@ import * as THREE from 'three';
 import { getCard } from '../../sim/data/cards';
 import { ELEMENT_COLORS } from '../../sim/data/elements';
 import { plasticMaterial } from '../palette';
+import { BulbasaurRig } from './bulbasaur';
+import { CharizardRig } from './charizard';
+import { CharmeleonRig } from './charmeleon';
+import { GeodudeRig } from './geodude';
+import { JigglypuffRig } from './jigglypuff';
+import { MachopRig } from './machop';
+import { OnixRig } from './onix';
+import { PidgeottoRig } from './pidgeotto';
 import { PikachuRig } from './pikachu';
+import { SnorlaxRig } from './snorlax';
+import { SquirtleRig } from './squirtle';
 import type { PoseInput } from './rig';
 import { CreatureRig } from './rig';
 import { voxelizeRig } from './voxel';
@@ -11,8 +21,8 @@ import { voxelizeRig } from './voxel';
 export type CreatureStyle = 'suave' | 'voxel';
 
 /**
- * PROVISIONAL (hito F): cápsula con el color del tipo para los Pokémon que aún no tienen
- * modelo de producción. Se marca explícitamente para no confundirla con un recurso final.
+ * Respaldo: cápsula con el color del tipo para una carta sin modelo de producción (no debería
+ * ocurrir con el catálogo actual; las pruebas comprueban que todos los Pokémon tienen modelo).
  */
 class PlaceholderRig extends CreatureRig {
   readonly height: number;
@@ -36,6 +46,16 @@ class PlaceholderRig extends CreatureRig {
 /** Modelos de producción disponibles. Añadir aquí cada Pokémon a medida que se termine. */
 const RIGS: Record<string, (style: CreatureStyle) => CreatureRig> = {
   pikachu: (style) => new PikachuRig(style === 'voxel'),
+  squirtle: () => new SquirtleRig(),
+  charmeleon: () => new CharmeleonRig(),
+  charizard: () => new CharizardRig(),
+  machop: () => new MachopRig(),
+  snorlax: () => new SnorlaxRig(),
+  jigglypuff: () => new JigglypuffRig(),
+  bulbasaur: () => new BulbasaurRig(),
+  pidgeotto: () => new PidgeottoRig(),
+  geodude: () => new GeodudeRig(),
+  onix: () => new OnixRig(),
 };
 
 /** Arista del cubo en el estilo vóxel (casillas, antes de la escala visual). */
@@ -46,7 +66,7 @@ export function setVoxelSize(size: number): void {
 
 export function createRig(cardId: string, style: CreatureStyle = 'suave'): CreatureRig {
   const rig = RIGS[cardId]?.(style) ?? new PlaceholderRig(cardId);
-  if (style === 'voxel') voxelizeRig(rig, voxelSize);
+  if (style === 'voxel') voxelizeRig(rig, voxelSize, `${cardId}@${voxelSize}`);
   return rig;
 }
 

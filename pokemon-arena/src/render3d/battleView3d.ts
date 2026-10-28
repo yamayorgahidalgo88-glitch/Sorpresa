@@ -12,6 +12,7 @@ import type { Effects } from './fx/effects';
 import { ProjectileVisual, familyFor } from './fx/effects';
 import { PAL } from './palette';
 import { softDiscTexture } from './textures';
+import { TowerRuins } from './ruins';
 import { TowerModel } from './towerModel';
 
 const FLY = 1.1;
@@ -214,7 +215,9 @@ class TowerView3D {
   readonly model: TowerModel;
   readonly hp: HpBar;
   private collapse = -1;
-  constructor(readonly t: TowerEntity, scene: THREE.Scene) {
+  private ruins: TowerRuins | null = null;
+  private smokeT = 0;
+  constructor(readonly t: TowerEntity, private readonly scene: THREE.Scene) {
     this.model = new TowerModel(t.team, t.role === 'base' ? 'base' : 'guardia');
     this.model.root.position.copy(toWorld(t.pos));
     this.hp = new HpBar(t.role === 'base' ? 2.5 : 2.1, true);
@@ -233,11 +236,48 @@ class TowerView3D {
         fx.impact(p, familyFor(null, t.team), 2.2);
         fx.defeatPoof(p, PAL.team[t.team]);
       }
-      // Derrumbe: se hunde e inclina (las ruinas definitivas llegarán en el hito F).
-      this.collapse = Math.min(1, this.collapse + dt * 0.9);
+      // Derrumbe: la torre se hunde inclinándose entre polvo y emergen las ruinas.
+      if (!this.ruins) {
+        this.ruins = new TowerRuins(t.team, t.role === 'base' ? 'base' : 'guardia', 1000 + t.id * 17);
+        this.ruins.root.position.copy(toWorld(t.pos));
+        this.scene.add(this.ruins.root);
+      }
+      const before = this.collapse;
+      this.collapse = Math.min(1, this.collapse + dt * 0.8);
       const k = this.collapse;
-      this.model.root.position.y = -k * 3.2;
+      this.model.root.position.y = -k * k * 6;
       this.model.root.rotation.z = k * 0.35;
+      this.model.root.visible = k < 1;
+      this.ruins.setRise(THREE.MathUtils.clamp((k - 0.15) / 0.7, 0, 1));
+      // Polvo durante el derrumbe y humo que sigue saliendo de las ruinas.
+      const base = toWorld(t.pos, 0.3);
+      if (before < 0.6) {
+        for (let i = 0; i < 3; i++) {
+          const a = fx.rand(0, Math.PI * 2);
+          fx.soft.emit({
+            pos: base.clone().add(new THREE.Vector3(Math.cos(a) * 1.3, fx.rand(0, 0.8), Math.sin(a) * 1.3)),
+            vel: new THREE.Vector3(Math.cos(a) * fx.rand(0.5, 1.6), fx.rand(0.3, 1.2), Math.sin(a) * fx.rand(0.5, 1.6)),
+            color: new THREE.Color(0xd9cdb6),
+            size: fx.rand(0.7, 1.2),
+            life: fx.rand(0.7, 1.2),
+            drag: 0.85,
+            grow: 1.8,
+          });
+        }
+      }
+      this.smokeT -= dt;
+      if (this.smokeT <= 0) {
+        this.smokeT = 0.35;
+        fx.soft.emit({
+          pos: base.clone().add(new THREE.Vector3(fx.rand(-0.4, 0.4), this.ruins.smokeY, fx.rand(-0.4, 0.4))),
+          vel: new THREE.Vector3(fx.rand(-0.1, 0.1) + 0.2, fx.rand(0.6, 0.9), fx.rand(-0.1, 0.1)),
+          color: new THREE.Color(0x6b655f),
+          size: fx.rand(0.45, 0.7),
+          life: fx.rand(1.6, 2.4),
+          drag: 0.95,
+          grow: 2.4,
+        });
+      }
     }
   }
 }
