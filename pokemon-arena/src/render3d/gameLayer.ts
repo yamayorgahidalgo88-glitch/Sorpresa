@@ -59,6 +59,10 @@ export class Battle3DLayer {
   private readonly zoneData = new Uint8Array(ARENA.width * ARENA.height * 4);
   private readonly zoneTex: THREE.DataTexture;
   private zoneKey = '';
+  // Ajuste automático de calidad (media móvil del tiempo de fotograma)
+  private frameAvg = 1 / 60;
+  private warmup = 0;
+  private slowFor = 0;
 
   constructor(
     private readonly battle: Battle,
@@ -127,7 +131,8 @@ export class Battle3DLayer {
   }
 
   /** Dibuja un fotograma. `alpha` = interpolación entre pasos de simulación. */
-  render(alpha: number, dt: number): void {
+  render(alpha: number, dt: number, realDt = dt): void {
+    this.adapt(realDt);
     this.syncSize();
     this.time += dt;
     this.view.update(alpha, this.time, dt);
@@ -135,6 +140,25 @@ export class Battle3DLayer {
     this.fx.update(dt, this.engine.camera);
     this.arena.update(this.time, this.engine.scene.fog as THREE.Fog);
     this.engine.render();
+  }
+
+  /**
+   * Si los fotogramas tardan más de 25 ms (menos de ~40 FPS) durante 2 s seguidos, baja un
+   * escalón de calidad (ver `Engine.degrade`). Ignora los primeros segundos (compilación de
+   * shaders, carga) y los saltos de pestaña en segundo plano.
+   */
+  private adapt(realDt: number): void {
+    if (!this.engine.adaptive || realDt <= 0 || realDt > 0.5) return;
+    this.warmup += realDt;
+    this.frameAvg += (realDt - this.frameAvg) * 0.05;
+    if (this.warmup < 3) return;
+    this.slowFor = this.frameAvg > 0.025 ? this.slowFor + realDt : 0;
+    if (this.slowFor > 2 && this.engine.degrade()) {
+      this.slowFor = 0;
+      this.frameAvg = 1 / 60;
+      this.warmup = 1.5; // deja estabilizarse antes de volver a medir
+      this.rectKey = '';
+    }
   }
 
   /** Casilla bajo un punto de la pantalla del juego (coordenadas normalizadas 0..1). */

@@ -375,7 +375,7 @@ export class BattleScene extends Phaser.Scene {
     if (this.layer3d) {
       const pv = this.controller.preview;
       this.layer3d.setGhost(pv ? this.playedAs(this.battle.hand(0)[pv.slot]) : null, pv?.tile ?? null, pv?.valid ?? false);
-      this.layer3d.render(alpha, Math.min(delta, 100) / 1000);
+      this.layer3d.render(alpha, Math.min(delta, 100) / 1000, delta / 1000);
     } else {
       this.renderWorld(alpha, time);
       this.renderGhost();

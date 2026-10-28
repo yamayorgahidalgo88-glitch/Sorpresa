@@ -5,9 +5,10 @@
 ```bash
 cd pokemon-arena
 npm install
-npm test               # Vitest: 145 pruebas (≈6 s)
+npm test               # Vitest: 148 pruebas (≈6 s)
 npm run typecheck      # tsc --noEmit (modo estricto)
 npm run test:e2e       # compila, sirve y prueba en Chromium (escritorio y móvil en 3D, escritorio en 2D); capturas en test-results/
+node scripts/rendimiento.mjs --build   # llamadas de dibujo y tiempo de CPU con 50 Pokémon (móvil y escritorio)
 node scripts/captura_galeria.mjs   # capturas de los 11 modelos vóxel (tras npx vite build)
 npm run simulate -- 50 normal   # simulación por lotes IA contra IA
 npm run balance -- 600 normal   # informe de balance por carta (mazos aleatorios)
@@ -17,7 +18,7 @@ npm run balance -- 600 normal   # informe de balance por carta (mazos aleatorios
 
 | Comando | Resultado |
 |---|---|
-| `npm test` | **16 archivos, 145/145 pruebas superadas** |
+| `npm test` | **16 archivos, 148/148 pruebas superadas** |
 | `npm run captura:referencia` | Escena 3D de referencia en calidades alta, media y baja: **sin errores de consola**; 14 capturas revisadas a mano en `docs/capturas/` |
 | `npm run typecheck` | Sin errores |
 | `npm run test:e2e` | **Todas las comprobaciones superadas** en los tres perfiles: escritorio con ratón (3D), móvil táctil (3D) y escritorio con la vista 2D de respaldo. Incluye las nuevas de Desafío e Igualado. Sin errores en consola |
@@ -49,6 +50,7 @@ npm run balance -- 600 normal   # informe de balance por carta (mazos aleatorios
 | Edificios, enjambres y hechizos nuevos | `new_cards.test.ts` · los edificios no se mueven y pierden su salud en su tiempo de vida, quienes solo atacan edificios van a por ellos antes que a las torres, Magnemite dispara a voladores y Voltorb explota al caer, Chansey genera 1 de energía cada 8 s, salen 5 Rattata y 4 Zubat, Poción cura a los aliados sin dañar, Tóxico golpea 8 veces con daño reducido a torres |
 | Evolución en combate y modos | `combat_evolution.test.ts` · la tercera jugada de una línea sale una fase por encima y la cuenta se reinicia, las cartas en fase máxima y los hechizos no cambian, el rival también evoluciona y la regla se puede desactivar; `economy.test.ts` · Desafío (monedas por victoria, dificultad creciente, premios a 3/6/9/12, fin con 3 derrotas o 12 victorias, retirarse cobra el premio alcanzado) |
 | Modelos 3D (hito F) | `models.test.ts` · las 46 especies tienen modelo, se pasan a vóxel, animan sin valores inválidos, tienen punto de ataque y altura coherente; la caché comparte geometría pero no materiales |
+| Rendimiento (hito H) | `models.test.ts` · cada Pokémon es una única malla con piel con como mucho 3 materiales, los índices de hueso son válidos, mover un grupo mueve sus cubos; la fusión de mallas estáticas agrupa por material, conserva la posición y respeta las piezas animadas |
 | Ficha de carta | `card_detail.test.ts` · las estadísticas salen del catálogo (PS, daño, DPS, velocidad de ataque, alcance, objetivos, cantidad, área), categorías de velocidad, hechizos, debilidades por tabla de tipos |
 | Estadísticas y balance | `balance_stats.test.ts` · atribución del daño a carta y equipo, Pokémon derrotados, regresión de balance |
 
@@ -83,5 +85,5 @@ Comprueba que no haya errores de consola. Se ignoran los avisos de rendimiento d
 ## Limitaciones conocidas
 
 - La E2E se ejecuta con WebGL por software (sin GPU), a pocos fotogramas por segundo; por eso sus esperas son largas.
-- La batalla 3D hace unas 550 llamadas de dibujo por fotograma (cada Pokémon vóxel se divide en varias mallas). No se ha medido en móviles reales: es la tarea del hito H. La simulación sigue el tiempo real gracias al bucle de tiempo real, pero la fluidez visual solo se puede juzgar en un dispositivo real.
+- Con 50 Pokémon en el campo la batalla 3D hace 439 llamadas de dibujo por fotograma (antes 1642; ver `direccion_artistica.md` §13). No se ha medido en móviles reales: los FPS dependen de la GPU del teléfono. Si va lenta, la calidad baja sola (resolución y, después, sombras).
 - El balance se mide con IA contra IA, no con jugadores humanos.

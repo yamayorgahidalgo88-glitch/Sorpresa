@@ -6,14 +6,15 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ARENA } from '../sim/data/arena';
 import { PAL } from './palette';
 import { setMaxAnisotropy } from './textures';
+import { setTowerLights } from './towerModel';
 
 export type Quality = 'alto' | 'medio' | 'bajo';
 
 /** Ajustes por nivel de calidad (móviles modestos usan 'medio' o 'bajo'). */
-const QUALITY: Record<Quality, { pixelRatio: number; shadows: boolean; shadowMap: number; bloom: boolean }> = {
-  alto: { pixelRatio: 2, shadows: true, shadowMap: 2048, bloom: true },
-  medio: { pixelRatio: 1.5, shadows: true, shadowMap: 1024, bloom: false },
-  bajo: { pixelRatio: 1, shadows: false, shadowMap: 512, bloom: false },
+const QUALITY: Record<Quality, { pixelRatio: number; shadows: boolean; shadowMap: number; bloom: boolean; pointLights: boolean }> = {
+  alto: { pixelRatio: 2, shadows: true, shadowMap: 2048, bloom: true, pointLights: true },
+  medio: { pixelRatio: 1.5, shadows: true, shadowMap: 1024, bloom: false, pointLights: false },
+  bajo: { pixelRatio: 1, shadows: false, shadowMap: 512, bloom: false, pointLights: false },
 };
 
 export function defaultQuality(): Quality {
@@ -42,11 +43,19 @@ export class Engine {
   topFraction = 0.015;
   /** Inclinación de la cámara de juego (grados sobre la horizontal). */
   pitchDeg = 58;
+  /**
+   * Ajuste automático: si el dispositivo no llega a ~40 FPS, baja la resolución por pasos y,
+   * en último lugar, quita las sombras. Solo cuando la calidad no se fija con `?calidad=`.
+   */
+  readonly adaptive = !new URLSearchParams(location.search).has('calidad');
+  /** Pasos de reducción aplicados (para depurar y para las pruebas). */
+  readonly degradations: string[] = [];
   /** >1: la escena se dibuja a resolución reducida y se amplía con píxeles nítidos (estilo pixel art). */
   pixelScale = 1;
 
   constructor(readonly canvas: HTMLCanvasElement, readonly quality: Quality = defaultQuality()) {
     this.settings = QUALITY[quality];
+    setTowerLights(this.settings.pointLights);
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.settings.pixelRatio));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -94,6 +103,25 @@ export class Engine {
       this.composer.addPass(this.bloom);
       this.composer.addPass(new OutputPass());
     }
+  }
+
+  /** Reduce un escalón la calidad. Devuelve false si ya no se puede bajar más. */
+  degrade(): boolean {
+    const pr = this.renderer.getPixelRatio();
+    if (this.pixelScale <= 1 && pr > 1) {
+      const next = Math.max(1, pr - 0.25);
+      this.renderer.setPixelRatio(next);
+      this.degradations.push(`resolución ${next}`);
+      return true;
+    }
+    if (this.sun.castShadow) {
+      // Cambia el estado de las luces: three.js recompila los materiales sin sombras.
+      this.sun.castShadow = false;
+      this.renderer.shadowMap.enabled = false;
+      this.degradations.push('sin sombras');
+      return true;
+    }
+    return false;
   }
 
   resize(width: number, height: number): void {

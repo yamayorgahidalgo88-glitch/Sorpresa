@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { ARENA } from '../sim/data/arena';
 import { Rng } from '../sim/core/rng';
+import { mergeStaticMeshes } from './merge';
 import { PAL, toyMaterial } from './palette';
 import { arenaGroundTexture, outerGroundTexture, stoneTexture, woodTexture } from './textures';
 
@@ -26,6 +27,7 @@ export class Arena3D {
     this.group.add(this.buildBorderWall());
     for (const b of ARENA.bridges) this.group.add(this.buildBridge((b.xMin + b.xMax) / 2, b.xMax - b.xMin));
     this.group.add(this.buildEnvironment());
+    mergeStaticMeshes(this.group, this.flags.map((f) => f.mesh));
   }
 
   update(time: number, fog?: THREE.Fog): void {

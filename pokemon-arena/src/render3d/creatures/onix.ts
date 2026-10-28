@@ -21,6 +21,7 @@ const SEGMENTS: [number, number, number][] = [
  * Reptan ondulando y embisten con la cabeza. Altura base 3,30 (8,8 m) y 3,33 (9,2 m).
  */
 export class OnixRig extends ModelRig {
+  override readonly portraitYaw = -1.15;
   readonly height = 3.2;
   private readonly head = new THREE.Group();
   private readonly segs: THREE.Group[] = [];

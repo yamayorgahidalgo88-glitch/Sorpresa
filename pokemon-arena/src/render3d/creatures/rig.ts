@@ -33,6 +33,8 @@ export abstract class CreatureRig {
   /** Altura aproximada del modelo (para barras de vida y efectos). */
   abstract readonly height: number;
   readonly materials: THREE.MeshStandardMaterial[] = [];
+  /** Giro del modelo en su retrato de carta (los cuerpos largos se ponen de lado). */
+  readonly portraitYaw: number = -0.4;
   /**
    * Cara de pixel art para el estilo vóxel: filas de caracteres centradas en x = 0 del grupo,
    * con la fila 0 empezando en `top`; cada carácter de la paleta pinta el cubo más frontal.

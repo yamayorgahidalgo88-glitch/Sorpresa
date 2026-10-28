@@ -9,6 +9,7 @@ import { BipedRig, ModelRig, eyeMaterials } from './kit';
  * Se yerguen sobre la cola y barren con ella.
  */
 export class DratiniRig extends ModelRig {
+  override readonly portraitYaw = -1.15;
   readonly height: number;
   private readonly head = new THREE.Group();
   private readonly segs: THREE.Group[] = [];

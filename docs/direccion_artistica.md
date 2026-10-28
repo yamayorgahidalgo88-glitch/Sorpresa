@@ -281,6 +281,26 @@ No hay ninguna herramienta de ese tipo disponible en este entorno. `creatures/re
 | E. Ataque completo | ✅ Impactrueno: carga, lanzamiento, vuelo con haz, impacto, reacción, número, limpieza |
 | F. Resto de unidades y torres | ✅ Los 11 Pokémon en vóxel con cara de pixel art y animaciones (`capturas/galeria_*.jpg`). Ruinas de torre: muñón roto, cascotes, vigas, tejado caído, cristal partido, estandarte y humo (`capturas/torre_ruinas.jpg`) |
 | G. Cartas y HUD | ✅ Marco de carta definitivo, HUD de batalla, iconos propios y tipografías del juego en todas las pantallas (§12, `capturas/juego_*.jpg`) |
-| H. Optimización y pruebas | 🟡 La capa 3D ya es la batalla jugable (`capturas/juego_batalla_3d_movil.jpg`), probada en E2E con WebGL por software. Faltan medir en móviles reales y reducir llamadas de dibujo (~550 por fotograma) |
+| H. Optimización y pruebas | ✅ en lo medible sin dispositivo: llamadas de dibujo de 1642 a 439 con 50 Pokémon en el campo (§13), ajuste automático de calidad y pruebas. 🟡 Falta medir los FPS en móviles reales |
+
+## 13. Rendimiento (hito H, 29-10-2026)
+
+Medido con `node scripts/rendimiento.mjs`: una batalla con 50 Pokémon (25 por bando, enjambres incluidos) en un Pixel 5 emulado (calidad media) y en escritorio (calidad alta). La GPU de las pruebas es por software, así que lo fiable son las **llamadas de dibujo** (lo que más pesa en un móvil), no los milisegundos.
+
+| Parte | Antes | Después | Cómo |
+|---|---|---|---|
+| Pokémon (50) | 1220 (24,4 por Pokémon) | **212 (4,2)** | Cada Pokémon es **una sola malla con piel** (`SkinnedMesh`): cada grupo animado (cabeza, orejas, brazos…) es un hueso, así que la animación procedural no cambia. Las piezas sin brillo propio comparten un material (el color ya va en los vértices); solo van aparte las que brillan (mejillas de Pikachu, llamas, cristales) |
+| Torres (6) | 292 | **144** | Las piezas fijas se funden por material (`render3d/merge.ts`). El cristal y la bandera siguen aparte porque se animan |
+| Escenario | 122 | **75** | La misma fusión: muros, puentes, postes y suelo |
+| **Total** | **1642** | **439** | Triángulos sin cambios (≈228 000) |
+
+Otras medidas:
+- **Luces del cristal de las torres solo en calidad alta.** Eran 6 luces puntuales, y cada una encarece todos los píxeles iluminados. En calidad media y baja (móviles) el cristal brilla igual por su material emisivo.
+- **Ajuste automático de calidad** (`Engine.degrade`): si los fotogramas tardan más de 25 ms (menos de ~40 FPS) durante 2 s, baja la resolución en pasos de 0,25 hasta 1×; si sigue lento, quita las sombras. Se desactiva al fijar `?calidad=alto|medio|bajo`.
+- El material del cuerpo pasa de físico con barniz a estándar, que es más barato por píxel.
+- Ya antes, las barras de vida de las tropas solo se dibujaban al recibir daño (como en Clash Royale): no hacía falta cambiarlo.
+- **Retratos de las cartas:** el encuadre se ajusta a lo que ve la cámara. Los modelos largos (Onix, Steelix, Dratini, Dragonair) se ponen de lado y los muy altos se encuadran por arriba, así que Onix ya no sale diminuto.
+
+Sin verificar: los FPS reales en un móvil. Para medirlos, abrir la batalla en el teléfono; la página no muestra contadores, pero `window.__arena.scene.layer3d.engine.degradations` indica si el ajuste automático tuvo que bajar la calidad.
 
 **Capturas (antes y después de la misma escena):** `docs/capturas/` (`comparacion_antes_despues.jpg`, `ref_*.jpg`). Se generan con `node scripts/captura_referencia.mjs` en modo determinista.

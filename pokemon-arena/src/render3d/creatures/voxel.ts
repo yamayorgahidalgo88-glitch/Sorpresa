@@ -90,7 +90,12 @@ interface PartInfo {
 }
 
 /** Vozeliza un grupo: devuelve la malla de cubos (o null si no tiene piezas). */
-function voxelizeGroup(group: THREE.Object3D, size: number, face?: CreatureRig['pixelFace']): THREE.Mesh | null {
+function voxelizeGroup(
+  group: THREE.Object3D,
+  size: number,
+  face: CreatureRig['pixelFace'] | undefined,
+  remap: (m: THREE.MeshStandardMaterial) => THREE.MeshStandardMaterial,
+): THREE.Mesh | null {
   const parts: PartInfo[] = [];
   const bounds = new THREE.Box3();
   for (const c of group.children) {
@@ -174,7 +179,8 @@ function voxelizeGroup(group: THREE.Object3D, size: number, face?: CreatureRig['
   }
 
   // Geometría: solo caras expuestas, agrupadas por material, con AO por vértice.
-  const materials = [...new Set([...parts.map((q) => q.material), ...override.values()])];
+  // El color va en los vértices: las piezas sin brillo propio comparten un único material.
+  const materials = [...new Set([...parts.map((q) => q.material), ...override.values()].map(remap))];
   const buckets = materials.map(() => ({ pos: [] as number[], nor: [] as number[], col: [] as number[] }));
   const base = new THREE.Color();
   for (let i = 0; i < nx; i++) {
@@ -183,7 +189,7 @@ function voxelizeGroup(group: THREE.Object3D, size: number, face?: CreatureRig['
         const m = cells[idx(i, j, k)];
         if (m < 0) continue;
         const mat = override.get(idx(i, j, k)) ?? parts[m].material;
-        const b = buckets[materials.indexOf(mat)];
+        const b = buckets[materials.indexOf(remap(mat))];
         const tint = 0.93 + hash(i + i0, j + j0, k + k0) * 0.12;
         base.copy(mat.color).multiplyScalar(tint);
         for (const f of FACES) {
@@ -236,16 +242,17 @@ function voxelizeGroup(group: THREE.Object3D, size: number, face?: CreatureRig['
   return finishMesh(new THREE.Mesh(geo, materials));
 }
 
-interface CachedVoxels {
-  /** Por cada grupo con piezas (en orden de recorrido): geometría y materiales (índices en rig.materials). */
-  groups: ({ geo: THREE.BufferGeometry; mats: number[] } | null)[];
-}
-
 /**
  * Caché por modelo: vozelizar cuesta unos milisegundos y en batalla aparecen muchas unidades
  * iguales. La geometría se comparte (no se libera al morir la unidad); los materiales son de
  * cada unidad, para que los destellos y la transparencia sean independientes.
  */
+interface CachedVoxels {
+  geo: THREE.BufferGeometry;
+  /** Material de cada grupo de la geometría: índice en `rig.materials`. */
+  mats: number[];
+  bones: number;
+}
 const cache = new Map<string, CachedVoxels>();
 
 function finishMesh(mesh: THREE.Mesh): THREE.Mesh {
@@ -255,34 +262,127 @@ function finishMesh(mesh: THREE.Mesh): THREE.Mesh {
   return mesh;
 }
 
+/** ¿Se puede fundir este material con el del cuerpo? (sin brillo propio ni transparencia) */
+function isPlain(m: THREE.MeshStandardMaterial): boolean {
+  return !m.userData.ownGlow && m.emissive.getHex() === 0 && !m.transparent && m.opacity === 1 && m.side === THREE.FrontSide && m.metalness === 0;
+}
+
+/**
+ * Funde los cubos de todas las piezas en UNA malla con piel (`SkinnedMesh`): cada grupo
+ * animado es un hueso, así la animación procedural sigue moviendo los grupos igual, pero el
+ * personaje se dibuja con una llamada por material (antes, una por pieza y material).
+ * La geometría queda en el espacio local de cada grupo (hueso), con matrices inversas
+ * identidad, de modo que no depende de la pose en la que se construyó.
+ */
+function mergeGroups(groups: THREE.Object3D[], rig: CreatureRig): CachedVoxels | null {
+  const meshes: { mesh: THREE.Mesh; bone: number }[] = [];
+  groups.forEach((g, bone) => {
+    for (const c of g.children) if (c instanceof THREE.Mesh && c.userData.voxel) meshes.push({ mesh: c, bone });
+  });
+  if (meshes.length === 0) return null;
+  const mats: THREE.Material[] = [];
+  const buckets: { pos: number[]; nor: number[]; col: number[]; bone: number[] }[] = [];
+  for (const { mesh, bone } of meshes) {
+    const geo = mesh.geometry;
+    const pos = geo.attributes.position.array;
+    const nor = geo.attributes.normal.array;
+    const col = geo.attributes.color.array;
+    const list = mesh.material as THREE.Material[];
+    for (const gr of geo.groups) {
+      const mat = list[gr.materialIndex ?? 0];
+      let bi = mats.indexOf(mat);
+      if (bi < 0) {
+        bi = mats.push(mat) - 1;
+        buckets.push({ pos: [], nor: [], col: [], bone: [] });
+      }
+      const b = buckets[bi];
+      for (let v = gr.start; v < gr.start + gr.count; v++) {
+        b.pos.push(pos[v * 3], pos[v * 3 + 1], pos[v * 3 + 2]);
+        b.nor.push(nor[v * 3], nor[v * 3 + 1], nor[v * 3 + 2]);
+        b.col.push(col[v * 3], col[v * 3 + 1], col[v * 3 + 2]);
+        b.bone.push(bone);
+      }
+    }
+    mesh.removeFromParent();
+    geo.dispose();
+  }
+  const geo = new THREE.BufferGeometry();
+  const pos: number[] = [];
+  const nor: number[] = [];
+  const col: number[] = [];
+  const skinIndex: number[] = [];
+  const skinWeight: number[] = [];
+  buckets.forEach((b, mi) => {
+    geo.addGroup(pos.length / 3, b.pos.length / 3, mi);
+    pos.push(...b.pos);
+    nor.push(...b.nor);
+    col.push(...b.col);
+    for (const bone of b.bone) {
+      skinIndex.push(bone, 0, 0, 0);
+      skinWeight.push(1, 0, 0, 0);
+    }
+  });
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  geo.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(skinIndex, 4));
+  geo.setAttribute('skinWeight', new THREE.Float32BufferAttribute(skinWeight, 4));
+  return { geo, mats: mats.map((m) => rig.materials.indexOf(m as THREE.MeshStandardMaterial)), bones: groups.length };
+}
+
+function attachSkinned(rig: CreatureRig, groups: THREE.Object3D[], entry: CachedVoxels): void {
+  // Los grupos hacen de huesos (el esqueleto solo lee su `matrixWorld`).
+  const bones = groups as unknown as THREE.Bone[];
+  const skeleton = new THREE.Skeleton(bones, bones.map(() => new THREE.Matrix4()));
+  const mesh = new THREE.SkinnedMesh(entry.geo, entry.mats.map((m) => rig.materials[m]));
+  mesh.bind(skeleton, new THREE.Matrix4());
+  // El personaje se mueve y deforma: su caja cambia, y una sola malla por unidad es barata.
+  mesh.frustumCulled = false;
+  rig.root.add(finishMesh(mesh));
+}
+
 /** Convierte un personaje al estilo vóxel. `size` = arista del cubo en casillas. */
 export function voxelizeRig(rig: CreatureRig, size = 0.055, cacheKey?: string): void {
   const groups: THREE.Object3D[] = [];
   rig.root.traverse((o) => {
     if (o.children.some((c) => c instanceof THREE.Mesh && c.userData.part)) groups.push(o);
   });
+  // Material único del cuerpo (estándar: más barato que el físico con barniz en móviles).
+  const body = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.78 });
+  const remap = (m: THREE.MeshStandardMaterial) => (isPlain(m) ? body : m);
+  const used = new Set<THREE.MeshStandardMaterial>();
   const hit = cacheKey ? cache.get(cacheKey) : undefined;
-  if (hit && hit.groups.length === groups.length) {
-    groups.forEach((g, i) => {
-      for (const c of g.children) if (c instanceof THREE.Mesh && c.userData.part) c.visible = false;
-      const entry = hit.groups[i];
-      if (!entry) return;
-      g.add(finishMesh(new THREE.Mesh(entry.geo, entry.mats.map((m) => rig.materials[m]))));
-    });
+  let entry: CachedVoxels | null;
+  if (hit && hit.bones === groups.length) {
+    for (const g of groups) for (const c of g.children) if (c instanceof THREE.Mesh && c.userData.part) c.visible = false;
+    entry = hit;
   } else {
-    const built = groups.map((g) => [g, voxelizeGroup(g, size, rig.pixelFace)] as const);
-    for (const [g, mesh] of built) if (mesh) g.add(mesh);
-    if (cacheKey) {
-      const entries = built.map(([, mesh]) => {
-        if (!mesh) return null;
-        mesh.geometry.userData.shared = true;
-        return { geo: mesh.geometry, mats: (mesh.material as THREE.Material[]).map((m) => rig.materials.indexOf(m as THREE.MeshStandardMaterial)) };
-      });
-      if (entries.every((e) => !e || e.mats.every((m) => m >= 0))) cache.set(cacheKey, { groups: entries });
+    for (const g of groups) {
+      const mesh = voxelizeGroup(g, size, rig.pixelFace, remap);
+      if (mesh) g.add(mesh);
+    }
+    entry = null;
+  }
+  // Solo quedan los materiales que se dibujan (más el del cuerpo), para destellos y transparencia.
+  // (Se conservan los que usen otras mallas del modelo que no se pasan a cubos.)
+  const elsewhere = new Set<THREE.Material>();
+  rig.root.traverse((o) => {
+    if (o instanceof THREE.Mesh && !o.userData.part && !o.userData.voxel) for (const m of [o.material].flat()) elsewhere.add(m);
+  });
+  const all = rig.materials.slice();
+  rig.materials.length = 0;
+  rig.materials.push(body, ...all.filter((m) => !isPlain(m) || elsewhere.has(m)));
+  if (!entry) {
+    entry = mergeGroups(groups, rig);
+    if (entry && cacheKey && entry.mats.every((m) => m >= 0)) {
+      entry.geo.userData.shared = true;
+      cache.set(cacheKey, entry);
     }
   }
+  if (entry && entry.mats.every((m) => m >= 0)) attachSkinned(rig, groups, entry);
+  for (const m of rig.materials) used.add(m);
   // Materiales mate con color por vértice (el color base pasa a los vértices).
-  for (const m of rig.materials) {
+  for (const m of used) {
     m.vertexColors = true;
     m.color.set(0xffffff);
     m.roughness = 0.78;

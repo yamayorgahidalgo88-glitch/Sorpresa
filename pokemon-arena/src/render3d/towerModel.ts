@@ -1,10 +1,17 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { Team } from '../sim/core/state';
+import { mergeStaticMeshes } from './merge';
 import { PAL, toyMaterial } from './palette';
 import { roofTexture, stoneTexture, woodTexture } from './textures';
 
 export type TowerKind = 'guardia' | 'base';
+
+/** Luz puntual del cristal: solo en calidad alta (cada luz encarece todos los píxeles iluminados). */
+let crystalLights = true;
+export function setTowerLights(on: boolean): void {
+  crystalLights = on;
+}
 
 /** Medidas en casillas. La guardiana mide ~5 de alto; la base es más ancha y alta. */
 const DIM = {
@@ -33,7 +40,7 @@ export class TowerModel {
   private readonly flashMats: THREE.MeshStandardMaterial[] = [];
   private readonly crystalMat: THREE.MeshStandardMaterial;
   private readonly flag: { mesh: THREE.Mesh; base: Float32Array };
-  private readonly light: THREE.PointLight;
+  private readonly light: THREE.PointLight | null;
   private shake = 0;
   private flash = 0;
   private fire = 0;
@@ -232,13 +239,17 @@ export class TowerModel {
     this.body.add(this.crystal);
     this.muzzle.position.copy(this.crystal.position);
     this.body.add(this.muzzle);
-    this.light = new THREE.PointLight(color, 1.2, 4.5, 2);
-    this.light.position.copy(this.crystal.position);
-    this.body.add(this.light);
+    this.light = crystalLights ? new THREE.PointLight(color, 1.2, 4.5, 2) : null;
+    if (this.light) {
+      this.light.position.copy(this.crystal.position);
+      this.body.add(this.light);
+    }
 
     this.topY = yr + d.roofH + 0.75;
     // Las torres rivales miran hacia su propio campo (puerta hacia su base).
     this.root.rotation.y = team === 0 ? 0 : Math.PI;
+    // Las piezas fijas se funden por material (de ~30 mallas a ~10).
+    mergeStaticMeshes(this.body, [this.crystal, flag, this.muzzle]);
   }
 
   private flashable<T extends THREE.MeshStandardMaterial>(m: T): T {
@@ -267,7 +278,7 @@ export class TowerModel {
     this.crystal.rotation.y += dt * (active ? 1.2 : 0.3);
     this.crystal.position.y = this.muzzle.position.y + Math.sin(time * 2.2) * 0.07 * idle;
     this.crystalMat.emissiveIntensity = (0.5 + 0.9 * idle) + this.fire * 4;
-    this.light.intensity = (0.4 + 0.9 * idle) + this.fire * 5;
+    if (this.light) this.light.intensity = (0.4 + 0.9 * idle) + this.fire * 5;
     const s = 1 + this.fire * 0.35;
     this.crystal.scale.set(s, 1.45 * s, s);
     this.fire = Math.max(0, this.fire - dt * 5);
