@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+    <meta name="theme-color" content="#16203a" />
+    <title>Pokémon Arena · Escena de referencia</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #0f1830; overflow: hidden; }
+      body { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; font-family: 'Nunito', system-ui, sans-serif; }
+      #stage { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+      #view { position: relative; height: 100%; aspect-ratio: 720 / 1420; max-width: 100%; }
+      #view canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+      .chip { position: absolute; top: 2.2%; left: 50%; transform: translateX(-50%); padding: 0.45em 1.1em; border-radius: 999px;
+        background: linear-gradient(#2c3e72, #1b274d); color: #ffe27a; font-family: 'Lilita One', sans-serif; font-size: clamp(12px, 2.1vh, 22px);
+        letter-spacing: 0.04em; box-shadow: 0 4px 0 #0c1430, 0 8px 18px rgba(0,0,0,.35); border: 2px solid #ffd23f; white-space: nowrap; }
+      .panel { position: absolute; left: 3%; right: 3%; bottom: 2.2%; height: 12%; border-radius: 22px; padding: 2% 3%; box-sizing: border-box;
+        background: linear-gradient(#26386a, #17224a); border: 3px solid #0c1430; box-shadow: inset 0 3px 0 rgba(255,255,255,.12), 0 10px 24px rgba(0,0,0,.4);
+        display: flex; flex-direction: column; justify-content: space-between; color: #e6ecff; }
+      .panel h1 { margin: 0; font-family: 'Lilita One', sans-serif; font-weight: 400; font-size: clamp(14px, 2.4vh, 26px); color: #fff; }
+      .panel p { margin: 0.2em 0 0; font-size: clamp(10px, 1.45vh, 16px); color: #b9c6ef; font-weight: 700; }
+      .btns { display: flex; gap: 0.6em; justify-content: center; }
+      button { font-family: 'Lilita One', sans-serif; font-size: clamp(11px, 1.6vh, 17px); color: #3a2400; border: 0; border-radius: 12px; padding: 0.5em 0.9em;
+        background: linear-gradient(#ffe27a, #ffc21a); box-shadow: 0 4px 0 #b9770a; cursor: pointer; }
+      button.alt { color: #fff; background: linear-gradient(#5d7fd6, #3a59b0); box-shadow: 0 4px 0 #23397a; }
+      button:active { transform: translateY(3px); box-shadow: 0 1px 0 #b9770a; }
+      #fps { position: absolute; top: 2.5%; right: 3%; color: #fff; font: 700 12px system-ui; text-shadow: 0 1px 2px #000; opacity: .8; }
+    </style>
+  </head>
+  <body>
+    <div id="stage">
+      <div id="view">
+        <canvas id="c"></canvas>
+        <div class="chip">ESCENA DE REFERENCIA · HITOS B–E</div>
+        <div id="fps"></div>
+        <div class="panel">
+          <div>
+            <h1>Pikachu · Impactrueno</h1>
+            <p>Arena, torre, personaje y ataque con la simulación real del juego.</p>
+          </div>
+          <div class="btns">
+            <button id="cam">Cámara: juego</button>
+            <button id="slow" class="alt">Velocidad: 1x</button>
+            <button id="pause" class="alt">Pausa</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/referencia.ts"></script>
+  </body>
+</html>

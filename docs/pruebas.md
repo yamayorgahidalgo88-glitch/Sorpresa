@@ -5,18 +5,19 @@
 ```bash
 cd pokemon-arena
 npm install
-npm test               # Vitest: 106 pruebas (≈5 s)
+npm test               # Vitest: 108 pruebas (≈5 s)
 npm run typecheck      # tsc --noEmit (modo estricto)
 npm run test:e2e       # compila, sirve y prueba en Chromium (escritorio + móvil); capturas en test-results/
 npm run simulate -- 50 normal   # simulación por lotes IA contra IA
 npm run balance -- 600 normal   # informe de balance por carta (mazos aleatorios)
 ```
 
-## Última ejecución (27-10-2026)
+## Última ejecución (28-10-2026)
 
 | Comando | Resultado |
 |---|---|
-| `npm test` | **9 archivos, 106/106 pruebas superadas** |
+| `npm test` | **10 archivos, 108/108 pruebas superadas** |
+| `npm run captura:referencia` | Escena 3D de referencia en calidades alta, media y baja: **sin errores de consola**; 14 capturas revisadas a mano en `docs/capturas/` |
 | `npm run typecheck` | Sin errores |
 | `npm run test:e2e` | **26/26 comprobaciones superadas** (13 en escritorio con ratón y 13 en móvil táctil), sin errores en consola |
 | `npm audit` | 0 vulnerabilidades |
@@ -58,6 +59,16 @@ Para cada perfil (escritorio 1280×800 con ratón y Pixel 5 táctil):
 9. No hay errores en la consola.
 
 Las capturas (`test-results/*.png`) sirven para revisar la interfaz visualmente.
+
+## Escena de referencia 3D (`scripts/captura_referencia.mjs`)
+
+Se ejecuta en modo determinista (`?captura=1`): el tiempo avanza en pasos fijos y las capturas se toman por **estado** de la simulación, no por tiempo:
+- **carga:** cuando la carga del ataque llega a 0,6;
+- **lanzamiento:** primer fotograma tras el golpe;
+- **impacto:** fotograma en que desaparece el proyectil;
+- **derrota:** fotograma en que cae Pikachu.
+
+Comprueba que no haya errores de consola. Se ignoran los avisos de rendimiento del controlador gráfico por software al leer píxeles. Además, `tests/pokeapi.test.ts` contrasta los tipos de cada Pokémon y toda la tabla de tipos con una instantánea de PokéAPI (`docs/datos_pokeapi.json`).
 
 ## Limitaciones conocidas
 

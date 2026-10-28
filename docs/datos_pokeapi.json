@@ -1,0 +1,286 @@
+{
+  "fuente": "PokéAPI v2 (https://pokeapi.co)",
+  "consultado": "2026-10-28",
+  "pokemon": {
+    "onix": {
+      "tipos": [
+        "roca",
+        "tierra"
+      ],
+      "altura_m": 8.8,
+      "peso_kg": 210,
+      "color": "gray"
+    },
+    "snorlax": {
+      "tipos": [
+        "normal"
+      ],
+      "altura_m": 2.1,
+      "peso_kg": 460,
+      "color": "black"
+    },
+    "pikachu": {
+      "tipos": [
+        "electrico"
+      ],
+      "altura_m": 0.4,
+      "peso_kg": 6,
+      "color": "yellow"
+    },
+    "charmeleon": {
+      "tipos": [
+        "fuego"
+      ],
+      "altura_m": 1.1,
+      "peso_kg": 19,
+      "color": "red"
+    },
+    "squirtle": {
+      "tipos": [
+        "agua"
+      ],
+      "altura_m": 0.5,
+      "peso_kg": 9,
+      "color": "blue"
+    },
+    "bulbasaur": {
+      "tipos": [
+        "planta",
+        "veneno"
+      ],
+      "altura_m": 0.7,
+      "peso_kg": 6.9,
+      "color": "green"
+    },
+    "machop": {
+      "tipos": [
+        "lucha"
+      ],
+      "altura_m": 0.8,
+      "peso_kg": 19.5,
+      "color": "gray"
+    },
+    "pidgeotto": {
+      "tipos": [
+        "normal",
+        "volador"
+      ],
+      "altura_m": 1.1,
+      "peso_kg": 30,
+      "color": "brown"
+    },
+    "geodude": {
+      "tipos": [
+        "roca",
+        "tierra"
+      ],
+      "altura_m": 0.4,
+      "peso_kg": 20,
+      "color": "brown"
+    },
+    "jigglypuff": {
+      "tipos": [
+        "normal",
+        "hada"
+      ],
+      "altura_m": 0.5,
+      "peso_kg": 5.5,
+      "color": "pink"
+    },
+    "charizard": {
+      "tipos": [
+        "fuego",
+        "volador"
+      ],
+      "altura_m": 1.7,
+      "peso_kg": 90.5,
+      "color": "red"
+    }
+  },
+  "relaciones": {
+    "normal": {
+      "eficaz": [],
+      "poco_eficaz": [
+        "roca"
+      ],
+      "casi_inmune": [
+        "fantasma"
+      ]
+    },
+    "fuego": {
+      "eficaz": [
+        "hielo",
+        "planta"
+      ],
+      "poco_eficaz": [
+        "agua",
+        "dragon",
+        "fuego",
+        "roca"
+      ],
+      "casi_inmune": []
+    },
+    "agua": {
+      "eficaz": [
+        "fuego",
+        "roca",
+        "tierra"
+      ],
+      "poco_eficaz": [
+        "agua",
+        "dragon",
+        "planta"
+      ],
+      "casi_inmune": []
+    },
+    "planta": {
+      "eficaz": [
+        "agua",
+        "roca",
+        "tierra"
+      ],
+      "poco_eficaz": [
+        "dragon",
+        "fuego",
+        "planta",
+        "veneno",
+        "volador"
+      ],
+      "casi_inmune": []
+    },
+    "electrico": {
+      "eficaz": [
+        "agua",
+        "volador"
+      ],
+      "poco_eficaz": [
+        "dragon",
+        "electrico",
+        "planta"
+      ],
+      "casi_inmune": [
+        "tierra"
+      ]
+    },
+    "hielo": {
+      "eficaz": [
+        "dragon",
+        "planta",
+        "tierra",
+        "volador"
+      ],
+      "poco_eficaz": [
+        "agua",
+        "fuego",
+        "hielo"
+      ],
+      "casi_inmune": []
+    },
+    "lucha": {
+      "eficaz": [
+        "hielo",
+        "normal",
+        "roca"
+      ],
+      "poco_eficaz": [
+        "hada",
+        "psiquico",
+        "veneno",
+        "volador"
+      ],
+      "casi_inmune": [
+        "fantasma"
+      ]
+    },
+    "veneno": {
+      "eficaz": [
+        "hada",
+        "planta"
+      ],
+      "poco_eficaz": [
+        "fantasma",
+        "roca",
+        "tierra",
+        "veneno"
+      ],
+      "casi_inmune": []
+    },
+    "tierra": {
+      "eficaz": [
+        "electrico",
+        "fuego",
+        "roca",
+        "veneno"
+      ],
+      "poco_eficaz": [
+        "planta"
+      ],
+      "casi_inmune": [
+        "volador"
+      ]
+    },
+    "volador": {
+      "eficaz": [
+        "lucha",
+        "planta"
+      ],
+      "poco_eficaz": [
+        "electrico",
+        "roca"
+      ],
+      "casi_inmune": []
+    },
+    "psiquico": {
+      "eficaz": [
+        "lucha",
+        "veneno"
+      ],
+      "poco_eficaz": [
+        "psiquico"
+      ],
+      "casi_inmune": []
+    },
+    "roca": {
+      "eficaz": [
+        "fuego",
+        "hielo",
+        "volador"
+      ],
+      "poco_eficaz": [
+        "lucha",
+        "tierra"
+      ],
+      "casi_inmune": []
+    },
+    "fantasma": {
+      "eficaz": [
+        "fantasma",
+        "psiquico"
+      ],
+      "poco_eficaz": [],
+      "casi_inmune": [
+        "normal"
+      ]
+    },
+    "dragon": {
+      "eficaz": [
+        "dragon"
+      ],
+      "poco_eficaz": [],
+      "casi_inmune": [
+        "hada"
+      ]
+    },
+    "hada": {
+      "eficaz": [
+        "dragon",
+        "lucha"
+      ],
+      "poco_eficaz": [
+        "fuego",
+        "veneno"
+      ],
+      "casi_inmune": []
+    }
+  }
+}

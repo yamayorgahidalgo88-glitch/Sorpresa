@@ -19,7 +19,7 @@ Requisitos: Node.js 22 o superior y npm.
 ```bash
 cd pokemon-arena
 npm install
-npm run dev          # abre http://localhost:5173
+npm run dev          # abre http://localhost:5173 (escena 3D de referencia: /referencia.html)
 ```
 
 - Compilación de producción: `npm run build` (genera `pokemon-arena/dist/`, servible como web estática; `npm run preview` la sirve en local).
@@ -29,7 +29,7 @@ npm run dev          # abre http://localhost:5173
 ### Pruebas
 
 ```bash
-npm test             # 106 pruebas unitarias y de simulación
+npm test             # 108 pruebas unitarias y de simulación
 npm run typecheck
 npm run test:e2e     # navegador real: escritorio (ratón) y móvil (táctil)
 npm run simulate -- 50 normal   # partidas IA contra IA
@@ -42,6 +42,7 @@ npm run balance -- 600 normal   # informe de balance por carta
 - [Diseño del juego](docs/diseno_juego.md)
 - [Arquitectura](docs/arquitectura.md)
 - [Pruebas](docs/pruebas.md)
+- [Dirección artística y salto visual 3D](docs/direccion_artistica.md) · [capturas antes/después](docs/capturas/comparacion_antes_despues.jpg)
 
 ### Estado por hitos
 
@@ -60,7 +61,7 @@ npm run balance -- 600 normal   # informe de balance por carta
 
 - **Balance:** el mazo por defecto del jugador gana ≈47–50 % (normal) y ≈33–43 % (difícil) frente al de la IA en IA contra IA. La IA usa poco los tanques y Ventisca. Falta probar con personas.
 - **Contenido:** solo hay 11 Pokémon y 2 hechizos, a propósito, para validar el sistema antes de ampliarlo. Faltan edificios.
-- **Gráficos:** las fichas vectoriales son marcadores de prototipo. Faltan arte final, música y accesibilidad (daltonismo, tamaño de texto).
+- **Gráficos:** salto a 3D en curso (ver `docs/direccion_artistica.md`). La escena de referencia (arena, torres, Pikachu e Impactrueno) está terminada. Faltan el resto de Pokémon (hito F), las cartas y el HUD (hito G) e integrar el 3D en la batalla jugable. También faltan música y accesibilidad (daltonismo, tamaño de texto).
 - **REA:** Node 22.22 está por debajo del mínimo (22.23.4) y el servidor MCP no está registrado en el agente (`npx rea-agents setup`). Ver `docs/analisis_mecanicas.md`.
 
 ### Aviso

@@ -92,6 +92,23 @@ Correspondencia con los módulos pedidos:
 
 Phaser entrega el ratón y el táctil como eventos *pointer*. `DeployController` es una máquina de estados pura: reposo → carta seleccionada (toque) o arrastre (al superar 14 px) → despliegue o rechazo. Se prueba con Vitest y, en un navegador real, con Playwright (ratón y táctil emulado con un Pixel 5). En ordenador, además, las teclas 1-4 seleccionan carta y Esc cancela.
 
-## 7. Uso de REA en el proyecto
+## 7. Capa de render 3D (`src/render3d/`, en curso)
+
+Sustituye progresivamente al render 2D del campo (ver `direccion_artistica.md`). Solo **lee** la simulación y sus eventos; no cambia ninguna regla.
+
+| Módulo | Función |
+|---|---|
+| `engine.ts` | Renderizador Three.js, cámara en perspectiva con encuadre automático, luces, sombras, niebla, bloom y niveles de calidad (alto, medio, bajo) |
+| `arena3d.ts` | Plataforma, río con shader de agua, puentes, muro perimetral y decorado instanciado |
+| `towerModel.ts` | Torre guardiana y base (geometría real), con animaciones de disparo, impacto, cristal y bandera |
+| `creatures/rig.ts` y `creatures/pikachu.ts` | Personajes por piezas con pivotes y animación procedural |
+| `creatures/registry.ts` | Registro de modelos; los que faltan usan una cápsula provisional marcada como tal |
+| `fx/particles.ts` y `fx/effects.ts` | Partículas en GPU y biblioteca modular de ataques por familia elemental |
+| `battleView3d.ts` | Sincroniza la batalla con la escena: interpolación, orientación, anticipación (lee `cooldown`), proyectiles en arco, impactos, barras de vida y números |
+| `textures.ts` y `palette.ts` | Texturas procedurales y paleta de la dirección artística |
+
+Por ahora se usa en `referencia.html` (`src/referencia.ts`): escena de referencia con guion de demostración, cámaras de juego, detalle y personaje, y modo de captura determinista (`?captura=1`, `window.__ref.advance(s)`). La integración en `BattleScene` (3D bajo el HUD de Phaser) es el siguiente paso; la entrada deberá proyectar el puntero sobre el plano del suelo con un rayo.
+
+## 8. Uso de REA en el proyecto
 
 REA (ver `analisis_mecanicas.md` §1) puede analizar la compilación de este mismo juego (`dist/`) con `rea analyze-javascript-application`, por ejemplo para auditar el grafo de módulos. Requiere Node ≥ 22.23.4 para que `rea doctor` dé el entorno por sano.
