@@ -25,6 +25,14 @@ export interface Preview {
   valid: boolean;
 }
 
+/** Cómo se traducen las coordenadas de pantalla del juego a casillas (2D o perspectiva 3D). */
+export interface FieldMapping {
+  isInField(x: number, y: number): boolean;
+  screenToTile(x: number, y: number): Vec;
+}
+
+export const FLAT_MAPPING: FieldMapping = { isInField, screenToTile };
+
 /** Píxeles (en coordenadas lógicas) que distinguen un toque de un arrastre. */
 export const DRAG_THRESHOLD = 14;
 
@@ -35,7 +43,10 @@ export class DeployController {
   dragging = false;
   preview: Preview | null = null;
 
-  constructor(private readonly actions: DeployActions) {}
+  constructor(
+    private readonly actions: DeployActions,
+    private readonly field: FieldMapping = FLAT_MAPPING,
+  ) {}
 
   pointerDown(x: number, y: number): void {
     const slot = slotAt(x, y);
@@ -45,8 +56,8 @@ export class DeployController {
       this.dragging = false;
       return;
     }
-    if (this.selected !== null && isInField(x, y)) {
-      this.tryDeploy(this.selected, screenToTile(x, y));
+    if (this.selected !== null && this.field.isInField(x, y)) {
+      this.tryDeploy(this.selected, this.field.screenToTile(x, y));
     }
   }
 
@@ -58,8 +69,8 @@ export class DeployController {
       }
     }
     const slot = this.dragging ? this.pressSlot : this.selected;
-    if (slot !== null && isInField(x, y)) {
-      const tile = screenToTile(x, y);
+    if (slot !== null && this.field.isInField(x, y)) {
+      const tile = this.field.screenToTile(x, y);
       this.preview = { slot, tile, valid: this.actions.canDeploy(slot, tile) };
     } else if (this.dragging) {
       this.preview = null;
@@ -74,7 +85,7 @@ export class DeployController {
     this.dragging = false;
     if (slot === null) return;
     if (wasDragging) {
-      if (isInField(x, y)) this.tryDeploy(slot, screenToTile(x, y));
+      if (this.field.isInField(x, y)) this.tryDeploy(slot, this.field.screenToTile(x, y));
       else this.preview = null;
       return;
     }

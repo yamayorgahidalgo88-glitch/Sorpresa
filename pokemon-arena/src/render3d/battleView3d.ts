@@ -20,7 +20,7 @@ const FLY = 1.1;
  * Escala visual de los personajes respecto a su radio de colisión: se agrandan para que se
  * lean bien en la cámara de juego (decisión de dirección artística; no cambia las reglas).
  */
-export const UNIT_SCALE = 1.35;
+export const UNIT_SCALE = 1.6;
 /** Pasos de simulación antes del golpe durante los que se anima la carga (0,3 s). */
 const CHARGE_TICKS = 6;
 
@@ -293,6 +293,8 @@ export class BattleView3D {
   private prev = new Map<number, Vec>();
   private readonly shadowTex = softDiscTexture('rgba(0,0,0,1)', 'rgba(0,0,0,0)');
   private readonly tmp = new THREE.Vector3();
+  /** Aviso en el suelo de un hechizo lanzado que aún no ha impactado. */
+  private readonly telegraphs: { key: string; mesh: THREE.Mesh; age: number; life: number }[] = [];
 
   constructor(
     private readonly battle: Battle,
@@ -399,10 +401,103 @@ export class BattleView3D {
           }
           break;
         }
+        case 'hechizo_lanzado': {
+          const card = getCard(e.cardId);
+          if (card.kind !== 'hechizo') break;
+          const color = ELEMENT_COLORS[card.types[0]];
+          const mesh = new THREE.Mesh(
+            new THREE.CircleGeometry(card.radius, 48),
+            new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.25, depthWrite: false }),
+          );
+          const edge = new THREE.Mesh(new THREE.RingGeometry(card.radius - 0.12, card.radius, 64), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, depthWrite: false }));
+          mesh.add(edge);
+          mesh.rotation.x = -Math.PI / 2;
+          mesh.position.copy(toWorld(e.pos, 0.05));
+          mesh.renderOrder = 12;
+          this.scene.add(mesh);
+          this.telegraphs.push({ key: `${e.cardId}|${e.pos.x}|${e.pos.y}`, mesh, age: 0, life: e.delayTicks / this.battle.rules.tickRate });
+          break;
+        }
+        case 'hechizo_impacto': {
+          const key = `${e.cardId}|${e.pos.x}|${e.pos.y}`;
+          const i = this.telegraphs.findIndex((t) => t.key === key);
+          if (i >= 0) this.removeTelegraph(i);
+          const at = toWorld(e.pos, 0.3);
+          if (e.cardId === 'rayo') {
+            const fam = familyFor('electrico');
+            for (let k = 0; k < 5; k++) {
+              const a = this.fx.rand(0, Math.PI * 2);
+              const d = k === 0 ? 0 : this.fx.rand(0.3, e.radius * 0.8);
+              const ground = at.clone().add(new THREE.Vector3(Math.cos(a) * d, 0, Math.sin(a) * d));
+              this.fx.bolt(ground.clone().add(new THREE.Vector3(this.fx.rand(-0.8, 0.8), 9, this.fx.rand(-0.8, 0.8))), ground, 0xffe14a, 0.3, k === 0 ? 2.4 : 1.3);
+            }
+            this.fx.impact(at, fam, 1.8);
+            this.fx.groundRing(at, 0xffe14a, e.radius, 0.5);
+          } else {
+            const fam = familyFor('hielo');
+            for (let k = 0; k < 90; k++) {
+              const a = this.fx.rand(0, Math.PI * 2);
+              const d = Math.sqrt(this.fx.rand(0, 1)) * e.radius;
+              this.fx.soft.emit({
+                pos: at.clone().add(new THREE.Vector3(Math.cos(a) * d, this.fx.rand(0.5, 3.5), Math.sin(a) * d)),
+                vel: new THREE.Vector3(this.fx.rand(-1.5, 1.5), this.fx.rand(-3, -1), this.fx.rand(-1.5, 1.5)),
+                color: new THREE.Color(this.fx.pick([0xffffff, 0xd8f6ff, 0xa8e6ff])),
+                size: this.fx.rand(0.12, 0.3),
+                life: this.fx.rand(0.6, 1.3),
+                drag: 0.9,
+              });
+            }
+            this.fx.impact(at, fam, 1.4);
+            this.fx.groundRing(at, 0x9fe8ff, e.radius, 0.8);
+          }
+          break;
+        }
+        case 'impacto_area':
+          this.fx.groundRing(toWorld(e.pos), e.element ? ELEMENT_COLORS[e.element] : 0xffffff, e.radius, 0.35);
+          break;
+        case 'canto': {
+          const at = toWorld(e.pos, 0.8);
+          this.fx.groundRing(toWorld(e.pos), 0xff9ad0, e.radius, 0.7);
+          for (let k = 0; k < 18; k++) {
+            const a = (k / 18) * Math.PI * 2;
+            this.fx.additive.emit({
+              pos: at.clone(),
+              vel: new THREE.Vector3(Math.cos(a) * e.radius * 0.9, this.fx.rand(0.4, 1.2), Math.sin(a) * e.radius * 0.9),
+              color: new THREE.Color(k % 2 ? 0xff9ad0 : 0xffffff),
+              size: 0.3,
+              life: 1,
+              drag: 0.5,
+            });
+          }
+          for (const id of e.targetIds) {
+            const uv = this.units.get(id);
+            if (uv) this.fx.flash(uv.root.position.clone().add(new THREE.Vector3(0, uv.rig.height * UNIT_SCALE + 0.2, 0)), 0xff9ad0, 0.6, 0.4);
+          }
+          break;
+        }
+        case 'explosion': {
+          const at = toWorld(e.pos, 0.5);
+          this.fx.impact(at, familyFor('roca'), 2.2);
+          this.fx.impact(at, familyFor('fuego'), 1.2);
+          this.fx.groundRing(toWorld(e.pos), 0xffb347, e.radius, 0.5);
+          break;
+        }
         default:
           break;
       }
     }
+  }
+
+  private removeTelegraph(i: number): void {
+    const t = this.telegraphs[i];
+    this.scene.remove(t.mesh);
+    t.mesh.traverse((o) => {
+      if (o instanceof THREE.Mesh) {
+        o.geometry.dispose();
+        (o.material as THREE.Material).dispose();
+      }
+    });
+    this.telegraphs.splice(i, 1);
   }
 
   private emitterOf(uv: UnitView3D): THREE.Vector3 {
@@ -447,6 +542,14 @@ export class BattleView3D {
       }
     }
     for (const t of this.towers.values()) t.update(time, dt, this.fx);
+    for (let i = this.telegraphs.length - 1; i >= 0; i--) {
+      const tg = this.telegraphs[i];
+      tg.age += dt;
+      const k = Math.min(1, tg.age / Math.max(0.05, tg.life));
+      (tg.mesh.material as THREE.MeshBasicMaterial).opacity = 0.15 + 0.25 * k + Math.sin(time * 20) * 0.05;
+      tg.mesh.scale.setScalar(0.85 + 0.15 * k);
+      if (tg.age > tg.life + 1) this.removeTelegraph(i);
+    }
 
     // Proyectiles: trayectoria en arco sobre la recta de la simulación.
     const liveP = new Set<number>();

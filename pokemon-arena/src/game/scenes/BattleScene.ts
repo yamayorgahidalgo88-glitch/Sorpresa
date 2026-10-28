@@ -7,11 +7,13 @@ import { observe } from '../../sim/ai/observation';
 import { deriveSeed } from '../../sim/core/rng';
 import type { SimEvent, Team } from '../../sim/core/state';
 import type { Vec } from '../../sim/core/vec';
-import { snapToTile } from '../../sim/data/arena';
+import { ARENA, snapToTile } from '../../sim/data/arena';
 import { DEFAULT_RIVAL_DECK, getCard } from '../../sim/data/cards';
 import { ELEMENT_COLORS } from '../../sim/data/elements';
 import { play } from '../audio/sfx';
-import { DeployController } from '../input/deployController';
+import { DeployController, FLAT_MAPPING } from '../input/deployController';
+import type { FieldMapping } from '../input/deployController';
+import { Battle3DLayer, canUse3D } from '../../render3d/gameLayer';
 import {
   CARD_H,
   CARD_W,
@@ -51,7 +53,9 @@ export class BattleScene extends Phaser.Scene {
   controller!: DeployController;
   private ai!: OpponentAI;
   private data_!: BattleSceneData;
-  private field!: FieldRenderer;
+  private field: FieldRenderer | null = null;
+  /** Capa 3D del campo (null = respaldo 2D sin WebGL o con ?vista=2d). */
+  layer3d: Battle3DLayer | null = null;
   private fx!: Effects;
   private readonly unitViews = new Map<number, UnitView>();
   private readonly towerViews = new Map<number, TowerView>();
@@ -90,6 +94,8 @@ export class BattleScene extends Phaser.Scene {
     this.lastEnergyKey = -1;
     this.lastMedalsKey = '';
     this.lastFrame = 0;
+    this.field = null;
+    this.layer3d = null;
   }
 
   create(): void {
@@ -98,12 +104,29 @@ export class BattleScene extends Phaser.Scene {
     this.stepMs = 1000 / this.battle.rules.tickRate;
     this.ai = new OpponentAI(1, DIFFICULTIES[this.data_.difficulty], deriveSeed(seed, 7));
 
-    this.cameras.main.setBackgroundColor(COLORS.bg);
-    this.field = new FieldRenderer(this);
+    if (canUse3D()) {
+      try {
+        this.layer3d = new Battle3DLayer(this.battle, this.game.canvas, { topFraction: (FIELD_Y - 10) / GAME_H, hudFraction: (GAME_H - HUD_Y) / GAME_H });
+      } catch (err) {
+        console.warn('Vista 3D no disponible, se usa la 2D', err);
+        this.layer3d = null;
+      }
+    }
     this.fx = new Effects(this);
-    for (const t of this.battle.world.towers) {
-      const s = tileToScreen(t.pos);
-      this.towerViews.set(t.id, new TowerView(this, t, s.x, s.y));
+    if (this.layer3d) {
+      // El lienzo de Phaser queda transparente sobre el campo: solo dibuja el HUD.
+      this.cameras.main.setBackgroundColor('rgba(0,0,0,0)');
+      this.events.once('shutdown', () => {
+        this.layer3d?.dispose();
+        this.layer3d = null;
+      });
+    } else {
+      this.cameras.main.setBackgroundColor(COLORS.bg);
+      this.field = new FieldRenderer(this);
+      for (const t of this.battle.world.towers) {
+        const s = tileToScreen(t.pos);
+        this.towerViews.set(t.id, new TowerView(this, t, s.x, s.y));
+      }
     }
     this.ghost = this.add.graphics().setDepth(150);
     this.buildHud();
@@ -117,14 +140,16 @@ export class BattleScene extends Phaser.Scene {
       },
       onSelect: (slot) => {
         this.cards.forEach((c, i) => c.setSelected(i === slot, HAND_Y));
-        this.field.showZones(this.battle, 0, slot === null ? null : this.battle.hand(0)[slot]);
+        const cardId = slot === null ? null : this.battle.hand(0)[slot];
+        if (this.layer3d) this.layer3d.showZones(0, cardId);
+        else this.field?.showZones(this.battle, 0, cardId);
         if (slot !== null) play('seleccion');
       },
       onReject: (slot) => {
         this.cards[slot]?.shake();
         play('rechazo');
       },
-    });
+    }, this.fieldMapping());
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.controller.pointerDown(p.x, p.y));
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.controller.pointerMove(p.x, p.y));
     this.input.on('pointerup', (p: Phaser.Input.Pointer) => this.controller.pointerUp(p.x, p.y));
@@ -140,6 +165,21 @@ export class BattleScene extends Phaser.Scene {
 
     this.toast('Toca una carta y después el campo · o arrástrala', '#ffffff', 3200);
     (window as unknown as { __arena?: unknown }).__arena = { scene: this, battle: this.battle, seed };
+  }
+
+  /** Traducción pantalla → casilla: plana en 2D, con un rayo contra el suelo en 3D. */
+  private fieldMapping(): FieldMapping {
+    const layer = this.layer3d;
+    if (!layer) return FLAT_MAPPING;
+    const pick = (x: number, y: number) => layer.pick(x / GAME_W, y / GAME_H);
+    return {
+      isInField: (x, y) => {
+        if (y < FIELD_Y - 10 || y >= HUD_Y) return false;
+        const t = pick(x, y);
+        return !!t && t.x >= 0 && t.x < ARENA.width && t.y >= 0 && t.y < ARENA.height;
+      },
+      screenToTile: (x, y) => pick(x, y) ?? { x: -1, y: -1 },
+    };
   }
 
   // ------------------------------------------------------------------ HUD
@@ -266,10 +306,16 @@ export class BattleScene extends Phaser.Scene {
       this.acc -= this.stepMs;
     }
     const alpha = this.battle.isOver ? 1 : this.acc / this.stepMs;
-    this.renderWorld(alpha, time);
-    this.renderGhost();
+    if (this.layer3d) {
+      const pv = this.controller.preview;
+      this.layer3d.setGhost(pv ? this.battle.hand(0)[pv.slot] ?? null : null, pv?.tile ?? null, pv?.valid ?? false);
+      this.layer3d.render(alpha, Math.min(delta, 100) / 1000);
+    } else {
+      this.renderWorld(alpha, time);
+      this.renderGhost();
+      this.field?.update(time);
+    }
     this.renderHud();
-    this.field.update(time);
   }
 
   /** Un paso de simulación: la IA decide con la información visible y se avanza la batalla. */
@@ -280,6 +326,7 @@ export class BattleScene extends Phaser.Scene {
     this.prevPos = new Map();
     for (const u of b.world.units) this.prevPos.set(u.id, { x: u.pos.x, y: u.pos.y });
     for (const p of b.world.projectiles) this.prevPos.set(p.id, { x: p.pos.x, y: p.pos.y });
+    this.layer3d?.beforeStep();
     this.handleEvents(b.step());
   }
 
@@ -348,6 +395,46 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private handleEvents(events: SimEvent[]): void {
+    // Con la capa 3D, ella dibuja los efectos; en 2D se usan las vistas planas.
+    if (this.layer3d) this.layer3d.handleEvents(events);
+    else this.drawEvents2D(events);
+    // Sonido y avisos: comunes a las dos vistas.
+    for (const e of events) {
+      switch (e.type) {
+        case 'despliegue':
+          if (e.team === 0) play('despliegue');
+          break;
+        case 'hechizo_lanzado':
+          play('hechizo');
+          break;
+        case 'dano':
+          if (e.amount > 0) {
+            if (e.effectiveness === 'eficaz') play('eficaz');
+            play('golpe');
+          }
+          break;
+        case 'torre_destruida':
+          play('torre');
+          this.toast(e.team === 1 ? '¡Torre rival derribada!' : '¡Han derribado tu torre!', css(e.team === 1 ? COLORS.gold : COLORS.danger), 1600);
+          break;
+        case 'base_activada':
+          this.toast(e.team === 1 ? 'La base rival se ha activado' : 'Tu base se ha activado', '#ffffff', 1400);
+          break;
+        case 'fase':
+          if (e.phase === 'doble') this.banner('¡ENERGÍA x2!', COLORS.energy);
+          if (e.phase === 'prorroga') this.banner('¡PRÓRROGA!', COLORS.gold);
+          break;
+        case 'fin':
+          this.endBattle();
+          break;
+        default:
+          break;
+      }
+    }
+  }
+
+  /** Efectos de la vista 2D de respaldo. */
+  private drawEvents2D(events: SimEvent[]): void {
     for (const e of events) {
       switch (e.type) {
         case 'despliegue': {
@@ -357,14 +444,12 @@ export class BattleScene extends Phaser.Scene {
           }
           const s = tileToScreen(e.pos);
           this.fx.ring(s.x, s.y, 46, COLORS.team[e.team], 380);
-          if (e.team === 0) play('despliegue');
           break;
         }
         case 'hechizo_lanzado': {
           const s = tileToScreen(e.pos);
           const card = getCard(e.cardId);
           if (card.kind === 'hechizo') this.fx.telegraph(s.x, s.y, card.radius * TILE, ELEMENT_COLORS[card.types[0]], e.delayTicks * this.stepMs);
-          play('hechizo');
           break;
         }
         case 'hechizo_impacto': {
@@ -403,15 +488,9 @@ export class BattleScene extends Phaser.Scene {
           this.unitViews.get(e.targetId)?.hitFlash();
           this.towerViews.get(e.targetId)?.hitFlash();
           if (s && e.amount > 0) {
-            if (e.effectiveness === 'eficaz') {
-              this.fx.floatText(s.x, s.y - 20, `-${e.amount}`, '#ffb13b', 20);
-              play('eficaz');
-            } else if (e.effectiveness === 'poco_eficaz') {
-              this.fx.floatText(s.x, s.y - 20, `-${e.amount}`, '#9aa3b8', 14);
-            } else {
-              this.fx.floatText(s.x, s.y - 20, `-${e.amount}`, '#ffffff', 16);
-            }
-            play('golpe');
+            if (e.effectiveness === 'eficaz') this.fx.floatText(s.x, s.y - 20, `-${e.amount}`, '#ffb13b', 20);
+            else if (e.effectiveness === 'poco_eficaz') this.fx.floatText(s.x, s.y - 20, `-${e.amount}`, '#9aa3b8', 14);
+            else this.fx.floatText(s.x, s.y - 20, `-${e.amount}`, '#ffffff', 16);
           }
           break;
         }
@@ -444,19 +523,9 @@ export class BattleScene extends Phaser.Scene {
             const s = tileToScreen(t.pos);
             this.fx.towerCollapse(s.x, s.y);
           }
-          play('torre');
-          this.toast(e.team === 1 ? '¡Torre rival derribada!' : '¡Han derribado tu torre!', css(e.team === 1 ? COLORS.gold : COLORS.danger), 1600);
           break;
         }
-        case 'base_activada':
-          this.toast(e.team === 1 ? 'La base rival se ha activado' : 'Tu base se ha activado', '#ffffff', 1400);
-          break;
-        case 'fase':
-          if (e.phase === 'doble') this.banner('¡ENERGÍA x2!', COLORS.energy);
-          if (e.phase === 'prorroga') this.banner('¡PRÓRROGA!', COLORS.gold);
-          break;
-        case 'fin':
-          this.endBattle();
+        default:
           break;
       }
     }

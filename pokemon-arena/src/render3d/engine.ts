@@ -38,6 +38,8 @@ export class Engine {
   private bloom: UnrealBloomPass | null = null;
   /** Fracción inferior de la pantalla reservada al HUD (el campo no se dibuja debajo). */
   hudFraction = 0.16;
+  /** Fracción superior reservada a la barra de marcador. */
+  topFraction = 0.015;
   /** Inclinación de la cámara de juego (grados sobre la horizontal). */
   pitchDeg = 58;
   /** >1: la escena se dibuja a resolución reducida y se amplía con píxeles nítidos (estilo pixel art). */
@@ -131,7 +133,7 @@ export class Engine {
       cam.updateProjectionMatrix();
       const fits = corners.every((c) => {
         const p = c.clone().project(cam);
-        return Math.abs(p.x) <= 0.99 && p.y <= 0.97 && p.y >= yMin;
+        return Math.abs(p.x) <= 0.99 && p.y <= 1 - this.topFraction * 2 && p.y >= yMin;
       });
       if (fits) hi = d;
       else lo = d;

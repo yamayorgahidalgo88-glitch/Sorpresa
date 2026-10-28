@@ -62,16 +62,12 @@ export class MenuScene extends Phaser.Scene {
     makeButton(this, GAME_W / 2 - 112, 780, 216, 70, 'Mazo', () => this.scene.start('deck'), 0x3d8bff);
     makeButton(this, GAME_W / 2 + 112, 780, 216, 70, 'Colección', () => this.scene.start('collection'), 0x45b36b);
 
-    const soundBtn = makeButton(this, GAME_W / 2 - 112, 880, 216, 60, this.soundLabel(), () => {
+    const soundBtn = makeButton(this, GAME_W / 2, 880, 440, 60, this.soundLabel(), () => {
       this.settings.muted = !this.settings.muted;
       setMuted(this.settings.muted);
       saveSettings(this.settings);
       (soundBtn.list[1] as Phaser.GameObjects.Text).setText(this.soundLabel());
     }, COLORS.panelLight);
-    // Vista previa del nuevo apartado visual 3D (escena de referencia).
-    makeButton(this, GAME_W / 2 + 112, 880, 216, 60, 'Vista 3D', () => {
-      window.location.href = 'referencia.html';
-    }, 0xf2782f);
 
     const deckNames = this.settings.deck.map((id) => getCard(id).name).join(' · ');
     this.add.text(GAME_W / 2, 975, 'Tu mazo', textStyle(18, '#c9d4f5')).setOrigin(0.5);

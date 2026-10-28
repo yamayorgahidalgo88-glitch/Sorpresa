@@ -12,6 +12,8 @@ const game = new Phaser.Game({
   width: GAME_W,
   height: GAME_H,
   backgroundColor: COLORS.bg,
+  // Transparente: en batalla, la capa 3D se ve a través del lienzo del HUD.
+  transparent: true,
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
   input: { activePointers: 2 },
   render: { antialias: true, roundPixels: false },
