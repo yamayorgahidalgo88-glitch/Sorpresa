@@ -23,7 +23,17 @@ interface Props {
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 
 /** Copia el archivo a la carpeta de documentos de la app para que no se pierda. */
-function persist(srcUri: string, name: string): string {
+async function persist(srcUri: string, name: string): Promise<string> {
+  if (Platform.OS === 'web') {
+    // En la versión web no hay carpeta de documentos: se guarda como data URL en el navegador.
+    const blob = await (await fetch(srcUri)).blob();
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result));
+      r.onerror = () => reject(r.error);
+      r.readAsDataURL(blob);
+    });
+  }
   const safe = `${uid()}-${name.replace(/[^\w.\-]+/g, '_')}`;
   const dest = new File(Paths.document, safe);
   new File(srcUri).copy(dest);
@@ -68,7 +78,7 @@ export default function DayModal({ date, events, state, onChange, onClose }: Pro
       const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 });
       if (res.canceled) return;
       const a = res.assets[0];
-      const att: Attachment = { id: uid(), name: a.fileName ?? 'foto.jpg', uri: persist(a.uri, a.fileName ?? 'foto.jpg'), kind: 'image' };
+      const att: Attachment = { id: uid(), name: a.fileName ?? 'foto.jpg', uri: await persist(a.uri, a.fileName ?? 'foto.jpg'), kind: 'image' };
       setNote({ ...note, attachments: [...note.attachments, att] });
     } catch (e) {
       Alert.alert('No se pudo adjuntar la imagen', String(e));
@@ -80,7 +90,7 @@ export default function DayModal({ date, events, state, onChange, onClose }: Pro
       const res = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true });
       if (res.canceled) return;
       const a = res.assets[0];
-      const att: Attachment = { id: uid(), name: a.name, uri: persist(a.uri, a.name), kind: 'file' };
+      const att: Attachment = { id: uid(), name: a.name, uri: await persist(a.uri, a.name), kind: 'file' };
       setNote({ ...note, attachments: [...note.attachments, att] });
     } catch (e) {
       Alert.alert('No se pudo adjuntar el archivo', String(e));
@@ -89,7 +99,10 @@ export default function DayModal({ date, events, state, onChange, onClose }: Pro
 
   const openAttachment = async (a: Attachment) => {
     try {
-      if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(a.uri);
+      if (Platform.OS === 'web') {
+        const w = window.open();
+        if (w) w.location.href = a.uri;
+      } else if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(a.uri);
     } catch (e) {
       Alert.alert('No se pudo abrir', String(e));
     }
@@ -102,7 +115,7 @@ export default function DayModal({ date, events, state, onChange, onClose }: Pro
         text: 'Quitar',
         style: 'destructive',
         onPress: () => {
-          try { new File(a.uri).delete(); } catch { /* ya no existía */ }
+          try { if (Platform.OS !== 'web') new File(a.uri).delete(); } catch { /* ya no existía */ }
           setNote({ ...note, attachments: note.attachments.filter((x) => x.id !== a.id) });
         },
       },
