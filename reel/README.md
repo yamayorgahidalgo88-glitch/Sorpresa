@@ -2,7 +2,10 @@
 
 Render: `node reel/render.cjs --cuenta @tucuenta` → `reel/halloween-reel.mp4` (1080×1920, 30 fps).
 
-- Tomas con dibujos provisionales. Para usar tus imágenes limpias (sin texto), guárdalas como
-  `assets/toma1.png` … `assets/toma6.png` (9:16); cada una sustituye a su toma y mantiene el movimiento de cámara.
-- Audio provisional sintetizado en `audio.py`. Para usar el tuyo, deja un `reel/audio.wav` (21 s) antes de renderizar.
-- Texto "Feliz Halloween" con máquina de escribir y cámara ascendente en la toma 6; cuenta con `--cuenta`.
+Imágenes por toma en `assets/` (estilo de las ilustraciones de la profe):
+- `toma1.png` colegio de noche con el niño vampiro · `toma2.png` mano llamando · `toma3.png` puerta y silueta
+- `toma4.png` la profe con sombrero de bruja · `toma5.png` clase (recorte sin texto de la imagen original, ya incluido)
+- `toma6.png` opcional: si falta, el cierre reutiliza `toma1.png` con la cámara subiendo hasta la luna.
+Sin imagen, cada toma usa un dibujo provisional.
+
+Audio provisional sintetizado en `audio.py`; para usar el tuyo deja un `reel/audio.wav` de 21 s antes de renderizar.

@@ -141,7 +141,7 @@ const witch = `
 // ---------- toma 3 : puerta y silueta ----------
 (function(){
   $('s3').innerHTML = `
-  <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 60%,#1a1f33 0%,#07080f 60%,#000 100%)"></div>
+  <div id="bg3" style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 60%,#1a1f33 0%,#07080f 60%,#000 100%)"></div>
   ${svg('0 0 540 960',`
     <defs><linearGradient id="beam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7f93c9" stop-opacity=".35"/><stop offset="1" stop-color="#7f93c9" stop-opacity="0"/></linearGradient></defs>
     <path d="M150 100 L390 100 L540 960 L0 960Z" fill="url(#beam)" opacity=".5"/>
@@ -224,10 +224,13 @@ function kid(x,y,col,kind,i){
 })();
 
 // ---------- imágenes opcionales por toma ----------
+// sin toma6 propia, el cierre reutiliza la toma 1 subiendo hacia la luna
+if(window.ASSETS[1]&&!window.ASSETS[6]) window.ASSETS[6]=window.ASSETS[1];
 for(const [k,src] of Object.entries(window.ASSETS)){
   const el=$('s'+k); if(!el) continue;
-  const im=document.createElement('img'); im.className='asset'; im.src=src; el.appendChild(im);
-  el.querySelectorAll('svg,div').forEach(n=>n.style.display='none'); im.id='asset'+k;
+  const im=document.createElement('img'); im.className='asset'; im.src=src; im.id='asset'+k; el.prepend(im);
+  // se ocultan los dibujos; se mantienen las capas de efecto (latido, etc.)
+  el.querySelectorAll('svg,#door3,#bg3,#bg4').forEach(n=>n.style.display='none');
 }
 
 // ---------- línea de tiempo ----------
@@ -249,7 +252,7 @@ window.render=function(t){
   const has=k=>!!window.ASSETS[k];
   // ----- toma 1 -----
   { const k=prog(t,0,3), e=ease(k);
-    if(has(1)){ nodes.asset1.style.transform=`scale(${1+.12*k})`; }
+    if(has(1)){ const a=nodes.asset1; a.style.transformOrigin='50% 45%'; a.style.transform=`scale(${1.04+.16*e}) translateY(${-10*e}px)`; }
     else{
       const x=lerp(-40,262,e), scale=lerp(1,1.35,e), bob=Math.sin(k*60)*3;
       tf(nodes.vwrap,`translate(${x} ${790+bob+e*26}) scale(${scale})`);
@@ -268,7 +271,8 @@ window.render=function(t){
     for(const kt of knocks){ const d=t-kt; if(d>=0&&d<.35){ kick=Math.max(kick,Math.exp(-d*14)); ring=Math.max(ring,d/.35); flash=Math.max(flash,Math.exp(-d*22)); } }
     // la mano se adelanta antes del golpe
     let reach=0; for(const kt of knocks){ const d=kt-t; if(d>0&&d<.18) reach=Math.max(reach,1-d/.18); }
-    if(has(2)){ nodes.asset2.style.transform=`translate(${(Math.random()*0)+(-kick*6)}px,0) scale(${1+.04*prog(t,3,6)})`; }
+    if(has(2)){ const a=nodes.asset2; a.style.transformOrigin='60% 45%';
+      a.style.transform=`translate(${kick*(((t*1000)|0)%2?7:-7)}px,${kick*3}px) scale(${1.06+.08*prog(t,3,6)+.03*kick})`; }
     else{
       tf(nodes.fist,`translate(${-reach*22+kick*10} ${Math.sin(t*3)*2}) scale(${1+.02*lt})`);
       tf(nodes.door2,`translate(${kick*(((t*1000)|0)%2?4:-4)} 0)`);
@@ -278,7 +282,10 @@ window.render=function(t){
   }
   // ----- toma 3 -----
   { const k=prog(t,6,9);
-    if(has(3)){ nodes.asset3.style.transform=`scale(${1+.1*k})`; }
+    if(has(3)){ const a=nodes.asset3; a.style.transformOrigin='50% 50%';
+      // de la oscuridad aparece la silueta, la cámara se acerca despacio
+      a.style.transform=`scale(${1.02+.14*ease(k)})`;
+      a.style.filter=`brightness(${lerp(.25,1,ease(prog(t,6.2,7.8)))}) saturate(.85)`; }
     else{
       const open=ease(prog(t,6.0,8.3));
       nodes.door3.style.transform=`perspective(900px) rotateY(${-open*78}deg)`;
@@ -293,7 +300,11 @@ window.render=function(t){
   }
   // ----- toma 4 -----
   { const k=prog(t,9,12);
-    if(has(4)){ nodes.asset4.style.transform=`scale(${1+.1*k})`; }
+    if(has(4)){ const a=nodes.asset4; a.style.transformOrigin='50% 35%';
+      // arranca en sombra y la luz cálida la revela
+      const lightK=ease(prog(t,9.1,10.4));
+      a.style.transform=`scale(${lerp(1.25,1.02,ease(prog(t,9,11.2)))})`;
+      a.style.filter=`brightness(${lerp(.05,1,lightK)}) contrast(${lerp(1.6,1,lightK)})`; }
     else{
       const near=ease(prog(t,9,10.6));
       const lightK=ease(prog(t,9.2,10.4));
@@ -314,6 +325,8 @@ window.render=function(t){
   // ----- toma 5 -----
   { const k=prog(t,12,17);
     nodes.s5.style.transform=`scale(${1+.05*k})`;
+    // con imagen apaisada: barrido de la profe a los niños
+    if(has(5)) nodes.asset5.style.objectPosition=`${lerp(8,92,ease(k))}% 50%`;
     document.querySelectorAll('#s5 .kid').forEach(g=>{
       const i=+g.dataset.i, base=g.getAttribute('transform').match(/translate\(([-\d.]+) ([-\d.]+)\)/);
       const bx=+base[1], by=+base[2];
@@ -331,7 +344,10 @@ window.render=function(t){
   // ----- toma 6: asciende -----
   { const k=prog(t,17,21), e=ease(k);
     const camY=lerp(-540,0,e);
-    if(has(6)){ nodes.asset6.style.transform=`translateY(${(1-e)*80}px) scale(${1+.1*e})`; }
+    if(has(6)){ const a=nodes.asset6; a.style.transformOrigin='50% 0';
+      // grúa: de la puerta del cole sube hasta la luna
+      a.style.transform=`translateY(${lerp(-560,0,e)}px) scale(1.6)`;
+      a.style.filter=`brightness(${lerp(.95,.75,e)})`; }
     else{
       nodes.cam6.setAttribute('transform',`translate(0 ${camY})`);
       document.querySelectorAll('#s6 .bat').forEach(b=>{
