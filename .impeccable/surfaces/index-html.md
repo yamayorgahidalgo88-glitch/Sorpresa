@@ -14,15 +14,15 @@ Redesign (user request, 31-10-2026): the user rejected the poster world and took
 
 ## Direction contract
 
-THESIS: The shop's own black-and-gold identity (the AL monogram, gold chairs) rendered as a precise, well-lit product: real gold tools that move like objects on a workbench, real photos of Ayoub's work. Refuses the dusty vintage barber-pole kitsch and the over-gilded luxury salon.
+THESIS: A cinematic barbershop site in the shop's black and gold: real graded footage of the craft opens and tells the story, the shop's real logo and photos prove it is Ayoub's. Refuses vintage barber kitsch, gilded luxury, and the toy-like 3D of the rejected attempt.
 
-OWN-WORLD: Near-black ground with warm undertone, brand gold sampled from the logo (#d4a852 range) for marks, rules and buttons, ivory text. Bodoni Moda for display (echoes the AL monogram), Jost light/regular for UI and body (echoes "BARBER SHOP"). Hairline gold rules, square buttons with gold outline, real photography in warm grade. 3D gold scissors, straight razor, comb and clipper rendered in WebGL with real metal reflections.
+OWN-WORLD: Near-black ground, brand gold from the logo, ivory text. Bodoni Moda display, Jost UI. Full-bleed video graded warm black and gold, hairline gold rules, square gold buttons, real warm-graded photos.
 
-STORY: Visitor sees the logo light up among floating gold tools, knows it is Ayoub's barbershop in Alcorcón rated 5,0 on Booksy, sees real fades, scans prices, books, or uses the advisor to find their cut.
+STORY: Visitor sees the logo light up over a slow close-up of a fade, reads the craft in three filmed chapters (cut, beard, tools) with real prices, sees Ayoub's real fades and shop, books on Booksy or uses the advisor.
 
-FIRST VIEWPORT: Full-bleed black stage. Center: the real logo, revealed by a gold light sweep. Around it, 3D tools float and turn (scissors snip, razor opens), following the pointer. Under the logo: one line of copy, rating chip, gold "Reservar en Booksy" button and an outline "¿Qué corte te va?" button. Header: small logo left, nav right.
+FIRST VIEWPORT: Full-bleed graded video (vertical clip on phones), cinema bars open on load, real logo centered revealed by a light sweep, one italic line, gold Booksy button and outline advisor button, rating line. Header small logo left, nav center, book right.
 
-FORM: canon (category standard played straight at full fidelity), user-chosen over the poster challenger. seed:609899a8a0659ca6. Signature interaction: WebGL tool cluster that reacts to pointer and disperses on scroll; scissors snip open and shut. Motion grammar: masked line reveals for headings, clip-path image reveals, pinned horizontal gallery, scrubbed parallax; one ease family.
+FORM: cinematic canon, user-chosen after rejecting the 3D tools version. seed:609899a8a0659ca6. Signature interaction: pinned chapter stage where scroll swaps clip-path wiped videos and scrubs the tools video frame by frame; statement text lights up word by word as you read. Motion grammar: expo ease-out reveals, clip-path wipes, scrubbed scale on hero exit, close frame opening to full bleed.
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 
