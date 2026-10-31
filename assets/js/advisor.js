@@ -486,6 +486,7 @@ function renderCuts({ animate }) {
     el.classList.toggle('is-top', Boolean(isTop));
     el.classList.toggle('is-low', score === 0);
     el.classList.toggle('is-minor', tier !== null && tier <= 1);
+    el.classList.toggle('is-tail', visible && visibleRank > 3);
     el.innerHTML = `
       <div class="cut__rank" aria-hidden="true"><span class="outline-num">${rank}</span></div>
       ${pictogram(cut, { title: false })}
@@ -496,9 +497,10 @@ function renderCuts({ animate }) {
           <span class="tag">${hasFade(cut) ? 'Con degradado' : 'Sin degradado'}</span>
           <span class="tag">${LENGTH_LABEL[cut.length]}</span>
           ${tier !== null ? `<span class="fit" role="img" aria-label="${FIT_TEXT[tier]}">${stars(tier)}<span class="fit__label" aria-hidden="true">${FIT_TEXT[tier]}</span></span>` : ''}
+          <button type="button" class="btn btn--line btn--small cut__try cut__try--inline" data-try="${cut.id}" ${state.busy ? 'disabled' : ''}>Pruébatelo <svg aria-hidden="true"><use href="#i-arrow"/></svg></button>
         </div>
       </div>
-      <button type="button" class="btn btn--line btn--small cut__try" data-try="${cut.id}" ${state.busy ? 'disabled' : ''}>
+      <button type="button" class="btn btn--line btn--small cut__try cut__try--col" data-try="${cut.id}" ${state.busy ? 'disabled' : ''}>
         Pruébatelo <svg aria-hidden="true"><use href="#i-arrow"/></svg>
       </button>`;
     el.classList.toggle('is-active', state.activeCut === cut.id);
@@ -613,6 +615,7 @@ function showTryon(src) {
       img.hidden = false;
       img.alt = 'Tu foto con el corte elegido, generada con IA';
       $('compare').hidden = false;
+      $('plate').classList.add('has-tryon');
       $('calipers').style.opacity = '0';
       // la imagen original en color va debajo: pintamos el recorte en el lienzo
       paintOriginal();
@@ -643,6 +646,7 @@ function setCompare(v) {
 }
 
 function clearTryon() {
+  $('plate').classList.remove('has-tryon');
   $('tryon-img')?.remove();
   $('compare').hidden = true;
   $('calipers').style.opacity = '';

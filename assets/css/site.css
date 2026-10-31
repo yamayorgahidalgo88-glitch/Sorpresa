@@ -713,6 +713,8 @@ svg { fill: currentColor; }
   mix-blend-mode: multiply;
 }
 .calipers { overflow: visible; pointer-events: none; }
+/* La foto con el corte se juzga limpia: por encima del grano del papel */
+.plate.has-tryon { z-index: 101; }
 .calipers line, .calipers path {
   stroke: var(--ink);
   stroke-width: 3;
@@ -753,13 +755,16 @@ svg { fill: currentColor; }
   content: "";
   position: absolute;
   left: 0; right: 0;
-  height: 26%;
-  top: -26%;
-  background: linear-gradient(180deg, transparent, rgba(255, 67, 180, 0.6) 60%, var(--pink) 62%, transparent 64%);
+  height: 12px;
+  top: -12px;
+  background: var(--pink) radial-gradient(circle at 50% 50%, rgba(10, 10, 10, 0.25) 0.9px, transparent 1.3px) 0 0 / 5px 5px;
+  border-top: 3px solid var(--ink);
+  border-bottom: 3px solid var(--ink);
   animation: squeegee 1.3s var(--ease-in-out) infinite;
 }
 @keyframes squeegee {
-  to { transform: translateY(500%); }
+  from { top: -12px; }
+  to { top: 100%; }
 }
 
 /* Comparador antes/después */
@@ -1037,6 +1042,7 @@ svg { fill: currentColor; }
   text-transform: uppercase;
 }
 .cut__try { white-space: nowrap; }
+.cut__try--inline { display: none; }
 .cut.is-top {
   background: var(--pink);
   border: var(--rule) solid var(--ink);
@@ -1276,12 +1282,13 @@ svg { fill: currentColor; }
   }
   .cut__rank { font-size: 2rem; }
   .cut .picto { width: 76px; }
-  .cut__try { grid-column: 3; justify-self: start; margin-top: 8px; --h: 40px; }
+  .cut__try--col { display: none; }
+  .cut__try--inline { display: inline-flex; --h: 36px; padding: 0 12px; font-size: 0.82rem; }
   .cuts.is-idle .cut { grid-template-columns: 76px minmax(0, 1fr); }
-  .cuts.is-idle .cut__try { grid-column: 2; }
-  .cut.is-minor .cut__why { display: none; }
-  .cut.is-minor { padding: 10px 4px; }
-  .cut.is-minor .picto { width: 56px; }
+  .cut.is-tail .cut__why { display: none; }
+  .cut.is-tail { padding: 10px 4px; }
+  .cut.is-tail .picto { width: 56px; }
+  .cut__why { font-size: 0.94rem; }
   .where__grid { grid-template-columns: 1fr; }
   .where__links { grid-auto-flow: row; }
   .close .btn { width: 100%; }
@@ -1292,7 +1299,7 @@ svg { fill: currentColor; }
     grid-template-columns: 1fr 1fr 1.3fr;
     position: fixed;
     left: 0; right: 0; bottom: 0;
-    z-index: 50;
+    z-index: 102;
     background: var(--card);
     border-top: var(--rule) solid var(--ink);
     padding-bottom: env(safe-area-inset-bottom);
