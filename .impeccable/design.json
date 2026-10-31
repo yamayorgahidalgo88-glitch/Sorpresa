@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-31T14:00:00Z",
+  "title": "Design System: Ayoub Lahmany Barber Shop",
+  "extensions": {
+    "colorMeta": {
+      "card": { "role": "neutral", "displayName": "Fluo Card", "canonical": "#fff200", "tonalRamp": ["#3a3700", "#5e5900", "#857e00", "#aea500", "#d6cc00", "#fff200", "#fff766", "#fffbc2"] },
+      "pink": { "role": "primary", "displayName": "Fluo Pink", "canonical": "#ff43b4", "tonalRamp": ["#4a0a32", "#7a1355", "#a91d77", "#d92f99", "#ff43b4", "#ff8fd0", "#ffbfe3", "#ffe6f4"] },
+      "pink-screen": { "role": "secondary", "displayName": "Screen Pink", "canonical": "#ff8fd0", "tonalRamp": ["#4a0a32", "#7a1355", "#a91d77", "#d92f99", "#ff43b4", "#ff8fd0", "#ffbfe3", "#ffe6f4"] },
+      "ink": { "role": "neutral", "displayName": "Heavy Ink", "canonical": "#0a0a0a", "tonalRamp": ["#0a0a0a", "#1f1f1f", "#3a3a3a", "#5a5a5a", "#7d7d7d", "#a3a3a3", "#cbcbcb", "#efefef"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display (outlined act)", "purpose": "Outlined double-stroke block caps for billed acts and section-scale titles. Fill transparent, 0.022em ink stroke; ::before 0.105em ink stroke with bleed filter; ::after 0.06em card stroke. wdth 112 on mobile." },
+      "headline": { "displayName": "Headline (boxhead)", "purpose": "Section headings set as black slugs with card text." },
+      "title": { "displayName": "Title", "purpose": "Cut names, lineup title, drop-zone title, logo name (wdth 108 to 112)." },
+      "numeral": { "displayName": "Numeral", "purpose": "Prices and face readings, tabular figures. Rank numerals use wdth 125 with a 2px ink stroke." },
+      "condensed": { "displayName": "Condensed caps", "purpose": "Buttons, nav, filters, strapline, address, dock. Always uppercase." },
+      "body": { "displayName": "Body", "purpose": "Intros, cut reasons, privacy text; weight 600 to 700; measure 34ch to 60ch; 16px on mobile." },
+      "label": { "displayName": "Label", "purpose": "Table heads, reading terms, tags, captions, legends. Uppercase, tracked 0.1 to 0.12em." }
+    },
+    "rules": [
+      { "name": "rule", "value": "3px", "purpose": "Outer structure: buttons, plates, tables, filters, section rules." },
+      { "name": "rule-thin", "value": "2px", "purpose": "Internal division: table cells, tags, lineup rows, readings." }
+    ],
+    "textures": [
+      { "name": "screen-grain", "value": "body::after fixed fractalNoise SVG (baseFrequency .9, 3 octaves), opacity 0.42, mix-blend-mode multiply, z-index 100", "purpose": "Paper grain over the whole poster." },
+      { "name": "pink-dot-screen", "value": "background-image: radial-gradient(circle at 50% 50%, rgba(10,10,10,0.17) 0.9px, transparent 1.3px); background-size: 5px 5px", "purpose": "Applied over every flat pink fill so it reads as printed ink." },
+      { "name": "bleed", "value": "SVG filter #bleed: feTurbulence fractalNoise 0.9, 2 octaves, seed 7; feDisplacementMap scale 1.6", "purpose": "Ink spread on solid slugs and the heavy stroke of outlined display type." },
+      { "name": "halftone-ramp", "value": "Staggered dot grid; radius shrinks linearly to zero across the fade band", "purpose": "Shading language for fades in pictograms, the drop-zone head, and the printed photo." }
+    ],
+    "shadows": [
+      { "name": "second-outline", "value": "0 0 0 3px var(--card), 0 0 0 6px var(--ink)", "purpose": "Hover on buttons and nav booking; resting state of active filter or chip. The only sanctioned box-shadow." },
+      { "name": "focus-ring", "value": "outline: 3px solid var(--ink); outline-offset: 4px; box-shadow: 0 0 0 7px var(--pink)", "purpose": "Global keyboard focus." }
+    ],
+    "motion": [
+      { "name": "ease-out", "value": "cubic-bezier(0.23, 1, 0.32, 1)", "purpose": "Default for state transitions, slam, FLIP, caliper draw." },
+      { "name": "ease-in-out", "value": "cubic-bezier(0.77, 0, 0.175, 1)", "purpose": "Wipes (tape, boxheads), squeegee, try-on reveal." },
+      { "name": "state", "value": "160ms to 220ms", "purpose": "Hover, press (scale 0.97 buttons, 0.96 chips), underline draw." },
+      { "name": "slam", "value": "620ms, from translateY(-0.28em) scale(1.035) blur(5px), stagger 75ms", "purpose": "Billed acts landing in register on load." },
+      { "name": "wipe", "value": "480ms to 520ms clip-path inset from right", "purpose": "Tape band and boxheads printing on." },
+      { "name": "misregister", "value": "700ms, pink halftone pass offset decays to 0.25 cell (ease-out quart)", "purpose": "Photo print: pink pass slams into register." },
+      { "name": "flip-rerank", "value": "520ms translateY FLIP; new rows 360ms fade from blur, stagger 30ms", "purpose": "Lineup re-ranking after face analysis or filter change." },
+      { "name": "reduced-motion", "value": "prefers-reduced-motion: reduce disables slam, wipe, FLIP, pulses, smooth scroll", "purpose": "Accessibility." }
+    ],
+    "breakpoints": [
+      { "name": "stack", "value": "1080px" },
+      { "name": "mobile", "value": "760px" },
+      { "name": "narrow", "value": "380px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Screened pink booking action with trailing arrow; every Reservar control.",
+      "html": "<a class=\"ds-btn ds-btn-pink\" href=\"#\">Reservar en Booksy <svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M8 3.5L16.5 12 8 20.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3.2\" stroke-linecap=\"square\"/></svg></a>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: 12px; min-height: 54px; padding: 0 22px; border: 3px solid var(--ink, #0a0a0a); border-radius: 0; background: var(--card, #fff200); color: var(--ink, #0a0a0a); font-family: Archivo, Arial, sans-serif; font-weight: 900; font-stretch: 68%; font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.03em; text-decoration: none; cursor: pointer; transition: box-shadow 160ms cubic-bezier(0.23,1,0.32,1), transform 160ms cubic-bezier(0.23,1,0.32,1), background-color 160ms cubic-bezier(0.23,1,0.32,1); } .ds-btn svg { width: 20px; height: 20px; } .ds-btn-pink { background-color: var(--pink, #ff43b4); background-image: radial-gradient(circle at 50% 50%, rgba(10,10,10,0.17) 0.9px, transparent 1.3px); background-size: 5px 5px; } .ds-btn:hover { box-shadow: 0 0 0 3px var(--card, #fff200), 0 0 0 6px var(--ink, #0a0a0a); } .ds-btn:focus-visible { outline: 3px solid var(--ink, #0a0a0a); outline-offset: 4px; box-shadow: 0 0 0 7px var(--pink, #ff43b4); } .ds-btn:active { transform: scale(0.97); }"
+    },
+    {
+      "name": "Line Button",
+      "kind": "button",
+      "refersTo": "button-line",
+      "description": "Card-filled secondary action; Screen Pink on hover.",
+      "html": "<a class=\"ds-btn-line\" href=\"#\">¿Qué corte te va?</a>",
+      "css": ".ds-btn-line { display: inline-flex; align-items: center; gap: 12px; min-height: 54px; padding: 0 22px; border: 3px solid var(--ink, #0a0a0a); border-radius: 0; background: var(--card, #fff200); color: var(--ink, #0a0a0a); font-family: Archivo, Arial, sans-serif; font-weight: 900; font-stretch: 68%; font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.03em; text-decoration: none; transition: box-shadow 160ms cubic-bezier(0.23,1,0.32,1), background-color 160ms cubic-bezier(0.23,1,0.32,1), transform 160ms cubic-bezier(0.23,1,0.32,1); } .ds-btn-line:hover { background: var(--pink-screen, #ff8fd0); box-shadow: 0 0 0 3px var(--card, #fff200), 0 0 0 6px var(--ink, #0a0a0a); } .ds-btn-line:focus-visible { outline: 3px solid var(--ink, #0a0a0a); outline-offset: 4px; box-shadow: 0 0 0 7px var(--pink, #ff43b4); } .ds-btn-line:active { transform: scale(0.97); }"
+    },
+    {
+      "name": "Filter Chip",
+      "kind": "chip",
+      "refersTo": "filter-chip",
+      "description": "Lineup filters and face-shape chips; active gains the second outline.",
+      "html": "<div class=\"ds-chips\"><button class=\"ds-chip is-on\" aria-pressed=\"true\">Todos</button><button class=\"ds-chip\" aria-pressed=\"false\">Con degradado</button><button class=\"ds-chip\" aria-pressed=\"false\">Corto</button></div>",
+      "css": ".ds-chips { display: flex; flex-wrap: wrap; gap: 12px 10px; padding: 4px; } .ds-chip { min-height: 42px; padding: 0 14px; border: 3px solid var(--ink, #0a0a0a); border-radius: 0; background: var(--card, #fff200); color: var(--ink, #0a0a0a); font-family: Archivo, Arial, sans-serif; font-weight: 900; font-stretch: 68%; font-size: 0.88rem; text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; transition: box-shadow 180ms cubic-bezier(0.23,1,0.32,1), background-color 180ms cubic-bezier(0.23,1,0.32,1), transform 160ms cubic-bezier(0.23,1,0.32,1); } .ds-chip:not(.is-on):hover { background: var(--pink-screen, #ff8fd0); } .ds-chip.is-on { background-color: var(--pink, #ff43b4); background-image: radial-gradient(circle at 50% 50%, rgba(10,10,10,0.17) 0.9px, transparent 1.3px); background-size: 5px 5px; box-shadow: 0 0 0 3px var(--card, #fff200), 0 0 0 6px var(--ink, #0a0a0a); } .ds-chip:focus-visible { outline: 3px solid var(--ink, #0a0a0a); outline-offset: 4px; } .ds-chip:active { transform: scale(0.96); }"
+    },
+    {
+      "name": "Navigation",
+      "kind": "nav",
+      "refersTo": "nav",
+      "description": "Condensed caps over a 3px rule; underline draws from left; booking as screened pink box.",
+      "html": "<nav class=\"ds-nav\"><a href=\"#\">Precios</a><a href=\"#\">Asesor de cortes</a><a href=\"#\">Dónde estamos</a><a class=\"ds-nav-book\" href=\"#\">Reservar</a></nav>",
+      "css": ".ds-nav { display: flex; justify-content: flex-end; align-items: center; gap: 32px; padding-bottom: 14px; border-bottom: 3px solid var(--ink, #0a0a0a); background: var(--card, #fff200); font-family: Archivo, Arial, sans-serif; } .ds-nav a { position: relative; padding: 6px 0; color: var(--ink, #0a0a0a); font-weight: 900; font-stretch: 68%; font-size: 0.98rem; letter-spacing: 0.04em; text-transform: uppercase; text-decoration: none; } .ds-nav a:not(.ds-nav-book)::after { content: \"\"; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--ink, #0a0a0a); transform: scaleX(0); transform-origin: left; transition: transform 220ms cubic-bezier(0.23,1,0.32,1); } .ds-nav a:not(.ds-nav-book):hover::after { transform: scaleX(1); } .ds-nav-book { padding: 8px 16px !important; border: 3px solid var(--ink, #0a0a0a); background-color: var(--pink, #ff43b4); background-image: radial-gradient(circle at 50% 50%, rgba(10,10,10,0.17) 0.9px, transparent 1.3px); background-size: 5px 5px; transition: box-shadow 160ms cubic-bezier(0.23,1,0.32,1); } .ds-nav-book:hover { box-shadow: 0 0 0 3px var(--card, #fff200), 0 0 0 6px var(--ink, #0a0a0a); } .ds-nav a:focus-visible { outline: 3px solid var(--ink, #0a0a0a); outline-offset: 4px; }"
+    },
+    {
+      "name": "Billed Act",
+      "kind": "custom",
+      "refersTo": "display",
+      "description": "Outlined double-stroke display line with a black price slug.",
+      "html": "<div class=\"ds-act\"><span class=\"ds-act-name\" data-text=\"Corte + Barba\">Corte + Barba</span><span class=\"ds-act-price\">16 €</span></div>",
+      "css": ".ds-act { display: flex; align-items: center; flex-wrap: wrap; gap: 0.18em 0.32em; font-family: Archivo, Arial, sans-serif; font-size: 4rem; line-height: 0.95; background: var(--card, #fff200); padding: 0.1em; } .ds-act-name { position: relative; z-index: 0; display: inline-block; font-weight: 900; font-stretch: 125%; text-transform: uppercase; letter-spacing: -0.012em; color: transparent; -webkit-text-stroke: 0.022em var(--ink, #0a0a0a); paint-order: stroke fill; } .ds-act-name::before, .ds-act-name::after { content: attr(data-text); position: absolute; inset: 0; pointer-events: none; } .ds-act-name::before { -webkit-text-stroke: 0.105em var(--ink, #0a0a0a); color: var(--ink, #0a0a0a); z-index: -2; } .ds-act-name::after { -webkit-text-stroke: 0.06em var(--card, #fff200); color: var(--card, #fff200); z-index: -1; } .ds-act-price { font-size: 0.32em; font-weight: 900; background: var(--ink, #0a0a0a); color: var(--card, #fff200); padding: 0.18em 0.42em 0.14em; line-height: 1; white-space: nowrap; font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Section Boxhead",
+      "kind": "custom",
+      "refersTo": "boxhead",
+      "description": "Section heading set as a black slug; the slug is the heading, not a label above it.",
+      "html": "<h2 class=\"ds-boxhead\">Precios</h2>",
+      "css": ".ds-boxhead { display: inline-block; margin: 0; background: var(--ink, #0a0a0a); color: var(--card, #fff200); font-family: Archivo, Arial, sans-serif; font-weight: 900; font-stretch: 100%; font-size: 2.2rem; line-height: 1; padding: 10px 16px 8px; letter-spacing: 0.005em; text-transform: uppercase; }"
+    },
+    {
+      "name": "Price Grid",
+      "kind": "card",
+      "refersTo": "price-grid",
+      "description": "Hand-ruled table: 3px outer, 2px cells, ink head, screened pink group rows, Screen Pink row hover.",
+      "html": "<table class=\"ds-grid\"><thead><tr><th>Servicio</th><th>Tiempo</th><th>Precio</th></tr></thead><tbody><tr class=\"ds-grid-group\"><th colspan=\"3\">Corte</th></tr><tr><th>Corte caballero</th><td>20 min</td><td>11 €</td></tr><tr><th>Corte jubilado</th><td>15 min</td><td>7 €</td></tr></tbody></table>",
+      "css": ".ds-grid { width: 100%; border-collapse: collapse; border: 3px solid var(--ink, #0a0a0a); background: var(--card, #fff200); color: var(--ink, #0a0a0a); font-family: Archivo, Arial, sans-serif; font-variant-numeric: tabular-nums; } .ds-grid th, .ds-grid td { border: 2px solid var(--ink, #0a0a0a); padding: 12px 14px 10px; text-align: left; } .ds-grid thead th { background: var(--ink, #0a0a0a); color: var(--card, #fff200); font-weight: 800; font-stretch: 68%; font-size: 0.82rem; letter-spacing: 0.12em; text-transform: uppercase; } .ds-grid tbody th { font-weight: 900; font-stretch: 68%; text-transform: uppercase; font-size: 1.1rem; } .ds-grid td { font-weight: 700; white-space: nowrap; } .ds-grid td:last-child { font-weight: 900; font-stretch: 112%; font-size: 1.4rem; text-align: right; } .ds-grid-group th { background-color: var(--pink, #ff43b4); background-image: radial-gradient(circle at 50% 50%, rgba(10,10,10,0.17) 0.9px, transparent 1.3px); background-size: 5px 5px; font-size: 0.82rem; letter-spacing: 0.18em; padding: 6px 14px 5px; } .ds-grid tbody tr:not(.ds-grid-group):hover { background: var(--pink-screen, #ff8fd0); }"
+    },
+    {
+      "name": "Lineup Row (top)",
+      "kind": "card",
+      "refersTo": "cut-row-top",
+      "description": "Ranked cut row; the number one becomes a screened pink box with a rotated slug.",
+      "html": "<div class=\"ds-cut is-top\"><span class=\"ds-cut-rank\">1</span><div><h3 class=\"ds-cut-name\">Crop texturizado<span>con degradado alto</span></h3><p class=\"ds-cut-why\">Textura arriba y laterales a piel desde muy alto.</p><span class=\"ds-tag\">Con degradado</span> <span class=\"ds-tag\">Corto</span></div></div>",
+      "css": ".ds-cut { position: relative; display: grid; grid-template-columns: 4.6rem minmax(0,1fr); gap: 4px 18px; align-items: center; padding: 16px 12px 16px 4px; border-bottom: 2px solid var(--ink, #0a0a0a); background: var(--card, #fff200); color: var(--ink, #0a0a0a); font-family: Archivo, Arial, sans-serif; margin-top: 18px; } .ds-cut.is-top { background-color: var(--pink, #ff43b4); background-image: radial-gradient(circle at 50% 50%, rgba(10,10,10,0.17) 0.9px, transparent 1.3px); background-size: 5px 5px; border: 3px solid var(--ink, #0a0a0a); } .ds-cut.is-top::before { content: \"Tu número 1\"; position: absolute; top: -15px; right: 14px; background: var(--ink, #0a0a0a); color: var(--card, #fff200); font-weight: 900; font-stretch: 68%; font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; padding: 5px 9px 4px; transform: rotate(2deg); } .ds-cut-rank { font-size: 2.9rem; line-height: 0.85; text-align: center; font-weight: 900; font-stretch: 125%; color: transparent; -webkit-text-stroke: 2px var(--ink, #0a0a0a); } .ds-cut-name { margin: 0; font-weight: 900; font-stretch: 108%; text-transform: uppercase; font-size: 1.4rem; line-height: 1; } .ds-cut-name span { display: block; margin-top: 4px; font-weight: 800; font-stretch: 68%; font-size: 0.85rem; letter-spacing: 0.04em; } .ds-cut-why { margin: 8px 0; font-weight: 600; line-height: 1.38; } .ds-tag { display: inline-block; border: 2px solid var(--ink, #0a0a0a); padding: 3px 7px 2px; font-weight: 800; font-stretch: 68%; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Dance Bill on Fluorescent Card",
+    "overview": "The whole surface is one screen-printed poster. Fluorescent yellow card is the paper, black is the ink, hot pink is the second pass through the screen. Services and haircuts are billed like the acts at a dance night: outlined block caps, prices in black slugs, a pink tape band struck across at an angle. The world is loud, flat, and hand-made. Grain lies over everything, solid ink boxes bleed slightly at the edges, and every tone is a halftone screen rather than a smooth blend.\n\nDensity is poster density. Very large outlined display lines take the full width, and condensed caps carry everything practical: labels, nav, buttons, table heads. Structure comes from hand-ruled black lines and ruled grids, never from cards that float. Interaction is printing: a photo is screened onto the card as halftone, ink calipers measure it, the bill re-ranks, and active choices pick up a second outline.\n\nIt is neither the black-and-gold barber-pole template nor white spa minimalism. Both are confirmed rejections in the direction contract and the build holds to them.",
+    "keyCharacteristics": [
+      "Three inks on fluorescent card: yellow ground, black ink, pink second stock.",
+      "One variable family, Archivo, pushed across its width axis: expanded 125% for acts, condensed 68% for labels.",
+      "Square corners everywhere; 3px ink rules for structure, 2px for internal division.",
+      "Halftone dots as the only shading language, including the pink fills.",
+      "Paper physics: fixed screen grain (multiply, 0.42) and a displacement \"bleed\" on solid ink.",
+      "Motion is a print run: acts slam into register, tape and headings wipe on, the pink pass lands misregistered and settles."
+    ],
+    "rules": [
+      { "name": "The Three Inks Rule", "body": "A screen is card, ink, and pink. Screen Pink appears only as a state. No fourth hue, no greys: lighter values are made by a dot screen, never by a new color.", "section": "colors" },
+      { "name": "The Printed Pink Rule", "body": "Any flat pink fill carries the halftone screen (radial-gradient dots, 0.9px, rgba(10,10,10,0.17), on a 5px grid). Flat, unscreened pink is a screen color, not ink.", "section": "colors" },
+      { "name": "The Width Axis Rule", "body": "Hierarchy comes from width and stroke as much as from size: expanded (125) is for billed acts, condensed (68) is for anything a visitor operates or scans. Don't introduce a second family.", "section": "typography" },
+      { "name": "The Outlined Act Rule", "body": "Outlined double-stroke caps are only for billed lines and section-scale titles, at display size. Never outline body-scale text.", "section": "typography" },
+      { "name": "The Second Outline Rule", "body": "Emphasis is drawn as another ruled outline around the object, never as an offset or blurred shadow.", "section": "elevation" },
+      { "name": "The Clean Proof Rule", "body": "The try-on result is judged without grain: the plate lifts above the grain layer (z-index 101) only while it holds a generated image.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do build every surface from card, ink, and pink only, with Screen Pink reserved for hover and press.",
+      "Do screen every pink fill with the 5px halftone dot pattern.",
+      "Do draw tone and fades as halftone ramps (dot radius shrinking), in pictograms, plates, and illustrations alike.",
+      "Do divide space with 3px ink rules and ruled grids; use 2px inside tables and lists.",
+      "Do set every operable control and label in condensed (wdth 68) heavy caps.",
+      "Do mark hover and active with the second outline (3px card, then 3px ink).",
+      "Do apply the bleed filter to solid ink slugs and the heavy stroke of outlined display type.",
+      "Do keep motion physical and brief: slam (620ms), wipe (480 to 520ms), FLIP (520ms), all on cubic-bezier(0.23, 1, 0.32, 1) or (0.77, 0, 0.175, 1), and respect reduced motion."
+    ],
+    "donts": [
+      "Don't round corners.",
+      "Don't use offset, blurred, or ambient shadows; the second outline is the only box-shadow.",
+      "Don't use smooth color gradients for shading; a gradient is only allowed as the generator of a dot screen.",
+      "Don't introduce black-and-gold barber-pole styling or white spa minimalism.",
+      "Don't add a second typeface or fall back to a system display face.",
+      "Don't put small tracked labels or eyebrows above headings; a section heading is the black slug itself.",
+      "Don't use icon fonts or text glyphs as icons; icons are inline SVG with square-capped 2.4 to 3.2 strokes."
+    ]
+  }
+}

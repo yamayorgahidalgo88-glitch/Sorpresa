@@ -19,11 +19,9 @@
 
 :root {
   --card: #fff200;
-  --card-deep: #f2e400;
   --pink: #ff43b4;
   --pink-screen: #ff8fd0;
   --ink: #0a0a0a;
-  --ink-soft: #2b2a00;
   --rule: 3px;
   --rule-thin: 2px;
   --gutter: clamp(16px, 3.2vw, 40px);
@@ -31,8 +29,6 @@
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --display: "Archivo", "Archivo Fallback", system-ui, sans-serif;
-  --space-1: 6px;
-  --space-2: 12px;
   --space-3: 20px;
   --space-4: 32px;
   --space-5: 56px;
