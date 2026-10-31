@@ -1,28 +1,28 @@
 import { CUTS, SHAPES, LENGTH_LABEL, hasFade, pictogram, rankCuts } from './cuts.js';
 import { analyze, loadLandmarker, IDX } from './face.js';
 
-// ---------- Probador 3D ----------
+// ---------- Visor 360° con fotos de referencia ----------
 const thumbs = {};
 let viewer = null;
 let viewerLoading = null;
+let refs = null; // manifest de las fotos de referencia
 function initViewer() {
   if (viewerLoading) return viewerLoading;
-  const canvas = document.getElementById('head3d');
-  if (!canvas) return Promise.resolve(null);
-  viewerLoading = import('./head3d.js')
-    .then(({ createHeadViewer }) => createHeadViewer(canvas, { reduceMotion: reduceMotion.matches }))
-    .then((v) => {
-      viewer = v;
-      // miniaturas 3D de todos los cortes, una vez
-      for (const c of CUTS) thumbs[c.id] = v.snapshot(c.id, 220);
-      document.getElementById('viewer')?.classList.add('is-ready');
-      selectView(state.viewing || topCutId(), { instant: true });
+  const box = document.getElementById('viewer');
+  if (!box) return Promise.resolve(null);
+  viewerLoading = import('./turntable.js')
+    .then(async ({ loadManifest, createTurntable, thumbUrl }) => {
+      refs = await loadManifest();
+      if (!refs) return null; // aún no hay fotos: el visor se queda oculto
+      box.hidden = false;
+      viewer = createTurntable(box, refs, { reduceMotion: reduceMotion.matches });
+      for (const id of refs.cuts) thumbs[id] = thumbUrl(id);
+      selectView(state.viewing || topCutId());
       renderCuts({ animate: false });
-      return v;
+      return viewer;
     })
     .catch((err) => {
-      console.warn('Visor 3D no disponible', err);
-      document.getElementById('viewer')?.classList.add('is-failed');
+      console.warn('Visor 360 no disponible', err);
       return null;
     });
   return viewerLoading;
@@ -31,14 +31,14 @@ function topCutId() {
   if (state.shape) return rankCuts(state.shape).find((r) => matchesFilter(r.cut))?.cut.id || CUTS[0].id;
   return CUTS.find((c) => matchesFilter(c))?.id || CUTS[0].id;
 }
-function selectView(id, { instant = false, scroll = false } = {}) {
+function selectView(id, { scroll = false } = {}) {
   const cut = CUTS.find((c) => c.id === id);
-  if (!cut) return;
+  if (!cut || !viewer || !refs?.cuts.includes(id)) return;
   state.viewing = id;
   document.getElementById('viewer-name').textContent = cut.name;
   document.getElementById('viewer-detail').textContent = cut.detail;
   document.querySelectorAll('.cut').forEach((el) => el.classList.toggle('is-viewing', el.dataset.id === id));
-  if (viewer) viewer.setStyle(id, { instant });
+  if (viewer) viewer.setCut(id);
   if (scroll) {
     const box = document.getElementById('viewer');
     const r = box.getBoundingClientRect();
@@ -538,9 +538,9 @@ function renderCuts({ animate }) {
     el.classList.toggle('is-tail', visible && visibleRank > 3);
     el.innerHTML = `
       <div class="cut__rank" aria-hidden="true"><span class="outline-num">${rank}</span></div>
-      <button type="button" class="cut__view" data-view="${cut.id}" aria-label="Ver ${cut.name} en 3D">
-        ${thumbs[cut.id] ? `<img src="${thumbs[cut.id]}" alt="" width="220" height="220">` : pictogram(cut, { title: false })}
-        <span class="cut__view-tag" aria-hidden="true">3D</span>
+      <button type="button" class="cut__view" data-view="${cut.id}" aria-label="Ver ${cut.name} en 360°" ${thumbs[cut.id] ? '' : 'tabindex="-1"'}>
+        ${thumbs[cut.id] ? `<img src="${thumbs[cut.id]}" alt="" width="240" height="300" loading="lazy">` : pictogram(cut, { title: false })}
+        ${thumbs[cut.id] ? '<span class="cut__view-tag" aria-hidden="true">360°</span>' : ''}
       </button>
       <div class="cut__body">
         <h3 class="cut__name">${cut.name}<span class="cut__detail">${cut.detail}</span></h3>

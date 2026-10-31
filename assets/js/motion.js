@@ -73,7 +73,7 @@ export function initMotion({ reduce }) {
   // ---------- Declaración: palabra a palabra, siguiendo la lectura ----------
   const st = document.getElementById('statement');
   if (st) {
-    const gold = new Set(['mano', 'medida.', 'Ayoub,']);
+    const gold = new Set(['medida.', 'Ayoub', 'Lahmany,']);
     const words = st.textContent.trim().split(/\s+/);
     st.setAttribute('aria-label', st.textContent.trim());
     st.innerHTML = words.map((w) => `<span class="sw${gold.has(w) ? ' is-gold' : ''}" aria-hidden="true">${w}</span>`).join(' ');

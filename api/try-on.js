@@ -2,7 +2,8 @@
 //
 // Variables de entorno:
 //   TRYON_PROVIDER   "fal" (por defecto si hay FAL_KEY) o "nvidia"
-//   FAL_KEY          clave de fal.ai  → FLUX.1 Kontext [pro], acepta fotos subidas
+//   FAL_KEY          clave de fal.ai  → Nano Banana con la foto de referencia del corte
+//                    (o FLUX.1 Kontext [pro] si aún no hay referencias)
 //   NVIDIA_API_KEY   clave de build.nvidia.com → FLUX.1 Kontext [dev]
 //                    (ojo: la API alojada de prueba de NVIDIA solo acepta sus imágenes
 //                    de ejemplo; para fotos reales hace falta un NIM propio: NVIDIA_ENDPOINT)
@@ -65,8 +66,21 @@ export default async function handler(req, res) {
 
   const prompt = `Give this person ${style}. ${PRESERVE}`;
 
+  // Foto de referencia del corte (la del visor 360°), si ya está generada
+  const host = req.headers['x-forwarded-host'] || req.headers.host;
+  const proto = req.headers['x-forwarded-proto'] || 'https';
+  const refUrl = host ? `${proto}://${host}/assets/img/cortes/${cutId}/0.webp` : null;
+  let hasRef = false;
+  if (refUrl && provider === 'fal' && !/localhost|127\.0\.0\.1/.test(host)) {
+    try { hasRef = (await fetch(refUrl, { method: 'HEAD' })).ok; } catch { hasRef = false; }
+  }
+
   try {
-    const out = provider === 'nvidia' ? await viaNvidia(prompt, image) : await viaFal(prompt, image);
+    const out = provider === 'nvidia'
+      ? await viaNvidia(prompt, image)
+      : hasRef
+        ? await viaFalReference(style, image, refUrl)
+        : await viaFal(prompt, image);
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json({ image: out });
   } catch (err) {
@@ -94,6 +108,26 @@ async function viaFal(prompt, image) {
   if (data.has_nsfw_concepts?.[0]) throw Object.assign(new Error('filtered'), { code: 'content_filtered' });
   const url = data.images?.[0]?.url;
   if (!url) throw new Error('fal: no image in response');
+  return url;
+}
+
+// Nano Banana (Google) con dos imágenes: la foto del cliente y la referencia
+// del corte. Copia el corte de la referencia y conserva la cara del cliente.
+async function viaFalReference(style, image, refUrl) {
+  const r = await fetch('https://fal.run/fal-ai/nano-banana/edit', {
+    method: 'POST',
+    headers: { Authorization: `Key ${process.env.FAL_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      image_urls: [image, refUrl],
+      prompt: `The first image is the client. The second image is a reference photo of the haircut: ${style}. Give the person in the first image exactly the haircut from the second image, adapted to his head shape, hairline and hair colour, with the same fade height, length, texture and styling direction. ${PRESERVE}`,
+      num_images: 1,
+      output_format: 'jpeg',
+    }),
+  });
+  if (!r.ok) throw Object.assign(new Error(await r.text()), { status: r.status });
+  const data = await r.json();
+  const url = data.images?.[0]?.url;
+  if (!url) throw new Error('nano-banana: no image in response');
   return url;
 }
 

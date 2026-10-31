@@ -15,14 +15,6 @@
   <link rel="preload" href="assets/img/logo-ayoub-lahmany.webp" as="image">
   <link rel="preload" href="assets/video/hero.jpg" as="image">
   <link rel="stylesheet" href="assets/css/site.css">
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-      }
-    }
-  </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.13/dist/lenis.min.js" defer></script>
@@ -88,27 +80,9 @@
       <div class="interlude__frame" id="interlude-frame">
         <video class="interlude__video" muted loop playsinline preload="none" poster="assets/video/herramientas.jpg" aria-hidden="true"><source src="assets/video/herramientas.mp4" type="video/mp4"></video>
         <div class="interlude__shade" aria-hidden="true"></div>
-        <p class="statement__text" id="statement">Cada corte se hace a mano y a tu medida. Degradados limpios, barba perfilada y una cara cuidada, en el sillón de Ayoub, en Alcorcón.</p>
+        <p class="statement__text" id="statement">Cortes a tu medida. Degradados limpios, barba perfilada y una cara cuidada. Ayoub Lahmany, en Alcorcón.</p>
       </div>
     </section>
-
-    <!-- CINTA -->
-    <div class="marquee" aria-hidden="true">
-      <div class="marquee__track">
-        <span>Corte caballero</span><svg><use href="#i-scissors"/></svg>
-        <span>Degradado</span><svg><use href="#i-scissors"/></svg>
-        <span>Arreglo de barba</span><svg><use href="#i-scissors"/></svg>
-        <span>Limpieza facial</span><svg><use href="#i-scissors"/></svg>
-        <span>Corte niños</span><svg><use href="#i-scissors"/></svg>
-        <span>Alcorcón</span><svg><use href="#i-scissors"/></svg>
-        <span>Corte caballero</span><svg><use href="#i-scissors"/></svg>
-        <span>Degradado</span><svg><use href="#i-scissors"/></svg>
-        <span>Arreglo de barba</span><svg><use href="#i-scissors"/></svg>
-        <span>Limpieza facial</span><svg><use href="#i-scissors"/></svg>
-        <span>Corte niños</span><svg><use href="#i-scissors"/></svg>
-        <span>Alcorcón</span><svg><use href="#i-scissors"/></svg>
-      </div>
-    </div>
 
     <!-- SERVICIOS -->
     <section class="section services" id="servicios" aria-labelledby="servicios-title">
@@ -164,8 +138,8 @@
     <section class="works" id="trabajos" aria-labelledby="trabajos-title">
       <div class="works__pin">
         <div class="works__intro">
-          <h2 class="title" id="trabajos-title" data-split>Trabajos del sillón</h2>
-          <p class="lead" data-fade>Degradados hechos por Ayoub en su local. Fotos reales.</p>
+          <h2 class="title" id="trabajos-title" data-split>Trabajos reales</h2>
+          <p class="lead" data-fade>Degradados hechos por Ayoub en su local.</p>
         </div>
         <div class="works__viewport">
         <div class="works__track" id="works-track">
@@ -186,7 +160,7 @@
       </figure>
       <div class="place__text">
         <h2 class="title" id="local-title" data-split>El local</h2>
-        <p class="lead" data-fade>Sillones de barbero, espejos con luz y tu sitio listo. En la calle Princesa Doña Sofía, Alcorcón.</p>
+        <p class="lead" data-fade>Sillones de barbero y espejos con luz, en la calle Princesa Doña Sofía, Alcorcón.</p>
         <div class="rating" data-fade>
           <span class="rating__num" data-count="5">5,0</span>
           <div>
@@ -201,7 +175,7 @@
     <section class="section advisor" id="asesor" aria-labelledby="asesor-title">
       <div class="section__head">
         <h2 class="title" id="asesor-title" data-split>¿Qué corte te va?</h2>
-        <p class="lead" data-fade>Mira cada corte en 3D y gíralo. Si subes una foto de frente, medimos tu cara y los ordenamos: arriba, los que mejor te quedan.</p>
+        <p class="lead" data-fade>Sube una foto de frente. Medimos tu cara y ordenamos los cortes: arriba, los que mejor te quedan.</p>
       </div>
 
       <div class="advisor__body">
@@ -270,14 +244,13 @@
         </div>
 
         <div class="lineup">
-          <div class="viewer" id="viewer">
-            <canvas id="head3d" role="img" aria-label="Modelo 3D con el corte seleccionado. Arrastra para girarlo."></canvas>
+          <div class="viewer" id="viewer" hidden>
+            <div class="viewer__stage" role="img" aria-label="Fotos del corte seleccionado desde varios ángulos. Arrastra o usa las flechas para girar."></div>
             <div class="viewer__info">
-              <p class="viewer__name" id="viewer-name">Crop texturizado</p>
-              <p class="viewer__detail" id="viewer-detail">con degradado alto</p>
+              <p class="viewer__name" id="viewer-name"></p>
+              <p class="viewer__detail" id="viewer-detail"></p>
             </div>
             <p class="viewer__hint" aria-hidden="true"><svg><use href="#i-arrow"/></svg> Arrastra para girar</p>
-            <p class="viewer__loading">Cargando el probador 3D…</p>
           </div>
           <div class="lineup__bar">
             <p class="lineup__title" id="lineup-title">Los cortes · <span>sin ordenar</span></p>
@@ -302,7 +275,7 @@
           <p><strong>El análisis se hace en tu móvil.</strong> Para medir tu cara la foto no sale de tu dispositivo.</p>
           <p><strong>Solo si pulsas «Pruébatelo»</strong> se envía la foto a un servicio de IA para generar la imagen con el corte. No la guardamos: se usa para esa imagen y se descarta.</p>
           <p><strong>«Borrar mi foto»</strong> la quita de la página al momento. Al cerrar la pestaña también desaparece.</p>
-          <p>Las recomendaciones son orientativas. Quien mejor te aconseja es Ayoub en el sillón.</p>
+          <p>Las recomendaciones son orientativas. Quien mejor te aconseja es Ayoub.</p>
         </div>
       </details>
     </section>
@@ -343,7 +316,7 @@
 
   <footer class="foot">
     <img src="assets/img/logo-ayoub-lahmany-sm.webp" alt="Ayoub Lahmany Barber Shop" width="520" height="256" loading="lazy">
-    <p>Precios y valoración según Booksy, octubre de 2026. Vídeos de ambiente: Mixkit. Cabeza 3D: Lee Perry-Smith (Infinite-Realities), CC BY 3.0. Fotos del local y de los trabajos: Ayoub Lahmany Barber Shop.</p>
+    <p>Precios y valoración según Booksy, octubre de 2026. Vídeos de ambiente: Mixkit. Fotos del local y de los trabajos: Ayoub Lahmany Barber Shop.</p>
   </footer>
 
   <nav class="dock" aria-label="Accesos rápidos">

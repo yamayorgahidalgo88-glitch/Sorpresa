@@ -291,6 +291,7 @@ svg { fill: currentColor; }
   margin: 0;
   max-width: 30ch;
   font-family: var(--serif);
+  font-variation-settings: "opsz" 12;
   font-style: italic;
   font-size: clamp(1.25rem, 2.2vw, 1.7rem);
   line-height: 1.3;
@@ -373,6 +374,7 @@ svg { fill: currentColor; }
   max-width: 1180px;
   padding: var(--space-6) var(--gutter);
   font-family: var(--serif);
+  font-variation-settings: "opsz" 12;
   font-weight: 400;
   font-size: clamp(1.9rem, 4.6vw, 4.2rem);
   line-height: 1.12;
@@ -401,6 +403,7 @@ svg { fill: currentColor; }
 }
 .marquee span {
   font-family: var(--serif);
+  font-variation-settings: "opsz" 12;
   font-size: clamp(1.4rem, 2.6vw, 2.2rem);
   font-style: italic;
   white-space: nowrap;
@@ -426,6 +429,7 @@ svg { fill: currentColor; }
 .title {
   margin: 0;
   font-family: var(--serif);
+  font-variation-settings: "opsz" 12;
   font-weight: 500;
   font-size: clamp(2.6rem, 6.4vw, 5.6rem);
   line-height: 1;
@@ -498,6 +502,7 @@ svg { fill: currentColor; }
 }
 .menu__name {
   font-family: var(--serif);
+  font-variation-settings: "opsz" 12;
   font-size: clamp(1.15rem, 1.6vw, 1.4rem);
   line-height: 1.25;
 }
@@ -514,6 +519,7 @@ svg { fill: currentColor; }
 .menu__time { font-size: 0.82rem; color: var(--muted); letter-spacing: 0.06em; white-space: nowrap; }
 .menu__price {
   font-family: var(--serif);
+  font-variation-settings: "opsz" 12;
   font-size: clamp(1.25rem, 1.8vw, 1.55rem);
   color: var(--gold);
   font-variant-numeric: lining-nums tabular-nums;
@@ -579,6 +585,7 @@ svg { fill: currentColor; }
   left: 16px;
   bottom: 14px;
   font-family: var(--serif);
+  font-variation-settings: "opsz" 12;
   font-style: italic;
   font-size: 1.5rem;
   color: var(--gold-hi);
@@ -623,6 +630,7 @@ svg { fill: currentColor; }
 }
 .rating__num {
   font-family: var(--serif);
+  font-variation-settings: "opsz" 12;
   font-size: clamp(3.6rem, 6vw, 5rem);
   line-height: 1;
   color: var(--gold);
@@ -684,6 +692,7 @@ svg { fill: currentColor; }
   align-items: center;
   gap: 10px;
   font-family: var(--serif);
+  font-variation-settings: "opsz" 12;
   font-size: clamp(1.4rem, 2.2vw, 1.8rem);
   color: var(--ivory);
 }
@@ -879,6 +888,7 @@ svg { fill: currentColor; }
 .readings dd {
   margin: 4px 0 0;
   font-family: var(--serif);
+  font-variation-settings: "opsz" 12;
   font-size: clamp(1.5rem, 2.2vw, 1.9rem);
   color: var(--gold);
   line-height: 1.05;
@@ -896,6 +906,7 @@ svg { fill: currentColor; }
 .shape__label {
   margin: 0;
   font-family: var(--serif);
+  font-variation-settings: "opsz" 12;
   font-weight: 500;
   font-size: clamp(1.9rem, 3vw, 2.5rem);
   line-height: 1.1;
@@ -953,31 +964,43 @@ svg { fill: currentColor; }
 /* Probador 3D */
 .viewer {
   position: relative;
-  aspect-ratio: 16 / 11;
-  margin-bottom: var(--space-4);
+  aspect-ratio: 4 / 5;
+  max-height: 78vh;
+  margin: 0 auto var(--space-4);
   border: 1px solid var(--line);
   background:
     radial-gradient(55% 60% at 50% 42%, rgba(212, 168, 82, 0.16), transparent 70%),
     linear-gradient(180deg, var(--bg-2), var(--bg));
   overflow: hidden;
 }
-.viewer canvas {
+.viewer[hidden] { display: none; }
+.viewer__stage {
+  position: absolute;
+  inset: 0;
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.viewer.is-dragging .viewer__stage { cursor: grabbing; }
+.viewer__stage img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  cursor: grab;
-  touch-action: pan-y;
+  object-fit: cover;
   opacity: 0;
-  transform: scale(0.97);
-  transition: opacity 600ms var(--ease-out), transform 900ms var(--ease-out);
+  transition: opacity 220ms ease;
+  pointer-events: none;
 }
-.viewer canvas:active { cursor: grabbing; }
-.viewer.is-ready canvas { opacity: 1; transform: none; }
+.viewer__stage img.is-front { opacity: 1; }
+.viewer__stage:focus-visible { outline: 1.5px solid var(--gold-hi); outline-offset: -4px; }
+.viewer__info { text-shadow: 0 2px 18px rgba(0, 0, 0, 0.8); }
 .viewer__info { position: absolute; left: 20px; bottom: 18px; pointer-events: none; }
 .viewer__name {
   margin: 0;
   font-family: var(--serif);
+  font-variation-settings: "opsz" 12;
   font-size: clamp(1.5rem, 2.4vw, 2rem);
   line-height: 1.05;
   color: var(--ivory);
@@ -1016,8 +1039,6 @@ svg { fill: currentColor; }
   color: var(--muted);
   transition: opacity 400ms var(--ease-out);
 }
-.viewer.is-ready .viewer__loading { opacity: 0; pointer-events: none; }
-.viewer.is-failed { display: none; }
 
 .cut__view {
   position: relative;
@@ -1029,7 +1050,7 @@ svg { fill: currentColor; }
   overflow: hidden;
   transition: border-color 250ms var(--ease-out), transform 160ms var(--ease-out);
 }
-.cut__view img { display: block; width: 100%; height: auto; aspect-ratio: 1; object-fit: cover; transition: transform 500ms var(--ease-out); }
+.cut__view img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; transition: transform 500ms var(--ease-out); }
 .cut__view .picto { width: 100%; height: auto; padding: 8px; }
 .cut__view-tag {
   position: absolute;
@@ -1058,6 +1079,7 @@ svg { fill: currentColor; }
 .lineup__title {
   margin: 0;
   font-family: var(--serif);
+  font-variation-settings: "opsz" 12;
   font-size: clamp(1.6rem, 2.6vw, 2.2rem);
   line-height: 1.1;
 }
@@ -1083,6 +1105,7 @@ svg { fill: currentColor; }
 .cuts.is-idle .cut__rank { display: none; }
 .cut__rank {
   font-family: var(--serif);
+  font-variation-settings: "opsz" 12;
   font-style: italic;
   font-size: 2.6rem;
   line-height: 1;
@@ -1094,6 +1117,7 @@ svg { fill: currentColor; }
 .cut__name {
   margin: 0;
   font-family: var(--serif);
+  font-variation-settings: "opsz" 12;
   font-weight: 500;
   font-size: clamp(1.25rem, 1.8vw, 1.5rem);
   line-height: 1.15;
@@ -1192,6 +1216,7 @@ svg { fill: currentColor; }
 .where__addr { font-style: normal; display: grid; gap: 4px; color: var(--muted); }
 .where__street {
   font-family: var(--serif);
+  font-variation-settings: "opsz" 12;
   font-size: clamp(1.8rem, 3.2vw, 2.6rem);
   line-height: 1.05;
   color: var(--ivory);
@@ -1306,7 +1331,6 @@ svg { fill: currentColor; }
   .where__links { grid-auto-flow: row; }
   .interlude__frame { min-height: 80vh; }
   .interlude__shade { background: rgba(11, 10, 8, 0.7); }
-  .viewer { aspect-ratio: 1 / 1; }
   .close__frame { height: 80vh; }
   .close .btn { width: 100%; }
 
