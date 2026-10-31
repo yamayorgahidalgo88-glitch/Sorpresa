@@ -219,6 +219,7 @@ svg { fill: currentColor; }
   padding: clamp(20px, 3vw, 40px) var(--gutter) 0;
   position: relative;
   isolation: isolate;
+  overflow-x: clip;
 }
 
 .bill__acts {
