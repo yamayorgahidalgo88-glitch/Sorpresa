@@ -1,6 +1,51 @@
 import { CUTS, SHAPES, LENGTH_LABEL, hasFade, pictogram, rankCuts } from './cuts.js';
 import { analyze, loadLandmarker, IDX } from './face.js';
 
+// ---------- Probador 3D ----------
+const thumbs = {};
+let viewer = null;
+let viewerLoading = null;
+function initViewer() {
+  if (viewerLoading) return viewerLoading;
+  const canvas = document.getElementById('head3d');
+  if (!canvas) return Promise.resolve(null);
+  viewerLoading = import('./head3d.js')
+    .then(({ createHeadViewer }) => createHeadViewer(canvas, { reduceMotion: reduceMotion.matches }))
+    .then((v) => {
+      viewer = v;
+      // miniaturas 3D de todos los cortes, una vez
+      for (const c of CUTS) thumbs[c.id] = v.snapshot(c.id, 220);
+      document.getElementById('viewer')?.classList.add('is-ready');
+      selectView(state.viewing || topCutId(), { instant: true });
+      renderCuts({ animate: false });
+      return v;
+    })
+    .catch((err) => {
+      console.warn('Visor 3D no disponible', err);
+      document.getElementById('viewer')?.classList.add('is-failed');
+      return null;
+    });
+  return viewerLoading;
+}
+function topCutId() {
+  if (state.shape) return rankCuts(state.shape).find((r) => matchesFilter(r.cut))?.cut.id || CUTS[0].id;
+  return CUTS.find((c) => matchesFilter(c))?.id || CUTS[0].id;
+}
+function selectView(id, { instant = false, scroll = false } = {}) {
+  const cut = CUTS.find((c) => c.id === id);
+  if (!cut) return;
+  state.viewing = id;
+  document.getElementById('viewer-name').textContent = cut.name;
+  document.getElementById('viewer-detail').textContent = cut.detail;
+  document.querySelectorAll('.cut').forEach((el) => el.classList.toggle('is-viewing', el.dataset.id === id));
+  if (viewer) viewer.setStyle(id, { instant });
+  if (scroll) {
+    const box = document.getElementById('viewer');
+    const r = box.getBoundingClientRect();
+    if (r.top < 60 || r.bottom > window.innerHeight) box.scrollIntoView({ behavior: reduceMotion.matches ? 'auto' : 'smooth', block: 'center' });
+  }
+}
+
 const MAX_TRIES = 3;
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
@@ -95,8 +140,24 @@ export function initAdvisor() {
 
   $('cuts').addEventListener('click', (e) => {
     const btn = e.target.closest('[data-try]');
-    if (btn) tryOn(btn.dataset.try);
+    if (btn) return tryOn(btn.dataset.try);
+    const view = e.target.closest('[data-view]');
+    if (view) {
+      initViewer();
+      selectView(view.dataset.view, { scroll: true });
+    }
   });
+
+  // El modelo 3D se carga cuando el asesor se acerca a la pantalla
+  const section = document.getElementById('asesor');
+  if ('IntersectionObserver' in window && section) {
+    const io = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) { initViewer(); io.disconnect(); }
+    }, { rootMargin: '900px 0px' });
+    io.observe(section);
+  } else {
+    initViewer();
+  }
 }
 
 function askConsent() {
@@ -385,8 +446,10 @@ function setShape(shape, { detected }) {
     c.classList.toggle('is-on', on);
     c.setAttribute('aria-pressed', String(on));
   });
-  $('lineup-title').innerHTML = `Tu cartel · <span>cara ${SHAPES[shape].name.toLowerCase()}</span>`;
+  $('lineup-title').innerHTML = `Tu ranking · <span>cara ${SHAPES[shape].name.toLowerCase()}</span>`;
   renderCuts({ animate: true });
+  // el número 1 aparece en el probador 3D
+  selectView(topCutId());
 }
 
 // ---------- El cartel de cortes ----------
@@ -475,7 +538,10 @@ function renderCuts({ animate }) {
     el.classList.toggle('is-tail', visible && visibleRank > 3);
     el.innerHTML = `
       <div class="cut__rank" aria-hidden="true"><span class="outline-num">${rank}</span></div>
-      ${pictogram(cut, { title: false })}
+      <button type="button" class="cut__view" data-view="${cut.id}" aria-label="Ver ${cut.name} en 3D">
+        ${thumbs[cut.id] ? `<img src="${thumbs[cut.id]}" alt="" width="220" height="220">` : pictogram(cut, { title: false })}
+        <span class="cut__view-tag" aria-hidden="true">3D</span>
+      </button>
       <div class="cut__body">
         <h3 class="cut__name">${cut.name}<span class="cut__detail">${cut.detail}</span></h3>
         <p class="cut__why">${cutWhy(cut, score, tier)}</p>
@@ -490,6 +556,7 @@ function renderCuts({ animate }) {
         Pruébatelo <svg aria-hidden="true"><use href="#i-arrow"/></svg>
       </button>`;
     el.classList.toggle('is-active', state.activeCut === cut.id);
+    el.classList.toggle('is-viewing', state.viewing === cut.id);
     frag.appendChild(el);
   }
   list.appendChild(frag);

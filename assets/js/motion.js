@@ -1,13 +1,14 @@
 // Coreografía de la página: el vídeo de portada se abre como en el cine, el
-// texto se enciende al leerlo, los capítulos cambian de vídeo con el scroll y
-// el cierre se abre a pantalla completa.
+// interludio de las herramientas se abre y su texto se enciende al leerlo, y el
+// cierre se abre a pantalla completa.
 
 const EASE_OUT = 'expo.out';
 
 export function initMotion({ reduce }) {
   const header = document.getElementById('header');
   setupHeroVideo(reduce);
-  setupChapters(reduce);
+  setupLoopVideo('.interlude__video');
+  setupLoopVideo('.close__video');
 
   const gsap = window.gsap;
   const ST = window.ScrollTrigger;
@@ -16,7 +17,6 @@ export function initMotion({ reduce }) {
   if (!gsap || !ST || reduce) {
     header?.classList.add('is-in');
     onScrollHeader(header);
-    setupCloseVideo();
     document.querySelectorAll('.statement__text').forEach((el) => el.querySelectorAll('.sw').forEach((w) => (w.style.opacity = 1)));
     return;
   }
@@ -37,7 +37,7 @@ export function initMotion({ reduce }) {
         const target = document.querySelector(id);
         if (!target) return;
         e.preventDefault();
-        lenis.scrollTo(target, { offset: id === '#oficio' ? 0 : -80, duration: 1.4 });
+        lenis.scrollTo(target, { offset: -80, duration: 1.4 });
         history.replaceState(null, '', id);
       });
     });
@@ -56,8 +56,8 @@ export function initMotion({ reduce }) {
 
   // Al bajar, la portada se recoge como una pantalla que se aleja
   gsap.to('#hero-frame', {
-    scale: 0.9,
-    borderRadius: 18,
+    scale: 0.95,
+    borderRadius: 14,
     ease: 'none',
     scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true },
   });
@@ -82,6 +82,16 @@ export function initMotion({ reduce }) {
       stagger: 0.1,
       ease: 'none',
       scrollTrigger: { trigger: st, start: 'top 80%', end: 'bottom 45%', scrub: 0.4 },
+    });
+  }
+
+  const inter = document.getElementById('interlude-frame');
+  if (inter) {
+    gsap.fromTo(inter, { '--inset-x': '7%', '--inset-r': '18px' }, {
+      '--inset-x': '0%',
+      '--inset-r': '0px',
+      ease: 'none',
+      scrollTrigger: { trigger: inter, start: 'top 95%', end: 'top 20%', scrub: true },
     });
   }
 
@@ -179,7 +189,6 @@ export function initMotion({ reduce }) {
       scrollTrigger: { trigger: frame, start: 'top 90%', end: 'top 15%', scrub: true },
     });
   }
-  setupCloseVideo();
 
   window.addEventListener('load', () => ST.refresh());
 }
@@ -203,73 +212,8 @@ function setupHeroVideo(reduce) {
   new IntersectionObserver(([e]) => (e.isIntersecting ? v.play().catch(() => {}) : v.pause())).observe(v);
 }
 
-// ---------- Capítulos ----------
-function setupChapters(reduce) {
-  const section = document.querySelector('.chapters');
-  if (!section) return;
-  const videos = [...section.querySelectorAll('.chapter-video')];
-  const copies = [...section.querySelectorAll('.chapter')];
-  const bars = [...section.querySelectorAll('.chapters__index li')];
-  copies.forEach((c) => {
-    const t = c.querySelector('.chapter__title');
-    if (t) splitWords(t);
-  });
-
-  // carga los vídeos cuando la sección se acerca
-  let loaded = false;
-  new IntersectionObserver(([e]) => {
-    if (e.isIntersecting && !loaded) {
-      loaded = true;
-      videos.forEach((v) => { v.preload = 'auto'; v.load(); });
-    }
-  }, { rootMargin: '600px 0px' }).observe(section);
-
-  let active = -1;
-  let inView = false;
-  const setActive = (i) => {
-    if (i === active) return;
-    videos.forEach((v, k) => {
-      v.classList.toggle('was-on', k === active);
-      v.classList.toggle('is-on', k === i);
-    });
-    copies.forEach((c, k) => c.classList.toggle('is-on', k === i));
-    bars.forEach((b, k) => b.classList.toggle('is-on', k === i));
-    active = i;
-    playActive();
-  };
-  const playActive = () => {
-    videos.forEach((v, k) => {
-      if (v.hasAttribute('data-scrub')) return;
-      if (k === active && inView && !reduce) v.play().catch(() => {});
-      else v.pause();
-    });
-  };
-
-  new IntersectionObserver(([e]) => { inView = e.isIntersecting; playActive(); }).observe(section);
-
-  const update = () => {
-    const r = section.getBoundingClientRect();
-    const total = r.height - window.innerHeight;
-    const p = Math.min(1, Math.max(0, -r.top / Math.max(1, total)));
-    const n = videos.length;
-    const i = Math.min(n - 1, Math.floor(p * n));
-    setActive(i);
-    bars.forEach((b, k) => b.style.setProperty('--p', String(Math.min(1, Math.max(0, p * n - k)))));
-    // el último capítulo avanza el vídeo con el scroll: las herramientas pasan bajo tu dedo
-    const scrub = videos[n - 1];
-    if (i === n - 1 && scrub.duration && !reduce) {
-      const local = Math.min(1, Math.max(0, p * n - (n - 1)));
-      const t = local * (scrub.duration - 0.05);
-      if (Math.abs(scrub.currentTime - t) > 0.03) scrub.currentTime = t;
-    }
-  };
-  window.addEventListener('scroll', update, { passive: true });
-  window.addEventListener('resize', update);
-  update();
-}
-
-function setupCloseVideo() {
-  const v = document.querySelector('.close__video');
+function setupLoopVideo(sel) {
+  const v = document.querySelector(sel);
   if (!v || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   new IntersectionObserver(([e]) => {
     if (e.isIntersecting) {
