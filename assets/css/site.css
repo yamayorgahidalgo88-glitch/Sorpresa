@@ -180,7 +180,7 @@ svg { fill: currentColor; }
   border-bottom-color: var(--line);
 }
 .header.is-hidden { transform: translateY(-100%); }
-.header__logo img { width: 112px; height: auto; }
+.header__logo img { width: 138px; height: auto; }
 .nav {
   display: flex;
   justify-content: center;
@@ -221,13 +221,15 @@ svg { fill: currentColor; }
   overflow: hidden;
   isolation: isolate;
 }
-.hero__canvas {
-  position: absolute;
+.tools-canvas {
+  position: fixed;
   inset: 0;
   width: 100%;
   height: 100%;
-  z-index: 1;
+  z-index: 0;
+  pointer-events: none;
 }
+main, .foot { position: relative; z-index: 1; }
 .hero__glow {
   position: absolute;
   inset: 0;
@@ -842,20 +844,18 @@ svg { fill: currentColor; }
 .shape { margin-top: var(--space-3); }
 .shape__label {
   margin: 0;
-  font-size: 0.8rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.shape__name {
-  display: block;
-  margin-top: 4px;
   font-family: var(--serif);
   font-weight: 500;
-  font-size: clamp(2rem, 3.4vw, 2.8rem);
+  font-size: clamp(1.9rem, 3vw, 2.5rem);
+  line-height: 1.1;
   letter-spacing: -0.01em;
-  text-transform: none;
   color: var(--ivory);
+}
+.shape__name {
+  font-weight: 500;
+  font-style: italic;
+  text-transform: lowercase;
+  color: var(--gold);
 }
 .shape__rule { margin: 8px 0 0; color: var(--ivory); line-height: 1.5; max-width: 46ch; }
 .shape__note {
@@ -1057,48 +1057,14 @@ svg { fill: currentColor; }
 .close {
   max-width: var(--max);
   margin: 0 auto;
-  padding: var(--space-6) var(--gutter) var(--space-6);
+  padding: var(--space-6) var(--gutter) var(--space-6) calc(var(--gutter) + clamp(120px, 17vw, 260px));
+  min-height: 70vh;
   display: grid;
-  grid-template-columns: auto 1fr;
   align-items: center;
-  gap: clamp(32px, 6vw, 96px);
 }
 .close__text { display: grid; justify-items: start; gap: var(--space-4); }
 
-/* Poste de barbero: el objeto de siempre, en los colores de la casa */
-.pole {
-  color: var(--bg);
-  display: grid;
-  justify-items: center;
-  width: 70px;
-}
-.pole__cap {
-  width: 70px;
-  height: 26px;
-  border-radius: 35px 35px 4px 4px;
-  background: linear-gradient(90deg, #6e5420, var(--gold-hi) 35%, var(--gold) 55%, #6e5420);
-}
-.pole__cap--b { border-radius: 4px 4px 35px 35px; }
-.pole__glass {
-  position: relative;
-  width: 52px;
-  height: clamp(220px, 30vw, 320px);
-  overflow: hidden;
-  background: var(--ivory);
-}
-.pole__stripes {
-  position: absolute;
-  inset: -60px 0;
-  background: repeating-linear-gradient(-35deg, var(--gold) 0 18px, var(--ivory) 18px 34px, var(--bg) 34px 52px, var(--ivory) 52px 68px);
-  animation: pole 2.4s linear infinite;
-}
-.pole__glass::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, rgba(0,0,0,0.55), rgba(255,255,255,0.25) 30%, rgba(255,255,255,0) 50%, rgba(0,0,0,0.6));
-}
-@keyframes pole { to { transform: translateY(68px); } }
+
 
 .foot {
   max-width: var(--max);
@@ -1114,7 +1080,7 @@ svg { fill: currentColor; }
   font-size: 0.86rem;
   letter-spacing: 0.02em;
 }
-.foot img { width: 120px; height: auto; }
+.foot img { width: 160px; height: auto; }
 .foot p { margin: 0; }
 
 .dock { display: none; }
@@ -1127,7 +1093,7 @@ svg { fill: currentColor; }
   .motion .header:not(.is-in) { transform: translateY(-100%); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .marquee__track, .pole__stripes, .hero__scroll span { animation: none; }
+  .marquee__track, .hero__scroll span { animation: none; }
 }
 
 /* ---------- Responsive ---------- */
@@ -1150,7 +1116,7 @@ svg { fill: currentColor; }
 @media (max-width: 760px) {
   body { padding-bottom: calc(68px + env(safe-area-inset-bottom)); font-size: 16px; }
   .header { grid-template-columns: auto 1fr; padding: 12px var(--gutter); }
-  .header__logo img { width: 92px; }
+  .header__logo img { width: 112px; }
   .nav { display: none; }
   .header__book { justify-self: end; }
   .hero__content { padding: 110px var(--gutter) 120px; gap: 18px; }
@@ -1175,11 +1141,9 @@ svg { fill: currentColor; }
   .cut.is-tail .picto { width: 54px; }
   .where__grid { grid-template-columns: 1fr; }
   .where__links { grid-auto-flow: row; }
-  .close { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+  .close { padding: 300px var(--gutter) var(--space-6); justify-items: center; text-align: center; min-height: 0; }
   .close__text { justify-items: center; }
   .close .btn { width: 100%; }
-  .pole { transform: rotate(0); }
-  .pole__glass { height: 180px; }
 
   .dock {
     display: grid;

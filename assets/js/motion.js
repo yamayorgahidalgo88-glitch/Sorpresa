@@ -150,9 +150,6 @@ export function initMotion({ reduce }) {
     });
   }
 
-  // ---------- Poste del cierre ----------
-  gsap.from('.pole', { y: 60, opacity: 0, duration: 1.4, ease: 'expo.out', scrollTrigger: { trigger: '.close', start: 'top 80%' } });
-
   window.addEventListener('load', () => ST.refresh());
 }
 
