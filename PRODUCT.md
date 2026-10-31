@@ -11,7 +11,7 @@ Delegada: el usuario dejó la elección a Claude. Recomendación: Next.js + Supa
 
 ## Users
 - **Clientes** de una peluquería de barrio (el barrio del usuario), que quieren reservar cita desde el móvil y ver cómo les quedaría un corte antes de decidirse.
-- **El peluquero** (un único usuario de la app de gestión), que necesita ver sus citas del día, con hora y cliente, y recibir un aviso unos 30 minutos antes de cada una.
+- **El peluquero**, Ayoub (el dueño; usuario principal de la app de gestión, que comparte local con un segundo barbero), que necesita ver sus citas del día, con hora y cliente, y recibir un aviso unos 30 minutos antes de cada una.
 
 ## Product Purpose
 Una web de reservas para una peluquería real, más una aplicación privada para el peluquero que guarda y calendariza las reservas y le avisa antes de cada cita. Éxito: el peluquero deja la libreta y los clientes reservan sin llamar.
@@ -32,13 +32,33 @@ Un apartado donde el cliente sube una foto, la web analiza la forma de su rostro
 - Las fotos de rostro son datos biométricos: hace falta consentimiento claro, borrado tras la sesión y aviso si se envían a una API externa (RGPD).
 - Las claves de API van solo en variables de entorno del servidor, nunca en el código ni en el repositorio.
 - Hay un límite de pruebas de peinado por visita para controlar el coste.
-- **Sin decidir:** número de barberos (se asume uno, sin confirmar), lista de servicios y duraciones, horario, nombre de la peluquería y dominio.
+- **Negocio (según su ficha pública de Booksy, consultada el 31-10-2026; pendiente de confirmar con el dueño):** Ayoub Lahmany Barber Shop. Dueño: Ayoub. Calle Princesa Doña Sofía Posterior 1, local 9B, 28924 Alcorcón (Madrid). Dos barberos, según el usuario. Valoración 5,0 con 131 reseñas en Booksy. Horario visto un día: 10:00–14:00 y 15:00–21:00 (falta el horario semanal completo).
+- **Servicios (Booksy, pendiente de confirmar):**
+
+  | Servicio | Precio | Duración |
+  |---|---|---|
+  | Corte caballero | 11 € | 20 min |
+  | Corte + Barba | 16 € | 30 min |
+  | Arreglo Barba | 5 € | 10 min |
+  | Corte Niños hasta 12 años | 9 € | 20 min |
+  | Corte Jubilado | 7 € | 15 min |
+  | Corte + Barba + Limpieza Facial Básica | 23 € | 55 min |
+  | Corte + Barba + Higiene Facial Profunda | 34 € | 1 h 10 min |
+  | Corte + Limpieza Facial Básica | 19 € | 45 min |
+  | Corte + Limpieza Facial Profunda | 29 € | 1 h |
+  | Limpieza Facial Básica | 10 € | 25 min |
+  | Limpieza Facial Profunda | 20 € | 40 min |
+
+- **Ya usa Booksy** para reservas online. Hay que decidir con Ayoub si la web nueva sustituye a Booksy, convive con él (la agenda tendría que sincronizarse para evitar dobles reservas) o enlaza a Booksy para reservar y se centra en el asesor de cortes.
+- **Sin decidir:** la relación con Booksy, el horario semanal, si cada cliente elige barbero, el dominio, y si mantiene el servicio a domicilio que menciona la ficha.
 
 ## Brand Commitments
-Ninguno confirmado. Faltan nombre, logotipo y voz de la peluquería.
+Nombre (según Booksy): Ayoub Lahmany Barber Shop. Faltan logotipo, colores y voz.
 
 ## Evidence on Hand
-- No hay fotos, textos, precios ni testimonios reales de la peluquería. No se deben inventar.
+- Ficha pública en Booksy con precios, duraciones y 131 reseñas: https://booksy.com/es-es/86074_ayoub-lahmany-barber-shop_barberia_52935_alcorcon. La ficha enlaza a un Instagram y a una web que aún no se han revisado. Cualquier reseña que usemos debe ser real y citada tal cual, con permiso.
+- No hay fotos ni logotipo. No se deben inventar.
+- Ojo: hay otros negocios parecidos que no son este, como «Peluquería Ayoub» (peluqueriaayoub.es, en Parla/Illescas) o un empleado llamado Ayoub en X-Barber (Alcorcón).
 - `index.html` en la raíz es una experiencia 3D no relacionada («Flores Amarillas · Mi Universo · V6»). Decisión del usuario: moverla a otra carpeta sin tocarla cuando se construya la web de la peluquería.
 
 ## Product Principles
