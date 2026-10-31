@@ -7,7 +7,7 @@
 web
 
 ## Stack
-Delegada: el usuario dejó la elección a Claude. Recomendación: Next.js + Supabase (base de datos y reservas), con la agenda del peluquero como PWA instalable en el móvil. Avisos por Telegram o WhatsApp.
+Delegada: el usuario dejó la elección a Claude. Como las reservas se quedan en Booksy (decisión del usuario), no hace falta base de datos: web estática en HTML/CSS/JS sin compilación y una función serverless (`api/try-on.js`, Vercel) para la prueba de corte con IA. Si más adelante se hace la app del peluquero: PWA y avisos por Telegram o WhatsApp.
 
 ## Users
 - **Clientes** de una peluquería de barrio (el barrio del usuario), que quieren reservar cita desde el móvil y ver cómo les quedaría un corte antes de decidirse.
@@ -25,7 +25,7 @@ Un apartado donde el cliente sube una foto, la web analiza la forma de su rostro
 - El análisis de rostro se haría en el navegador (MediaPipe). La vista previa del peinado usaría un modelo de edición de imagen por API; el usuario tiene claves de NVIDIA Build (plan gratuito, pensado para prototipos).
 
 ## Capabilities and Constraints
-- Fase 1: reservas de cliente, agenda del peluquero, avisos 30 min antes por Telegram o WhatsApp (confirmado).
+- Reservas: se hacen en Booksy, que ya usa Ayoub; la web enlaza a su ficha (decisión del usuario). La app propia de agenda queda aparcada.
 - Fase 2: análisis de forma de rostro y recomendación de cortes.
 - Fase 3: vista previa del corte sobre la foto del cliente, en 2D.
 - Fase 4 (opcional): varios ángulos o 3D real; sin garantía de fidelidad desde una sola foto.
@@ -49,8 +49,8 @@ Un apartado donde el cliente sube una foto, la web analiza la forma de su rostro
   | Limpieza Facial Básica | 10 € | 25 min |
   | Limpieza Facial Profunda | 20 € | 40 min |
 
-- **Ya usa Booksy** para reservas online. Hay que decidir con Ayoub si la web nueva sustituye a Booksy, convive con él (la agenda tendría que sincronizarse para evitar dobles reservas) o enlaza a Booksy para reservar y se centra en el asesor de cortes.
-- **Sin decidir:** la relación con Booksy, el horario semanal, si cada cliente elige barbero, el dominio, y si mantiene el servicio a domicilio que menciona la ficha.
+- **Ya usa Booksy** para reservas online. Decidido: la web enlaza a Booksy para reservar y se centra en el asesor de cortes.
+- **Sin decidir:** el horario semanal, si cada cliente elige barbero, el dominio, y si mantiene el servicio a domicilio que menciona la ficha.
 
 ## Brand Commitments
 Nombre (según Booksy): Ayoub Lahmany Barber Shop. Faltan logotipo, colores y voz.
