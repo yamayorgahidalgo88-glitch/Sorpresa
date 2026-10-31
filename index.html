@@ -117,9 +117,34 @@
           <div class="plate__idle">
             <label class="drop" id="drop">
               <input type="file" id="photo" accept="image/*" class="sr-only">
-              <svg class="drop__icon" aria-hidden="true"><use href="#i-upload"/></svg>
-              <span class="drop__title">Sube tu foto</span>
-              <span class="drop__hint">o arrástrala aquí · de frente, con buena luz, sin gorra</span>
+              <svg class="drop__head" viewBox="0 0 400 500" aria-hidden="true">
+                <defs>
+                  <pattern id="ht" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                    <circle cx="4.5" cy="4.5" r="2.6" fill="var(--ink)"/>
+                  </pattern>
+                  <radialGradient id="htfade" cx="50%" cy="42%" r="55%">
+                    <stop offset="0" stop-color="#fff" stop-opacity=".15"/>
+                    <stop offset=".7" stop-color="#fff" stop-opacity=".55"/>
+                    <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+                  </radialGradient>
+                  <mask id="htmask">
+                    <ellipse cx="200" cy="230" rx="118" ry="150" fill="url(#htfade)"/>
+                    <path d="M40 500 Q60 400 150 385 L250 385 Q340 400 360 500 Z" fill="#fff" fill-opacity=".5"/>
+                    <path d="M82 200 Q86 70 200 62 Q314 70 318 200 Q300 120 200 112 Q100 120 82 200Z" fill="#fff"/>
+                  </mask>
+                </defs>
+                <rect width="400" height="500" fill="url(#ht)" mask="url(#htmask)"/>
+                <g class="drop__cal" fill="none" stroke="var(--ink)" stroke-width="3" stroke-dasharray="7 6">
+                  <path d="M110 178 H290 M110 168 V188 M290 168 V188"/>
+                  <path d="M88 252 H312 M88 242 V262 M312 242 V262"/>
+                  <path d="M120 330 H280 M120 320 V340 M280 320 V340"/>
+                  <path d="M346 82 V380 M336 82 H356 M336 380 H356"/>
+                </g>
+              </svg>
+              <span class="drop__label">
+                <span class="drop__title"><svg class="drop__icon" aria-hidden="true"><use href="#i-upload"/></svg>Sube tu foto</span>
+                <span class="drop__hint">o arrástrala aquí · de frente, con buena luz, sin gorra</span>
+              </span>
             </label>
             <label class="drop drop--cam">
               <input type="file" id="camera" accept="image/*" capture="user" class="sr-only">
@@ -166,7 +191,8 @@
         <!-- El cartel personal -->
         <div class="lineup">
           <div class="lineup__bar">
-            <p class="lineup__title" id="lineup-title">El cartel de hoy</p>
+            <p class="lineup__title" id="lineup-title">Los cortes · <span>sin ordenar</span></p>
+            <p class="lineup__hint" id="lineup-hint">Sube tu foto y los ordenamos para tu cara.</p>
             <div class="filters" role="group" aria-label="Filtrar cortes">
               <button type="button" class="filter is-on" data-filter="all" aria-pressed="true">Todos</button>
               <button type="button" class="filter" data-filter="fade" aria-pressed="false">Con degradado</button>

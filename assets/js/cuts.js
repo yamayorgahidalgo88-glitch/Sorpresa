@@ -215,8 +215,14 @@ export function pictogram(cut, { title = true } = {}) {
 </svg>`;
 }
 
+// Nivel mostrado: solo los 3 primeros pueden ser «muy recomendado», para que el
+// ranking recomiende de verdad aunque la forma de cara admita casi todo.
 export function rankCuts(shape) {
-  return CUTS
+  const ranked = CUTS
     .map((c, i) => ({ cut: c, score: c.scores[shape] ?? 0, order: i }))
     .sort((a, b) => b.score - a.score || a.order - b.order);
+  ranked.forEach((r, i) => {
+    r.tier = r.score >= 3 && i < 3 ? 3 : r.score >= 2 ? 2 : r.score;
+  });
+  return ranked;
 }

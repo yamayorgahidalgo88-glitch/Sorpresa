@@ -434,7 +434,7 @@ function stars(score) {
 
 const FIT_TEXT = ['No te favorece', 'Puede funcionar', 'Te queda bien', 'Muy recomendado'];
 
-function cutWhy(cut, score) {
+function cutWhy(cut, score, tier) {
   if (!state.shape) return cut.why;
   const shapeName = SHAPES[state.shape].name.toLowerCase();
   const a = state.analysis;
@@ -444,9 +444,9 @@ function cutWhy(cut, score) {
       seam = ` Tu cara mide ${a.ratios.length.toFixed(2).replace('.', ',')} de largo por cada 1 de ancho: la altura la estira.`;
     if (state.shape === 'alargada' && (cut.top === 'fringe' || cut.top === 'messy' || cut.top === 'long'))
       seam = ` Con ${a.ratios.length.toFixed(2).replace('.', ',')} de largo por 1 de ancho, el flequillo acorta la cara.`;
-    if (state.shape === 'cuadrada' && score >= 3)
+    if (state.shape === 'cuadrada' && tier >= 3)
       seam = ` Tu mandíbula es el ${Math.round(a.ratios.jaw * 100)}% del ancho de pómulos: este corte la luce.`;
-    if (state.shape === 'corazon' && score >= 3)
+    if (state.shape === 'corazon' && tier >= 3)
       seam = ` Tu frente es más ancha que tu mandíbula: este corte lo equilibra.`;
   }
   if (score === 0) return `${cut.why} Con cara ${shapeName}, mejor otro: ${FIT_TEXT[0].toLowerCase()}.`;
@@ -457,7 +457,8 @@ function renderCuts({ animate }) {
   const list = $('cuts');
   const items = state.shape
     ? rankCuts(state.shape)
-    : CUTS.map((c, i) => ({ cut: c, score: null, order: i }));
+    : CUTS.map((c, i) => ({ cut: c, score: null, tier: null, order: i }));
+  list.classList.toggle('is-idle', !state.shape);
 
   // FLIP: medimos dónde estaban antes de reordenar
   const before = new Map();
@@ -469,7 +470,7 @@ function renderCuts({ animate }) {
   let visibleRank = 0;
   const frag = document.createDocumentFragment();
 
-  for (const { cut, score } of items) {
+  for (const { cut, score, tier } of items) {
     let el = existing.get(cut.id);
     if (!el) {
       el = document.createElement('li');
@@ -479,21 +480,22 @@ function renderCuts({ animate }) {
     const visible = matchesFilter(cut);
     el.hidden = !visible;
     if (visible) visibleRank++;
-    const rank = visible ? visibleRank : '';
-    const isTop = state.shape && visible && visibleRank === 1 && score >= 2;
+    const rank = visible && state.shape ? visibleRank : '';
+    const isTop = state.shape && visible && visibleRank === 1 && tier >= 2;
 
     el.classList.toggle('is-top', Boolean(isTop));
     el.classList.toggle('is-low', score === 0);
+    el.classList.toggle('is-minor', tier !== null && tier <= 1);
     el.innerHTML = `
       <div class="cut__rank" aria-hidden="true"><span class="outline-num">${rank}</span></div>
       ${pictogram(cut, { title: false })}
       <div class="cut__body">
         <h3 class="cut__name">${cut.name}<span class="cut__detail">${cut.detail}</span></h3>
-        <p class="cut__why">${cutWhy(cut, score)}</p>
+        <p class="cut__why">${cutWhy(cut, score, tier)}</p>
         <div class="cut__meta">
           <span class="tag">${hasFade(cut) ? 'Con degradado' : 'Sin degradado'}</span>
           <span class="tag">${LENGTH_LABEL[cut.length]}</span>
-          ${score !== null ? `<span class="fit" role="img" aria-label="${FIT_TEXT[score]}">${stars(score)}<span class="fit__label" aria-hidden="true">${FIT_TEXT[score]}</span></span>` : ''}
+          ${tier !== null ? `<span class="fit" role="img" aria-label="${FIT_TEXT[tier]}">${stars(tier)}<span class="fit__label" aria-hidden="true">${FIT_TEXT[tier]}</span></span>` : ''}
         </div>
       </div>
       <button type="button" class="btn btn--line btn--small cut__try" data-try="${cut.id}" ${state.busy ? 'disabled' : ''}>
@@ -672,7 +674,7 @@ function resetPhoto() {
   document.querySelector('.shape__note')?.remove();
   $('print').hidden = true;
   $('plate').dataset.state = 'idle';
-  $('lineup-title').textContent = 'El cartel de hoy';
+  $('lineup-title').innerHTML = 'Los cortes · <span>sin ordenar</span>';
   document.querySelectorAll('#shape-chips .chip').forEach((c) => {
     c.classList.remove('is-on');
     c.setAttribute('aria-pressed', 'false');
