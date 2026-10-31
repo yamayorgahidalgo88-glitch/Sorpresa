@@ -53,11 +53,15 @@ Un apartado donde el cliente sube una foto, la web analiza la forma de su rostro
 - **Sin decidir:** el horario semanal, si cada cliente elige barbero, el dominio, y si mantiene el servicio a domicilio que menciona la ficha.
 
 ## Brand Commitments
-Nombre (según Booksy): Ayoub Lahmany Barber Shop. Faltan logotipo, colores y voz.
+- Nombre: Ayoub Lahmany Barber Shop.
+- Logotipo propio (de su ficha de Booksy): monograma «AL» con remates, «Ayoub Lahmany» en letra manuscrita y «BARBER SHOP» en palo seco fino, todo en dorado sobre negro. Copia de trabajo en `assets/img/logo-ayoub-lahmany.webp`.
+- Colores de marca: negro y dorado (logo, sillones dorados del local). El usuario lo fijó como estilo: «calidad y profesionalidad, no tanto lujo».
+- Preferencia fija del usuario: estética de barbería clásica bien hecha (el estándar de la categoría) con objetos de barbería animados.
 
 ## Evidence on Hand
 - Ficha pública en Booksy con precios, duraciones y 131 reseñas: https://booksy.com/es-es/86074_ayoub-lahmany-barber-shop_barberia_52935_alcorcon. La ficha enlaza a un Instagram y a una web que aún no se han revisado. Cualquier reseña que usemos debe ser real y citada tal cual, con permiso.
-- No hay fotos ni logotipo. No se deben inventar.
+- Fotos reales de su ficha de Booksy: el local (sillones dorados, espejos LED) y 5 trabajos de degradado. Están en `assets/img/` y hay que confirmar con Ayoub que se pueden usar en la web; en los trabajos se ven caras de clientes.
+- No hay reseñas con permiso para citarlas.
 - Ojo: hay otros negocios parecidos que no son este, como «Peluquería Ayoub» (peluqueriaayoub.es, en Parla/Illescas) o un empleado llamado Ayoub en X-Barber (Alcorcón).
 - `index.html` en la raíz es una experiencia 3D no relacionada («Flores Amarillas · Mi Universo · V6»). Decisión del usuario: moverla a otra carpeta sin tocarla cuando se construya la web de la peluquería.
 

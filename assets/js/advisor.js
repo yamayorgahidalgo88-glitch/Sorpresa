@@ -227,61 +227,47 @@ function printPhoto(img, pts) {
   canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  // muestreo en escala de grises
-  const cell = Math.max(5, Math.round(W / 96));
-  const cols = Math.ceil(W / cell) + 2;
-  const rows = Math.ceil(H / cell) + 2;
-  const sample = document.createElement('canvas');
-  sample.width = cols;
-  sample.height = rows;
-  const sctx = sample.getContext('2d', { willReadFrequently: true });
-  sctx.filter = 'grayscale(1) contrast(1.25) brightness(1.06)';
-  sctx.drawImage(img, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, cols, rows);
-  const data = sctx.getImageData(0, 0, cols, rows).data;
+  // La foto en duotono negro y oro: la cara se ve real, con el tono de la casa
+  const css = getComputedStyle(document.documentElement);
+  const gold = css.getPropertyValue('--gold-hi').trim() || '#f0cf86';
+  const bg = css.getPropertyValue('--bg').trim() || '#0b0a08';
+  const base = document.createElement('canvas');
+  base.width = W;
+  base.height = H;
+  const bctx = base.getContext('2d');
+  bctx.filter = 'grayscale(1) contrast(1.12) brightness(1.04)';
+  bctx.drawImage(img, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, W, H);
+  bctx.filter = 'none';
+  bctx.globalCompositeOperation = 'multiply';
+  bctx.fillStyle = gold;
+  bctx.fillRect(0, 0, W, H);
 
-  const drawDots = (color, offX, offY, amount) => {
-    ctx.fillStyle = color;
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        const i = (r * cols + c) * 4;
-        const lum = data[i] / 255;
-        const dark = Math.pow(1 - lum, 1.15);
-        const rad = (cell / 2) * 1.18 * Math.sqrt(dark) * amount;
-        if (rad < 0.35) continue;
-        const x = c * cell + (r % 2 ? cell / 2 : 0) + offX;
-        const y = r * cell + offY;
-        ctx.beginPath();
-        ctx.arc(x, y, rad, 0, Math.PI * 2);
-        ctx.fill();
-      }
+  // Barrido de escaneo: la foto aparece de arriba abajo bajo una línea de luz
+  const paint = (p) => {
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+    const y = Math.round(H * p);
+    if (y > 0) ctx.drawImage(base, 0, 0, W, y, 0, 0, W, y);
+    if (p < 1) {
+      const g = ctx.createLinearGradient(0, y - 60, 0, y + 2);
+      g.addColorStop(0, 'rgba(240, 207, 134, 0)');
+      g.addColorStop(1, 'rgba(240, 207, 134, 0.55)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, y - 60, W, 62);
+      ctx.fillStyle = gold;
+      ctx.fillRect(0, y, W, Math.max(2, W / 300));
     }
   };
 
-  const css = getComputedStyle(document.documentElement);
-  const ink = css.getPropertyValue('--ink').trim() || '#0a0a0a';
-  const pink = css.getPropertyValue('--pink').trim() || '#ff43b4';
-  const card = css.getPropertyValue('--card').trim() || '#fff200';
-
-  const paint = (misreg) => {
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.fillStyle = card;
-    ctx.fillRect(0, 0, W, H);
-    ctx.globalCompositeOperation = 'multiply';
-    drawDots(pink, misreg * cell * 1.6, misreg * cell * 1.1, 0.55);
-    drawDots(ink, 0, 0, 1);
-    ctx.globalCompositeOperation = 'source-over';
-  };
-
-  // Golpe de serigrafía: la pasada rosa entra desregistrada y cae en su sitio
   if (reduceMotion.matches) {
-    paint(0.25);
+    paint(1);
   } else {
     const start = performance.now();
-    const dur = 700;
+    const dur = 900;
     const tick = (now) => {
       const t = Math.min(1, (now - start) / dur);
-      const e = 1 - Math.pow(1 - t, 4);
-      paint(0.25 + (1 - e) * 2.4);
+      paint(1 - Math.pow(1 - t, 3));
       if (t < 1) requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
@@ -652,7 +638,7 @@ function clearTryon() {
   $('calipers').style.opacity = '';
   state.tryonUrl = null;
   state.activeCut = null;
-  showPrintCaption('Tu foto, impresa en la plancha');
+  showPrintCaption('Tu foto, analizada');
 }
 
 function showPrintCaption(text, isError = false) {
