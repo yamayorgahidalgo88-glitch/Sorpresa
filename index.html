@@ -64,7 +64,7 @@
         </h1>
         <p class="hero__line" data-hero>Degradados, barba y cuidado facial en Alcorcón.</p>
         <div class="hero__actions" data-hero>
-          <a class="btn btn--gold" href="https://booksy.com/es-es/86074_ayoub-lahmany-barber-shop_barberia_52935_alcorcon" target="_blank" rel="noopener">Reservar en Booksy <svg aria-hidden="true"><use href="#i-arrow"/></svg></a>
+          <a class="btn btn--gold btn--glint" href="https://booksy.com/es-es/86074_ayoub-lahmany-barber-shop_barberia_52935_alcorcon" target="_blank" rel="noopener">Reservar en Booksy <svg aria-hidden="true"><use href="#i-arrow"/></svg></a>
           <a class="btn btn--line" href="#asesor"><svg aria-hidden="true"><use href="#i-scissors"/></svg> ¿Qué corte te va?</a>
         </div>
         <p class="hero__rating" data-hero>
@@ -88,7 +88,6 @@
     <section class="section services" id="servicios" aria-labelledby="servicios-title">
       <div class="section__head">
         <h2 class="title" id="servicios-title" data-split>Servicios y precios</h2>
-        <p class="lead" data-fade>Precios de Booksy. Si algo cambia, manda lo que diga Booksy al reservar.</p>
       </div>
 
       <div class="cutline" aria-hidden="true">
@@ -136,38 +135,30 @@
 
     <!-- TRABAJOS -->
     <section class="works" id="trabajos" aria-labelledby="trabajos-title">
-      <div class="works__pin">
-        <div class="works__intro">
-          <h2 class="title" id="trabajos-title" data-split>Trabajos reales</h2>
-          <p class="lead" data-fade>Degradados hechos por Ayoub en su local.</p>
-        </div>
-        <div class="works__viewport">
-        <div class="works__track" id="works-track">
-          <figure class="work"><img src="assets/img/trabajo-1.webp" srcset="assets/img/trabajo-1-sm.webp 525w, assets/img/trabajo-1.webp 1050w" sizes="(max-width: 760px) 78vw, 30vw" alt="Cliente de perfil con degradado y textura arriba, en el local" loading="lazy" width="1050" height="1400"></figure>
-          <figure class="work"><img src="assets/img/trabajo-2.webp" srcset="assets/img/trabajo-2-sm.webp 525w, assets/img/trabajo-2.webp 1050w" sizes="(max-width: 760px) 78vw, 30vw" alt="Nuca con degradado a piel y flequillo texturizado" loading="lazy" width="1050" height="1400"></figure>
-          <figure class="work"><img src="assets/img/trabajo-3.webp" srcset="assets/img/trabajo-3-sm.webp 525w, assets/img/trabajo-3.webp 1050w" sizes="(max-width: 760px) 78vw, 30vw" alt="Perfil con degradado alrededor de la oreja y pelo rizado arriba" loading="lazy" width="1050" height="1400"></figure>
-          <figure class="work"><img src="assets/img/trabajo-4.webp" srcset="assets/img/trabajo-4-sm.webp 525w, assets/img/trabajo-4.webp 1050w" sizes="(max-width: 760px) 78vw, 30vw" alt="Cliente en el sillón dorado con corte con volumen, reflejado en el espejo" loading="lazy" width="1050" height="1400"></figure>
-          <figure class="work"><img src="assets/img/trabajo-5.webp" srcset="assets/img/trabajo-5-sm.webp 525w, assets/img/trabajo-5.webp 1050w" sizes="(max-width: 760px) 78vw, 30vw" alt="Cliente con gafas y degradado con textura arriba" loading="lazy" width="1050" height="1400"></figure>
-        </div>
+      <div class="works__head">
+        <h2 class="title" id="trabajos-title" data-split>Trabajos</h2>
+        <div class="reel__nav">
+          <button type="button" class="reel__btn" data-reel="-1" aria-label="Fotos anteriores"><svg aria-hidden="true"><use href="#i-arrow"/></svg></button>
+          <button type="button" class="reel__btn" data-reel="1" aria-label="Fotos siguientes"><svg aria-hidden="true"><use href="#i-arrow"/></svg></button>
         </div>
       </div>
-    </section>
-
-    <!-- EL LOCAL -->
-    <section class="section place" aria-labelledby="local-title">
-      <figure class="place__img" data-reveal>
-        <img src="assets/img/local.webp" alt="Interior de la barbería: sillones de barbero dorados, espejos con luz y el letrero AL al fondo" loading="lazy" width="1316" height="740" data-speed="0.12">
-      </figure>
-      <div class="place__text">
-        <h2 class="title" id="local-title" data-split>El local</h2>
-        <p class="lead" data-fade>Sillones de barbero y espejos con luz, en la calle Princesa Doña Sofía, Alcorcón.</p>
-        <div class="rating" data-fade>
-          <span class="rating__num" data-count="5">5,0</span>
-          <div>
-            <span class="stars" aria-hidden="true"><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg></span>
-            <a href="https://booksy.com/es-es/86074_ayoub-lahmany-barber-shop_barberia_52935_alcorcon" target="_blank" rel="noopener">131 reseñas en Booksy</a>
-          </div>
-        </div>
+      <div class="reel" id="reel" aria-roledescription="carrusel" aria-label="Fotos de cortes de Ayoub">
+        <ul class="reel__track" id="reel-track">
+          <li class="reel__item"><img src="assets/img/trabajo-1-sm.webp" srcset="assets/img/trabajo-1-sm.webp 450w, assets/img/trabajo-1.webp 900w" sizes="(max-width: 760px) 62vw, 22vw" alt="Perfil con degradado y textura arriba" width="450" height="600" loading="lazy" draggable="false"></li>
+          <li class="reel__item"><img src="assets/img/trabajo-2-sm.webp" srcset="assets/img/trabajo-2-sm.webp 450w, assets/img/trabajo-2.webp 900w" sizes="(max-width: 760px) 62vw, 22vw" alt="Nuca con degradado a piel y flequillo texturizado" width="450" height="600" loading="lazy" draggable="false"></li>
+          <li class="reel__item"><img src="assets/img/trabajo-3-sm.webp" srcset="assets/img/trabajo-3-sm.webp 450w, assets/img/trabajo-3.webp 900w" sizes="(max-width: 760px) 62vw, 22vw" alt="Perfil con degradado y rizos arriba" width="450" height="600" loading="lazy" draggable="false"></li>
+          <li class="reel__item"><img src="assets/img/trabajo-4-sm.webp" srcset="assets/img/trabajo-4-sm.webp 450w, assets/img/trabajo-4.webp 900w" sizes="(max-width: 760px) 62vw, 22vw" alt="Corte con volumen en el sillón dorado" width="450" height="600" loading="lazy" draggable="false"></li>
+          <li class="reel__item"><img src="assets/img/trabajo-5-sm.webp" srcset="assets/img/trabajo-5-sm.webp 450w, assets/img/trabajo-5.webp 900w" sizes="(max-width: 760px) 62vw, 22vw" alt="Degradado con textura y gafas" width="450" height="600" loading="lazy" draggable="false"></li>
+          <li class="reel__item"><img src="assets/img/trabajo-6-sm.webp" srcset="assets/img/trabajo-6-sm.webp 450w, assets/img/trabajo-6.webp 900w" sizes="(max-width: 760px) 62vw, 22vw" alt="Perfil con degradado medio" width="450" height="600" loading="lazy" draggable="false"></li>
+          <li class="reel__item"><img src="assets/img/trabajo-7-sm.webp" srcset="assets/img/trabajo-7-sm.webp 450w, assets/img/trabajo-7.webp 900w" sizes="(max-width: 760px) 62vw, 22vw" alt="Degradado con dibujo en el lateral" width="450" height="600" loading="lazy" draggable="false"></li>
+          <li class="reel__item"><img src="assets/img/trabajo-8-sm.webp" srcset="assets/img/trabajo-8-sm.webp 450w, assets/img/trabajo-8.webp 900w" sizes="(max-width: 760px) 62vw, 22vw" alt="Degradado con líneas en el lateral" width="450" height="600" loading="lazy" draggable="false"></li>
+          <li class="reel__item"><img src="assets/img/trabajo-9-sm.webp" srcset="assets/img/trabajo-9-sm.webp 450w, assets/img/trabajo-9.webp 900w" sizes="(max-width: 760px) 62vw, 22vw" alt="Nuca con degradado y diseño" width="450" height="600" loading="lazy" draggable="false"></li>
+          <li class="reel__item"><img src="assets/img/trabajo-10-sm.webp" srcset="assets/img/trabajo-10-sm.webp 450w, assets/img/trabajo-10.webp 900w" sizes="(max-width: 760px) 62vw, 22vw" alt="Lateral con degradado y raya" width="450" height="600" loading="lazy" draggable="false"></li>
+          <li class="reel__item"><img src="assets/img/trabajo-11-sm.webp" srcset="assets/img/trabajo-11-sm.webp 450w, assets/img/trabajo-11.webp 900w" sizes="(max-width: 760px) 62vw, 22vw" alt="Corte con flequillo y líneas en el lateral" width="450" height="600" loading="lazy" draggable="false"></li>
+          <li class="reel__item"><img src="assets/img/trabajo-12-sm.webp" srcset="assets/img/trabajo-12-sm.webp 450w, assets/img/trabajo-12.webp 900w" sizes="(max-width: 760px) 62vw, 22vw" alt="Nuca con degradado, de espaldas en el sillón" width="450" height="600" loading="lazy" draggable="false"></li>
+          <li class="reel__item"><img src="assets/img/trabajo-13-sm.webp" srcset="assets/img/trabajo-13-sm.webp 450w, assets/img/trabajo-13.webp 900w" sizes="(max-width: 760px) 62vw, 22vw" alt="Degradado con líneas y barba perfilada" width="450" height="600" loading="lazy" draggable="false"></li>
+          <li class="reel__item"><img src="assets/img/trabajo-14-sm.webp" srcset="assets/img/trabajo-14-sm.webp 450w, assets/img/trabajo-14.webp 900w" sizes="(max-width: 760px) 62vw, 22vw" alt="Degradado con diseño geométrico" width="450" height="600" loading="lazy" draggable="false"></li>
+        </ul>
       </div>
     </section>
 
@@ -175,7 +166,6 @@
     <section class="section advisor" id="asesor" aria-labelledby="asesor-title">
       <div class="section__head">
         <h2 class="title" id="asesor-title" data-split>¿Qué corte te va?</h2>
-        <p class="lead" data-fade>Sube una foto de frente. Medimos tu cara y ordenamos los cortes: arriba, los que mejor te quedan.</p>
       </div>
 
       <div class="advisor__body">
@@ -308,7 +298,7 @@
         <div class="close__shade" aria-hidden="true"></div>
         <div class="close__text">
           <h2 class="title title--xl" id="close-title" data-split>Tu silla te espera</h2>
-          <a class="btn btn--gold btn--lg" href="https://booksy.com/es-es/86074_ayoub-lahmany-barber-shop_barberia_52935_alcorcon" target="_blank" rel="noopener" data-fade>Reservar en Booksy <svg aria-hidden="true"><use href="#i-arrow"/></svg></a>
+          <a class="btn btn--gold btn--lg btn--glint" href="https://booksy.com/es-es/86074_ayoub-lahmany-barber-shop_barberia_52935_alcorcon" target="_blank" rel="noopener" data-fade>Reservar en Booksy <svg aria-hidden="true"><use href="#i-arrow"/></svg></a>
         </div>
       </div>
     </section>
@@ -316,7 +306,7 @@
 
   <footer class="foot">
     <img src="assets/img/logo-ayoub-lahmany-sm.webp" alt="Ayoub Lahmany Barber Shop" width="520" height="256" loading="lazy">
-    <p>Precios y valoración según Booksy, octubre de 2026. Vídeos de ambiente: Mixkit. Fotos del local y de los trabajos: Ayoub Lahmany Barber Shop.</p>
+    <p>Precios y valoración según Booksy, octubre de 2026. Vídeos de ambiente: Mixkit. Fotos de los trabajos: perfil de Booksy de Ayoub Lahmany Barber Shop.</p>
   </footer>
 
   <nav class="dock" aria-label="Accesos rápidos">

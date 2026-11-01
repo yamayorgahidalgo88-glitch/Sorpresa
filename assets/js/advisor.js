@@ -549,10 +549,10 @@ function renderCuts({ animate }) {
           <span class="tag">${hasFade(cut) ? 'Con degradado' : 'Sin degradado'}</span>
           <span class="tag">${LENGTH_LABEL[cut.length]}</span>
           ${tier !== null ? `<span class="fit" role="img" aria-label="${FIT_TEXT[tier]}">${stars(tier)}<span class="fit__label" aria-hidden="true">${FIT_TEXT[tier]}</span></span>` : ''}
-          <button type="button" class="btn btn--line btn--small cut__try cut__try--inline" data-try="${cut.id}" ${state.busy ? 'disabled' : ''}>Pruébatelo <svg aria-hidden="true"><use href="#i-arrow"/></svg></button>
+          <button type="button" class="btn btn--line btn--sm cut__try cut__try--inline" data-try="${cut.id}" ${state.busy ? 'disabled' : ''}>Pruébatelo <svg aria-hidden="true"><use href="#i-arrow"/></svg></button>
         </div>
       </div>
-      <button type="button" class="btn btn--line btn--small cut__try cut__try--col" data-try="${cut.id}" ${state.busy ? 'disabled' : ''}>
+      <button type="button" class="btn btn--line btn--sm cut__try cut__try--col" data-try="${cut.id}" ${state.busy ? 'disabled' : ''}>
         Pruébatelo <svg aria-hidden="true"><use href="#i-arrow"/></svg>
       </button>`;
     el.classList.toggle('is-active', state.activeCut === cut.id);

@@ -134,50 +134,14 @@ export function initMotion({ reduce }) {
     gsap.to(sc, { scaleY: 0.55, duration: 0.16, repeat: -1, yoyo: true, ease: 'power1.inOut' });
   }
 
-  // ---------- Galería de trabajos ----------
-  const mm = gsap.matchMedia();
-  mm.add('(min-width: 1081px)', () => {
-    const track = document.getElementById('works-track');
-    const pin = document.querySelector('.works__pin');
-    if (!track || !pin) return;
-    const distance = () => Math.max(0, track.scrollWidth - track.parentElement.clientWidth + 56);
-    gsap.to(track, {
-      x: () => -distance(),
-      ease: 'none',
-      scrollTrigger: { trigger: pin, start: 'top top', end: () => `+=${distance()}`, pin: true, scrub: 0.8, invalidateOnRefresh: true },
-    });
-  });
-  gsap.from('.work', {
+  // ---------- Carrusel: las fotos entran escalonadas ----------
+  gsap.from('.reel__item', {
     clipPath: 'inset(100% 0 0 0)',
-    duration: 1.3,
-    stagger: 0.12,
+    duration: 1.2,
+    stagger: 0.07,
     ease: 'expo.inOut',
-    scrollTrigger: { trigger: '.works', start: 'top 70%' },
+    scrollTrigger: { trigger: '.reel', start: 'top 82%' },
   });
-
-  // ---------- El local ----------
-  gsap.from('.place__img', {
-    clipPath: 'inset(0 0 100% 0)',
-    duration: 1.5,
-    ease: 'expo.inOut',
-    scrollTrigger: { trigger: '.place__img', start: 'top 82%' },
-  });
-  gsap.fromTo('.place__img img', { yPercent: 5 }, {
-    yPercent: -5,
-    ease: 'none',
-    scrollTrigger: { trigger: '.place__img', start: 'top bottom', end: 'bottom top', scrub: true },
-  });
-  const num = document.querySelector('[data-count]');
-  if (num) {
-    const v = { n: 0 };
-    gsap.to(v, {
-      n: Number(num.dataset.count),
-      duration: 1.6,
-      ease: 'power3.out',
-      scrollTrigger: { trigger: num, start: 'top 88%' },
-      onUpdate: () => (num.textContent = v.n.toFixed(1).replace('.', ',')),
-    });
-  }
 
   // ---------- Cierre: el marco se abre a pantalla completa ----------
   const frame = document.getElementById('close-frame');
