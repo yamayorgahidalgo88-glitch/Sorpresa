@@ -1,19 +1,11 @@
-// Servidor local: sirve la web y la función /api/try-on igual que Vercel.
-// Uso: npm run dev  (lee variables de .env si existe)
+// Servidor local: sirve la web estática.
+// Uso: npm run dev
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
-import { existsSync, readFileSync } from 'node:fs';
 import { extname, join, normalize, resolve } from 'node:path';
 
 const ROOT = resolve(new URL('..', import.meta.url).pathname);
 const PORT = Number(process.env.PORT) || 3000;
-
-if (existsSync(join(ROOT, '.env'))) {
-  for (const line of readFileSync(join(ROOT, '.env'), 'utf8').split('\n')) {
-    const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
-    if (m && !(m[1] in process.env)) process.env[m[1]] = m[2].replace(/^['"]|['"]$/g, '');
-  }
-}
 
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -26,21 +18,11 @@ const TYPES = {
   '.jpg': 'image/jpeg',
   '.webp': 'image/webp',
   '.json': 'application/json',
+  '.mp4': 'video/mp4',
 };
-
-const { default: tryOn } = await import(join(ROOT, 'api/try-on.js'));
 
 createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
-
-  if (url.pathname === '/api/try-on') {
-    let raw = '';
-    for await (const chunk of req) raw += chunk;
-    try { req.body = raw ? JSON.parse(raw) : {}; } catch { req.body = raw; }
-    res.status = (code) => { res.statusCode = code; return res; };
-    res.json = (obj) => { res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(obj)); return res; };
-    return tryOn(req, res);
-  }
 
   let path = normalize(decodeURIComponent(url.pathname)).replace(/^(\.\.[/\\])+/, '');
   let file = join(ROOT, path);
