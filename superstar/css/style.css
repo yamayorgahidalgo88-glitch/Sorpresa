@@ -221,3 +221,13 @@ h2{margin:6px 0 10px;font-size:20px}h3{font-size:15px;margin:18px 0 10px}
 [hidden]{display:none!important}
 .reveal-grid{grid-template-columns:repeat(auto-fit,minmax(70px,92px));justify-content:center}
 .card-sm .card-stars{top:52%}
+/* fotos en cartas */
+.card-photo{position:absolute;inset:0;background-size:cover;background-position:50% 18%;filter:saturate(1.08) contrast(1.03)}
+.card-tint{position:absolute;inset:0;background:linear-gradient(180deg,color-mix(in srgb,var(--c1) 35%,transparent) 0%,transparent 30%,transparent 55%,color-mix(in srgb,var(--c2) 70%,transparent) 100%);mix-blend-mode:normal}
+.card-photo ~ .card-tint + * {}
+.card:has(.card-photo) .card-stars{top:auto;bottom:34px}
+.card-xs:has(.card-photo) .card-stars{display:none}
+.card:has(.card-photo) .card-art::before{opacity:.35}
+.credits{font-size:10px;color:var(--muted);line-height:1.5}
+.credits a{color:var(--muted)}
+.card.in-deck::after{top:auto;bottom:34px;left:auto;right:4px;padding:1px 5px;border-radius:5px;background:var(--pink);font-size:8px}

@@ -13,16 +13,27 @@ export const THEMES = {
 };
 
 export const MEMBERS = [
-  { id: 'rm', mono: 'RM',   name: 'RM',        color: '#5b8def' },
-  { id: 'jin', mono: 'JIN',  name: 'JIN',       color: '#ff7eb6' },
-  { id: 'suga', mono: 'SG', name: 'SUGA',      color: '#8fa3b8' },
-  { id: 'jh', mono: 'JH',   name: 'j-hope',    color: '#ffb347' },
-  { id: 'jm', mono: 'JM',   name: 'JIMIN',     color: '#ffd166' },
-  { id: 'v', mono: 'V',    name: 'V',         color: '#3ccfbf' },
-  { id: 'jk', mono: 'JK',   name: 'JUNG KOOK', color: '#a78bfa' },
+  { id: 'rm', photo: 'img/members/rm.jpg', mono: 'RM',   name: 'RM',        color: '#5b8def' },
+  { id: 'jin', photo: 'img/members/jin.jpg', mono: 'JIN',  name: 'JIN',       color: '#ff7eb6' },
+  { id: 'suga', photo: 'img/members/suga.jpg', mono: 'SG', name: 'SUGA',      color: '#8fa3b8' },
+  { id: 'jh', photo: 'img/members/jh.jpg', mono: 'JH',   name: 'j-hope',    color: '#ffb347' },
+  { id: 'jm', photo: 'img/members/jm.jpg', mono: 'JM',   name: 'JIMIN',     color: '#ffd166' },
+  { id: 'v', photo: 'img/members/v.jpg', mono: 'V',    name: 'V',         color: '#3ccfbf' },
+  { id: 'jk', photo: 'img/members/jk.jpg', mono: 'JK',   name: 'JUNG KOOK', color: '#a78bfa' },
 ];
 
 // alias: palabras extra que ayudan a reconocer el archivo al importarlo.
+// Fotos con licencia libre de Wikimedia Commons (atribución obligatoria).
+export const PHOTO_CREDITS = [
+  { member: 'RM', file: 'RM at W Korea Love Your W, November 2023.jpg', author: 'K-POPIT 케이팝잇', license: 'CC BY 3.0' },
+  { member: 'JIN', file: 'BTS Jin at Maison Fred, 13 March 2025 01.jpg', author: 'TV 10', license: 'CC BY 3.0' },
+  { member: 'SUGA', file: 'Min Yoon-gi May 2018.jpg', author: 'Dispatch', license: 'CC BY 3.0' },
+  { member: 'j-hope', file: 'J-Hope at W Korea Breast Cancer Campaign, 15 October 2025.png', author: 'TV10', license: 'CC BY 4.0' },
+  { member: 'JIMIN', file: 'Jimin on the way to SBS Radio, 31 March 2023 (2).jpg', author: 'K-POPIT 케이팝잇 TV10', license: 'CC BY 3.0' },
+  { member: 'V', file: 'V (Kim Tae-hyung) at a fanmeet in May 2016 01 (cropped).jpg', author: "Taehyung's Moment", license: 'CC BY 4.0' },
+  { member: 'JUNG KOOK', file: 'Jeon Jungkook at the White House, 31 May 2022.jpg', author: 'The White House (Adam Schultz)', license: 'Dominio público' },
+];
+
 export const SONGS = [
   { id: 'no-more-dream', title: 'No More Dream', theme: 'SCHOOL', alias: ['nomoredream'] },
   { id: 'boy-in-luv', title: 'Boy In Luv', theme: 'SCHOOL', alias: ['boyinluv', 'sangnamja'] },

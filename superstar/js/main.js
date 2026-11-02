@@ -1,4 +1,4 @@
-import { SONGS, THEMES, DIFFS, MEMBERS, DECK_SIZE, PACK_COST, REFILL_COST, HP_REGEN_SEC, BASE_MAX_SCORE, matchSong, GRADE_INFO } from './data.js';
+import { SONGS, PHOTO_CREDITS, THEMES, DIFFS, MEMBERS, DECK_SIZE, PACK_COST, REFILL_COST, HP_REGEN_SEC, BASE_MAX_SCORE, matchSong, GRADE_INFO } from './data.js';
 import { loadProfile, saveProfile, resetProfile, idb, askPersistent } from './store.js';
 import { analyzeAudio, makeChart, ANALYSIS_VERSION } from './beatmap.js';
 import { cardHTML, cardPower, deckPower, openPack, welcomePack, autoDeck, memberById } from './cards.js';
@@ -529,6 +529,7 @@ function rSettings() {
     <div class="set"><span>Controles con teclado</span><small class="muted">EASY: F · Espacio · J — NORMAL: D F J K — HARD: S D F Espacio J K L — Pausa: Esc</small></div>
     <button class="btn ghost" data-act="clearAudio">Borrar canciones guardadas</button>
     <button class="btn danger" data-act="reset">Reiniciar todo el progreso</button>
+    <div class="credits"><b>Fotos de las cartas</b> (Wikimedia Commons, recortadas):<br>${PHOTO_CREDITS.map(c => `${esc(c.member)}: <a href="https://commons.wikimedia.org/wiki/File:${encodeURIComponent(c.file.replace(/ /g, '_'))}" target="_blank" rel="noopener">${esc(c.author)}</a>, ${esc(c.license)}`).join('<br>')}</div>
     <p class="about">Remake personal hecho con cariño, inspirado en un juego de ritmo que ya no existe. Las canciones las pones tú y se quedan sólo en tu dispositivo. Sin afiliación con los artistas ni con la desarrolladora original.</p>
   </div>`;
   view.querySelector('[data-k=name]').onchange = e => { P.name = e.target.value.trim() || 'ARMY'; save(); renderTop(); };

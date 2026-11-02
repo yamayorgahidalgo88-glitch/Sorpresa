@@ -90,8 +90,8 @@ export function cardHTML(card, { size = 'md', extra = '', songTheme = null } = {
   <div class="card card-${size} grade-${card.grade}${bonus ? ' has-bonus' : ''}" ${extra}
        style="--c1:${th.c1};--c2:${th.c2};--ink:${th.ink};--mc:${m.color};--gc:${g.color}">
     <div class="card-art">
-      <div class="card-orb"></div>
-      <div class="card-mono">${esc(initials)}</div>
+      ${m.photo ? `<div class="card-photo" style="background-image:url('${m.photo}')"></div><div class="card-tint"></div>` : `<div class="card-orb"></div>
+      <div class="card-mono">${esc(initials)}</div>`}
       <div class="card-stars">${'★'.repeat(GRADES.indexOf(card.grade) + 1)}</div>
     </div>
     <div class="card-grade">${card.grade}</div>
