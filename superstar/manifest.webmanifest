@@ -1,0 +1,17 @@
+{
+  "name": "SUPERSTAR · ARMY Edition",
+  "short_name": "SUPERSTAR",
+  "description": "Juego de ritmo personal: toca las notas al ritmo de tus canciones.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#12072e",
+  "theme_color": "#1a0b3d",
+  "lang": "es",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

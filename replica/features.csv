@@ -1,0 +1,28 @@
+feature,area,priority,original,clone,notes
+Notes falling down lanes to buttons,play,must,yes,yes,lanes in perspective; canvas
+3 / 4 / 7 buttons for EASY / NORMAL / HARD,play,must,yes,yes,
+Tap notes,play,must,yes,yes,
+Long (hold) notes judged leniently,play,must,yes,yes,head + release; held to the end = S.PERFECT
+Judgments S.PERFECT PERFECT GOOD BAD MISS,play,must,yes,yes,early tap = GOOD/BAD; late = GOOD then MISS
+Holographic S.PERFECT feedback,play,should,yes,yes,animated gradient text
+Combo counter and max combo,play,must,yes,yes,
+Fixed max score per difficulty regardless of song length,score,must,yes,yes,scaled by deck power
+Pause / retry / quit,play,must,yes,yes,auto-pause when the app goes to background
+Result screen with rank and judgment counts,result,must,yes,yes,S/A/B/C/D; FULL COMBO; ALL S.PERFECT; NEW RECORD
+Song list with best score and rank per difficulty,songs,must,yes,yes,
+BTS songs,songs,must,yes,partial,25-song catalogue; the audio is loaded by the player from her own files (licensed content cannot ship)
+Official hand-made charts,songs,must,yes,partial,charts generated automatically from the audio (tempo + onsets)
+Headphones stamina (1/2/3 per difficulty),meta,should,yes,yes,regenerates 1 every 3 min; refill with RP
+Player level and EXP,meta,should,yes,yes,
+Rhythm Points (RP) currency from playing,meta,should,yes,yes,
+Cards: member x era x grade C/B/A/S/R,cards,must,yes,yes,original generated art (no photos)
+Deck that multiplies the score,cards,must,yes,yes,7 slots; same-era bonus x1.5; 4+ same era set bonus
+Duplicates level up the card,cards,should,yes,yes,
+Card packs,shop,should,yes,yes,paid with RP only
+Signed / Prism card variants,cards,could,yes,no,
+Note speed setting,settings,must,yes,yes,
+Audio sync offset,settings,should,yes,yes,
+Installable from the browser,platform,must,no,yes,PWA + offline service worker
+Weekly league and online rankings,online,could,yes,skip,server is gone; single player gift
+Diamonds / in-app purchases,shop,could,yes,skip,no real money
+Official member photos and logo,assets,could,yes,skip,owned by the label/developer
