@@ -41,7 +41,8 @@ export class Game {
     this.counts = [0, 0, 0, 0, 0];
     this.judged = 0;
     this.bonus = 0; this.rave = 0; this.raveLv = 0;
-    this.approach = 2.7 - opts.settings.speed * 0.21;
+    // la dificultad sólo cambia la velocidad de caída (EASY más lenta, HARD más rápida)
+    this.approach = (2.7 - opts.settings.speed * 0.21) * (opts.speedMul || 1);
     this.laneDown = new Array(this.L).fill(0);
     this.laneFlash = new Array(this.L).fill(-9);
     this.pointers = new Map();
@@ -555,9 +556,12 @@ export class Game {
         gl.addColorStop(0, 'rgba(255,255,255,0.9)'); gl.addColorStop(1, 'rgba(255,255,255,0)');
         g.fillStyle = gl; g.beginPath(); g.ellipse(x, y, rx * 1.2, ry * 1.4, 0, 0, Math.PI * 2); g.fill();
       }
-      g.lineWidth = on ? 4 : 3; g.strokeStyle = `rgba(255,255,255,${on ? 1 : 0.75})`;
-      g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); g.stroke();
-      g.lineWidth = 1.5; g.strokeStyle = 'rgba(255,255,255,0.45)';
+      // sin aros fijos: el aro sólo aparece un instante donde tocas
+      const fade = on ? 1 : Math.max(0, 1 - (now - this.laneFlash[l]) * 4);
+      if (fade <= 0) continue;
+      g.lineWidth = 3; g.strokeStyle = `rgba(255,255,255,${0.95 * fade})`;
+      g.beginPath(); g.ellipse(x, y, rx * (1.15 - 0.15 * fade), ry * (1.15 - 0.15 * fade), 0, 0, Math.PI * 2); g.stroke();
+      g.lineWidth = 1.5; g.strokeStyle = `rgba(255,255,255,${0.45 * fade})`;
       g.beginPath(); g.ellipse(x, y, rx * 0.72, ry * 0.72, 0, 0, Math.PI * 2); g.stroke();
     }
 

@@ -100,9 +100,9 @@ async function getAnalysis(id) {
 }
 function computeLevels(id, an) {
   const lv = {};
-  for (const d of DIFFS) lv[d.id] = makeChart(an, d.id, id).level;
+  for (const d of DIFFS) lv[d.id] = makeChart(an, 'normal', id).level + (d.id === 'hard' ? 3 : d.id === 'easy' ? -2 : 0);
   levels.set(id, lv);
-  getPrepared(id).then(pr => { if (pr) { for (const d of DIFFS) if (pr.charts[d.id]) lv[d.id] = pr.charts[d.id].level; refreshRow(id); } });
+  getPrepared(id).then(pr => { if (pr && pr.charts.normal) { for (const d of DIFFS) lv[d.id] = pr.charts.normal.level + (d.id === 'hard' ? 3 : d.id === 'easy' ? -2 : 0); refreshRow(id); } });
 }
 
 // Partituras preparadas que siguen la voz (charts/<id>.json). Sólo tiempos y carriles: el audio lo pone ella.
@@ -211,7 +211,7 @@ function rSongs() {
   view.innerHTML = `
   <div class="songs">
     <div class="diff-tabs">
-      ${DIFFS.map(d => `<button class="dtab ${d.id === diff ? 'on' : ''}" data-diff="${d.id}" style="--dc:${d.color}">${d.name}<small>🎧${d.cost} · ${d.lanes} botones</small></button>`).join('')}
+      ${DIFFS.map(d => `<button class="dtab ${d.id === diff ? 'on' : ''}" data-diff="${d.id}" style="--dc:${d.color}">${d.name}<small>🎧${d.cost} · velocidad ${d.label}</small></button>`).join('')}
     </div>
     <label class="btn ghost import">＋ Importar canciones (varias a la vez)
       <input type="file" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.flac" multiple hidden id="multiIn">
@@ -400,12 +400,13 @@ async function songSheet(id) {
 // Partitura a usar: la grabada por ti > la preparada (sigue la voz) > la automática
 async function chartFor(id, buf, an, { ignoreUser = false } = {}) {
   const prep = await getPrepared(id);
-  const usePrep = prep && prep.charts[diff] && Math.abs(prep.duration - buf.duration) < 1.5;
+  // todos los niveles usan la misma partitura (la de 4 botones); sólo cambia la velocidad
+  const usePrep = prep && prep.charts.normal && Math.abs(prep.duration - buf.duration) < 1.5;
   const base = usePrep
-    ? { ...prep.charts[diff], bpm: prep.bpm, phase: prep.phase, beats: prep.beats, intensity: prep.intensity, start: prep.start || 0, end: prep.end }
-    : makeChart(an, diff, id);
+    ? { ...prep.charts.normal, bpm: prep.bpm, phase: prep.phase, beats: prep.beats, intensity: prep.intensity, start: prep.start || 0, end: prep.end }
+    : makeChart(an, 'normal', id);
   const mine = !ignoreUser && P.userCharts && P.userCharts[id];
-  if (mine && diff === 'normal' && Math.abs((mine.duration || buf.duration) - buf.duration) < 1.5) return { ...base, notes: mine.notes, lanes: 4, mine: true };
+  if (mine && Math.abs((mine.duration || buf.duration) - buf.duration) < 1.5) return { ...base, notes: mine.notes, lanes: 4, mine: true };
   return base;
 }
 async function startSong(id, { free = false, chartOverride = null } = {}) {
@@ -450,7 +451,7 @@ async function startSong(id, { free = false, chartOverride = null } = {}) {
   ensureCtx();
   await ensureLandscape();
   game = new Game($('#cv'), {
-    ctx, buffer: buf, chart, settings: P.settings, maxScore, title: s.title, theme: th,
+    ctx, buffer: buf, chart, settings: P.settings, maxScore, title: s.title, theme: th, speedMul: d.speed,
     deck: P.deck.map(uid => P.cards.find(c => c.uid === uid)).filter(Boolean).map(c => { const m = memberById(c.member); return { photo: m.photo, name: m.name, grade: c.grade }; }),
     bgPhotos: MEMBERS.map(m => m.photo),
     onEnd: res => endSong(res),
@@ -482,7 +483,6 @@ function leaveLandscape() {
 
 // ---------------- grabar partitura ----------------
 async function recordSetup(id) {
-  diff = 'normal'; P.lastDiff = 'normal'; // se graba para NORMAL (4 botones)
   const s = songById(id);
   loading(true, 'Cargando…');
   let buf, an;

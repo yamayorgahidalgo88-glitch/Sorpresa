@@ -63,9 +63,10 @@ export const SONGS = [
 ].map(s => ({ artist: 'BTS', ...s }));
 
 export const DIFFS = [
-  { id: 'easy',   name: 'EASY',   lanes: 3, cost: 1, color: '#5ee6a8' },
-  { id: 'normal', name: 'NORMAL', lanes: 4, cost: 2, color: '#ffc94d' },
-  { id: 'hard',   name: 'HARD',   lanes: 7, cost: 3, color: '#ff5d8f' },
+  // mismas notas y mismos 4 botones en todos los niveles: sólo cambia la velocidad de caída
+  { id: 'easy',   name: 'EASY',   lanes: 4, cost: 1, color: '#5ee6a8', speed: 1.35, label: 'lenta' },
+  { id: 'normal', name: 'NORMAL', lanes: 4, cost: 2, color: '#ffc94d', speed: 1.0,  label: 'normal' },
+  { id: 'hard',   name: 'HARD',   lanes: 4, cost: 3, color: '#ff5d8f', speed: 0.7,  label: 'rápida' },
 ];
 
 export const GRADES = ['C', 'B', 'A', 'S', 'R'];
