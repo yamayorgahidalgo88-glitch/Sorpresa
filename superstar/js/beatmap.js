@@ -368,7 +368,7 @@ export function makeChart(an, diffId, seedStr = '') {
   // 3) carriles, notas largas y acordes
   const notes = [];
   const freeAt = new Array(L).fill(-1);
-  const holdEnds = []; let lastHoldT = -9;
+  const holdEnds = []; let lastHoldT = -9; const spans = [];
   let prevLane = Math.floor(L / 2), prevLane2 = -1, lastDir = 0, prevT = -10;
   for (let i = 0; i < picked.length; i++) {
     const p = picked[i];
@@ -378,8 +378,16 @@ export function makeChart(an, diffId, seedStr = '') {
     // cuanto más rápido, más saltos de lado a lado y menos repeticiones.
     const nl = nextLane(prevLane, prevLane2, lastDir, dt, L, rng, 0);
     let lane = nl[0]; lastDir = nl[1];
+    // nunca una nota encima o al lado de un conector (nota larga / slide) que se está manteniendo
+    for (let q = spans.length - 1; q >= 0; q--) if (p.t >= spans[q][0] + 0.2) spans.splice(q, 1);
+    const blocked = l => spans.some(([e, lo, hi]) => p.t < e + 0.2 && l >= lo - 1 && l <= hi + 1);
+    if (blocked(lane)) {
+      const ok = [...Array(L).keys()].filter(l => !blocked(l) && freeAt[l] < p.t);
+      if (!ok.length) continue;
+      lane = ok.reduce((a, b) => (Math.abs(b - lane) < Math.abs(a - lane) ? b : a));
+    }
     lane = freeLane(lane, p.t, freeAt, L, prevLane, dt < cfg.jack);
-    if (lane < 0) continue;
+    if (lane < 0 || blocked(lane)) continue;
 
     const note = { t: round3(p.t), lane };
     // Notas largas en sonidos sostenidos (voz alargada, sintes). En EASY necesitan hueco;
@@ -387,7 +395,7 @@ export function makeChart(an, diffId, seedStr = '') {
     const room = diffId === 'easy' ? next - p.t - 0.12 : 3.2;
     const activeHolds = holdEnds.filter(e => e > p.t).length;
     const maxHolds = diffId === 'hard' ? 2 : 1;
-    if (p.sus >= cfg.holdMin && room >= cfg.holdMin * 0.85 && activeHolds < maxHolds && p.t - lastHoldT > 1.2 && rng() < cfg.holdP) {
+    if (p.sus >= cfg.holdMin && room >= cfg.holdMin * 0.85 && activeHolds < maxHolds && !spans.length && p.t - lastHoldT > 1.2 && rng() < cfg.holdP) {
       let end = p.t + Math.min(p.sus, room, 2.6);
       if (useGrid) { const g = nearestIn(grid, end); if (g <= end + 0.01) end = g; }
       if (end - p.t >= cfg.holdMin * 0.8) {
@@ -400,10 +408,11 @@ export function makeChart(an, diffId, seedStr = '') {
         }
       }
     }
+    if (note.end) spans.push([note.end, Math.min(lane, note.lane2 ?? lane), Math.max(lane, note.lane2 ?? lane)]);
     notes.push(note);
     if (!note.end) freeAt[lane] = p.t + 0.02;
 
-    if ((p.w >= chordCut || (cfg.chord && p.I > 0.8 && rng() < cfg.chord * 0.5)) && !note.end && L >= 4) {
+    if ((p.w >= chordCut || (cfg.chord && p.I > 0.8 && rng() < cfg.chord * 0.5)) && !note.end && !spans.length && L >= 4) {
       let l2 = L - 1 - lane;
       if (l2 === lane || Math.abs(l2 - lane) < 1) l2 = (lane + 2) % L;
       l2 = freeLane(l2, p.t, freeAt, L, lane, false);

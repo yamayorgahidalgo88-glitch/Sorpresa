@@ -90,9 +90,11 @@ def separate_vocals(path, workdir):
     out = os.path.join(workdir, 'htdemucs', 'full', 'vocals.wav')
     if not os.path.exists(out):
         subprocess.run([sys.executable, '-m', 'demucs', '--two-stems=vocals', '-n', 'htdemucs', '-o', workdir, full], check=True)
-    v, sr = sf.read(out, dtype='float32')
-    v = v.mean(axis=1) if v.ndim > 1 else v
-    return librosa.resample(v, orig_sr=sr, target_sr=SR)
+    def load(f):
+        v, sr = sf.read(f, dtype='float32')
+        v = v.mean(axis=1) if v.ndim > 1 else v
+        return librosa.resample(v, orig_sr=sr, target_sr=SR)
+    return load(out), load(out.replace('vocals.wav', 'no_vocals.wav'))
 
 
 def nearest(arr, x):
@@ -101,10 +103,35 @@ def nearest(arr, x):
     return min(c, key=lambda a: abs(a - x)) if c else x
 
 
-def build(mp3, song_id, workdir):
+def find_trim(mix, dur):
+    """Dónde empieza y acaba la música de verdad (salta intros/colas de videoclip)."""
+    hop = SR // 2                                     # tramos de 0,5 s
+    rms = librosa.feature.rms(y=mix, frame_length=4096, hop_length=hop)[0]
+    db = librosa.amplitude_to_db(rms + 1e-9, ref=np.percentile(rms, 98))
+    t = np.arange(len(db)) * 0.5
+    start = 0.0
+    # inicio: tras el último tramo silencioso (< -26 dB) de >= 3 s dentro de los primeros 60 s
+    q = (db < -26).astype(int); run = 0; last_quiet_end = None
+    for i, v in enumerate(q):
+        run = run + 1 if v else 0
+        if run >= 6 and t[i] < 60: last_quiet_end = i
+    if last_quiet_end is not None:
+        nxt = np.where((db > -20) & (t > t[last_quiet_end]))[0]
+        if len(nxt): start = max(0.0, float(t[nxt[0]]) - 0.5)
+    # final: último tramo con música (> -25 dB); se deja 1 s de margen
+    li = np.where(db > -25)[0]
+    end = min(dur, float(t[li[-1]]) + 1.0) if len(li) else dur
+    return round(start, 3), round(end, 3)
+
+
+def build(mp3, song_id, workdir, diffs=('normal',), start=None, end=None):
     mix = decode(mp3, SR)
     dur = len(mix) / SR
-    voc = separate_vocals(mp3, workdir)[: len(mix)]
+    voc, inst = separate_vocals(mp3, workdir)
+    voc, inst = voc[: len(mix)], inst[: len(mix)]
+    a_start, a_end = find_trim(mix, dur)
+    start = a_start if start is None else start
+    end = a_end if end is None else end
 
     # ---- pulsos (mezcla) ----
     tempo, beats = librosa.beat.beat_track(y=mix, sr=SR, hop_length=HOP, units='time', tightness=200)
@@ -174,7 +201,8 @@ def build(mp3, song_id, workdir):
         else:
             dd.append(x)
     syl = dd
-    first_vocal = syl[0]['t'] if syl else 0.0
+    syl = [x for x in syl if start + 0.3 <= x['t'] <= end]
+    first_vocal = syl[0]['t'] if syl else start
 
     # ---- intensidad por tramos (mezcla + densidad de voz) para las luces ----
     STEP = 0.5
@@ -190,6 +218,20 @@ def build(mp3, song_id, workdir):
     inten = rn(inten)
     I_at = lambda t: float(np.interp(t, np.arange(nS) * STEP, inten))
 
+    # golpes especiales: picos de la música (sin voz) que destacan muchísimo sobre su entorno
+    oe_i = librosa.onset.onset_strength(y=inst, sr=SR, hop_length=HOP)
+    ti = librosa.times_like(oe_i, sr=SR, hop_length=HOP)
+    win = int(4 * SR / HOP)
+    med = np.array([np.median(oe_i[max(0, i - win // 2): i + win // 2]) for i in range(0, len(oe_i))])
+    pk = librosa.util.peak_pick(oe_i, pre_max=6, post_max=6, pre_avg=20, post_avg=20, delta=0.5, wait=8)
+    thr = np.percentile(oe_i, 99.2)
+    accents = []
+    for i in pk:
+        ta = float(ti[i])
+        if oe_i[i] >= thr and oe_i[i] > 5 * (med[i] + 1e-6) and first_vocal - 0.05 <= ta <= end:
+            if not len(ons) or np.min(np.abs(ons - ta)) > 0.09:   # no pisar una sílaba
+                g = nearest(grid16, ta); accents.append(float(g if abs(g - ta) < 0.04 else ta))
+
     # notas de batería para pausas instrumentales largas (después de empezar a cantar)
     no_voc_beats = []
     ts = [x['t'] for x in syl]
@@ -198,12 +240,13 @@ def build(mp3, song_id, workdir):
             no_voc_beats += [float(x) for x in beats if a + 0.6 < x < b - 0.6]
 
     charts = {}
-    for diff, c in CFG.items():
+    for diff in diffs:
+        c = CFG[diff]
         L = c['lanes']
         rng = np.random.default_rng(abs(hash(song_id + diff)) % (2 ** 32))
         # selección: prioridad a sílabas fuertes y en tiempo; respeta separación y pico por segundo
-        cand = [dict(x, kind='v') for x in syl]
-        bi = 0
+        cand = [dict(x, kind='v') for x in syl if start + 0.3 <= x['t'] <= end]
+        cand += [dict(t=a, s=2.0, onBeat=False, on8=True, kind='a') for a in accents]
         for k, t in enumerate(no_voc_beats):
             if k % c['breakEvery'] == 0:
                 cand.append(dict(t=t, s=0.5, onBeat=True, on8=True, kind='b'))
@@ -229,43 +272,60 @@ def build(mp3, song_id, workdir):
         lane = L // 2
         lane2 = -1
         last_dir = 0
+        prev_kind = ''
         prev_p = np.nan
         prev_t = -9
         busy_until = [-1.0] * L
+        spans = []   # conectores activos: (fin, carril_min, carril_max)
+        def blocked(l, t):
+            for e, lo, hi in spans:
+                if t < e + 0.2 and lo - 1 <= l <= hi + 1: return True
+            return False
         for k, x in enumerate(chosen):
             t = x['t']
             nxt = chosen[k + 1]['t'] if k + 1 < len(chosen) else dur
             p = pitch_at(t, t + 0.15)
             dp = 0 if (np.isnan(p) or np.isnan(prev_p)) else p - prev_p
             pref = 0 if (np.isnan(p) or np.isnan(prev_p) or abs(dp) < 0.8) else (1 if dp > 0 else -1)
-            new, last_dir = next_lane(lane, lane2, last_dir, t - prev_t, L, rng, pref)
+            if x['kind'] == 'a' and t - prev_t < 0.7 and prev_kind == 'a':
+                d = last_dir or 1                                # golpes seguidos: escalera pim-pim-pim
+                new = lane + d if 0 <= lane + d < L else lane - d; last_dir = 1 if new > lane else -1
+            else:
+                new, last_dir = next_lane(lane, lane2, last_dir, t - prev_t, L, rng, pref)
             new = int(np.clip(new, 0, L - 1))
+            spans[:] = [sp for sp in spans if t < sp[0] + 0.2]
+            if blocked(new, t):                              # nunca encima/al lado de un conector activo
+                free = [l for l in range(L) if not blocked(l, t) and busy_until[l] <= t]
+                if not free: continue
+                new = min(free, key=lambda l: abs(l - new))
             if busy_until[new] > t:                          # carril ocupado por una larga
                 free = [l for l in range(L) if busy_until[l] <= t and l != lane] or [l for l in range(L) if busy_until[l] <= t]
                 if not free: continue
                 new = min(free, key=lambda l: abs(l - new))
             n = dict(t=round(t, 3), lane=new)
             # nota larga si la voz se sostiene
-            if x['kind'] == 'v':
+            if x['kind'] == 'v' and not spans:              # un conector cada vez
                 sus = sustain(t, nxt if diff == 'easy' else min(nxt + 1.5, dur))
                 if sus >= c['holdMin'] and (diff != 'easy' or nxt - t > sus + 0.1):
-                    end = t + min(sus, 2.4)
-                    g = nearest(grid8, end)
-                    if abs(g - end) < 0.12: end = g
-                    if end - t >= c['holdMin'] * 0.9:
-                        n['end'] = round(float(end), 3)
-                        p2 = pitch_at(end - 0.2, end)
+                    hend = t + min(sus, 2.4)
+                    g = nearest(grid8, hend)
+                    if abs(g - hend) < 0.12: hend = g
+                    if hend - t >= c['holdMin'] * 0.9:
+                        n['end'] = round(float(hend), 3)
+                        p2 = pitch_at(hend - 0.2, hend)
                         if L > 3 and not np.isnan(p) and not np.isnan(p2) and abs(p2 - p) >= 1.5:
                             l2 = int(np.clip(new + (1 if p2 > p else -1) * (2 if L >= 7 else 1), 0, L - 1))
-                            if l2 != new and busy_until[l2] <= t: n['lane2'] = l2; busy_until[l2] = end + 0.05
-                        busy_until[new] = end + 0.05
+                            if l2 != new and busy_until[l2] <= t: n['lane2'] = l2; busy_until[l2] = hend + 0.05
+                        busy_until[new] = hend + 0.05
+                        l2_ = n.get('lane2', new)
+                        spans.append((hend, min(new, l2_), max(new, l2_)))
             notes.append(n)
             # nota doble en golpes fuertes de partes intensas
-            if c['chord'] and 'end' not in n and (x['onBeat'] or (x['on8'] and x['s'] > 0.7)) and I_at(t) > 0.45 and rng.random() < c['chord'] * 2.2:
+            if c['chord'] and 'end' not in n and not spans and (x['onBeat'] or (x['on8'] and x['s'] > 0.7)) and I_at(t) > 0.45 and rng.random() < c['chord'] * 2.2:
                 l2 = L - 1 - new if abs((L - 1 - new) - new) >= 2 else int(np.clip(new + (3 if new < L / 2 else -3), 0, L - 1))
                 if l2 != new and busy_until[l2] <= t:
                     notes.append(dict(t=round(t, 3), lane=l2))
-            lane2, lane, prev_p, prev_t = lane, new, (p if not np.isnan(p) else prev_p), t
+            lane2, lane, prev_p, prev_t, prev_kind = lane, new, (p if not np.isnan(p) else prev_p), t, x['kind']
         notes.sort(key=lambda n: (n['t'], n['lane']))
         # nivel (estrellas) por densidad máxima en 4 s
         tt_ = np.array([n['t'] for n in notes])
@@ -274,7 +334,7 @@ def build(mp3, song_id, workdir):
         charts[diff] = dict(lanes=L, notes=notes, level=level)
 
     return dict(
-        v=1, id=song_id, duration=round(dur, 3), firstVocal=round(first_vocal, 3),
+        v=2, id=song_id, duration=round(dur, 3), firstVocal=round(first_vocal, 3), start=start, end=end, accents=len(accents),
         bpm=round(60 / period, 2), phase=round(float(beats[0]), 3), beats=[round(float(b), 3) for b in beats],
         intensity=dict(step=STEP, v=[round(float(x), 2) for x in inten]),
         charts=charts,
@@ -286,13 +346,16 @@ if __name__ == '__main__':
     ap.add_argument('mp3'); ap.add_argument('song_id')
     ap.add_argument('--out', default='superstar/charts')
     ap.add_argument('--work', default=None)
+    ap.add_argument('--start', type=float, default=None, help='segundo donde empieza la canción (si no, se detecta)')
+    ap.add_argument('--end', type=float, default=None)
+    ap.add_argument('--diffs', default='normal')
     a = ap.parse_args()
     work = a.work or tempfile.mkdtemp()
-    res = build(a.mp3, a.song_id, work)
+    res = build(a.mp3, a.song_id, work, tuple(a.diffs.split(',')), a.start, a.end)
     os.makedirs(a.out, exist_ok=True)
     with open(os.path.join(a.out, a.song_id + '.json'), 'w') as f:
         json.dump(res, f, separators=(',', ':'))
     for d, c in res['charts'].items():
         n = c['notes']
         print(f"{d:6s} notas {len(n):4d}  largas {sum('end' in x for x in n):3d}  slides {sum('lane2' in x for x in n):3d}  nivel {c['level']}")
-    print('primera sílaba', res['firstVocal'], 's | primera nota', min(x['t'] for c in res['charts'].values() for x in c['notes']), 's | BPM', res['bpm'])
+    print('empieza', res['start'], 's | acaba', res['end'], 's | primera sílaba', res['firstVocal'], 's | primera nota', min(x['t'] for c in res['charts'].values() for x in c['notes']), 's | BPM', res['bpm'], '| golpes especiales', res['accents'])

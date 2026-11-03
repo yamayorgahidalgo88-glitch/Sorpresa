@@ -5,11 +5,11 @@ import { cardHTML, cardPower, deckPower, openPack, welcomePack, autoDeck, member
 import { Game } from './engine.js';
 
 // ---------------- estado ----------------
-const PREPARED = ['no-more-dream']; // canciones con partitura que sigue la voz
+const PREPARED = ['no-more-dream', 'dynamite']; // canciones con partitura que sigue la voz
 let P = loadProfile();
 let ctx = null;
 let screen = 'title';
-let diff = P.lastDiff || 'normal';
+let diff = 'normal'; // sólo hay un nivel: NORMAL (4 botones)
 let selectedSlot = -1;
 let game = null;
 let lastPlay = null;
@@ -207,15 +207,12 @@ function rSongs() {
   const songs = allSongs().map((s, i) => [s, i]).sort((a, b) => (loaded.has(b[0].id) - loaded.has(a[0].id)) || a[1] - b[1]).map(x => x[0]);
   view.innerHTML = `
   <div class="songs">
-    <div class="diff-tabs">
-      ${DIFFS.map(d => `<button class="dtab ${d.id === diff ? 'on' : ''}" data-diff="${d.id}" style="--dc:${d.color}">${d.name}<small>🎧${d.cost} · ${d.lanes} botones</small></button>`).join('')}
-    </div>
+    <div class="diff-one">NORMAL · 4 botones · 🎧 2</div>
     <label class="btn ghost import">＋ Importar canciones (varias a la vez)
       <input type="file" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.flac" multiple hidden id="multiIn">
     </label>
     <div class="song-list">${songs.map(songRow).join('')}</div>
   </div>`;
-  view.querySelectorAll('.dtab').forEach(b => b.onclick = () => { diff = b.dataset.diff; P.lastDiff = diff; save(); rSongs(); });
   $('#multiIn').onchange = e => importMany([...e.target.files]);
   view.querySelector('.song-list').addEventListener('click', onSongClick);
   view.querySelector('.song-list').addEventListener('change', onSongFile);
@@ -405,7 +402,7 @@ async function startSong(id, { free = false } = {}) {
   const prep = await getPrepared(id);
   const usePrep = prep && prep.charts[diff] && Math.abs(prep.duration - buf.duration) < 1.5;
   const chart = usePrep
-    ? { ...prep.charts[diff], bpm: prep.bpm, phase: prep.phase, beats: prep.beats, intensity: prep.intensity }
+    ? { ...prep.charts[diff], bpm: prep.bpm, phase: prep.phase, beats: prep.beats, intensity: prep.intensity, start: prep.start || 0, end: prep.end }
     : makeChart(an, diff, id);
   if (prep && !usePrep) toast('Este MP3 es otra versión: uso la partitura automática');
   const th = THEMES[s.theme] || THEMES.SPECIAL;
@@ -718,7 +715,7 @@ const isStandalone = () => window.matchMedia('(display-mode: standalone)').match
 document.querySelectorAll('#nav button').forEach(b => b.onclick = () => { selectedSlot = -1; go(b.dataset.go); });
 $('#pauseBtn').onclick = () => togglePause();
 $('#pmResume').onclick = () => togglePause();
-$('#pmRetry').onclick = () => { const lp = lastPlay; quitGame(true); diff = lp.diff; startSong(lp.id, { free: true }); };
+$('#pmRetry').onclick = () => { const lp = lastPlay; quitGame(true); startSong(lp.id, { free: true }); };
 $('#pmQuit').onclick = () => { quitGame(); go('songs'); };
 document.addEventListener('visibilitychange', () => { if (document.hidden && game && !game.paused) togglePause(true); });
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; if (screen === 'lobby') rLobby(); });

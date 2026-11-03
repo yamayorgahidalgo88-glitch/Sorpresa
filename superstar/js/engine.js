@@ -50,6 +50,9 @@ export class Game {
     this.scoreShown = 0; this.bonusShown = 0;
     this.nextIdx = 0;
     this.lastT = this.notes.length ? Math.max(...this.notes.map(n => n.end || n.t)) : 0;
+    // recorte: la canción empieza en chart.start (salta intros de videoclip) y acaba en chart.end
+    this.off = opts.chart.start || 0;
+    this.endT = Math.min(opts.chart.end || opts.buffer.duration, opts.buffer.duration);
     this.deck = (opts.deck || []).filter(Boolean);
     this.deckImgs = this.deck.map(c => loadImg(c.photo));
     this.bgImgs = (opts.bgPhotos || []).map(loadImg);
@@ -72,7 +75,7 @@ export class Game {
   start() {
     const ctx = this.ctx;
     const first = this.notes.length ? this.notes[0].t : 0;
-    const lead = Math.max(2.2, this.approach - first + 0.6);
+    const lead = Math.max(2.2, this.approach - (first - this.off) + 0.6);
     this.gain = ctx.createGain();
     this.gain.gain.value = this.o.settings.music;
     this.gain.connect(ctx.destination);
@@ -80,12 +83,12 @@ export class Game {
     this.src.buffer = this.o.buffer;
     this.src.connect(this.gain);
     this.startAt = ctx.currentTime + lead;
-    this.src.start(this.startAt);
+    this.src.start(this.startAt, this.off);
     this.latency = (ctx.outputLatency || 0) + (ctx.baseLatency || 0);
     this._loop = this._loop.bind(this);
     this._raf = requestAnimationFrame(this._loop);
   }
-  now() { return this.ctx.currentTime - this.startAt - this.latency + (this.o.settings.offset || 0) / 1000; }
+  now() { return this.ctx.currentTime - this.startAt - this.latency + (this.o.settings.offset || 0) / 1000 + (this.off || 0); }
   pause() {
     if (this.paused || this.ended) return;
     this.paused = true;
@@ -313,7 +316,7 @@ export class Game {
     }
     while (this.nextIdx < this.notes.length && this.notes[this.nextIdx].done) this.nextIdx++;
     const allDone = this.nextIdx >= this.notes.length;
-    if (!this.ended && ((allDone && now > this.lastT + 2.2) || now > this.o.buffer.duration + 0.3)) this._finish();
+    if (!this.ended && ((allDone && now > this.lastT + 2.2) || now > this.endT + 0.3)) this._finish();
   }
 
   _finish() {
@@ -424,14 +427,14 @@ export class Game {
   _draw(now, dt) {
     const g = this.g, W = this.W, L = this.L;
     const tnow = performance.now();
-    const pz = now > 0 && !this.paused ? this._beat(now) : 0;
+    const pz = now > this.off && !this.paused ? this._beat(now) : 0;
     if (this.bg) g.drawImage(this.bg, 0, 0, W, this.H);
 
     // intensidad de la canción en este momento (estribillo / rap = alta)
     const Iraw = this._I(now);
     this.Ishown += (Iraw - this.Ishown) * Math.min(1, dt * 3);
     const I = this.Ishown;
-    if (!this.climax && I > 0.72 && now > 0) { this.climax = true; this.climaxT = tnow; }
+    if (!this.climax && I > 0.72 && now > this.off) { this.climax = true; this.climaxT = tnow; }
     else if (this.climax && I < 0.55) this.climax = false;
     // brillo general del escenario
     g.save(); g.globalCompositeOperation = 'lighter';
@@ -623,7 +626,7 @@ export class Game {
     const lw = (this.land ? 200 : 150) * S;
     g.strokeStyle = 'rgba(255,255,255,0.55)'; g.lineWidth = 1;
     g.beginPath(); g.moveTo(sx, sy + 34 * S); g.lineTo(sx + lw, sy + 34 * S); g.lineTo(sx + lw + 18 * S, sy + 14 * S); g.stroke();
-    const prog = Math.max(0, Math.min(1, now / this.o.buffer.duration));
+    const prog = Math.max(0, Math.min(1, (now - this.off) / (this.endT - this.off)));
     g.fillStyle = 'rgba(255,255,255,0.18)'; g.fillRect(sx, sy + 38 * S, lw, 3);
     g.fillStyle = '#7ce8ff'; g.fillRect(sx, sy + 38 * S, lw * prog, 3);
     g.restore();
@@ -754,7 +757,7 @@ export class Game {
       skewText(g, '✦ CLIMAX ✦', 0, 0);
       g.restore();
     }
-    if (now < 0) {
+    if (now < this.off) {
       g.save(); g.textAlign = 'center'; g.textBaseline = 'middle';
       g.fillStyle = '#fff'; g.font = `800 ${30 * S}px ${FONT}`;
       g.shadowColor = '#ff5fa8'; g.shadowBlur = 16;

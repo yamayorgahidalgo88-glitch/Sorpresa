@@ -258,3 +258,4 @@ h2{margin:6px 0 10px;font-size:20px}h3{font-size:15px;margin:18px 0 10px}
 .pick{width:100%;padding:12px;border-radius:12px;background:rgba(0,0,0,.35);color:#fff;border:1px solid var(--line);font:inherit;margin:8px 0}
 .pick option{background:#1a0b3d}
 .voz{color:#9ff0ff;font-weight:700}
+.diff-one{text-align:center;font-weight:900;letter-spacing:1px;color:#ffc94d;padding:6px 0 12px;font-size:13px}
