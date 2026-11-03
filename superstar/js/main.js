@@ -546,8 +546,9 @@ function rSettings() {
   <div class="settings">
     <label class="set"><span>Nombre</span><input type="text" maxlength="16" value="${esc(P.name)}" data-k="name"></label>
     <label class="set"><span>Velocidad de notas <b id="v-speed">${S.speed}</b></span><input type="range" min="1" max="10" step="1" value="${S.speed}" data-s="speed"></label>
-    <label class="set"><span>Ajuste de sincronía <b id="v-offset">${S.offset} ms</b></span><input type="range" min="-200" max="200" step="5" value="${S.offset}" data-s="offset">
+    <label class="set"><span>Ajuste de sincronía <b id="v-offset">${S.offset} ms</b></span><input type="range" min="-400" max="200" step="5" value="${S.offset}" data-s="offset">
       <small class="muted">Si las notas llegan antes que la música, súbelo; si llegan tarde, bájalo.</small></label>
+    <button class="btn primary" data-act="calib">🎧 Calibrar sincronía (recomendado)</button>
     <label class="set"><span>Volumen música <b id="v-music">${Math.round(S.music * 100)}%</b></span><input type="range" min="0" max="1" step="0.05" value="${S.music}" data-s="music"></label>
     <label class="set row"><span>Sonido al tocar</span><input type="checkbox" ${S.sfx ? 'checked' : ''} data-s="sfx"></label>
     <label class="set"><span>Volumen toque <b id="v-sfxVol">${Math.round(S.sfxVol * 100)}%</b></span><input type="range" min="0" max="1" step="0.05" value="${S.sfxVol}" data-s="sfxVol"></label>
@@ -569,11 +570,60 @@ function rSettings() {
       if (lab) lab.textContent = k === 'offset' ? v + ' ms' : (k === 'music' || k === 'sfxVol') ? Math.round(v * 100) + '%' : v;
     };
   });
+  view.querySelector('[data-act=calib]').onclick = calibrate;
   view.querySelector('[data-orient]').onchange = e => { S.orient = e.target.checked ? 'landscape' : 'portrait'; save(); };
   view.querySelector('[data-act=clearAudio]').onclick = () => confirmBox('¿Borrar todas las canciones guardadas en este dispositivo?', async () => {
     await idb.clear('audio'); await idb.clear('analysis'); loaded.clear(); levels.clear(); bufCache.clear(); toast('Canciones borradas');
   });
   view.querySelector('[data-act=reset]').onclick = () => confirmBox('¿Seguro? Se perderán cartas, récords y nivel.', () => { resetProfile(); P = loadProfile(); save(); go('title'); });
+}
+
+// ---------------- calibración de sincronía ----------------
+// Suena un clic cada 0,6 s; la jugadora toca al oírlo. El retraso medio (auriculares Bluetooth,
+// altavoz, pantalla táctil) se guarda como ajuste para que las notas cuadren con la música.
+function calibrate() {
+  const c = ensureCtx();
+  const N = 16, PER = 0.6;
+  const clicks = [], taps = [];
+  modal(`<h2>Calibrar sincronía</h2>
+    <p>Ponte los auriculares que vayas a usar. Toca el círculo <b>justo cuando oigas cada clic</b>. Son ${N} clics.</p>
+    <div class="calib-pad" id="calibPad"><span id="calibN">Prepárate…</span></div>
+    <button class="btn ghost" data-close>Cancelar</button>`, el => {
+    const pad = el.querySelector('#calibPad'), lab = el.querySelector('#calibN');
+    const sr = c.sampleRate, b = c.createBuffer(1, Math.floor(sr * 0.05), sr), d = b.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.sin(2 * Math.PI * 1500 * i / sr) * Math.exp(-i / sr * 60);
+    const t0 = c.currentTime + 1.2;
+    for (let k = 0; k < N; k++) {
+      const s2 = c.createBufferSource(); s2.buffer = b; s2.connect(c.destination); s2.start(t0 + k * PER); clicks.push(t0 + k * PER);
+    }
+    // pulso visual sólo como guía (no se usa para medir)
+    let k = 0;
+    const iv = setInterval(() => { if (c.currentTime >= t0 + k * PER) { lab.textContent = `${k + 1} / ${N}`; k++; } if (k >= N) clearInterval(iv); }, 10);
+    pad.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      taps.push(c.currentTime);
+      pad.classList.remove('hit'); void pad.offsetWidth; pad.classList.add('hit');
+    });
+    setTimeout(() => {
+      clearInterval(iv);
+      const deltas = [];
+      for (const t of taps) {
+        let best = null;
+        for (const ck of clicks.slice(3)) if (best === null || Math.abs(t - ck) < Math.abs(t - best)) best = ck;
+        if (best !== null && t - best > -0.25 && t - best < 0.5) deltas.push(t - best);
+      }
+      if (deltas.length < 6) { closeModal(); toast('No se registraron suficientes toques. Prueba otra vez.'); return; }
+      deltas.sort((a, b2) => a - b2);
+      const med = deltas[Math.floor(deltas.length / 2)];
+      const rep = (c.outputLatency || 0) + (c.baseLatency || 0);
+      const off = Math.max(-400, Math.min(200, Math.round((rep - med) * 1000 / 5) * 5));
+      P.settings.offset = off; save();
+      closeModal();
+      modal(`<h2>¡Listo!</h2><p>Retraso medido: <b>${Math.round(med * 1000)} ms</b>. Ajuste guardado: <b>${off} ms</b>.</p>
+        <p class="muted">Si cambias de auriculares (Bluetooth ↔ cable ↔ altavoz), vuelve a calibrar.</p>
+        <button class="btn primary" data-close>Vale</button>`, null, () => { if (screen === 'settings') rSettings(); });
+    }, (1.2 + N * PER + 0.6) * 1000);
+  });
 }
 
 // ---------------- utilidades UI ----------------

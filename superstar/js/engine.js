@@ -56,6 +56,8 @@ export class Game {
     this.bpm = opts.chart.bpm || 0;
     this.phase = opts.chart.phase || 0;
     this.th = opts.theme || { c1: '#2a0f5c', c2: '#ff7ad9' };
+    this.intensity = opts.chart.intensity || null;
+    this.climax = false; this.climaxT = -9; this.sparks = []; this.Ishown = 0.4;
     this.coin = mkCoin('#ffd54a', '#c98a00');
     this.coinHold = mkCoin('#ffe37a', '#d39a10', true);
     this.gem = mkGem();
@@ -397,6 +399,13 @@ export class Game {
     this.bg = c;
   }
 
+  _I(t) {
+    const it = this.intensity; if (!it) return 0.45;
+    const k = t / it.step, i = Math.floor(k);
+    if (i < 0) return it.v[0] ?? 0.45;
+    if (i >= it.v.length - 1) return it.v[it.v.length - 1] ?? 0.45;
+    return it.v[i] + (it.v[i + 1] - it.v[i]) * (k - i);
+  }
   _beat(now) {
     if (!this.bpm) return 0;
     const x = (now - this.phase) / (60 / this.bpm);
@@ -410,16 +419,50 @@ export class Game {
     const pz = now > 0 && !this.paused ? this._beat(now) : 0;
     if (this.bg) g.drawImage(this.bg, 0, 0, W, this.H);
 
+    // intensidad de la canción en este momento (estribillo / rap = alta)
+    const Iraw = this._I(now);
+    this.Ishown += (Iraw - this.Ishown) * Math.min(1, dt * 3);
+    const I = this.Ishown;
+    if (!this.climax && I > 0.72 && now > 0) { this.climax = true; this.climaxT = tnow; }
+    else if (this.climax && I < 0.55) this.climax = false;
+    // brillo general del escenario
+    g.save(); g.globalCompositeOperation = 'lighter';
+    const glowA = 0.04 + 0.32 * I * (0.65 + 0.35 * pz);
+    const sg = g.createRadialGradient(this.cx, this.topY, 0, this.cx, this.topY, Math.max(W, this.H) * 0.8);
+    sg.addColorStop(0, `rgba(255,170,230,${glowA})`); sg.addColorStop(0.5, `rgba(180,120,255,${glowA * 0.45})`); sg.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = sg; g.fillRect(0, 0, W, this.H);
+    // bordes de la pista encendidos en el clímax
+    if (I > 0.5) {
+      const a = (I - 0.5) * 1.6 * (0.6 + 0.4 * pz);
+      for (const k of [0, L]) {
+        g.strokeStyle = k ? `rgba(255,120,220,${a})` : `rgba(120,230,255,${a})`;
+        for (const [w2, f] of [[14, 0.25], [6, 0.6]]) {
+          g.globalAlpha = f; g.lineWidth = w2;
+          g.beginPath(); g.moveTo(this.edgeX(k, 0), this.yAt(0)); g.lineTo(this.edgeX(k, 1.1), this.yAt(1.1)); g.stroke();
+        }
+      }
+      g.globalAlpha = 1;
+    }
+    // destellos que caen en el clímax
+    if (this.climax && !this.paused && Math.random() < dt * 40) {
+      this.sparks.push({ x: Math.random() * W, y: -10, vy: 120 + Math.random() * 220, r: 1 + Math.random() * 2.5, life: 1.5 + Math.random(), age: 0, col: ['#fff', '#ffd6f5', '#bfefff', '#fff2a8'][Math.floor(Math.random() * 4)] });
+    }
+    for (const sp of this.sparks) { sp.age += dt; sp.y += sp.vy * dt; }
+    this.sparks = this.sparks.filter(sp => sp.age < sp.life && sp.y < this.H);
+    for (const sp of this.sparks) { g.globalAlpha = Math.min(1, (sp.life - sp.age) * 2) * 0.9; g.fillStyle = sp.col; drawStar(g, sp.x, sp.y, sp.r * 2.2, sp.age * 3); }
+    g.globalAlpha = 1;
+    g.restore();
+
     // láseres
     const ox = this.cx, oy = this.topY + (this.hitY - this.topY) * 0.12;
-    const want = 26 + this.raveLv * 6;
+    const want = Math.round(10 + 40 * I + this.raveLv * 4);
     if (!this.paused) {
       while (this.lasers.length < want) {
         const right = Math.random() < 0.5, a = Math.random() * 0.55 - 0.42;
         this.lasers.push({ ang: right ? a : Math.PI - a, d: Math.random() * W * 0.5, v: 300 + Math.random() * 500, len: 30 + Math.random() * 90,
           col: ['#ff3d7f', '#ff3d7f', '#3de8ff', '#ffffff'][Math.floor(Math.random() * 4)], w: 1.5 + Math.random() * 2.5 });
       }
-      for (const l of this.lasers) l.d += l.v * dt * (1 + this.raveLv * 0.25 + pz * 0.8);
+      for (const l of this.lasers) l.d += l.v * dt * (0.6 + 0.9 * I + this.raveLv * 0.15 + pz * 0.8);
       this.lasers = this.lasers.filter(l => l.d < W * 0.8);
     }
     g.save(); g.globalCompositeOperation = 'lighter'; g.lineCap = 'round';
@@ -691,6 +734,18 @@ export class Game {
       }
     }
 
+    const ca = (tnow - this.climaxT) / 1000;
+    if (ca < 1.2) {
+      g.save(); g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.globalAlpha = ca < 0.15 ? ca / 0.15 : Math.max(0, 1 - (ca - 0.7) / 0.5);
+      const sc = 1 + 0.25 * Math.max(0, 1 - ca / 0.25);
+      g.translate(this.cx, this.land ? H * 0.24 : this.topY + 20 * S); g.scale(sc, sc);
+      g.font = `800 ${30 * S}px ${FONT}`;
+      const cg2 = g.createLinearGradient(-90 * S, 0, 90 * S, 0); cg2.addColorStop(0, '#ffe37a'); cg2.addColorStop(0.5, '#ffffff'); cg2.addColorStop(1, '#ff8ad8');
+      g.shadowColor = '#ff5fa8'; g.shadowBlur = 20; g.fillStyle = cg2;
+      skewText(g, '✦ CLIMAX ✦', 0, 0);
+      g.restore();
+    }
     if (now < 0) {
       g.save(); g.textAlign = 'center'; g.textBaseline = 'middle';
       g.fillStyle = '#fff'; g.font = `800 ${30 * S}px ${FONT}`;

@@ -4,7 +4,7 @@
 // 3) Se estima el tempo (BPM) y la fase del compás para cuadrar las notas al ritmo.
 // 4) Para cada dificultad se eligen los golpes más fuertes, se asignan carriles y notas largas.
 
-export const ANALYSIS_VERSION = 5;
+export const ANALYSIS_VERSION = 6;
 
 const SR = 22050;
 const HOP = 256;               // ~11.6 ms por frame
@@ -177,8 +177,37 @@ export async function analyzeAudio(buffer, onProgress = () => {}) {
   }
   const gridFit = strong ? near / strong : 0;
 
+  // ---- Intensidad por tramos (cada 0,5 s): estribillos y raps suben, estrofas suaves bajan ----
+  onProgress(0.9, 'Buscando estribillos…');
+  const STEP = 0.5, nS = Math.ceil(buffer.duration / STEP);
+  const loud = new Float64Array(nS), dens = new Float64Array(nS), voc = new Float64Array(nS);
+  for (let k = 0; k < nS; k++) {
+    const a = Math.floor(k * STEP * FPS), z = Math.min(nf, Math.floor((k + 1) * STEP * FPS));
+    let s = 0; for (let i = a; i < z; i++) s += total[i];
+    loud[k] = Math.log(1e-9 + s / Math.max(1, z - a));
+  }
+  for (const o of raw) {
+    // cuenta golpes en ±2 s alrededor de cada tramo
+    const k0 = Math.max(0, Math.floor((o.t - 2) / STEP)), k1 = Math.min(nS - 1, Math.floor((o.t + 2) / STEP));
+    for (let k = k0; k <= k1; k++) { dens[k] += o.s; if (o.b === 1) voc[k] += 1; }
+  }
+  const rankNorm = arr => {
+    const s = [...arr].sort((x, y) => x - y);
+    const lo = s[Math.floor(s.length * 0.08)], hi = s[Math.floor(s.length * 0.95)];
+    return arr.map(v => Math.max(0, Math.min(1, (v - lo) / ((hi - lo) || 1))));
+  };
+  const nL = rankNorm(loud), nD = rankNorm(dens), nV = rankNorm(voc);
+  let inten = nL.map((v, k) => 0.5 * v + 0.28 * nD[k] + 0.22 * nV[k]);
+  // suavizado ±2 s para que siga secciones, no golpes sueltos
+  const R2 = 4;
+  inten = inten.map((_, k) => { let s = 0, c = 0; for (let j = k - R2; j <= k + R2; j++) if (j >= 0 && j < nS) { s += inten[j]; c++; } return s / c; });
+  inten = rankNorm(inten);
+  // "rap": muchos golpes de voz cortos (sílabas rápidas)
+  const rap = nV.map((v, k) => (v > 0.7 && nD[k] > 0.55 ? 1 : 0));
+
   onProgress(0.95, 'Listo');
   return {
+    intensity: { step: STEP, v: inten.map(x => Math.round(x * 100) / 100), rap },
     v: ANALYSIS_VERSION,
     duration: buffer.duration,
     bpm: Math.round(best.bpm * 100) / 100,
@@ -223,16 +252,22 @@ export function makeChart(an, diffId, seedStr = '') {
     if (s < 0.12) continue;
     let tt = t, onBeat = false;
     if (useGrid) {
+      // sólo se cuadra al compás si el golpe real está muy cerca; si no, se respeta su momento exacto
       const k = Math.round((t - an.phase) / step);
-      tt = an.phase + k * step;
-      const kb = (tt - an.phase) / beatStep;
-      onBeat = Math.abs(kb - Math.round(kb)) < 1e-3;
+      const g = an.phase + k * step;
+      if (Math.abs(g - t) <= 0.035) {
+        tt = g;
+        const kb = (tt - an.phase) / beatStep;
+        onBeat = Math.abs(kb - Math.round(kb)) < 1e-3;
+      }
     }
     if (tt < 0.25 || tt > an.duration - 0.2) continue;
     const key = Math.round(tt * 1000);
-    const w = s * (onBeat ? (diffId === 'hard' ? 1.1 : 1.3) : 1);
+    const I = intensityAt(an, tt);
+    // la voz manda (como en el original las notas siguen la letra); en raps aún más
+    const w = s * (onBeat ? (diffId === 'hard' ? 1.1 : 1.3) : 1) * (b === 1 ? 1.3 + 0.3 * rapAt(an, tt) : 1) * (0.75 + 0.5 * I);
     const prev = map.get(key);
-    if (!prev || prev.w < w) map.set(key, { t: tt, s, w, b, sus });
+    if (!prev || prev.w < w) map.set(key, { t: tt, s, w, b, sus, I });
   }
   const cand = [...map.values()].sort((a, b) => b.w - a.w);
 
@@ -241,11 +276,14 @@ export function makeChart(an, diffId, seedStr = '') {
   const target = Math.round(active * cfg.nps);
   const picked = [];
   const times = []; // ordenados
-  const fits = (t) => {
+  // en partes intensas (estribillo, rap) las notas pueden ir más juntas; en las suaves, más separadas
+  const gapFor = I => Math.max(diffId === "hard" ? 0.095 : 0, cfg.gap * Math.max(0.62, 1.35 - 0.75 * I));
+  const fits = (t, I) => {
+    const gp = gapFor(I);
     let lo = 0, hi = times.length;
     while (lo < hi) { const m = (lo + hi) >> 1; if (times[m] < t) lo = m + 1; else hi = m; }
-    if (lo < times.length && times[lo] - t < cfg.gap - 1e-6) return -1;
-    if (lo > 0 && t - times[lo - 1] < cfg.gap - 1e-6) return -1;
+    if (lo < times.length && times[lo] - t < gp - 1e-6) return -1;
+    if (lo > 0 && t - times[lo - 1] < gp - 1e-6) return -1;
     return lo;
   };
   // reparto por ventanas de 4 s: cada tramo recibe su cuota (las partes suaves no se quedan vacías)
@@ -258,14 +296,15 @@ export function makeChart(an, diffId, seedStr = '') {
   const quota = new Int32Array(nWin), got = new Int32Array(nWin);
   for (let k = 0; k < nWin; k++) {
     if (!wCnt[k]) continue;
-    const rel = Math.max(0.45, Math.min(1.35, 0.4 + 0.6 * wSum[k] / meanW));
-    quota[k] = Math.max(1, Math.round(cfg.nps * WIN * rel));
+    let Iw = 0; for (let q = 0; q < 8; q++) Iw += intensityAt(an, k * WIN + q * 0.5); Iw /= 8;
+    const rel = diffId === 'easy' ? 0.6 + 0.75 * Iw : 0.35 + 1.3 * Iw;
+    quota[k] = Math.max(1, Math.round(cfg.nps * WIN * rel * (0.85 + 0.3 * Math.min(1.5, wSum[k] / meanW) / 1.5)));
   }
   for (const c of cand) {
-    if (picked.length >= target * 1.15) break;
+    if (picked.length >= target * 1.3) break;
     const k = Math.floor(c.t / WIN);
     if (got[k] >= quota[k]) continue;
-    const pos = fits(c.t);
+    const pos = fits(c.t, c.I);
     if (pos < 0) continue;
     times.splice(pos, 0, c.t);
     picked.push(c); got[k]++;
@@ -310,7 +349,7 @@ export function makeChart(an, diffId, seedStr = '') {
     notes.push(note);
     if (!note.end) freeAt[lane] = p.t + 0.02;
 
-    if (p.w >= chordCut && !note.end && L >= 4) {
+    if ((p.w >= chordCut || (cfg.chord && p.I > 0.8 && rng() < cfg.chord * 0.5)) && !note.end && L >= 4) {
       let l2 = L - 1 - lane;
       if (l2 === lane || Math.abs(l2 - lane) < 1) l2 = (lane + 2) % L;
       l2 = freeLane(l2, p.t, freeAt, L, lane, false);
@@ -327,7 +366,7 @@ export function makeChart(an, diffId, seedStr = '') {
     peak = Math.max(peak, (i - j + 1) / 4);
   }
   const level = Math.max(1, Math.min(15, Math.round(peak * 1.9 + (L - 3) * 0.9)));
-  return { lanes: L, notes, level, bpm: an.bpm, phase: an.phase, grid: useGrid };
+  return { lanes: L, notes, level, bpm: an.bpm, phase: an.phase, grid: useGrid, intensity: an.intensity };
 }
 
 function freeLane(lane, t, freeAt, L, avoid, mustAvoid) {
@@ -342,3 +381,12 @@ function freeLane(lane, t, freeAt, L, avoid, mustAvoid) {
 }
 function quantile(arr, q) { if (!arr.length) return Infinity; const s = [...arr].sort((a, b) => a - b); return s[Math.min(s.length - 1, Math.floor(q * s.length))]; }
 function round3(x) { return Math.round(x * 1000) / 1000; }
+
+export function intensityAt(an, t) {
+  const it = an.intensity; if (!it) return 0.5;
+  const k = t / it.step, i = Math.floor(k);
+  if (i < 0) return it.v[0] ?? 0.5;
+  if (i >= it.v.length - 1) return it.v[it.v.length - 1] ?? 0.5;
+  return it.v[i] + (it.v[i + 1] - it.v[i]) * (k - i);
+}
+function rapAt(an, t) { const it = an.intensity; if (!it || !it.rap) return 0; return it.rap[Math.max(0, Math.min(it.rap.length - 1, Math.round(t / it.step)))] || 0; }

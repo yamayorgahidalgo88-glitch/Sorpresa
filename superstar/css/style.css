@@ -252,3 +252,6 @@ h2{margin:6px 0 10px;font-size:20px}h3{font-size:15px;margin:18px 0 10px}
 /* en horizontal, los menús centrados */
 @media (orientation:landscape) and (max-height:500px){#app{max-width:640px}}
 #play{position:fixed;inset:0;z-index:50}
+.calib-pad{margin:14px auto;width:180px;height:180px;border-radius:50%;display:grid;place-items:center;font-weight:900;font-size:18px;background:radial-gradient(circle,rgba(255,122,217,.35),rgba(155,107,255,.15));border:3px solid rgba(255,255,255,.8);touch-action:none;cursor:pointer;user-select:none}
+.calib-pad.hit{animation:padhit .25s ease-out}
+@keyframes padhit{from{transform:scale(.9);background:rgba(255,255,255,.6)}to{transform:none}}
