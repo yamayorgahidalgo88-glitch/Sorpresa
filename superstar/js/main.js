@@ -369,7 +369,7 @@ async function startSong(id, { free = false } = {}) {
   $('#pauseMenu').hidden = true;
   ensureCtx();
   game = new Game($('#cv'), {
-    ctx, buffer: buf, chart, settings: P.settings, maxScore, title: s.title,
+    ctx, buffer: buf, chart, settings: P.settings, maxScore, title: s.title, theme: th,
     onEnd: res => endSong(res),
     onPause: () => togglePause(),
   });

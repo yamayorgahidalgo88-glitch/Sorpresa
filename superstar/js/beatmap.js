@@ -319,7 +319,7 @@ export function makeChart(an, diffId, seedStr = '') {
     peak = Math.max(peak, (i - j + 1) / 4);
   }
   const level = Math.max(1, Math.min(15, Math.round(peak * 1.9 + (L - 3) * 0.9)));
-  return { lanes: L, notes, level, bpm: an.bpm, grid: useGrid };
+  return { lanes: L, notes, level, bpm: an.bpm, phase: an.phase, grid: useGrid };
 }
 
 function freeLane(lane, t, freeAt, L, avoid, mustAvoid) {

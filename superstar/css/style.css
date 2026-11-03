@@ -231,3 +231,10 @@ h2{margin:6px 0 10px;font-size:20px}h3{font-size:15px;margin:18px 0 10px}
 .credits{font-size:10px;color:var(--muted);line-height:1.5}
 .credits a{color:var(--muted)}
 .card.in-deck::after{top:auto;bottom:34px;left:auto;right:4px;padding:1px 5px;border-radius:5px;background:var(--pink);font-size:8px}
+/* brillo en botones principales */
+.btn.primary{position:relative;overflow:hidden;box-shadow:0 6px 24px rgba(255,95,200,.35),inset 0 1px 0 rgba(255,255,255,.45),inset 0 -3px 0 rgba(40,0,80,.25)}
+.btn.primary::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.4) 48%,transparent 60%);background-size:250% 100%;animation:shine 3.2s ease-in-out infinite;pointer-events:none}
+@keyframes shine{0%,60%{background-position:130% 0}100%{background-position:-60% 0}}
+.btn.ghost{box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
+.song.ready{box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+.song.ready:hover{background:var(--panel2)}
