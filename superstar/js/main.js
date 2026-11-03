@@ -3,6 +3,7 @@ import { loadProfile, saveProfile, resetProfile, idb, askPersistent } from './st
 import { analyzeAudio, makeChart, ANALYSIS_VERSION } from './beatmap.js';
 import { cardHTML, cardPower, deckPower, openPack, welcomePack, autoDeck, memberById } from './cards.js';
 import { Game } from './engine.js';
+import { openDrop } from './drop.js';
 
 // ---------------- estado ----------------
 const PREPARED = ['no-more-dream', 'dynamite']; // canciones con partitura que sigue la voz
@@ -186,6 +187,7 @@ function rLobby() {
       <div class="leader-info">
         <div class="muted small">PODER DEL MAZO</div>
         <div class="big">${fmt(deckPower(P))}</div>
+        <div class="mazo-bonus">Tu mazo te da <b>+${deckBonusPct()}%</b> de puntos en cada canción.<br>Abre sobres y sube cartas para sacar más.</div>
       </div>
     </div>
     <button class="btn primary huge" data-act="play">JUGAR</button>
@@ -344,7 +346,7 @@ async function songSheet(id) {
     </div>
     <div class="sheet-row"><span>Dificultad</span><b style="color:${d.color}">${d.name}${lv ? ' ★' + lv[diff] : ''}</b></div>
     <div class="sheet-row"><span>Mejor puntuación</span><b>${rec ? fmt(rec.score) + ' · ' + rec.rank : '—'}</b></div>
-    <div class="sheet-row"><span>Poder del mazo (con bonus de era)</span><b>${fmt(dp)}</b></div>
+    <div class="sheet-row"><span>Bonus de tu mazo en esta canción</span><b style="color:var(--gold)">+${deckBonusPct(s.theme)}% puntos</b></div>
     <div class="deck-mini">${P.deck.map(uid => cardHTML(P.cards.find(c => c.uid === uid), { size: 'xs', songTheme: s.theme })).join('')}</div>
     <div class="row2">
       <button class="btn ghost" data-act="auto">Mazo automático</button>
@@ -487,7 +489,7 @@ function endSong(res) {
   P.rp += rp;
   const ups = addExp(exp);
   save();
-  go('result', { ...res, rank, isNew, rp, exp, ups, id, dId });
+  go('result', { ...res, rank, isNew, rp, exp, ups, id, dId, deckPct: deckBonusPct(songById(id).theme) });
 }
 
 function rResult(r) {
@@ -505,6 +507,7 @@ function rResult(r) {
       ${rows.map((n, i) => `<div class="jr j${i}"><span>${n}</span><b>${r.counts[i]}</b></div>`).join('')}
       <div class="jr"><span>MAX COMBO</span><b>${r.maxCombo}</b></div>
     </div>
+    ${r.deckPct ? `<div class="muted small">Tu mazo sumó +${r.deckPct}% a la puntuación</div>` : ''}
     <div class="res-rew">
       <div>♪ +${fmt(r.rp)} RP</div><div>EXP +${r.exp}</div>
     </div>
@@ -527,7 +530,10 @@ function rDeck() {
       <div><div class="muted small">PODER DEL MAZO</div><div class="big">${fmt(deckPower(P))}</div></div>
       <button class="btn ghost small" data-act="auto">Auto</button>
     </div>
-    <p class="hint">Toca un hueco y luego una carta. Las cartas de la misma era que la canción dan <b>x1.5</b>. 4 o más de la misma era dan bonus de set.</p>
+    <div class="mazo-bonus"><b>¿Para qué sirven?</b> Las 7 cartas del mazo suman poder, y el poder sube tu puntuación: ahora mismo <b>+${deckBonusPct()}%</b>.<br>
+      • Rango más alto (C → B → A → S → R) = más poder. • Las repetidas suben de nivel la carta.<br>
+      • Cartas de la <b>misma era</b> que la canción valen <b>x1.5</b>. • 4 o más de la misma era: bonus extra.</div>
+    <p class="hint">Toca un hueco y luego una carta para cambiarla.</p>
     <div class="deck-slots">
       ${P.deck.map((uid, i) => cardHTML(P.cards.find(c => c.uid === uid), { size: 'sm', extra: `data-slot="${i}"` }).replace('class="card', `class="card${i === selectedSlot ? ' sel' : ''}`)).join('')}
     </div>
@@ -585,9 +591,7 @@ function rShop() {
     P.rp -= PACK_COST * n;
     const got = openPack(P, n);
     save(); renderTop();
-    modal(`<h2>¡Sobre abierto!</h2>
-      <div class="reveal-grid">${got.map((g, i) => `<div class="flip" style="--d:${i * 0.18}s">${cardHTML(g.card, { size: 'sm' })}${g.dup ? `<div class="dup">${g.maxed ? '+800 RP' : 'Lv UP'}</div>` : '<div class="dup new">NEW</div>'}</div>`).join('')}</div>
-      <button class="btn primary" data-close>Genial</button>`, null, () => rShop());
+    openDrop(got, { cardHTML, ctx: ensureCtx() }).then(() => rShop());
   });
   view.querySelector('[data-act=refill]').onclick = () => { P.rp -= REFILL_COST; P.hp = maxHP(); P.hpTs = Date.now(); save(); renderTop(); rShop(); toast('Auriculares al máximo 🎧'); };
 }
@@ -708,6 +712,8 @@ function loading(on, text = '') {
   const el = $('#loading');
   el.hidden = !on; el.querySelector('span').textContent = text;
 }
+// las cartas suben la puntuación máxima: este es el porcentaje extra que da el mazo
+const deckBonusPct = theme => Math.round(deckPower(P, theme) / 6000 * 100);
 const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
 

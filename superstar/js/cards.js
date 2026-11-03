@@ -87,7 +87,7 @@ export function cardHTML(card, { size = 'md', extra = '', songTheme = null } = {
   const bonus = songTheme && card.theme === songTheme;
   const initials = m.mono || m.name.slice(0, 2).toUpperCase();
   return `
-  <div class="card card-${size} grade-${card.grade}${bonus ? ' has-bonus' : ''}" ${extra}
+  <div class="card card-${size} grade-${card.grade} era-${card.theme}${bonus ? ' has-bonus' : ''}" ${extra}
        style="--c1:${th.c1};--c2:${th.c2};--ink:${th.ink};--mc:${m.color};--gc:${g.color}">
     <div class="card-art">
       ${m.photo ? `<div class="card-photo" style="background-image:url('${m.photo}')"></div><div class="card-tint"></div>` : `<div class="card-orb"></div>
