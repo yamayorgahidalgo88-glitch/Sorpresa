@@ -257,3 +257,4 @@ h2{margin:6px 0 10px;font-size:20px}h3{font-size:15px;margin:18px 0 10px}
 @keyframes padhit{from{transform:scale(.9);background:rgba(255,255,255,.6)}to{transform:none}}
 .pick{width:100%;padding:12px;border-radius:12px;background:rgba(0,0,0,.35);color:#fff;border:1px solid var(--line);font:inherit;margin:8px 0}
 .pick option{background:#1a0b3d}
+.voz{color:#9ff0ff;font-weight:700}

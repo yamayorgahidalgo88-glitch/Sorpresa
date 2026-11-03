@@ -278,9 +278,11 @@ function mulberry32(a) {
 function hashStr(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
 
 const CFG = {
-  easy:   { lanes: 3, nps: 1.3, gap: 0.36, sub: 2, holdMin: 0.6, holdP: 0.6, chord: 0,    jack: 0.45, slideP: 0 },
-  normal: { lanes: 4, nps: 2.25, gap: 0.19, sub: 2, holdMin: 0.6, holdP: 0.5, chord: 0.05, jack: 0.3, slideP: 0.3 },
-  hard:   { lanes: 7, nps: 3.7, gap: 0.105, sub: 4, holdMin: 0.5, holdP: 0.45, chord: 0.13, jack: 0.2, slideP: 0.45 },
+  // Reglas sacadas del HARD original: ~5,4 pulsaciones/s, pico 6,5 en 1 s, separación mínima 130 ms.
+  // NORMAL y EASY escalan a partir de ahí.
+  easy:   { lanes: 3, nps: 1.4, gap: 0.42, minGap: 0.33, peak: 2.5, sub: 2, holdMin: 0.6, holdP: 0.6, chord: 0,    jack: 0.5, slideP: 0 },
+  normal: { lanes: 4, nps: 2.4, gap: 0.27, minGap: 0.2,  peak: 4,   sub: 2, holdMin: 0.5, holdP: 0.5, chord: 0.08, jack: 0.3, slideP: 0.4 },
+  hard:   { lanes: 7, nps: 3.6, gap: 0.18, minGap: 0.13, peak: 6.5, sub: 4, holdMin: 0.4, holdP: 0.5, chord: 0.2,  jack: 0.2, slideP: 0.7 },
 };
 
 export function makeChart(an, diffId, seedStr = '') {
@@ -319,13 +321,22 @@ export function makeChart(an, diffId, seedStr = '') {
   const picked = [];
   const times = []; // ordenados
   // en partes intensas (estribillo, rap) las notas pueden ir más juntas; en las suaves, más separadas
-  const gapFor = I => Math.max(diffId === "hard" ? 0.095 : 0, cfg.gap * Math.max(0.62, 1.35 - 0.75 * I));
+  const gapFor = I => Math.max(cfg.minGap, cfg.gap * Math.max(0.6, 1.3 - 0.7 * I));
   const fits = (t, I) => {
     const gp = gapFor(I);
     let lo = 0, hi = times.length;
     while (lo < hi) { const m = (lo + hi) >> 1; if (times[m] < t) lo = m + 1; else hi = m; }
     if (lo < times.length && times[lo] - t < gp - 1e-6) return -1;
     if (lo > 0 && t - times[lo - 1] < gp - 1e-6) return -1;
+    // nunca más de "peak" pulsaciones en ningún segundo (se pueda tocar)
+    let c = 1;
+    for (let k = lo - 1; k >= 0 && t - times[k] < 1; k--) c++;
+    for (let k = lo; k < times.length && times[k] - t < 1; k++) c++;
+    if (c > cfg.peak * 1.6) return -1;
+    let w0 = 0; // ventana exacta de 1 s centrada
+    for (let k = lo - 1; k >= 0 && t - times[k] < 0.5; k--) w0++;
+    for (let k = lo; k < times.length && times[k] - t < 0.5; k++) w0++;
+    if (w0 + 1 > cfg.peak) return -1;
     return lo;
   };
   // reparto por ventanas de 4 s: cada tramo recibe su cuota (las partes suaves no se quedan vacías)
@@ -358,19 +369,28 @@ export function makeChart(an, diffId, seedStr = '') {
   const notes = [];
   const freeAt = new Array(L).fill(-1);
   const holdEnds = []; let lastHoldT = -9;
-  let prevLane = Math.floor(L / 2), prevT = -10, dir = rng() < 0.5 ? -1 : 1;
+  let prevLane = Math.floor(L / 2), prevT = -10, side = 1;
   for (let i = 0; i < picked.length; i++) {
     const p = picked[i];
     const next = picked[i + 1] ? picked[i + 1].t : an.duration;
     const dt = p.t - prevT;
-    // zona según banda: graves a la izquierda, agudos a la derecha
-    const zone = (p.b / 2) * (L - 1);
-    let walk = prevLane + dir * (1 + Math.floor(rng() * Math.min(2, L - 1)));
-    if (walk < 0 || walk > L - 1) { dir = -dir; walk = prevLane + dir; }
-    if (rng() < 0.2) dir = -dir;
-    let lane = Math.round(0.4 * zone + 0.6 * walk + (rng() - 0.5) * 0.8);
-    lane = Math.max(0, Math.min(L - 1, lane));
-    if (lane === prevLane && dt < cfg.jack) lane = (lane + 1 + Math.floor(rng() * (L - 1))) % L;
+    // Movimiento "ordenado" como el original: o se repite botón, o se salta lejos alternando
+    // de lado (mano izquierda / derecha). Casi nunca al botón de al lado.
+    const half = (L - 1) / 2;
+    let lane;
+    const canRepeat = dt >= Math.max(cfg.jack, 0.22);
+    if (canRepeat && rng() < 0.34) lane = prevLane;
+    else if (L <= 3) lane = prevLane === 1 ? (rng() < 0.5 ? 0 : 2) : (prevLane === 0 ? (rng() < 0.6 ? 2 : 1) : (rng() < 0.6 ? 0 : 1));
+    else {
+      side = prevLane < half ? 1 : prevLane > half ? -1 : (rng() < 0.5 ? 1 : -1);
+      const pool = [];
+      for (let c = 0; c < L; c++) { const d = Math.abs(c - prevLane); if (d >= 2 && (c - half) * side >= 0) pool.push(c); }
+      if (!pool.length) for (let c = 0; c < L; c++) if (Math.abs(c - prevLane) >= 2) pool.push(c);
+      // graves hacia fuera, agudos hacia el centro: da algo de coherencia con el sonido
+      pool.sort((x, y) => (Math.abs(x - half) - Math.abs(y - half)) * (p.b === 0 ? -1 : 1));
+      lane = pool[Math.min(pool.length - 1, Math.floor(rng() * rng() * pool.length))];
+    }
+    if (lane === prevLane && !canRepeat) lane = (lane + 2) % L;
     lane = freeLane(lane, p.t, freeAt, L, prevLane, dt < cfg.jack);
     if (lane < 0) continue;
 

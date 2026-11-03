@@ -5,6 +5,7 @@ import { cardHTML, cardPower, deckPower, openPack, welcomePack, autoDeck, member
 import { Game } from './engine.js';
 
 // ---------------- estado ----------------
+const PREPARED = ['no-more-dream']; // canciones con partitura que sigue la voz
 let P = loadProfile();
 let ctx = null;
 let screen = 'title';
@@ -99,6 +100,16 @@ function computeLevels(id, an) {
   const lv = {};
   for (const d of DIFFS) lv[d.id] = makeChart(an, d.id, id).level;
   levels.set(id, lv);
+  getPrepared(id).then(pr => { if (pr) { for (const d of DIFFS) if (pr.charts[d.id]) lv[d.id] = pr.charts[d.id].level; refreshRow(id); } });
+}
+
+// Partituras preparadas que siguen la voz (charts/<id>.json). Sólo tiempos y carriles: el audio lo pone ella.
+const prepCache = new Map();
+function getPrepared(id) {
+  if (!prepCache.has(id)) {
+    prepCache.set(id, fetch(`charts/${id}.json`).then(r => (r.ok ? r.json() : null)).catch(() => null));
+  }
+  return prepCache.get(id);
 }
 
 async function storeAudio(id, file) {
@@ -229,7 +240,7 @@ function songRow(s) {
     <div class="song-jacket"><span>${esc(th.short)}</span></div>
     <div class="song-meta">
       <div class="song-title">${esc(s.title)}</div>
-      <div class="song-sub">${esc(s.artist || '')}${lv ? ` · <span class="lvl">★${lv[diff]}</span>` : ''}</div>
+      <div class="song-sub">${esc(s.artist || '')}${lv ? ` · <span class="lvl">★${lv[diff]}</span>` : ''}${PREPARED.includes(s.id) ? ' · <span class="voz">🎤 voz</span>' : ''}</div>
     </div>
     <div class="song-right">${right}</div>
   </div>`;
@@ -390,7 +401,13 @@ async function startSong(id, { free = false } = {}) {
   }
   loading(false);
   if (!free) { P.hp -= d.cost; if (P.hp < maxHP() && P.hpTs > Date.now() - 1000) P.hpTs = Date.now(); save(); }
-  const chart = makeChart(an, diff, id);
+  // si hay partitura preparada para esta canción (y el audio es la misma versión), se usa esa
+  const prep = await getPrepared(id);
+  const usePrep = prep && prep.charts[diff] && Math.abs(prep.duration - buf.duration) < 1.5;
+  const chart = usePrep
+    ? { ...prep.charts[diff], bpm: prep.bpm, phase: prep.phase, beats: prep.beats, intensity: prep.intensity }
+    : makeChart(an, diff, id);
+  if (prep && !usePrep) toast('Este MP3 es otra versión: uso la partitura automática');
   const th = THEMES[s.theme] || THEMES.SPECIAL;
   const dp = deckPower(P, s.theme);
   const maxScore = Math.round(BASE_MAX_SCORE[diff] * (1 + dp / 6000));
