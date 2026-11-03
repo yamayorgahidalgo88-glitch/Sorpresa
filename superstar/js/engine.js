@@ -694,22 +694,21 @@ export class Game {
     this._drawCoin(this.xAt(l2, p1), this.yAt(p1), p1, this.coinHold);
   }
   // banda dorada entre la cabeza (carril a, p0) y la cola (carril b, p1)
+  // banda RECTA entre dos monedas (como en el original): de (carril a, p0) a (carril b, p1)
   _band(la, p0, lb, p1, active) {
-    const g = this.g, L = this.L, steps = 10, left = [], right = [];
-    for (let i = 0; i <= steps; i++) {
-      const q = i / steps, p = p0 + (p1 - p0) * q, lane = la + (lb - la) * q;
-      const x = this.xAt(lane, p), y = this.yAt(p), hw = this.wAt(p) / L * 0.62;
-      left.push([x - hw, y]); right.push([x + hw, y]);
-    }
+    const g = this.g, L = this.L;
+    const x0 = this.xAt(la, p0), y0 = this.yAt(p0), h0 = this.wAt(p0) / L * 0.85;
+    const x1 = this.xAt(lb, p1), y1 = this.yAt(p1), h1 = this.wAt(p1) / L * 0.85;
     g.beginPath();
-    left.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
-    for (let i = right.length - 1; i >= 0; i--) g.lineTo(right[i][0], right[i][1]);
-    g.closePath();
-    const gr = g.createLinearGradient(0, this.yAt(p1), 0, this.yAt(p0));
-    gr.addColorStop(0, `rgba(255,205,60,${active ? 0.55 : 0.4})`);
-    gr.addColorStop(1, `rgba(255,225,110,${active ? 0.95 : 0.75})`);
+    g.moveTo(x1 - h1, y1); g.lineTo(x1 + h1, y1); g.lineTo(x0 + h0, y0); g.lineTo(x0 - h0, y0); g.closePath();
+    const gr = g.createLinearGradient(0, y1, 0, y0);
+    gr.addColorStop(0, `rgba(255,205,60,${active ? 0.6 : 0.45})`);
+    gr.addColorStop(1, `rgba(255,225,110,${active ? 0.95 : 0.8})`);
     g.fillStyle = gr; g.fill();
-    if (active) { g.strokeStyle = 'rgba(255,255,255,0.8)'; g.lineWidth = 1.5; g.stroke(); }
+    // brillo central
+    g.beginPath(); g.moveTo(x1, y1); g.lineTo(x0, y0);
+    g.strokeStyle = `rgba(255,250,210,${active ? 0.9 : 0.55})`; g.lineWidth = Math.max(1.5, (h0 + h1) * 0.12); g.stroke();
+    if (active) { g.beginPath(); g.moveTo(x1 - h1, y1); g.lineTo(x1 + h1, y1); g.lineTo(x0 + h0, y0); g.lineTo(x0 - h0, y0); g.closePath(); g.strokeStyle = 'rgba(255,255,255,0.8)'; g.lineWidth = 1.5; g.stroke(); }
   }
 
   _drawHUD(now, tnow, pz) {

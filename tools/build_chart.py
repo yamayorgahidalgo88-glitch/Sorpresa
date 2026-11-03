@@ -77,45 +77,44 @@ def next_lane(prev, prev2, last_dir, gap, L, rng, pref_dir=0):
 
 
 def make_chains(notes, L, rng, diff):
-    """Une rachas de 3-5 notas rápidas en una cadena dorada que se sigue sin soltar el dedo."""
+    """Zigzags como los del original: 3-4 monedas unidas por bandas rectas que cruzan la pista
+    de lado a lado. Con tiempo suficiente entre monedas (0,25-0,6 s) para seguirlas con fluidez."""
     if diff == 'easy' or L < 4: return notes
-    prob = 0.45 if diff == 'normal' else 0.6
-    step = 1 if L <= 4 else 2
-    times = [n['t'] for n in notes]
     from collections import Counter
-    cnt = Counter(times)
+    cnt = Counter(n['t'] for n in notes)
     out, i, last_chain = [], 0, -99.0
     while i < len(notes):
         n = notes[i]
-        run = [n]
-        j = i + 1
-        while j < len(notes) and len(run) < 5:
+        run, j = [n], i + 1
+        while j < len(notes) and len(run) < 4:
             m = notes[j]; g = m['t'] - run[-1]['t']
-            if 'end' in m or 'end' in run[-1] or cnt[m['t']] > 1 or cnt[run[-1]['t']] > 1 or not (0.12 <= g <= 0.45): break
+            if 'end' in m or 'end' in run[-1] or cnt[m['t']] > 1 or cnt[run[-1]['t']] > 1 or not (0.25 <= g <= 0.6): break
             run.append(m); j += 1
         nxt = notes[j]['t'] if j < len(notes) else 1e9
-        if len(run) >= 3 and run[0]['t'] - last_chain > 6 and nxt - run[-1]['t'] >= 0.3 and rng.random() < prob:
-            lane = run[0]['lane']; d = 1 if lane < (L - 1) / 2 else -1
+        if len(run) >= 3 and run[0]['t'] - last_chain > 4.5 and nxt - run[-1]['t'] >= 0.3 and rng.random() < 0.8:
+            # zigzag ancho: de un lado a otro de la pista (en 4 carriles: saltos de 2-3)
+            lane = run[0]['lane']
             path = [[run[0]['t'], lane]]
-            for k, m in enumerate(run[1:]):
-                want = m['lane'] - path[-1][1]
-                dd = (1 if want > 0 else -1) if want else (d if k % 2 == 0 else -d)   # sigue la dirección de la melodía o zigzaguea
-                nl = path[-1][1] + dd * step
-                if nl < 0 or nl > L - 1: nl = path[-1][1] - dd * step
-                path.append([m['t'], int(min(L - 1, max(0, nl)))])
+            d = 1 if lane < (L - 1) / 2 else -1
+            for m in run[1:]:
+                mag = 3 if (path[-1][1] in (0, L - 1) and rng.random() < 0.5) else 2
+                nl = path[-1][1] + d * mag
+                if nl < 0 or nl > L - 1: nl = path[-1][1] - d * mag
+                nl = int(min(L - 1, max(0, nl)))
+                if nl == path[-1][1]: nl = 0 if path[-1][1] > (L - 1) / 2 else L - 1
+                d = 1 if nl < path[-1][1] else -1          # el siguiente tramo vuelve hacia el otro lado
+                path.append([m['t'], nl])
             out.append(dict(t=path[0][0], lane=path[0][1], end=path[-1][0], lane2=path[-1][1], path=path))
             last_chain = run[-1]['t']
             i = j
             continue
         out.append(n); i += 1
-    # nada pegado a una cadena justo al terminar
     res = []
     for n in out:
         ok = True
         for c in out:
-            if 'path' in c and c is not n:
-                lo = min(p[1] for p in c['path']); hi = max(p[1] for p in c['path'])
-                if c['t'] < n['t'] < c['end'] + 0.2 and lo - 1 <= n['lane'] <= hi + 1: ok = False
+            if 'path' in c and c is not n and c['t'] < n['t'] < c['end'] + 0.25:
+                ok = False                                   # nada mientras se sigue un zigzag
         if ok: res.append(n)
     return res
 
@@ -425,7 +424,9 @@ def build(mp3, song_id, workdir, diffs=('normal',), start=None, end=None):
                         if hend - t >= 1.0: phrase_until = hend + 0.12
                         p2 = pitch_at(hend - 0.2, hend)
                         if L > 3 and not np.isnan(p) and not np.isnan(p2) and abs(p2 - p) >= 1.5:
-                            l2 = int(np.clip(new + (1 if p2 > p else -1) * (2 if L >= 7 else 1), 0, L - 1))
+                            mag = (2 if L >= 7 else 1) * (2 if hend - t >= 0.6 else 1)       # sostenidas largas: diagonal ancha
+                            l2 = int(np.clip(new + (1 if p2 > p else -1) * mag, 0, L - 1))
+                            if l2 == new: l2 = int(np.clip(new - (1 if p2 > p else -1) * mag, 0, L - 1))
                             if l2 != new and busy_until[l2] <= t: n['lane2'] = l2; busy_until[l2] = hend + 0.05
                         busy_until[new] = hend + 0.05
                         l2_ = n.get('lane2', new)
@@ -438,6 +439,7 @@ def build(mp3, song_id, workdir, diffs=('normal',), start=None, end=None):
                     notes.append(dict(t=round(t, 3), lane=l2))
             lane2, lane, prev_p, prev_t, prev_kind = lane, new, (p if not np.isnan(p) else prev_p), t, x['kind']
         notes.sort(key=lambda n: (n['t'], n['lane']))
+        notes = make_chains(notes, L, rng, diff)
         # nivel (estrellas) por densidad máxima en 4 s
         tt_ = np.array([n['t'] for n in notes])
         peak4 = max((np.sum((tt_ >= a) & (tt_ < a + 4)) / 4 for a in tt_), default=0)
