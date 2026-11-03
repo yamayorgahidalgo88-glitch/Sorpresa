@@ -41,13 +41,16 @@ def main(chart_path, mp3):
         check(t.min() >= d.get('start', 0) - 0.01, 'ninguna antes del inicio recortado')
         check(all(0 <= x['lane'] < L and 0 <= x.get('lane2', 0) < L for x in n), f'carriles válidos (0..{L - 1})')
         check(all(x['end'] - x['t'] >= 0.15 for x in n if 'end' in x), 'notas largas con duración válida (≥ 0,15 s)')
+        ch = [x for x in n if 'path' in x]
+        check(all(all(a[0] < b[0] for a, b in zip(x['path'], x['path'][1:])) and all(0 <= q[1] < L for q in x['path']) and x['path'][-1][0] == x['end'] for x in ch), f'cadenas válidas ({len(ch)})')
         check(all(t[i] <= t[i + 1] for i in range(len(t) - 1)), 'ordenadas en el tiempo')
         check(t.min() - d.get('start', 0) + 2.2 >= 0, f'la primera nota tiene tiempo de bajar (aparece {APPROACH:.2f} s antes de pulsarse)')
         ut = np.unique(t)
         check(np.diff(ut).min() >= 0.12, f'separación mínima entre momentos {1000 * np.diff(ut).min():.0f} ms (≥ 120)')
         bad = 0
         for h in [x for x in n if 'end' in x]:
-            lo, hi = min(h['lane'], h.get('lane2', h['lane'])), max(h['lane'], h.get('lane2', h['lane']))
+            ls = [q[1] for q in h['path']] if 'path' in h else [h['lane'], h.get('lane2', h['lane'])]
+            lo, hi = min(ls), max(ls)
             bad += sum(1 for x in n if x is not h and h['t'] < x['t'] < h['end'] + 0.2 and lo - 1 <= x['lane'] <= hi + 1)
         check(bad == 0, f'ninguna nota encima de un conector activo ({bad})')
         dist = np.array([np.min(np.abs(ons - x)) for x in t])

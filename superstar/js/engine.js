@@ -31,7 +31,8 @@ export class Game {
     const byT = new Map();
     for (const n of opts.chart.notes) byT.set(n.t, (byT.get(n.t) || 0) + 1);
     this.notes = opts.chart.notes.map((n, i) => ({ ...n, i, gem: byT.get(n.t) > 1, head: -1, tail: -1, holding: false, done: false, pid: null }));
-    this.total = this.notes.reduce((a, n) => a + (n.end ? 2 : 1), 0);
+    // cadenas (path): cada parada intermedia también se juzga
+    this.total = this.notes.reduce((a, n) => a + (n.end ? 2 : 1) + (n.path ? Math.max(0, n.path.length - 2) : 0), 0);
     let mr = 0;
     for (let k = 0; k < this.total; k++) mr += 1 + Math.min(k, 100) / 400;
     this.maxRaw = mr || 1;
@@ -64,6 +65,11 @@ export class Game {
     this.coin = mkCoin('#ffd54a', '#c98a00');
     this.coinHold = mkCoin('#ffe37a', '#d39a10', true);
     this.gem = mkGem();
+    // notas sueltas de colores (las doradas son las que van unidas)
+    this.coinBlue = mkCoin('#8fe3ff', '#2d86d8');
+    this.coinPink = mkCoin('#ffb3e6', '#e0479e');
+    const PAL = { 3: 'bpb', 4: 'bppb', 7: 'bpbpbpb' }[this.L] || 'bppb';
+    this.tapSpr = l => (PAL[l] === 'p' ? this.coinPink : this.coinBlue);
     // ---- modo grabar partitura ----
     this.rate = opts.rate || 1;
     this.rec = opts.record ? { taps: [], open: new Map(), stop: false } : null;
@@ -231,7 +237,7 @@ export class Game {
     if (slide && j > 1) return;
     best.head = j;
     this._judge(j, lane);
-    if (best.end) { best.holding = true; best.pid = pid; } else best.done = true;
+    if (best.end) { best.holding = true; best.pid = pid; best.ni = 1; } else best.done = true;
   }
 
   _up(pid) {
@@ -243,6 +249,7 @@ export class Game {
     for (const n of this.notes) {
       if (!n.holding || n.pid !== pid) continue;
       n.holding = false; n.done = true;
+      if (n.path) for (; n.ni < n.path.length - 1; n.ni++) this._judge(4, -1);
       const d = now - n.end;
       let j = d >= -0.1 ? 0 : d >= -0.18 ? 1 : d >= -0.3 ? 2 : 4;
       if (n.lane2 !== undefined && j < 4 && !this._onTarget(n, lane)) j = 2;
@@ -334,8 +341,17 @@ export class Game {
       if (n.t - now > 0) break;
       if (n.head < 0 && now - n.t > WIN.late) {
         n.head = 4; this._judge(4, -1);
+        if (n.path) for (let q = 1; q < n.path.length - 1; q++) this._judge(4, -1);
         if (n.end) { n.tail = 4; this._judge(4, -1); }
         n.done = true;
+      }
+      if (n.holding && n.path) {
+        while (n.ni < n.path.length - 1 && now >= n.path[n.ni][0]) {
+          const tgt = n.path[n.ni][1], ln = this.pointers.get(n.pid);
+          const ok = typeof n.pid === 'string' || (ln !== undefined && Math.abs(ln - tgt) <= (this.L >= 7 ? 1 : 0));
+          this._judge(ok ? 0 : 2, tgt);
+          n.ni++;
+        }
       }
       if (n.holding && now >= n.end) {
         n.holding = false; n.done = true;
@@ -568,7 +584,7 @@ export class Game {
       if (n.holding) continue;
       const p = this.pOf(n.t, now);
       if (p > 1.12) continue;
-      this._drawCoin(this.xAt(n.lane, p), this.yAt(p), p, n.gem ? this.gem : n.end ? this.coinHold : this.coin);
+      this._drawCoin(this.xAt(n.lane, p), this.yAt(p), p, n.gem ? this.gem : n.end ? this.coinHold : this.tapSpr(n.lane));
     }
 
     // destellos y partículas
@@ -605,7 +621,29 @@ export class Game {
     if (a < 1) this.g.globalAlpha = 1;
   }
 
+  _drawChain(n, now) {
+    const P = n.path;
+    const laneAt = t => {
+      for (let i = 0; i < P.length - 1; i++) if (t <= P[i + 1][0]) { const f = (t - P[i][0]) / ((P[i + 1][0] - P[i][0]) || 1); return P[i][1] + (P[i + 1][1] - P[i][1]) * Math.max(0, Math.min(1, f)); }
+      return P[P.length - 1][1];
+    };
+    const tTop = now + this.approach * 1.0, tBot = n.holding ? now : now - this.approach * 0.1;
+    for (let i = 0; i < P.length - 1; i++) {
+      let ta = P[i][0], tb = P[i + 1][0];
+      if (tb < tBot || ta > tTop) continue;
+      ta = Math.max(ta, tBot); tb = Math.min(tb, tTop);
+      this._band(laneAt(ta), this.pOf(ta, now), laneAt(tb), this.pOf(tb, now), n.holding);
+    }
+    for (let i = n.holding ? (n.ni || 1) : 0; i < P.length; i++) {
+      const p = this.pOf(P[i][0], now);
+      if (p < 0 || p > 1.1) continue;
+      this._drawCoin(this.xAt(P[i][1], p), this.yAt(p), p, this.coinHold);
+    }
+    if (n.holding) this._drawCoin(this.xAt(laneAt(now), 1), this.hitY, 1, this.coinHold);
+  }
+
   _drawHold(n, now) {
+    if (n.path) return this._drawChain(n, now);
     let p0 = this.pOf(n.t, now), p1 = this.pOf(n.end, now);
     const l2 = n.lane2 ?? n.lane;
     if (n.holding) {
@@ -853,7 +891,7 @@ function mkCoin(c1, c2, ring = false) {
   const g = c.getContext('2d');
   const cx = W / 2, cy = 44, rx = 100, ry = 36, th = 16;
   const halo = g.createRadialGradient(cx, cy + 8, 10, cx, cy + 8, rx * 1.1);
-  halo.addColorStop(0, 'rgba(255,230,120,0.45)'); halo.addColorStop(1, 'rgba(255,230,120,0)');
+  halo.addColorStop(0, hexA(c1, 0.45)); halo.addColorStop(1, hexA(c1, 0));
   g.fillStyle = halo; g.fillRect(0, 0, W, H);
   g.fillStyle = c2;
   g.beginPath(); g.ellipse(cx, cy + th, rx, ry, 0, 0, Math.PI); g.lineTo(cx - rx, cy); g.ellipse(cx, cy, rx, ry, 0, Math.PI, 0, true); g.closePath(); g.fill();
@@ -865,7 +903,7 @@ function mkCoin(c1, c2, ring = false) {
   g.fillStyle = face; g.beginPath(); g.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); g.fill();
   g.strokeStyle = 'rgba(255,250,220,0.95)'; g.lineWidth = 4;
   g.beginPath(); g.ellipse(cx, cy, rx * 0.97, ry * 0.94, 0, 0, Math.PI * 2); g.stroke();
-  g.strokeStyle = 'rgba(180,110,0,0.45)'; g.lineWidth = 3;
+  g.strokeStyle = hexA(c2, 0.45); g.lineWidth = 3;
   g.beginPath(); g.ellipse(cx, cy, rx * 0.7, ry * 0.66, 0, 0, Math.PI * 2); g.stroke();
   if (ring) { g.strokeStyle = 'rgba(255,255,255,0.9)'; g.lineWidth = 5; g.beginPath(); g.ellipse(cx, cy, rx * 0.42, ry * 0.4, 0, 0, Math.PI * 2); g.stroke(); }
   g.fillStyle = 'rgba(255,255,255,0.75)';

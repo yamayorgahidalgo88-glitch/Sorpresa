@@ -76,6 +76,50 @@ def next_lane(prev, prev2, last_dir, gap, L, rng, pref_dir=0):
     return (prev + (2 if prev < (L - 1) / 2 else -2)) % L if L > 3 else (prev + 1) % L, last_dir
 
 
+def make_chains(notes, L, rng, diff):
+    """Une rachas de 3-5 notas rápidas en una cadena dorada que se sigue sin soltar el dedo."""
+    if diff == 'easy' or L < 4: return notes
+    prob = 0.45 if diff == 'normal' else 0.6
+    step = 1 if L <= 4 else 2
+    times = [n['t'] for n in notes]
+    from collections import Counter
+    cnt = Counter(times)
+    out, i, last_chain = [], 0, -99.0
+    while i < len(notes):
+        n = notes[i]
+        run = [n]
+        j = i + 1
+        while j < len(notes) and len(run) < 5:
+            m = notes[j]; g = m['t'] - run[-1]['t']
+            if 'end' in m or 'end' in run[-1] or cnt[m['t']] > 1 or cnt[run[-1]['t']] > 1 or not (0.12 <= g <= 0.45): break
+            run.append(m); j += 1
+        nxt = notes[j]['t'] if j < len(notes) else 1e9
+        if len(run) >= 3 and run[0]['t'] - last_chain > 6 and nxt - run[-1]['t'] >= 0.3 and rng.random() < prob:
+            lane = run[0]['lane']; d = 1 if lane < (L - 1) / 2 else -1
+            path = [[run[0]['t'], lane]]
+            for k, m in enumerate(run[1:]):
+                want = m['lane'] - path[-1][1]
+                dd = (1 if want > 0 else -1) if want else (d if k % 2 == 0 else -d)   # sigue la dirección de la melodía o zigzaguea
+                nl = path[-1][1] + dd * step
+                if nl < 0 or nl > L - 1: nl = path[-1][1] - dd * step
+                path.append([m['t'], int(min(L - 1, max(0, nl)))])
+            out.append(dict(t=path[0][0], lane=path[0][1], end=path[-1][0], lane2=path[-1][1], path=path))
+            last_chain = run[-1]['t']
+            i = j
+            continue
+        out.append(n); i += 1
+    # nada pegado a una cadena justo al terminar
+    res = []
+    for n in out:
+        ok = True
+        for c in out:
+            if 'path' in c and c is not n:
+                lo = min(p[1] for p in c['path']); hi = max(p[1] for p in c['path'])
+                if c['t'] < n['t'] < c['end'] + 0.2 and lo - 1 <= n['lane'] <= hi + 1: ok = False
+        if ok: res.append(n)
+    return res
+
+
 def decode(path, sr, mono=True):
     tmp = tempfile.mktemp(suffix='.wav')
     subprocess.run(['ffmpeg', '-loglevel', 'error', '-y', '-i', path, '-ar', str(sr), '-ac', '1' if mono else '2', tmp], check=True)
@@ -378,6 +422,7 @@ def build(mp3, song_id, workdir, diffs=('normal',), start=None, end=None):
                     notes.append(dict(t=round(t, 3), lane=l2))
             lane2, lane, prev_p, prev_t, prev_kind = lane, new, (p if not np.isnan(p) else prev_p), t, x['kind']
         notes.sort(key=lambda n: (n['t'], n['lane']))
+        notes = make_chains(notes, L, rng, diff)
         # nivel (estrellas) por densidad máxima en 4 s
         tt_ = np.array([n['t'] for n in notes])
         peak4 = max((np.sum((tt_ >= a) & (tt_ < a + 4)) / 4 for a in tt_), default=0)
