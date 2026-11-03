@@ -216,19 +216,29 @@ def build(mp3, song_id, workdir, diffs=('normal',), start=None, end=None):
         v = midi[m]; v = v[~np.isnan(v)]
         return float(np.median(v)) if len(v) else np.nan
 
+    strong_ons = ons[strength > 0.6]
+    fdt = float(ft[1] - ft[0]) if len(ft) > 1 else 0.02
     def sustain(t, nxt):
-        # nota larga sólo si la voz mantiene un tono estable (o se desliza) sin empezar otra sílaba
-        nxt_syl = ons[ons > t + 0.08]
-        lim = min(nxt, nxt_syl[0] if len(nxt_syl) else dur, t + 2.4) - 0.05
+        # La nota larga sigue mientras la voz siga sonando la misma frase: sólo termina si la voz
+        # se calla (> 90 ms), baja mucho de volumen o empieza otra sílaba con un salto de tono claro.
+        lim = min(nxt, t + 3.2) - 0.05
         i = np.searchsorted(ft, t + 0.06)
         if i >= len(ft) or np.isnan(midi[i]): return 0.0
-        ref = midi[i]; j = i; peak = db[min(len(db) - 1, np.searchsorted(rt, t + 0.05))]
-        while j < len(ft) and ft[j] < lim and not np.isnan(midi[j]) and abs(midi[j] - ref) < 3.5:
+        ref = midi[i]; j = i; gap = 0
+        peak = db[min(len(db) - 1, np.searchsorted(rt, t + 0.05))]
+        while j < len(ft) and ft[j] < lim:
+            m = midi[j]
+            if np.isnan(m):
+                gap += 1
+                if gap * fdt > 0.09: break
+            else:
+                gap = 0
+                if abs(m - ref) > 2.5 and len(strong_ons) and np.min(np.abs(strong_ons - ft[j])) < 0.04: break
+                ref = 0.9 * ref + 0.1 * m
             k = min(len(db) - 1, np.searchsorted(rt, ft[j]))
-            if db[k] < peak - 12: break
-            ref = 0.85 * ref + 0.15 * midi[j]            # permite deslizarse poco a poco
+            if db[k] < peak - 15: break
             j += 1
-        return ft[min(j, len(ft) - 1)] - t
+        return max(0.0, ft[min(j, len(ft) - 1)] - t - gap * fdt)
 
     # sílabas cuadradas a semicorcheas si están cerca (la voz suele ir a tempo)
     syl = []
@@ -370,8 +380,10 @@ def build(mp3, song_id, workdir, diffs=('normal',), start=None, end=None):
             for e, lo, hi in spans:
                 if t < e + 0.2 and lo - 1 <= l <= hi + 1: return True
             return False
+        phrase_until = -1.0
         for k, x in enumerate(chosen):
             t = x['t']
+            if t < phrase_until: continue                    # dentro de una frase alargada: es la misma palabra
             nxt = chosen[k + 1]['t'] if k + 1 < len(chosen) else dur
             p = pitch_at(t, t + 0.15)
             dp = 0 if (np.isnan(p) or np.isnan(prev_p)) else p - prev_p
@@ -405,11 +417,12 @@ def build(mp3, song_id, workdir, diffs=('normal',), start=None, end=None):
             if x['kind'] == 'v' and not spans:              # un conector cada vez
                 sus = sustain(t, nxt if diff == 'easy' else min(nxt + 1.5, dur))
                 if sus >= c['holdMin'] and (diff != 'easy' or nxt - t > sus + 0.1):
-                    hend = t + min(sus, 0.8)   # como el original: notas largas cortas
+                    hend = t + (min(sus, 0.8) if sus < 1.0 else min(sus, 3.0))   # cortas como el original; frases alargadas = notas largas largas
                     g = nearest(grid8, hend)
                     if abs(g - hend) < 0.12: hend = g
                     if hend - t >= c['holdMin'] * 0.9:
                         n['end'] = round(float(hend), 3)
+                        if hend - t >= 1.0: phrase_until = hend + 0.12
                         p2 = pitch_at(hend - 0.2, hend)
                         if L > 3 and not np.isnan(p) and not np.isnan(p2) and abs(p2 - p) >= 1.5:
                             l2 = int(np.clip(new + (1 if p2 > p else -1) * (2 if L >= 7 else 1), 0, L - 1))

@@ -7,7 +7,7 @@ import { openDrop } from './drop.js';
 
 // ---------------- estado ----------------
 let recState = null, pendingRec = null, afterTry = null;
-const PREPARED = ['no-more-dream', 'dynamite']; // canciones con partitura que sigue la voz
+const PREPARED = ['no-more-dream', 'dynamite', 'the-truth-untold']; // canciones con partitura que sigue la voz
 let P = loadProfile();
 let ctx = null;
 let screen = 'title';

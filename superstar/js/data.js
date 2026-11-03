@@ -50,6 +50,7 @@ export const SONGS = [
   { id: 'mic-drop', title: 'MIC Drop', theme: 'LY', alias: ['micdrop'] },
   { id: 'fake-love', title: 'FAKE LOVE', theme: 'LY', alias: ['fakelove'] },
   { id: 'idol', title: 'IDOL', theme: 'LY' },
+  { id: 'the-truth-untold', title: 'The Truth Untold', theme: 'LY', alias: ['truthuntold', 'thetruthuntold'] },
   { id: 'bwl', title: 'Boy With Luv', theme: 'MOTS', alias: ['boywithluv', 'jageungeotdeureulwihansi'] },
   { id: 'make-it-right', title: 'Make It Right', theme: 'MOTS', alias: ['makeitright'] },
   { id: 'on', title: 'ON', theme: 'MOTS' },
