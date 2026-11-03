@@ -26,7 +26,7 @@ HOP = 256
 
 CFG = {
     'easy':   dict(lanes=3, minGap=0.36, peak=2.5, holdMin=0.4, chord=0.0,  breakEvery=4),
-    'normal': dict(lanes=4, minGap=0.13, peak=6.5, holdMin=0.28, chord=0.08, breakEvery=2),
+    'normal': dict(lanes=4, minGap=0.15, peak=5.5, holdMin=0.28, chord=0.08, breakEvery=2),
     'hard':   dict(lanes=7, minGap=0.13, peak=6.5, holdMin=0.2, chord=0.22, breakEvery=1),
 }
 
@@ -272,7 +272,7 @@ def build(mp3, song_id, workdir, diffs=('normal',), start=None, end=None):
     accents = []
     for i in pk:
         ta = float(ti[i])
-        if oe_i[i] >= thr and oe_i[i] > 5 * (med[i] + 1e-6) and start <= ta <= end:
+        if oe_i[i] >= thr and oe_i[i] > 5 * (med[i] + 1e-6) and first_vocal - 0.05 <= ta <= end:
             if not len(ons) or np.min(np.abs(ons - ta)) > 0.09:   # no pisar una sílaba
                 g = nearest(grid16, ta); accents.append(float(g if abs(g - ta) < 0.04 else ta))
 
@@ -311,13 +311,16 @@ def build(mp3, song_id, workdir, diffs=('normal',), start=None, end=None):
     drum_cand = []
     for d in drums:
         if not (start <= d['t'] <= end): continue
-        if in_inst(d['t']):
-            d = dict(d, kind='d', s=d['s'] * (1.3 if d['onBeat'] else 1.0))     # instrumental: manda la batería
-        elif not near_voice(d['t'], period * 0.75):
-            d = dict(d, kind='d', s=d['s'] * 0.45)                                 # hueco en la voz: relleno suave
+        # sólo golpes de bombo en el pulso, en pausas instrumentales largas y después de empezar a cantar
+        if d['t'] > first_vocal + 0.1 and in_inst(d['t']) and d['drum'] == 'k' and d['onBeat']:
+            d = dict(d, kind='d', s=d['s'] * 0.8)
         else:
             continue
         drum_cand.append(d)
+    thin, last_t = [], -9
+    for d in sorted(drum_cand, key=lambda x: x['t']):
+        if d['t'] - last_t >= 2 * period - 0.02: thin.append(d); last_t = d['t']
+    drum_cand = thin
     sections = [dict(a=round(a_, 2), b=round(b_, 2)) for a_, b_ in inst_spans]
 
     charts = {}
@@ -326,7 +329,7 @@ def build(mp3, song_id, workdir, diffs=('normal',), start=None, end=None):
         L = c['lanes']
         rng = np.random.default_rng(abs(hash(song_id + diff)) % (2 ** 32))
         # selección: prioridad a sílabas fuertes y en tiempo; respeta separación y pico por segundo
-        cand = [dict(x, kind='v') for x in syl if start + 0.3 <= x['t'] <= end]
+        cand = [dict(x, kind='v') for x in syl if max(start + 0.3, first_vocal - 0.01) <= x['t'] <= end]
         cand += [dict(t=a, s=2.0, onBeat=False, on8=True, kind='a') for a in accents]
         cand += drum_cand
         if diff == 'hard':
@@ -402,7 +405,7 @@ def build(mp3, song_id, workdir, diffs=('normal',), start=None, end=None):
             if x['kind'] == 'v' and not spans:              # un conector cada vez
                 sus = sustain(t, nxt if diff == 'easy' else min(nxt + 1.5, dur))
                 if sus >= c['holdMin'] and (diff != 'easy' or nxt - t > sus + 0.1):
-                    hend = t + min(sus, 2.4)
+                    hend = t + min(sus, 0.8)   # como el original: notas largas cortas
                     g = nearest(grid8, hend)
                     if abs(g - hend) < 0.12: hend = g
                     if hend - t >= c['holdMin'] * 0.9:
@@ -422,7 +425,6 @@ def build(mp3, song_id, workdir, diffs=('normal',), start=None, end=None):
                     notes.append(dict(t=round(t, 3), lane=l2))
             lane2, lane, prev_p, prev_t, prev_kind = lane, new, (p if not np.isnan(p) else prev_p), t, x['kind']
         notes.sort(key=lambda n: (n['t'], n['lane']))
-        notes = make_chains(notes, L, rng, diff)
         # nivel (estrellas) por densidad máxima en 4 s
         tt_ = np.array([n['t'] for n in notes])
         peak4 = max((np.sum((tt_ >= a) & (tt_ < a + 4)) / 4 for a in tt_), default=0)
