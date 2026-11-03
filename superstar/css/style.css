@@ -346,3 +346,6 @@ h2{margin:6px 0 10px;font-size:20px}h3{font-size:15px;margin:18px 0 10px}
 .era-PROOF .card-tint{background:linear-gradient(180deg,rgba(14,27,44,.4),transparent 40%,rgba(14,27,44,.8)),linear-gradient(90deg,rgba(212,175,55,.3),transparent 30%,transparent 70%,rgba(212,175,55,.3))}
 .era-PROOF.card{box-shadow:0 0 0 2px var(--gc),inset 0 0 0 4px rgba(212,175,55,.6),0 6px 18px rgba(0,0,0,.35)}
 .era-WINGS.card::before,.era-BUTTER.card::before,.era-LY.card::before{content:"";position:absolute;inset:4px;border-radius:9px;border:1px solid rgba(255,255,255,.35);pointer-events:none;z-index:2}
+.rec-box{margin-top:10px;padding:10px 12px;border-radius:14px;background:rgba(255,59,92,.08);border:1px solid rgba(255,59,92,.35)}
+.rec-box .row2{margin-top:8px}
+.mine{font-size:13px;color:#ffd0da}

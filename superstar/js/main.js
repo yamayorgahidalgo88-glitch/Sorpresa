@@ -1,11 +1,12 @@
 import { SONGS, PHOTO_CREDITS, THEMES, DIFFS, MEMBERS, DECK_SIZE, PACK_COST, REFILL_COST, HP_REGEN_SEC, BASE_MAX_SCORE, matchSong, GRADE_INFO } from './data.js';
 import { loadProfile, saveProfile, resetProfile, idb, askPersistent } from './store.js';
-import { analyzeAudio, makeChart, ANALYSIS_VERSION } from './beatmap.js';
+import { analyzeAudio, makeChart, ANALYSIS_VERSION, beatGrid, nearestIn } from './beatmap.js';
 import { cardHTML, cardPower, deckPower, openPack, welcomePack, autoDeck, memberById } from './cards.js';
 import { Game } from './engine.js';
 import { openDrop } from './drop.js';
 
 // ---------------- estado ----------------
+let recState = null, pendingRec = null, afterTry = null;
 const PREPARED = ['no-more-dream', 'dynamite']; // canciones con partitura que sigue la voz
 let P = loadProfile();
 let ctx = null;
@@ -239,7 +240,7 @@ function songRow(s) {
     <div class="song-jacket"><span>${esc(th.short)}</span></div>
     <div class="song-meta">
       <div class="song-title">${esc(s.title)}</div>
-      <div class="song-sub">${esc(s.artist || '')}${lv ? ` · <span class="lvl">★${lv[diff]}</span>` : ''}${PREPARED.includes(s.id) ? ' · <span class="voz">🎤 voz</span>' : ''}</div>
+      <div class="song-sub">${esc(s.artist || '')}${lv ? ` · <span class="lvl">★${lv[diff]}</span>` : ''}${P.userCharts && P.userCharts[s.id] ? ' · <span class="voz">✋ tuya</span>' : PREPARED.includes(s.id) ? ' · <span class="voz">🎤 voz</span>' : ''}</div>
     </div>
     <div class="song-right">${right}</div>
   </div>`;
@@ -354,10 +355,26 @@ async function songSheet(id) {
     </div>
     ${id.startsWith('c-') ? '<div class="row2"><button class="btn ghost" data-act="assign">Es una canción de la lista…</button>' : '<div class="row2" hidden>'}
     </div>
+    <div class="rec-box">
+      ${P.userCharts && P.userCharts[id] ? `<div class="mine">✋ Se juega con <b>tu partitura</b> (${P.userCharts[id].notes.length} notas)</div>` : '<div class="muted small">¿No te convence cómo caen las notas? Grábalas tú.</div>'}
+      <div class="row2">
+        <button class="btn ghost" data-act="rec">🎙 Grabar partitura</button>
+        ${P.userCharts && P.userCharts[id] ? '<button class="btn ghost" data-act="recdel">Borrar la mía</button><button class="btn ghost" data-act="recexp">Exportar</button>' : ''}
+      </div>
+    </div>
     <button class="btn primary huge" data-act="start">EMPEZAR <small>🎧 ${d.cost}</small></button>
   `, el => {
     el.querySelector('[data-act=start]').onclick = () => { closeModal(); startSong(id); };
     el.querySelector('[data-act=auto]').onclick = () => { autoDeck(P, s.theme); save(); songSheet(id); };
+    el.querySelector('[data-act=rec]').onclick = () => { closeModal(); recordSetup(id); };
+    const del = el.querySelector('[data-act=recdel]');
+    if (del) del.onclick = () => confirmBox('¿Borrar tu partitura de esta canción? Volverá la automática.', () => { delete P.userCharts[id]; save(); toast('Borrada'); });
+    const exp = el.querySelector('[data-act=recexp]');
+    if (exp) exp.onclick = () => {
+      const blob = new Blob([JSON.stringify({ id, ...P.userCharts[id] })], { type: 'application/json' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `partitura-${id}.json`; a.click();
+      toast('Descargada. Pásamela y la meto en el juego para siempre.');
+    };
     const asg = el.querySelector('[data-act=assign]');
     if (asg) asg.onclick = async () => {
       closeModal();
@@ -377,7 +394,18 @@ async function songSheet(id) {
 }
 
 // ---------------- jugar ----------------
-async function startSong(id, { free = false } = {}) {
+// Partitura a usar: la grabada por ti > la preparada (sigue la voz) > la automática
+async function chartFor(id, buf, an, { ignoreUser = false } = {}) {
+  const prep = await getPrepared(id);
+  const usePrep = prep && prep.charts[diff] && Math.abs(prep.duration - buf.duration) < 1.5;
+  const base = usePrep
+    ? { ...prep.charts[diff], bpm: prep.bpm, phase: prep.phase, beats: prep.beats, intensity: prep.intensity, start: prep.start || 0, end: prep.end }
+    : makeChart(an, diff, id);
+  const mine = !ignoreUser && P.userCharts && P.userCharts[id];
+  if (mine && Math.abs((mine.duration || buf.duration) - buf.duration) < 1.5) return { ...base, notes: mine.notes, lanes: 4, mine: true };
+  return base;
+}
+async function startSong(id, { free = false, chartOverride = null } = {}) {
   tickHP();
   const d = diffInfo(diff);
   if (!free && P.hp < d.cost) {
@@ -400,13 +428,7 @@ async function startSong(id, { free = false } = {}) {
   }
   loading(false);
   if (!free) { P.hp -= d.cost; if (P.hp < maxHP() && P.hpTs > Date.now() - 1000) P.hpTs = Date.now(); save(); }
-  // si hay partitura preparada para esta canción (y el audio es la misma versión), se usa esa
-  const prep = await getPrepared(id);
-  const usePrep = prep && prep.charts[diff] && Math.abs(prep.duration - buf.duration) < 1.5;
-  const chart = usePrep
-    ? { ...prep.charts[diff], bpm: prep.bpm, phase: prep.phase, beats: prep.beats, intensity: prep.intensity, start: prep.start || 0, end: prep.end }
-    : makeChart(an, diff, id);
-  if (prep && !usePrep) toast('Este MP3 es otra versión: uso la partitura automática');
+  const chart = chartOverride || await chartFor(id, buf, an);
   const th = THEMES[s.theme] || THEMES.SPECIAL;
   const dp = deckPower(P, s.theme);
   const maxScore = Math.round(BASE_MAX_SCORE[diff] * (1 + dp / 6000));
@@ -455,6 +477,104 @@ function leaveLandscape() {
   try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch {}
 }
 
+// ---------------- grabar partitura ----------------
+async function recordSetup(id) {
+  const s = songById(id);
+  loading(true, 'Cargando…');
+  let buf, an;
+  try { buf = await getBuffer(id); an = await getAnalysis(id); } catch { loading(false); toast('No se pudo cargar la canción'); return; }
+  loading(false);
+  const base = await chartFor(id, buf, an);
+  const st = Math.floor(base.start || 0), en = Math.floor(base.end || buf.duration);
+  const fmtT = x => `${Math.floor(x / 60)}:${String(Math.floor(x % 60)).padStart(2, '0')}`;
+  modal(`<h2>🎙 Grabar «${esc(s.title)}»</h2>
+    <p>Toca los botones <b>al ritmo de la voz</b>, como si cantaras con los dedos. Mantén pulsado para una nota larga; arrástralo a otro botón para un slide.
+    No te preocupes por la precisión: <b>el juego cuadra tus toques al compás</b>. Para terminar, pulsa el botón de pausa.</p>
+    <label class="set"><span>Empezar desde <b id="recFromL">${fmtT(st)}</b></span>
+      <input type="range" id="recFrom" min="${st}" max="${Math.max(st, en - 5)}" step="1" value="${st}">
+      <small class="muted">Puedes grabar sólo un trozo (por ejemplo el rap): el resto de la partitura no se toca.</small></label>
+    <label class="set row"><span>Velocidad lenta (75%)</span><input type="checkbox" id="recSlow" checked></label>
+    <label class="set row"><span>Mostrar guía en gris</span><input type="checkbox" id="recGuide" checked></label>
+    <button class="btn primary huge" data-act="go">● GRABAR</button>`, el => {
+    const r = el.querySelector('#recFrom');
+    r.oninput = () => { el.querySelector('#recFromL').textContent = fmtT(+r.value); };
+    el.querySelector('[data-act=go]').onclick = () => {
+      const from = +r.value, slow = el.querySelector('#recSlow').checked, guide = el.querySelector('#recGuide').checked;
+      closeModal();
+      startRecording(id, buf, an, base, { from, rate: slow ? 0.75 : 1, guide });
+    };
+  });
+}
+
+async function startRecording(id, buf, an, base, { from, rate, guide }) {
+  const s = songById(id), th = THEMES[s.theme] || THEMES.SPECIAL;
+  recState = { id, buf, an, base, from, rate, guide };
+  screen = 'play'; document.body.dataset.screen = 'play';
+  $('#nav').hidden = true; $('#topbar').hidden = true;
+  const play = $('#play'); play.hidden = false;
+  play.style.setProperty('--c1', th.c1); play.style.setProperty('--c2', th.c2);
+  $('#pauseMenu').hidden = true;
+  ensureCtx();
+  await ensureLandscape();
+  game = new Game($('#cv'), {
+    ctx, buffer: buf, settings: { ...P.settings, sfx: true }, maxScore: 1, title: s.title, theme: th,
+    chart: { lanes: 4, notes: [], bpm: base.bpm, phase: base.phase, beats: base.beats, intensity: base.intensity, start: from, end: base.end },
+    record: true, rate, guide: guide ? base.notes : [],
+    deck: [], bgPhotos: MEMBERS.map(m => m.photo),
+    onEnd: res => finishRecording(res),
+  });
+  game.start();
+}
+
+function finishRecording({ recorded, from, to }) {
+  const { id, buf, an, base } = recState;
+  quitGame();
+  // cuadrar al compás: semicorcheas de los pulsos reales (si el toque cae cerca)
+  const beats = base.beats && base.beats.length > 8 ? base.beats : (an.beats || []);
+  const grid = beatGrid(beats, 4);
+  const snap = t => { const g = nearestIn(grid, t); return Math.abs(g - t) <= 0.075 ? g : t; };
+  let notes = recorded.map(n => {
+    const o = { t: +snap(n.t).toFixed(3), lane: n.lane };
+    if (n.end) { o.end = +Math.max(snap(n.end), o.t + 0.25).toFixed(3); if (n.lane2 !== undefined) o.lane2 = n.lane2; }
+    return o;
+  }).sort((a, b) => a.t - b.t || a.lane - b.lane);
+  // quita toques dobles accidentales (mismo botón casi a la vez) y notas imposibles (< 90 ms)
+  const clean = [];
+  for (const n of notes) {
+    const prev = clean.filter(x => n.t - x.t < 0.09);
+    if (prev.some(x => x.lane === n.lane)) continue;
+    if (prev.length >= 2) continue;
+    clean.push(n);
+  }
+  // mezcla: lo grabado sustituye a lo que había entre "from" y "to"
+  const old = (P.userCharts && P.userCharts[id] ? P.userCharts[id].notes : base.notes).filter(n => n.t < from - 0.05 || n.t > to + 0.05);
+  const merged = [...old, ...clean].sort((a, b) => a.t - b.t || a.lane - b.lane);
+  pendingRec = { id, notes: merged, duration: buf.duration };
+  const fmtT = x => `${Math.floor(x / 60)}:${String(Math.floor(x % 60)).padStart(2, '0')}`;
+  go('songs');
+  modal(`<h2>Grabación lista</h2>
+    <p>Has grabado <b>${clean.length} notas</b> entre ${fmtT(from)} y ${fmtT(to)}${clean.length < recorded.length ? ` (quité ${recorded.length - clean.length} toques dobles)` : ''}. Ya están cuadradas al compás.</p>
+    <button class="btn primary" data-act="try">▶ Probarla</button>
+    <div class="row2"><button class="btn ghost" data-act="again">Repetir</button><button class="btn ghost" data-act="keep">💾 Guardar</button></div>
+    <button class="btn ghost" data-close>Descartar</button>`, el => {
+    el.querySelector('[data-act=try]').onclick = async () => {
+      closeModal();
+      const ch = { ...(await chartFor(id, buf, an, { ignoreUser: true })), notes: pendingRec.notes, lanes: 4 };
+      afterTry = id;
+      startSong(id, { free: true, chartOverride: ch });
+    };
+    el.querySelector('[data-act=again]').onclick = () => { closeModal(); recordSetup(id); };
+    el.querySelector('[data-act=keep]').onclick = () => saveRec();
+  });
+}
+function saveRec() {
+  if (!pendingRec) return;
+  P.userCharts = P.userCharts || {};
+  P.userCharts[pendingRec.id] = { notes: pendingRec.notes, duration: pendingRec.duration, date: Date.now() };
+  save(); closeModal(); if (screen === 'songs') rSongs(); toast('¡Guardada! Ahora esta canción se juega con tu partitura.');
+  pendingRec = null;
+}
+
 function togglePause(force) {
   if (!game || game.ended) return;
   const pm = $('#pauseMenu');
@@ -470,6 +590,16 @@ function quitGame(keepOrientation = false) {
 function rankOf(ratio) { return ratio >= 0.88 ? 'S' : ratio >= 0.78 ? 'A' : ratio >= 0.66 ? 'B' : ratio >= 0.5 ? 'C' : 'D'; }
 
 function endSong(res) {
+  if (afterTry && pendingRec) {
+    const id = afterTry; afterTry = null; quitGame(); go('songs');
+    modal(`<h2>¿Qué tal ha ido?</h2><p>Has acertado ${res.counts[0] + res.counts[1] + res.counts[2]} de ${res.total} notas.</p>
+      <button class="btn primary" data-act="keep">💾 Guardar esta partitura</button>
+      <div class="row2"><button class="btn ghost" data-act="again">Repetir grabación</button><button class="btn ghost" data-close>Descartar</button></div>`, el => {
+      el.querySelector('[data-act=keep]').onclick = () => saveRec();
+      el.querySelector('[data-act=again]').onclick = () => { closeModal(); recordSetup(id); };
+    });
+    return;
+  }
   const { id, diff: dId, maxScore } = lastPlay;
   quitGame();
   const key = id + '|' + dId;
@@ -719,7 +849,7 @@ const isStandalone = () => window.matchMedia('(display-mode: standalone)').match
 
 // ---------------- arranque ----------------
 document.querySelectorAll('#nav button').forEach(b => b.onclick = () => { selectedSlot = -1; go(b.dataset.go); });
-$('#pauseBtn').onclick = () => togglePause();
+$('#pauseBtn').onclick = () => { if (game && game.rec) game.stopRecording(); else togglePause(); };
 $('#pmResume').onclick = () => togglePause();
 $('#pmRetry').onclick = () => { const lp = lastPlay; quitGame(true); startSong(lp.id, { free: true }); };
 $('#pmQuit').onclick = () => { quitGame(); go('songs'); };

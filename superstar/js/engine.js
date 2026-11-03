@@ -64,6 +64,10 @@ export class Game {
     this.coin = mkCoin('#ffd54a', '#c98a00');
     this.coinHold = mkCoin('#ffe37a', '#d39a10', true);
     this.gem = mkGem();
+    // ---- modo grabar partitura ----
+    this.rate = opts.rate || 1;
+    this.rec = opts.record ? { taps: [], open: new Map(), stop: false } : null;
+    this.ghost = (opts.guide || []).filter(n => n.lane < this.L).map(n => ({ ...n }));
     this._raf = 0;
     this._bind();
     this.resize();
@@ -74,7 +78,7 @@ export class Game {
   // ---------- audio y tiempo ----------
   start() {
     const ctx = this.ctx;
-    const first = this.notes.length ? this.notes[0].t : 0;
+    const first = this.notes.length ? this.notes[0].t : this.off;   // al grabar desde un punto, la cuenta atrás es corta
     const lead = Math.max(2.2, this.approach - (first - this.off) + 0.6);
     this.gain = ctx.createGain();
     this.gain.gain.value = this.o.settings.music;
@@ -83,12 +87,13 @@ export class Game {
     this.src.buffer = this.o.buffer;
     this.src.connect(this.gain);
     this.startAt = ctx.currentTime + lead;
+    this.src.playbackRate.value = this.rate;
     this.src.start(this.startAt, this.off);
     this.latency = (ctx.outputLatency || 0) + (ctx.baseLatency || 0);
     this._loop = this._loop.bind(this);
     this._raf = requestAnimationFrame(this._loop);
   }
-  now() { return this.ctx.currentTime - this.startAt - this.latency + (this.o.settings.offset || 0) / 1000 + (this.off || 0); }
+  now() { return (this.ctx.currentTime - this.startAt - this.latency) * this.rate + (this.o.settings.offset || 0) / 1000 + (this.off || 0); }
   pause() {
     if (this.paused || this.ended) return;
     this.paused = true;
@@ -170,6 +175,7 @@ export class Game {
       this.laneDown[old] = Math.max(0, this.laneDown[old] - 1);
       this.laneDown[lane]++;
       this.laneFlash[lane] = this.now();
+      if (this.rec) { const o = this.rec.open.get(e.pointerId); if (o) o.lane2 = lane; return; }
       if (!this.notes.some(n => n.holding && n.pid === e.pointerId)) this._press(lane, e.pointerId, true, false);
     };
     this._pu = e => { if (this.pointers.has(e.pointerId)) this._up(e.pointerId); };
@@ -205,6 +211,10 @@ export class Game {
   _press(lane, pid, slide = false, count = true) {
     const now = this.now();
     if (count) { this.laneDown[lane]++; this.laneFlash[lane] = now; this._sfx(); }
+    if (this.rec) {
+      if (!slide && now >= this.off - 0.2) { this.rec.open.set(pid, { t: now, lane, lane2: lane }); this.blooms.push({ x: this.xAt(lane, 1), y: this.hitY, t: performance.now(), big: false }); }
+      return;
+    }
     let best = null, bd = 1e9;
     for (let k = this.nextIdx; k < this.notes.length; k++) {
       const n = this.notes[k];
@@ -229,6 +239,7 @@ export class Game {
     this.pointers.delete(pid);
     if (lane !== undefined) this.laneDown[lane] = Math.max(0, this.laneDown[lane] - 1);
     const now = this.now();
+    if (this.rec) { this._closeTap(pid, now); return; }
     for (const n of this.notes) {
       if (!n.holding || n.pid !== pid) continue;
       n.holding = false; n.done = true;
@@ -299,7 +310,25 @@ export class Game {
     this._draw(now, dt);
   }
 
+  _closeTap(pid, now) {
+    const o = this.rec.open.get(pid);
+    if (!o) return;
+    this.rec.open.delete(pid);
+    const n = { t: o.t, lane: o.lane };
+    if (now - o.t >= 0.35) { n.end = now; if (o.lane2 !== o.lane) n.lane2 = o.lane2; }   // mantener = nota larga; arrastrar = slide
+    this.rec.taps.push(n);
+  }
+  stopRecording() { if (this.rec) this.rec.stop = true; }
   _update(now) {
+    if (this.rec) {
+      if (!this.ended && (this.rec.stop || now > this.endT + 0.2)) {
+        for (const pid of [...this.rec.open.keys()]) this._closeTap(pid, now);
+        this.ended = true;
+        try { this.src.stop(); } catch {}
+        this.o.onEnd({ recorded: this.rec.taps.sort((a, b) => a.t - b.t), from: this.off, to: Math.min(now, this.endT) });
+      }
+      return;
+    }
     for (let k = this.nextIdx; k < this.notes.length; k++) {
       const n = this.notes[k];
       if (n.t - now > 0) break;
@@ -524,6 +553,15 @@ export class Game {
       if (n.done && !n.holding) continue;
       vis.push(n);
     }
+    if (this.ghost.length) {
+      this.g.globalAlpha = 0.32;
+      for (const n of this.ghost) {
+        const p = this.pOf(n.t, now);
+        if (p < 0 || p > 1.08) continue;
+        this._drawCoin(this.xAt(n.lane, p), this.yAt(p), p, this.coin);
+      }
+      this.g.globalAlpha = 1;
+    }
     for (let k = vis.length - 1; k >= 0; k--) if (vis[k].end) this._drawHold(vis[k], now);
     for (let k = vis.length - 1; k >= 0; k--) {
       const n = vis[k];
@@ -606,6 +644,21 @@ export class Game {
 
   _drawHUD(now, tnow, pz) {
     const g = this.g, W = this.W, H = this.H;
+    if (this.rec) {
+      const S2 = this.land ? Math.min(1.25, H / 380) : Math.min(1.1, W / 420);
+      g.save(); g.textBaseline = 'top'; g.textAlign = 'left';
+      g.fillStyle = Math.floor(tnow / 500) % 2 ? '#ff3b5c' : 'rgba(255,59,92,0.5)';
+      g.beginPath(); g.arc(70, 22 * S2, 7 * S2, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#fff'; g.font = `800 ${18 * S2}px ${FONT}`;
+      const tt = Math.max(0, now); const mm = Math.floor(tt / 60), ss = Math.floor(tt % 60);
+      g.fillText(`GRABANDO  ${mm}:${String(ss).padStart(2, '0')}  ·  ${this.rec.taps.length + this.rec.open.size} notas${this.rate < 1 ? '  ·  lenta' : ''}`, 84, 12 * S2);
+      const prog = Math.max(0, Math.min(1, (now - this.off) / (this.endT - this.off)));
+      g.fillStyle = 'rgba(255,255,255,0.18)'; g.fillRect(62, 38 * S2, 220 * S2, 3);
+      g.fillStyle = '#ff3b5c'; g.fillRect(62, 38 * S2, 220 * S2 * prog, 3);
+      if (now < this.off) { g.textAlign = 'center'; g.font = `800 ${26 * S2}px ${FONT}`; g.fillText('Prepárate… toca al ritmo', this.cx, H * 0.42); }
+      g.restore();
+      return;
+    }
     const S = this.land ? Math.min(1.25, H / 380) : Math.min(1.1, W / 420);
     const target = this.score() + this.bonus;
     this.scoreShown += (target - this.scoreShown) * 0.25;

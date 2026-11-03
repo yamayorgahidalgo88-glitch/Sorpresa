@@ -14,6 +14,7 @@ export function defaultProfile() {
     deck: Array(7).fill(null),
     records: {},          // "songId|diff" -> {score, rank, fc, ap, plays}
     customSongs: [],      // {id, title, artist, theme}
+    userCharts: {},       // partituras grabadas por el jugador: id -> {notes, duration}
     settings: { speed: 5, offset: 0, music: 0.9, sfx: true, sfxVol: 0.45, fx: true },
     welcomed: false,
     lastDiff: 'normal',
