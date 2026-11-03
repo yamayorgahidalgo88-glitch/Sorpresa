@@ -407,6 +407,14 @@ export class Game {
     return it.v[i] + (it.v[i + 1] - it.v[i]) * (k - i);
   }
   _beat(now) {
+    const bt = this.o.chart.beats;
+    if (bt && bt.length > 1) {
+      let lo = 0, hi = bt.length - 1;
+      while (lo < hi) { const m = (lo + hi + 1) >> 1; if (bt[m] <= now) lo = m; else hi = m - 1; }
+      const prev = bt[lo], per = (bt[Math.min(lo + 1, bt.length - 1)] - prev) || 0.5;
+      if (now < prev) return 0;
+      return Math.exp(-((now - prev) / per) * 5);
+    }
     if (!this.bpm) return 0;
     const x = (now - this.phase) / (60 / this.bpm);
     return Math.exp(-(x - Math.floor(x)) * 5);

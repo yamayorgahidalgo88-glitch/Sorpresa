@@ -4,11 +4,14 @@
 // 3) Se estima el tempo (BPM) y la fase del compás para cuadrar las notas al ritmo.
 // 4) Para cada dificultad se eligen los golpes más fuertes, se asignan carriles y notas largas.
 
-export const ANALYSIS_VERSION = 7;
+export const ANALYSIS_VERSION = 10;
 
 const SR = 22050;
 const HOP = 256;               // ~11.6 ms por frame
 const FPS = SR / HOP;
+// El detector marca el golpe al principio de la subida de energía; el oído lo percibe un poco
+// después. Medido con clics de tiempo exacto y con una canción real: +25 ms lo centra.
+const ONSET_BIAS = 0.025;
 
 const yieldUI = () => new Promise(r => setTimeout(r, 0));
 
@@ -108,7 +111,7 @@ export async function analyzeAudio(buffer, onProgress = () => {}) {
     let j = i + 9;
     const limit = Math.min(nf, i + Math.round(4 * FPS));
     while (j < limit && midS[j] > peak * 0.12 && !(flux[1][j] > fluxMean[1] * 4 && midS[j] > midS[j - 1] * 1.6)) j++;
-    raw.push({ i, t: i / FPS, s: v, b: bb, sus: (j - i) / FPS });
+    raw.push({ i, t: i / FPS + ONSET_BIAS, s: v, b: bb, sus: (j - i) / FPS });
   }
   // normaliza fuerza respecto al percentil 90
   const sorted = raw.map(o => o.s).sort((x, y) => x - y);
@@ -129,26 +132,32 @@ export async function analyzeAudio(buffer, onProgress = () => {}) {
   await yieldUI();
 
   // ---- Tempo por autocorrelación del envolvente ----
-  const minLag = Math.floor(60 * FPS / 190), maxLag = Math.ceil(60 * FPS / 65);
-  const ac = new Float64Array(maxLag * 2 + 2);
+  const minLag = Math.floor(60 * FPS / 190), maxLag = Math.ceil(60 * FPS / 60);
   const a0 = firstSound, a1 = Math.max(a0 + 10, lastSound);
-  for (let lag = minLag; lag <= maxLag * 2 + 1; lag++) {
+  // envolvente sin componente continua (si no, la autocorrelación premia cualquier retardo)
+  let em = 0; for (let i = a0; i < a1; i++) em += envS[i]; em /= Math.max(1, a1 - a0);
+  const ec = new Float32Array(nf); for (let i = a0; i < a1; i++) ec[i] = envS[i] - em;
+  const maxL4 = maxLag * 4 + 2;
+  const ac = new Float64Array(maxL4 + 2);
+  for (let lag = minLag; lag <= maxL4; lag++) {
     let s = 0;
-    for (let i = a0; i + lag < a1; i += 1) s += envS[i] * envS[i + lag];
+    for (let i = a0; i + lag < a1; i++) s += ec[i] * ec[i + lag];
     ac[lag] = s;
   }
-  let bestLag = minLag, bestScore = -1;
-  for (let lag = minLag; lag <= maxLag; lag++) {
+  const acAt = x => { const i = Math.floor(x), f = x - i; return (ac[i] || 0) * (1 - f) + (ac[i + 1] || 0) * f; };
+  // "peine": el pulso real se repite en 1, 2, 3 y 4 periodos; uno falso (p. ej. 4/3 del real) no
+  let bestLag = minLag, bestScore = -Infinity;
+  for (let lag = minLag; lag <= maxLag; lag += 0.25) {
     const bpm = 60 * FPS / lag;
-    const prior = Math.exp(-0.5 * Math.pow(Math.log2(bpm / 118) / 0.55, 2));
-    const sc = (ac[lag] + 0.5 * (ac[lag * 2] || 0)) * prior;
+    const comb = acAt(lag) + 0.75 * acAt(2 * lag) + 0.6 * acAt(3 * lag) + 0.5 * acAt(4 * lag);
+    const prior = Math.exp(-0.5 * Math.pow(Math.log2(bpm / 105) / 0.9, 2));
+    const sc = comb * prior;
     if (sc > bestScore) { bestScore = sc; bestLag = lag; }
   }
-  // interpolación parabólica
-  const y0 = ac[bestLag - 1] || 0, y1 = ac[bestLag], y2 = ac[bestLag + 1] || 0;
-  const den = (y0 - 2 * y1 + y2);
-  const lagF = bestLag + (den ? 0.5 * (y0 - y2) / den : 0);
-  let bpm0 = 60 * FPS / lagF;
+  let bpm0 = 60 * FPS / bestLag;
+  // tempo "cómodo" para jugar: entre 70 y 160
+  while (bpm0 < 70) bpm0 *= 2;
+  while (bpm0 > 160) bpm0 /= 2;
 
   // Afinado fino de BPM + fase maximizando la energía en los pulsos
   const envAt = t => { const f = t * FPS; const i = Math.floor(f); if (i < 0 || i + 1 >= nf) return 0; const fr = f - i; return envS[i] * (1 - fr) + envS[i + 1] * fr; };
@@ -168,15 +177,48 @@ export async function analyzeAudio(buffer, onProgress = () => {}) {
   }
   await yieldUI();
 
-  // ¿Encaja la rejilla? % de golpes fuertes cerca de una corchea
-  const period = 60 / best.bpm;
-  const step = period / 2;
+  // ---- Seguimiento de pulsos uno a uno (programación dinámica, estilo Ellis 2007) ----
+  // En vez de una rejilla fija (que se desfasa si el tempo no es exacto), cada pulso se elige
+  // para caer en un golpe real manteniendo un periodo regular.
+  const P = 60 * FPS / best.bpm;
+  let sd = 0; for (let i = a0; i < a1; i++) sd += ec[i] * ec[i]; sd = Math.sqrt(sd / Math.max(1, a1 - a0)) || 1;
+  const sc = new Float64Array(nf), from = new Int32Array(nf).fill(-1);
+  const TIGHT = 100;
+  for (let i = 0; i < nf; i++) {
+    const loc = envS[i] / sd;
+    let bv = -Infinity, bp = -1;
+    const lo = Math.max(0, Math.floor(i - 2 * P)), hi = i - Math.round(P / 2);
+    for (let q = lo; q <= hi; q++) {
+      const pen = Math.log((i - q) / P);
+      const v = sc[q] - TIGHT * pen * pen;
+      if (v > bv) { bv = v; bp = q; }
+    }
+    if (bp >= 0 && bv > 0) { sc[i] = loc + bv; from[i] = bp; } else sc[i] = loc;
+  }
+  let last = a1 - 1, lv = -Infinity;
+  for (let i = Math.max(0, Math.floor(a1 - P)); i < a1; i++) if (sc[i] > lv) { lv = sc[i]; last = i; }
+  const bf = [];
+  for (let i = last; i >= 0; i = from[i]) { bf.push(i); if (from[i] < 0) break; }
+  bf.reverse();
+  // ajuste fino de cada pulso al máximo local del envolvente (±2 frames) con interpolación
+  const beats = bf.map(i => {
+    let m = i; for (let k = -2; k <= 2; k++) if (envS[i + k] > envS[m]) m = i + k;
+    const y0 = envS[m - 1] || 0, y1 = envS[m], y2 = envS[m + 1] || 0, dn = y0 - 2 * y1 + y2;
+    return Math.round(((m + (dn ? 0.5 * (y0 - y2) / dn : 0)) / FPS + ONSET_BIAS) * 1000) / 1000;
+  }).filter(t => t >= t0 - 0.5);
+  if (beats.length > 8) {
+    const ibis = beats.slice(1).map((t, k) => t - beats[k]).sort((x, y) => x - y);
+    best.bpm = 60 / ibis[Math.floor(ibis.length / 2)];
+    best.phase = beats[0];
+  }
+
+  // ¿Encajan los golpes con las corcheas de los pulsos?
+  const sub8 = beatGrid(beats, 2);
   let near = 0, strong = 0;
   for (const o of raw) {
     if (o.s < 0.5) continue;
     strong++;
-    const k = Math.round((o.t - best.phase) / step);
-    if (Math.abs(best.phase + k * step - o.t) < 0.045) near++;
+    if (Math.abs(nearestIn(sub8, o.t) - o.t) < 0.045) near++;
   }
   const gridFit = strong ? near / strong : 0;
 
@@ -215,6 +257,7 @@ export async function analyzeAudio(buffer, onProgress = () => {}) {
     duration: buffer.duration,
     bpm: Math.round(best.bpm * 100) / 100,
     phase: best.phase,
+    beats,
     gridFit,
     firstSound: firstSound / FPS,
     lastSound: lastSound / FPS,
@@ -245,8 +288,9 @@ export function makeChart(an, diffId, seedStr = '') {
   const L = cfg.lanes;
   const rng = mulberry32(hashStr(seedStr + '|' + diffId));
   const period = 60 / an.bpm;
-  const useGrid = an.gridFit >= 0.45;
+  const useGrid = an.gridFit >= 0.4 && an.beats && an.beats.length > 8;
   const step = period / cfg.sub;
+  const grid = useGrid ? beatGrid(an.beats, cfg.sub) : [];
   const beatStep = period;
 
   // 1) candidatos ajustados a la rejilla
@@ -255,14 +299,9 @@ export function makeChart(an, diffId, seedStr = '') {
     if (s < 0.12) continue;
     let tt = t, onBeat = false;
     if (useGrid) {
-      // sólo se cuadra al compás si el golpe real está muy cerca; si no, se respeta su momento exacto
-      const k = Math.round((t - an.phase) / step);
-      const g = an.phase + k * step;
-      if (Math.abs(g - t) <= 0.035) {
-        tt = g;
-        const kb = (tt - an.phase) / beatStep;
-        onBeat = Math.abs(kb - Math.round(kb)) < 1e-3;
-      }
+      // sólo se cuadra al pulso si el golpe real está muy cerca; si no, se respeta su momento exacto
+      const g = nearestIn(grid, t);
+      if (Math.abs(g - t) <= 0.035) { tt = g; onBeat = Math.abs(nearestIn(an.beats, g) - g) < 1e-3; }
     }
     if (tt < 0.25 || tt > an.duration - 0.2) continue;
     const key = Math.round(tt * 1000);
@@ -343,7 +382,7 @@ export function makeChart(an, diffId, seedStr = '') {
     const maxHolds = diffId === 'hard' ? 2 : 1;
     if (p.sus >= cfg.holdMin && room >= cfg.holdMin * 0.85 && activeHolds < maxHolds && p.t - lastHoldT > 1.2 && rng() < cfg.holdP) {
       let end = p.t + Math.min(p.sus, room, 2.6);
-      if (useGrid) end = an.phase + Math.floor((end - an.phase) / step) * step;
+      if (useGrid) { const g = nearestIn(grid, end); if (g <= end + 0.01) end = g; }
       if (end - p.t >= cfg.holdMin * 0.8) {
         note.end = round3(end); freeAt[lane] = end + 0.08; holdEnds.push(end); lastHoldT = p.t;
         // slide: la nota larga termina en otro carril (hay que arrastrar el dedo)
@@ -374,7 +413,7 @@ export function makeChart(an, diffId, seedStr = '') {
     peak = Math.max(peak, (i - j + 1) / 4);
   }
   const level = Math.max(1, Math.min(15, Math.round(peak * 1.9 + (L - 3) * 0.9)));
-  return { lanes: L, notes, level, bpm: an.bpm, phase: an.phase, grid: useGrid, intensity: an.intensity };
+  return { lanes: L, notes, level, bpm: an.bpm, phase: an.phase, beats: an.beats, grid: useGrid, intensity: an.intensity };
 }
 
 function freeLane(lane, t, freeAt, L, avoid, mustAvoid) {
@@ -398,3 +437,25 @@ export function intensityAt(an, t) {
   return it.v[i] + (it.v[i + 1] - it.v[i]) * (k - i);
 }
 function rapAt(an, t) { const it = an.intensity; if (!it || !it.rap) return 0; return it.rap[Math.max(0, Math.min(it.rap.length - 1, Math.round(t / it.step)))] || 0; }
+
+// subdivisiones entre pulsos consecutivos (sub=2 corcheas, 4 semicorcheas)
+export function beatGrid(beats, sub) {
+  const g = [];
+  if (!beats || beats.length < 2) return g;
+  for (let k = 0; k < beats.length - 1; k++) {
+    const a = beats[k], d = (beats[k + 1] - a) / sub;
+    for (let j = 0; j < sub; j++) g.push(a + j * d);
+  }
+  g.push(beats[beats.length - 1]);
+  // extiende un poco antes y después con el periodo de los extremos
+  const p0 = beats[1] - beats[0], p1 = beats[beats.length - 1] - beats[beats.length - 2];
+  for (let j = 1; j <= 8 * sub; j++) { g.unshift(beats[0] - j * p0 / sub); g.push(beats[beats.length - 1] + j * p1 / sub); }
+  return g;
+}
+export function nearestIn(arr, t) {
+  if (!arr || !arr.length) return Infinity;
+  let lo = 0, hi = arr.length - 1;
+  while (lo < hi) { const m = (lo + hi) >> 1; if (arr[m] < t) lo = m + 1; else hi = m; }
+  const c = arr[lo], d = lo > 0 ? arr[lo - 1] : c;
+  return Math.abs(c - t) < Math.abs(d - t) ? c : d;
+}
