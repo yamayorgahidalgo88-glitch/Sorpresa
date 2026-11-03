@@ -11,6 +11,27 @@ const KEYS = {
   4: ['KeyD', 'KeyF', 'KeyJ', 'KeyK'],
   7: ['KeyS', 'KeyD', 'KeyF', 'Space', 'KeyJ', 'KeyK', 'KeyL'],
 };
+const POS = 13;          // posiciones a lo ancho de la barra
+const HIT = 1.7;         // distancia (en posiciones) a la que un toque cuenta
+const KEYPOS = [1.5, 4.5, 7.5, 10.5];
+// Convierte una partitura de N carriles a posiciones libres 0..12, con una ligera variación
+// (determinista) para que las notas no caigan siempre en los mismos sitios.
+function toPositions(srcL) {
+  if (srcL === POS) return notes => notes.map(n => ({ ...n }));
+  const k = (POS - 1) / Math.max(1, srcL - 1);
+  const jit = t => [0, 1, -1, 0, 1, -1, 0][Math.floor(t * 7.31) % 7];
+  return notes => {
+    const byT = new Map(); for (const n of notes) byT.set(n.t, (byT.get(n.t) || 0) + 1);
+    const P = (l, t, single) => Math.max(0, Math.min(POS - 1, Math.round(l * k) + (single ? jit(t) : 0)));
+    return notes.map(n => {
+      const single = byT.get(n.t) === 1 && !n.end;
+      const o = { ...n, lane: P(n.lane, n.t, single) };
+      if (n.lane2 !== undefined) o.lane2 = P(n.lane2, n.end, false);
+      if (n.path) o.path = n.path.map(([t, l]) => [t, P(l, t, false)]);
+      return o;
+    });
+  };
+}
 const FONT = '"Saira Condensed", "Arial Narrow", Poppins, system-ui, sans-serif';
 
 const imgCache = new Map();
@@ -26,8 +47,14 @@ export class Game {
     this.g = canvas.getContext('2d');
     this.o = opts; // {ctx, buffer, chart, settings, maxScore, title, theme, deck:[{photo,name,grade}], bgPhotos:[src], onEnd, onPause}
     this.ctx = opts.ctx;
-    this.L = opts.chart.lanes;
-    this.keys = KEYS[this.L] || KEYS[4];
+    // Sin carriles fijos: 13 posiciones a lo ancho de la barra (como el original).
+    // Las partituras de 3/4/7 carriles se reparten a lo ancho con pequeñas variaciones.
+    const srcL = opts.chart.lanes || 4;
+    this.L = POS;
+    this.keys = KEYS[4];
+    const conv = toPositions(srcL);
+    opts = { ...opts, chart: { ...opts.chart, notes: conv(opts.chart.notes || []) } };
+    this.o = opts;
     const byT = new Map();
     for (const n of opts.chart.notes) byT.set(n.t, (byT.get(n.t) || 0) + 1);
     this.notes = opts.chart.notes.map((n, i) => ({ ...n, i, gem: byT.get(n.t) > 1, head: -1, tail: -1, holding: false, done: false, pid: null }));
@@ -74,7 +101,7 @@ export class Game {
     // ---- modo grabar partitura ----
     this.rate = opts.rate || 1;
     this.rec = opts.record ? { taps: [], open: new Map(), stop: false } : null;
-    this.ghost = (opts.guide || []).filter(n => n.lane < this.L).map(n => ({ ...n }));
+    this.ghost = toPositions(opts.guideLanes || 4)(opts.guide || []);
     this._raf = 0;
     this._bind();
     this.resize();
@@ -156,7 +183,7 @@ export class Game {
   }
   laneAt(x, y) {
     const p = Math.max(0.55, Math.min(1.1, this._pAtY(y)));
-    const l = Math.floor(((x - this.cx) / this.wAt(p) + 0.5) * this.L);
+    const l = ((x - this.cx) / this.wAt(p) + 0.5) * this.L - 0.5;   // posición continua: se toca donde llega la nota
     return Math.max(0, Math.min(this.L - 1, l));
   }
 
@@ -177,11 +204,11 @@ export class Game {
       const [x, y] = pos(e);
       const lane = this.laneAt(x, y);
       const old = this.pointers.get(e.pointerId);
-      if (lane === old) return;
       this.pointers.set(e.pointerId, lane);
-      this.laneDown[old] = Math.max(0, this.laneDown[old] - 1);
-      this.laneDown[lane]++;
-      this.laneFlash[lane] = this.now();
+      if (Math.round(lane) === Math.round(old)) return;
+      this.laneDown[Math.round(old)] = Math.max(0, this.laneDown[Math.round(old)] - 1);
+      this.laneDown[Math.round(lane)]++;
+      this.laneFlash[Math.round(lane)] = this.now();
       if (this.rec) { const o = this.rec.open.get(e.pointerId); if (o) o.lane2 = lane; return; }
       if (!this.notes.some(n => n.holding && n.pid === e.pointerId)) this._press(lane, e.pointerId, true, false);
     };
@@ -192,8 +219,9 @@ export class Game {
       const lane = this.keys.indexOf(e.code);
       if (lane < 0 || this.paused || this.ended) return;
       e.preventDefault();
-      this.pointers.set('k' + lane, lane);
-      this._press(lane, 'k' + lane);
+      const kp = KEYPOS[lane];
+      this.pointers.set('k' + lane, kp);
+      this._press(kp, 'k' + lane);
     };
     this._ku = e => { const lane = this.keys.indexOf(e.code); if (lane >= 0 && this.pointers.has('k' + lane)) this._up('k' + lane); };
     this._rs = () => this.resize();
@@ -217,7 +245,7 @@ export class Game {
 
   _press(lane, pid, slide = false, count = true) {
     const now = this.now();
-    if (count) { this.laneDown[lane]++; this.laneFlash[lane] = now; this._sfx(); }
+    if (count) { this.laneDown[Math.round(lane)]++; this.laneFlash[Math.round(lane)] = now; this._sfx(); }
     if (this.rec) {
       if (!slide && now >= this.off - 0.2) { this.rec.open.set(pid, { t: now, lane, lane2: lane }); this.blooms.push({ x: this.xAt(lane, 1), y: this.hitY, t: performance.now(), big: false }); }
       return;
@@ -226,7 +254,7 @@ export class Game {
     for (let k = this.nextIdx; k < this.notes.length; k++) {
       const n = this.notes[k];
       if (n.t - now > WIN.bEarly) break;
-      if (n.lane !== lane || n.head >= 0) continue;
+      if (Math.abs(n.lane - lane) > HIT || n.head >= 0) continue;   // vale tocar cerca de la nota
       const d = now - n.t;
       if (d < -WIN.bEarly || d > WIN.late) continue;
       if (Math.abs(d) < bd) { bd = Math.abs(d); best = n; }
@@ -244,7 +272,7 @@ export class Game {
   _up(pid) {
     const lane = this.pointers.get(pid);
     this.pointers.delete(pid);
-    if (lane !== undefined) this.laneDown[lane] = Math.max(0, this.laneDown[lane] - 1);
+    if (lane !== undefined) this.laneDown[Math.round(lane)] = Math.max(0, this.laneDown[Math.round(lane)] - 1);
     const now = this.now();
     if (this.rec) { this._closeTap(pid, now); return; }
     for (const n of this.notes) {
@@ -260,7 +288,7 @@ export class Game {
   }
   _onTarget(n, lane) {
     if (typeof n.pid === 'string') return true; // con teclado no se puede deslizar: se perdona
-    return lane !== undefined && Math.abs(lane - n.lane2) <= (this.L >= 7 ? 1 : 0);
+    return lane !== undefined && Math.abs(lane - n.lane2) <= HIT + 0.4;
   }
 
   _judge(j, lane) {
@@ -322,8 +350,8 @@ export class Game {
     const o = this.rec.open.get(pid);
     if (!o) return;
     this.rec.open.delete(pid);
-    const n = { t: o.t, lane: o.lane };
-    if (now - o.t >= 0.35) { n.end = now; if (o.lane2 !== o.lane) n.lane2 = o.lane2; }   // mantener = nota larga; arrastrar = slide
+    const n = { t: o.t, lane: Math.round(o.lane) };
+    if (now - o.t >= 0.35) { n.end = now; if (Math.abs(o.lane2 - o.lane) >= 1) n.lane2 = Math.round(o.lane2); }   // mantener = nota larga; arrastrar = slide
     this.rec.taps.push(n);
   }
   stopRecording() { if (this.rec) this.rec.stop = true; }
@@ -349,7 +377,7 @@ export class Game {
       if (n.holding && n.path) {
         while (n.ni < n.path.length - 1 && now >= n.path[n.ni][0]) {
           const tgt = n.path[n.ni][1], ln = this.pointers.get(n.pid);
-          const ok = typeof n.pid === 'string' || (ln !== undefined && Math.abs(ln - tgt) <= (this.L >= 7 ? 1 : 0));
+          const ok = typeof n.pid === 'string' || (ln !== undefined && Math.abs(ln - tgt) <= HIT + 0.4);
           this._judge(ok ? 0 : 2, tgt);
           n.ni++;
         }
@@ -539,8 +567,8 @@ export class Game {
       const a = on ? 0.45 : Math.max(0, 0.35 - (now - this.laneFlash[l]) * 2);
       if (a <= 0) continue;
       g.beginPath();
-      g.moveTo(this.edgeX(l, 0.3), this.yAt(0.3)); g.lineTo(this.edgeX(l + 1, 0.3), this.yAt(0.3));
-      g.lineTo(this.edgeX(l + 1, 1), this.hitY); g.lineTo(this.edgeX(l, 1), this.hitY); g.closePath();
+      g.moveTo(this.edgeX(l - 0.6, 0.3), this.yAt(0.3)); g.lineTo(this.edgeX(l + 1.6, 0.3), this.yAt(0.3));
+      g.lineTo(this.edgeX(l + 1.6, 1), this.hitY); g.lineTo(this.edgeX(l - 0.6, 1), this.hitY); g.closePath();
       const bg = g.createLinearGradient(0, this.yAt(0.3), 0, this.hitY);
       bg.addColorStop(0, 'rgba(255,255,255,0)'); bg.addColorStop(1, `rgba(255,230,255,${a})`);
       g.fillStyle = bg; g.fill();
@@ -549,7 +577,7 @@ export class Game {
     // botones: aros planos sobre la barra
     for (let l = 0; l < L; l++) {
       const x = this.xAt(l, 1), y = this.hitY + this.laneW * 0.05;
-      const rx = this.laneW * 0.4, ry = rx * 0.3;
+      const rx = this.laneW * 1.15, ry = rx * 0.3;
       const on = this.laneDown[l] > 0;
       if (on) {
         const gl = g.createRadialGradient(x, y, 0, x, y, rx * 1.2);
@@ -617,7 +645,7 @@ export class Game {
   }
 
   _drawCoin(x, y, p, spr) {
-    const w = this.wAt(Math.min(p, 1.05)) / this.L * 0.62;
+    const w = this.wAt(Math.min(p, 1.05)) / this.L * 2.1;
     const h = w * (spr.height / spr.width) * (0.75 + 0.25 * Math.min(1, p));
     const a = p < 0.06 ? Math.max(0, p / 0.06) : 1;
     if (a < 1) this.g.globalAlpha = a;
@@ -670,7 +698,7 @@ export class Game {
     const g = this.g, L = this.L, steps = 10, left = [], right = [];
     for (let i = 0; i <= steps; i++) {
       const q = i / steps, p = p0 + (p1 - p0) * q, lane = la + (lb - la) * q;
-      const x = this.xAt(lane, p), y = this.yAt(p), hw = this.wAt(p) / L * 0.2;
+      const x = this.xAt(lane, p), y = this.yAt(p), hw = this.wAt(p) / L * 0.62;
       left.push([x - hw, y]); right.push([x + hw, y]);
     }
     g.beginPath();

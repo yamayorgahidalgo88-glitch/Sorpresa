@@ -406,7 +406,7 @@ async function chartFor(id, buf, an, { ignoreUser = false } = {}) {
     ? { ...prep.charts.normal, bpm: prep.bpm, phase: prep.phase, beats: prep.beats, intensity: prep.intensity, start: prep.start || 0, end: prep.end }
     : makeChart(an, 'normal', id);
   const mine = !ignoreUser && P.userCharts && P.userCharts[id];
-  if (mine && Math.abs((mine.duration || buf.duration) - buf.duration) < 1.5) return { ...base, notes: mine.notes, lanes: 4, mine: true };
+  if (mine && Math.abs((mine.duration || buf.duration) - buf.duration) < 1.5) return { ...base, notes: mine.notes, lanes: mine.lanes || 4, mine: true };
   return base;
 }
 async function startSong(id, { free = false, chartOverride = null } = {}) {
@@ -522,8 +522,8 @@ async function startRecording(id, buf, an, base, { from, rate, guide }) {
   await ensureLandscape();
   game = new Game($('#cv'), {
     ctx, buffer: buf, settings: { ...P.settings, sfx: true }, maxScore: 1, title: s.title, theme: th,
-    chart: { lanes: 4, notes: [], bpm: base.bpm, phase: base.phase, beats: base.beats, intensity: base.intensity, start: from, end: base.end },
-    record: true, rate, guide: guide ? base.notes : [],
+    chart: { lanes: 13, notes: [], bpm: base.bpm, phase: base.phase, beats: base.beats, intensity: base.intensity, start: from, end: base.end },
+    record: true, rate, guide: guide ? base.notes : [], guideLanes: base.lanes,
     deck: [], bgPhotos: MEMBERS.map(m => m.photo),
     onEnd: res => finishRecording(res),
   });
@@ -551,9 +551,17 @@ function finishRecording({ recorded, from, to }) {
     clean.push(n);
   }
   // mezcla: lo grabado sustituye a lo que había entre "from" y "to"
-  const old = (P.userCharts && P.userCharts[id] ? P.userCharts[id].notes : base.notes).filter(n => n.t < from - 0.05 || n.t > to + 0.05);
+  const prevC = P.userCharts && P.userCharts[id] ? P.userCharts[id] : base;
+  const kL = 12 / Math.max(1, (prevC.lanes || 4) - 1);
+  const toP = l => (prevC.lanes === 13 ? l : Math.round(l * kL));
+  const old = prevC.notes.filter(n => n.t < from - 0.05 || n.t > to + 0.05).map(n => {
+    const o = { ...n, lane: toP(n.lane) };
+    if (n.lane2 !== undefined) o.lane2 = toP(n.lane2);
+    if (n.path) o.path = n.path.map(([t, l]) => [t, toP(l)]);
+    return o;
+  });
   const merged = [...old, ...clean].sort((a, b) => a.t - b.t || a.lane - b.lane);
-  pendingRec = { id, notes: merged, duration: buf.duration };
+  pendingRec = { id, notes: merged, lanes: 13, duration: buf.duration };
   const fmtT = x => `${Math.floor(x / 60)}:${String(Math.floor(x % 60)).padStart(2, '0')}`;
   go('songs');
   modal(`<h2>Grabación lista</h2>
@@ -563,7 +571,7 @@ function finishRecording({ recorded, from, to }) {
     <button class="btn ghost" data-close>Descartar</button>`, el => {
     el.querySelector('[data-act=try]').onclick = async () => {
       closeModal();
-      const ch = { ...(await chartFor(id, buf, an, { ignoreUser: true })), notes: pendingRec.notes, lanes: 4 };
+      const ch = { ...(await chartFor(id, buf, an, { ignoreUser: true })), notes: pendingRec.notes, lanes: pendingRec.lanes };
       afterTry = id;
       startSong(id, { free: true, chartOverride: ch });
     };
@@ -574,7 +582,7 @@ function finishRecording({ recorded, from, to }) {
 function saveRec() {
   if (!pendingRec) return;
   P.userCharts = P.userCharts || {};
-  P.userCharts[pendingRec.id] = { notes: pendingRec.notes, duration: pendingRec.duration, date: Date.now() };
+  P.userCharts[pendingRec.id] = { notes: pendingRec.notes, lanes: pendingRec.lanes, duration: pendingRec.duration, date: Date.now() };
   save(); closeModal(); if (screen === 'songs') rSongs(); toast('¡Guardada! Ahora esta canción se juega con tu partitura.');
   pendingRec = null;
 }
