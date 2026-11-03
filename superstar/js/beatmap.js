@@ -369,28 +369,15 @@ export function makeChart(an, diffId, seedStr = '') {
   const notes = [];
   const freeAt = new Array(L).fill(-1);
   const holdEnds = []; let lastHoldT = -9;
-  let prevLane = Math.floor(L / 2), prevT = -10, side = 1;
+  let prevLane = Math.floor(L / 2), prevLane2 = -1, lastDir = 0, prevT = -10;
   for (let i = 0; i < picked.length; i++) {
     const p = picked[i];
     const next = picked[i + 1] ? picked[i + 1].t : an.duration;
     const dt = p.t - prevT;
-    // Movimiento "ordenado" como el original: o se repite botón, o se salta lejos alternando
-    // de lado (mano izquierda / derecha). Casi nunca al botón de al lado.
-    const half = (L - 1) / 2;
-    let lane;
-    const canRepeat = dt >= Math.max(cfg.jack, 0.22);
-    if (canRepeat && rng() < 0.34) lane = prevLane;
-    else if (L <= 3) lane = prevLane === 1 ? (rng() < 0.5 ? 0 : 2) : (prevLane === 0 ? (rng() < 0.6 ? 2 : 1) : (rng() < 0.6 ? 0 : 1));
-    else {
-      side = prevLane < half ? 1 : prevLane > half ? -1 : (rng() < 0.5 ? 1 : -1);
-      const pool = [];
-      for (let c = 0; c < L; c++) { const d = Math.abs(c - prevLane); if (d >= 2 && (c - half) * side >= 0) pool.push(c); }
-      if (!pool.length) for (let c = 0; c < L; c++) if (Math.abs(c - prevLane) >= 2) pool.push(c);
-      // graves hacia fuera, agudos hacia el centro: da algo de coherencia con el sonido
-      pool.sort((x, y) => (Math.abs(x - half) - Math.abs(y - half)) * (p.b === 0 ? -1 : 1));
-      lane = pool[Math.min(pool.length - 1, Math.floor(rng() * rng() * pool.length))];
-    }
-    if (lane === prevLane && !canRepeat) lane = (lane + 2) % L;
+    // Movimiento entre botones con las probabilidades medidas en 152 partituras originales:
+    // cuanto más rápido, más saltos de lado a lado y menos repeticiones.
+    const nl = nextLane(prevLane, prevLane2, lastDir, dt, L, rng, 0);
+    let lane = nl[0]; lastDir = nl[1];
     lane = freeLane(lane, p.t, freeAt, L, prevLane, dt < cfg.jack);
     if (lane < 0) continue;
 
@@ -422,7 +409,7 @@ export function makeChart(an, diffId, seedStr = '') {
       l2 = freeLane(l2, p.t, freeAt, L, lane, false);
       if (l2 >= 0 && l2 !== lane) { notes.push({ t: round3(p.t), lane: l2 }); freeAt[l2] = p.t + 0.02; }
     }
-    prevLane = lane; prevT = p.t;
+    prevLane2 = prevLane; prevLane = lane; prevT = p.t;
   }
   notes.sort((a, b) => a.t - b.t || a.lane - b.lane);
 
@@ -478,4 +465,43 @@ export function nearestIn(arr, t) {
   while (lo < hi) { const m = (lo + hi) >> 1; if (arr[m] < t) lo = m + 1; else hi = m; }
   const c = arr[lo], d = lo > 0 ? arr[lo - 1] : c;
   return Math.abs(c - t) < Math.abs(d - t) ? c : d;
+}
+
+// ---- Modelo de movimiento (probabilidades agregadas de 152 partituras HARD de la serie) ----
+const GAP_EDGES = [0.16, 0.26, 0.42];
+const JUMP_P = [
+  [7.4, 0.9, 53.1, 13.9, 19.5, 1.7, 3.5],
+  [9.3, 5.7, 56.1, 8.4, 14.2, 1.6, 4.5],
+  [17.9, 10.8, 39.3, 8.2, 14.0, 2.5, 7.3],
+  [20.2, 10.7, 28.7, 9.3, 18.6, 2.5, 10.0],
+];
+const SIDE_CHANGE = [0.65, 0.5, 0.42, 0.52];
+const STAIRS = [0.29, 0.4, 0.33, 0.25];
+const USE7 = [1, 0.45, 1, 0.7, 1, 0.45, 1];
+export function nextLane(prev, prev2, lastDir, gap, L, rng, prefDir = 0) {
+  const b = GAP_EDGES.filter(e => gap >= e).length;
+  const P = JUMP_P[b], tot = P.reduce((x, y) => x + y, 0);
+  for (let tries = 0; tries < 12; tries++) {
+    let r = rng() * tot, k = 0;
+    while (k < 6 && r >= P[k]) { r -= P[k]; k++; }
+    const x = k * (L - 1) / 6;
+    let j = Math.floor(x) + (rng() < x - Math.floor(x) ? 1 : 0);
+    if (k > 0) j = Math.max(1, j);
+    if (j === 0 && (prev === prev2 || (L <= 3 && rng() < 0.5))) continue; // nunca 3 seguidas en el mismo botón
+    if (j === 0) return [prev, lastDir];
+    const c = (L - 1) / 2;
+    const opts = [1, -1].filter(d => prev + d * j >= 0 && prev + d * j < L);
+    if (!opts.length) continue;
+    let d;
+    if (opts.length === 2) {
+      if (prefDir && rng() < 0.5) d = prefDir;
+      else if (rng() < SIDE_CHANGE[b]) d = prev < c ? 1 : prev > c ? -1 : (rng() < 0.5 ? 1 : -1);
+      else d = lastDir ? (rng() < STAIRS[b] ? lastDir : -lastDir) : (rng() < 0.5 ? 1 : -1);
+      if (!opts.includes(d)) d = opts[0];
+    } else d = opts[0];
+    const nw = prev + d * j;
+    if (L === 7 && rng() > USE7[nw]) continue;
+    return [nw, d];
+  }
+  return [L > 3 ? (prev + (prev < (L - 1) / 2 ? 2 : -2) + L) % L : (prev + 1) % L, lastDir];
 }

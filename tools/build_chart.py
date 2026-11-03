@@ -31,6 +31,51 @@ CFG = {
 }
 
 
+
+# ---- Modelo de movimiento entre botones ----
+# Probabilidades agregadas medidas en 152 partituras HARD de la serie (7 posiciones).
+# Cuanto más rápido vienen las notas, más se salta de lado y menos se repite botón.
+GAP_EDGES = [0.16, 0.26, 0.42]
+JUMP_P = [  # salto 0..6 (en posiciones de 7) por rapidez: muy rápido, rápido, medio, lento
+    [7.4, 0.9, 53.1, 13.9, 19.5, 1.7, 3.5],
+    [9.3, 5.7, 56.1, 8.4, 14.2, 1.6, 4.5],
+    [17.9, 10.8, 39.3, 8.2, 14.0, 2.5, 7.3],
+    [20.2, 10.7, 28.7, 9.3, 18.6, 2.5, 10.0],
+]
+SIDE_CHANGE = [0.65, 0.50, 0.42, 0.52]
+STAIRS = [0.29, 0.40, 0.33, 0.25]
+USE7 = [1, 0.45, 1, 0.7, 1, 0.45, 1]
+
+
+def next_lane(prev, prev2, last_dir, gap, L, rng, pref_dir=0):
+    b = sum(gap >= e for e in GAP_EDGES)
+    p = np.array(JUMP_P[b]); p = p / p.sum()
+    for _ in range(12):
+        k = int(rng.choice(7, p=p))
+        x = k * (L - 1) / 6
+        j = int(np.floor(x)) + (rng.random() < x - np.floor(x))
+        if k > 0: j = max(1, j)
+        if j == 0 and (prev == prev2 or L <= 3 and rng.random() < 0.5): continue   # nunca 3 seguidas en el mismo botón
+        if j == 0: return prev, last_dir
+        c = (L - 1) / 2
+        opts = [d for d in (1, -1) if 0 <= prev + d * j < L]
+        if not opts: continue
+        if len(opts) == 2:
+            if pref_dir and rng.random() < 0.5:
+                d = pref_dir                                   # sigue la melodía (sube = derecha)
+            elif rng.random() < SIDE_CHANGE[b]:
+                d = 1 if prev < c else -1 if prev > c else (1 if rng.random() < 0.5 else -1)
+            else:
+                d = last_dir if (last_dir and rng.random() < STAIRS[b]) else -last_dir if last_dir else (1 if rng.random() < 0.5 else -1)
+            if d not in opts: d = opts[0]
+        else:
+            d = opts[0]
+        new = prev + d * j
+        if L == 7 and rng.random() > USE7[new]: continue
+        return new, d
+    return (prev + (2 if prev < (L - 1) / 2 else -2)) % L if L > 3 else (prev + 1) % L, last_dir
+
+
 def decode(path, sr, mono=True):
     tmp = tempfile.mktemp(suffix='.wav')
     subprocess.run(['ffmpeg', '-loglevel', 'error', '-y', '-i', path, '-ar', str(sr), '-ac', '1' if mono else '2', tmp], check=True)
@@ -182,6 +227,8 @@ def build(mp3, song_id, workdir):
         # carriles siguiendo la melodía
         notes = []
         lane = L // 2
+        lane2 = -1
+        last_dir = 0
         prev_p = np.nan
         prev_t = -9
         busy_until = [-1.0] * L
@@ -190,20 +237,11 @@ def build(mp3, song_id, workdir):
             nxt = chosen[k + 1]['t'] if k + 1 < len(chosen) else dur
             p = pitch_at(t, t + 0.15)
             dp = 0 if (np.isnan(p) or np.isnan(prev_p)) else p - prev_p
-            if x['kind'] == 'b':
-                step = 2 if L >= 4 else 1
-                new = lane + (step if lane < (L - 1) / 2 else -step)
-            elif abs(dp) < 0.8 and t - prev_t >= (0.22 if L > 3 else 0.4):
-                new = lane                                   # mismo tono: mismo botón
-            else:
-                mag = 1 if L <= 3 else (2 if abs(dp) < 4 or L == 4 else 3)
-                d = 1 if dp > 0 else -1 if dp < 0 else (1 if rng.random() < 0.5 else -1)
-                new = lane + d * mag
-                if new < 0 or new > L - 1:
-                    new = lane - d * mag                     # rebota en el borde
+            pref = 0 if (np.isnan(p) or np.isnan(prev_p) or abs(dp) < 0.8) else (1 if dp > 0 else -1)
+            new, last_dir = next_lane(lane, lane2, last_dir, t - prev_t, L, rng, pref)
             new = int(np.clip(new, 0, L - 1))
             if busy_until[new] > t:                          # carril ocupado por una larga
-                free = [l for l in range(L) if busy_until[l] <= t and abs(l - lane) != 1] or [l for l in range(L) if busy_until[l] <= t]
+                free = [l for l in range(L) if busy_until[l] <= t and l != lane] or [l for l in range(L) if busy_until[l] <= t]
                 if not free: continue
                 new = min(free, key=lambda l: abs(l - new))
             n = dict(t=round(t, 3), lane=new)
@@ -227,7 +265,7 @@ def build(mp3, song_id, workdir):
                 l2 = L - 1 - new if abs((L - 1 - new) - new) >= 2 else int(np.clip(new + (3 if new < L / 2 else -3), 0, L - 1))
                 if l2 != new and busy_until[l2] <= t:
                     notes.append(dict(t=round(t, 3), lane=l2))
-            lane, prev_p, prev_t = new, (p if not np.isnan(p) else prev_p), t
+            lane2, lane, prev_p, prev_t = lane, new, (p if not np.isnan(p) else prev_p), t
         notes.sort(key=lambda n: (n['t'], n['lane']))
         # nivel (estrellas) por densidad máxima en 4 s
         tt_ = np.array([n['t'] for n in notes])
