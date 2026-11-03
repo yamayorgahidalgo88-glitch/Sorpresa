@@ -4,7 +4,7 @@
 // 3) Se estima el tempo (BPM) y la fase del compás para cuadrar las notas al ritmo.
 // 4) Para cada dificultad se eligen los golpes más fuertes, se asignan carriles y notas largas.
 
-export const ANALYSIS_VERSION = 6;
+export const ANALYSIS_VERSION = 7;
 
 const SR = 22050;
 const HOP = 256;               // ~11.6 ms por frame
@@ -84,6 +84,9 @@ export async function analyzeAudio(buffer, onProgress = () => {}) {
   for (let i = 0; i < nf; i++) if (total[i] > silent) { if (firstSound < 0) firstSound = i; lastSound = i; }
   if (firstSound < 0) firstSound = 0;
 
+  const midS = new Float32Array(nf);
+  { const m = bands[1]; let acc = 0; const Wn = 5;
+    for (let i = 0; i < nf; i++) { acc += m[i]; if (i >= Wn) acc -= m[i - Wn]; midS[i] = acc / Math.min(i + 1, Wn); } }
   const raw = [];
   for (let i = 3; i < nf - 3; i++) {
     const v = envS[i];
@@ -98,13 +101,13 @@ export async function analyzeAudio(buffer, onProgress = () => {}) {
     // banda dominante
     let bb = 0, bv = -1;
     for (let b = 0; b < 3; b++) { const n = flux[b][i] / (fluxMean[b] + 1e-9) * W[b]; if (n > bv) { bv = n; bb = b; } }
-    // sostenido: cuánto aguanta la energía de medios (voces/sintes)
-    const mid = bands[1];
+    // sostenido: cuánto sigue sonando la voz/sinte (banda media suavizada) hasta caer ~9 dB
+    // o hasta que empieza la siguiente sílaba
     let peak = 0;
-    for (let k = 0; k < 6 && i + k < nf; k++) peak = Math.max(peak, mid[i + k] + bands[0][i + k] * 0.5);
-    let j = i + 6;
+    for (let k = 0; k < 9 && i + k < nf; k++) peak = Math.max(peak, midS[i + k]);
+    let j = i + 9;
     const limit = Math.min(nf, i + Math.round(4 * FPS));
-    while (j < limit && (mid[j] + bands[0][j] * 0.5) > peak * 0.42) j++;
+    while (j < limit && midS[j] > peak * 0.12 && !(flux[1][j] > fluxMean[1] * 4 && midS[j] > midS[j - 1] * 1.6)) j++;
     raw.push({ i, t: i / FPS, s: v, b: bb, sus: (j - i) / FPS });
   }
   // normaliza fuerza respecto al percentil 90
@@ -232,9 +235,9 @@ function mulberry32(a) {
 function hashStr(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
 
 const CFG = {
-  easy:   { lanes: 3, nps: 1.3, gap: 0.36, sub: 2, holdMin: 0.9, holdP: 0.55, chord: 0,    jack: 0.45, slideP: 0 },
-  normal: { lanes: 4, nps: 2.25, gap: 0.19, sub: 2, holdMin: 0.7, holdP: 0.5, chord: 0.05, jack: 0.3, slideP: 0.3 },
-  hard:   { lanes: 7, nps: 3.7, gap: 0.105, sub: 4, holdMin: 0.55, holdP: 0.45, chord: 0.13, jack: 0.2, slideP: 0.45 },
+  easy:   { lanes: 3, nps: 1.3, gap: 0.36, sub: 2, holdMin: 0.6, holdP: 0.6, chord: 0,    jack: 0.45, slideP: 0 },
+  normal: { lanes: 4, nps: 2.25, gap: 0.19, sub: 2, holdMin: 0.6, holdP: 0.5, chord: 0.05, jack: 0.3, slideP: 0.3 },
+  hard:   { lanes: 7, nps: 3.7, gap: 0.105, sub: 4, holdMin: 0.5, holdP: 0.45, chord: 0.13, jack: 0.2, slideP: 0.45 },
 };
 
 export function makeChart(an, diffId, seedStr = '') {
@@ -315,6 +318,7 @@ export function makeChart(an, diffId, seedStr = '') {
   // 3) carriles, notas largas y acordes
   const notes = [];
   const freeAt = new Array(L).fill(-1);
+  const holdEnds = []; let lastHoldT = -9;
   let prevLane = Math.floor(L / 2), prevT = -10, dir = rng() < 0.5 ? -1 : 1;
   for (let i = 0; i < picked.length; i++) {
     const p = picked[i];
@@ -332,12 +336,16 @@ export function makeChart(an, diffId, seedStr = '') {
     if (lane < 0) continue;
 
     const note = { t: round3(p.t), lane };
-    const room = next - p.t - 0.12;
-    if (p.sus >= cfg.holdMin && room >= cfg.holdMin * 0.85 && rng() < cfg.holdP) {
-      let end = p.t + Math.min(p.sus, room, 3.2);
+    // Notas largas en sonidos sostenidos (voz alargada, sintes). En EASY necesitan hueco;
+    // en NORMAL/HARD pueden convivir con notas en otros carriles (máx. 1 o 2 largas a la vez).
+    const room = diffId === 'easy' ? next - p.t - 0.12 : 3.2;
+    const activeHolds = holdEnds.filter(e => e > p.t).length;
+    const maxHolds = diffId === 'hard' ? 2 : 1;
+    if (p.sus >= cfg.holdMin && room >= cfg.holdMin * 0.85 && activeHolds < maxHolds && p.t - lastHoldT > 1.2 && rng() < cfg.holdP) {
+      let end = p.t + Math.min(p.sus, room, 2.6);
       if (useGrid) end = an.phase + Math.floor((end - an.phase) / step) * step;
       if (end - p.t >= cfg.holdMin * 0.8) {
-        note.end = round3(end); freeAt[lane] = end + 0.08;
+        note.end = round3(end); freeAt[lane] = end + 0.08; holdEnds.push(end); lastHoldT = p.t;
         // slide: la nota larga termina en otro carril (hay que arrastrar el dedo)
         if (cfg.slideP && rng() < cfg.slideP) {
           const d = (rng() < 0.5 ? -1 : 1) * (L >= 7 && rng() < 0.4 ? 2 : 1);
