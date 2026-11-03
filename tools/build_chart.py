@@ -26,7 +26,7 @@ HOP = 256
 
 CFG = {
     'easy':   dict(lanes=3, minGap=0.36, peak=2.5, holdMin=0.4, chord=0.0,  breakEvery=4),
-    'normal': dict(lanes=4, minGap=0.21, peak=4.0, holdMin=0.28, chord=0.08, breakEvery=2),
+    'normal': dict(lanes=4, minGap=0.13, peak=6.5, holdMin=0.28, chord=0.08, breakEvery=2),
     'hard':   dict(lanes=7, minGap=0.13, peak=6.5, holdMin=0.2, chord=0.22, breakEvery=1),
 }
 
