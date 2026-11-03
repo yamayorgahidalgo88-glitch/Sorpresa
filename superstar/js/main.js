@@ -421,7 +421,8 @@ async function startSong(id, { free = false } = {}) {
 // El original se juega en horizontal: pantalla completa + giro si el móvil lo permite.
 async function ensureLandscape() {
   if (P.settings.orient === 'portrait') return;
-  try { if (!document.fullscreenElement && document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen({ navigationUI: 'hide' }); } catch {}
+  // Sin pedir pantalla completa (Chrome mostraría un aviso que tapa la pista).
+  // En la app instalada se puede bloquear en horizontal; en el navegador basta con girar el móvil.
   try { if (screen.orientation && screen.orientation.lock) await screen.orientation.lock('landscape'); } catch {}
   if (innerWidth > innerHeight) return;
   const ov = $('#rotate');
@@ -436,7 +437,6 @@ async function ensureLandscape() {
 }
 function leaveLandscape() {
   try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch {}
-  try { if (document.fullscreenElement) document.exitFullscreen(); } catch {}
 }
 
 function togglePause(force) {

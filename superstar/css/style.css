@@ -64,7 +64,7 @@ h2{margin:6px 0 10px;font-size:20px}h3{font-size:15px;margin:18px 0 10px}
 /* título */
 .title-screen{position:relative;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;padding:24px}
 .logo{text-align:center;animation:pop 1s cubic-bezier(.2,1.4,.4,1) both}
-.logo-top{font-size:clamp(44px,14vw,76px);font-weight:900;letter-spacing:-1px;line-height:1;background:linear-gradient(100deg,#fff 10%,#ffb3ec 35%,#b9a2ff 60%,#9ce6ff 85%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 4px 24px rgba(255,122,217,.55));font-style:italic}
+.logo-top{display:inline-block;padding:0 .14em 0 .04em;font-size:clamp(40px,12.5vw,76px);font-weight:900;letter-spacing:-1px;line-height:1;background:linear-gradient(100deg,#fff 10%,#ffb3ec 35%,#b9a2ff 60%,#9ce6ff 85%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 4px 24px rgba(255,122,217,.55));font-style:italic}
 .logo-sub{margin-top:8px;font-size:13px;letter-spacing:9px;font-weight:700;color:#ffe9f8}
 .tap-start{margin-top:70px;font-weight:700;letter-spacing:4px;font-size:13px;animation:blink 1.6s ease-in-out infinite}
 .title-foot{position:absolute;bottom:calc(18px + var(--safeB));font-size:10px;color:var(--muted)}
