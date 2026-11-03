@@ -228,16 +228,53 @@ def build(mp3, song_id, workdir, diffs=('normal',), start=None, end=None):
     accents = []
     for i in pk:
         ta = float(ti[i])
-        if oe_i[i] >= thr and oe_i[i] > 5 * (med[i] + 1e-6) and first_vocal - 0.05 <= ta <= end:
+        if oe_i[i] >= thr and oe_i[i] > 5 * (med[i] + 1e-6) and start <= ta <= end:
             if not len(ons) or np.min(np.abs(ons - ta)) > 0.09:   # no pisar una sílaba
                 g = nearest(grid16, ta); accents.append(float(g if abs(g - ta) < 0.04 else ta))
 
-    # notas de batería para pausas instrumentales largas (después de empezar a cantar)
-    no_voc_beats = []
-    ts = [x['t'] for x in syl]
-    for a, b in zip(ts, ts[1:]):
-        if b - a > 4.0:
-            no_voc_beats += [float(x) for x in beats if a + 0.6 < x < b - 0.6]
+    # ---- batería (pista instrumental, parte percusiva): bombo y caja por separado ----
+    perc = librosa.effects.percussive(inst, margin=2.0)
+    S = np.abs(librosa.stft(perc, n_fft=1024, hop_length=HOP))
+    fq = librosa.fft_frequencies(sr=SR, n_fft=1024)
+    def band_flux(lo, hi):
+        m = (fq >= lo) & (fq < hi)
+        e = np.log1p(S[m].sum(axis=0) * 10)
+        f = np.maximum(0, np.diff(e, prepend=e[0]))
+        return f / (np.percentile(f, 99) + 1e-9)
+    kick_env, snare_env = band_flux(30, 150), band_flux(180, 5000)
+    tf = librosa.frames_to_time(np.arange(S.shape[1]), sr=SR, hop_length=HOP)
+    drums = []
+    for env, kind in ((kick_env, 'k'), (snare_env, 's')):
+        pk = librosa.util.peak_pick(env, pre_max=4, post_max=4, pre_avg=12, post_avg=12, delta=0.12, wait=6)
+        for i in pk:
+            tq = float(tf[i]); g = nearest(grid16, tq)
+            if abs(g - tq) <= 0.045: tq = float(g)
+            drums.append(dict(t=tq, s=float(min(1.5, env[i])), drum=kind,
+                              onBeat=abs(nearest(beats, tq) - tq) < 0.02, on8=abs(nearest(grid8, tq) - tq) < 0.02))
+    drums.sort(key=lambda x: x['t'])
+
+    # ---- secciones: dónde canta la voz y dónde manda la música ----
+    syl_t = np.array([x['t'] for x in syl])
+    def near_voice(t, w):
+        return len(syl_t) and np.min(np.abs(syl_t - t)) < w
+    # tramo instrumental = al menos 4 pulsos seguidos sin sílabas
+    inst_spans = []
+    edges = [start] + list(syl_t) + [end]
+    for a_, b_ in zip(edges, edges[1:]):
+        if b_ - a_ >= 4 * period: inst_spans.append((a_ + 0.15, b_ - 0.15))
+    def in_inst(t):
+        return any(a_ <= t <= b_ for a_, b_ in inst_spans)
+    drum_cand = []
+    for d in drums:
+        if not (start <= d['t'] <= end): continue
+        if in_inst(d['t']):
+            d = dict(d, kind='d', s=d['s'] * (1.3 if d['onBeat'] else 1.0))     # instrumental: manda la batería
+        elif not near_voice(d['t'], period * 0.75):
+            d = dict(d, kind='d', s=d['s'] * 0.45)                                 # hueco en la voz: relleno suave
+        else:
+            continue
+        drum_cand.append(d)
+    sections = [dict(a=round(a_, 2), b=round(b_, 2)) for a_, b_ in inst_spans]
 
     charts = {}
     for diff in diffs:
@@ -247,9 +284,7 @@ def build(mp3, song_id, workdir, diffs=('normal',), start=None, end=None):
         # selección: prioridad a sílabas fuertes y en tiempo; respeta separación y pico por segundo
         cand = [dict(x, kind='v') for x in syl if start + 0.3 <= x['t'] <= end]
         cand += [dict(t=a, s=2.0, onBeat=False, on8=True, kind='a') for a in accents]
-        for k, t in enumerate(no_voc_beats):
-            if k % c['breakEvery'] == 0:
-                cand.append(dict(t=t, s=0.5, onBeat=True, on8=True, kind='b'))
+        cand += drum_cand
         def prio(x):
             p = x['s'] + (0.6 if x['onBeat'] else 0.25 if x['on8'] else 0)
             if diff == 'easy' and not x['on8']: p -= 0.8
@@ -287,7 +322,16 @@ def build(mp3, song_id, workdir, diffs=('normal',), start=None, end=None):
             p = pitch_at(t, t + 0.15)
             dp = 0 if (np.isnan(p) or np.isnan(prev_p)) else p - prev_p
             pref = 0 if (np.isnan(p) or np.isnan(prev_p) or abs(dp) < 0.8) else (1 if dp > 0 else -1)
-            if x['kind'] == 'a' and t - prev_t < 0.7 and prev_kind == 'a':
+            if x['kind'] == 'd' and L >= 4:
+                # batería como una batería de verdad: bombo en los botones de fuera, caja en los del centro
+                pool = [0, L - 1] if x.get('drum') == 'k' else list(range(1, L - 1))
+                opts = [l for l in pool if l != lane] or pool
+                if lane2 in opts and len(opts) > 1 and t - prev_t < 0.5: opts = [l for l in opts if l != lane2] or opts
+                c_ = (L - 1) / 2
+                opts.sort(key=lambda l: -abs((l - c_) - (lane - c_)))      # preferir el lado contrario
+                new = opts[0] if rng.random() < 0.7 else opts[int(rng.integers(len(opts)))]
+                last_dir = 1 if new > lane else -1 if new < lane else last_dir
+            elif x['kind'] == 'a' and t - prev_t < 0.7 and prev_kind == 'a':
                 d = last_dir or 1                                # golpes seguidos: escalera pim-pim-pim
                 new = lane + d if 0 <= lane + d < L else lane - d; last_dir = 1 if new > lane else -1
             else:
@@ -334,7 +378,8 @@ def build(mp3, song_id, workdir, diffs=('normal',), start=None, end=None):
         charts[diff] = dict(lanes=L, notes=notes, level=level)
 
     return dict(
-        v=2, id=song_id, duration=round(dur, 3), firstVocal=round(first_vocal, 3), start=start, end=end, accents=len(accents),
+        v=3, id=song_id, duration=round(dur, 3), firstVocal=round(first_vocal, 3), start=start, end=end, accents=len(accents),
+        instSections=sections,
         bpm=round(60 / period, 2), phase=round(float(beats[0]), 3), beats=[round(float(b), 3) for b in beats],
         intensity=dict(step=STEP, v=[round(float(x), 2) for x in inten]),
         charts=charts,
