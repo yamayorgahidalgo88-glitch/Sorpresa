@@ -451,7 +451,7 @@ async function startSong(id, { free = false, chartOverride = null } = {}) {
   ensureCtx();
   await ensureLandscape();
   game = new Game($('#cv'), {
-    ctx, buffer: buf, chart, settings: P.settings, maxScore, title: s.title, theme: th, speedMul: d.speed,
+    ctx, buffer: buf, chart, settings: P.settings, maxScore, title: s.title, theme: th, speedMul: d.speed, diff: d.id,
     deck: P.deck.map(uid => P.cards.find(c => c.uid === uid)).filter(Boolean).map(c => { const m = memberById(c.member); return { photo: m.photo, name: m.name, grade: c.grade }; }),
     bgPhotos: MEMBERS.map(m => m.photo),
     onEnd: res => endSong(res),

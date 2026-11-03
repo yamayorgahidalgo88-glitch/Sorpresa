@@ -12,7 +12,7 @@ const KEYS = {
   7: ['KeyS', 'KeyD', 'KeyF', 'Space', 'KeyJ', 'KeyK', 'KeyL'],
 };
 const POS = 13;          // posiciones a lo ancho de la barra
-const HIT = 1.7;         // distancia (en posiciones) a la que un toque cuenta
+const HIT = 2.2;         // distancia (en posiciones) a la que un toque cuenta (zona amplia: más fácil acertar)
 const KEYPOS = [1.5, 4.5, 7.5, 10.5];
 // Convierte una partitura de N carriles a posiciones libres 0..12, con una ligera variación
 // (determinista) para que las notas no caigan siempre en los mismos sitios.
@@ -31,6 +31,45 @@ function toPositions(srcL) {
       return o;
     });
   };
+}
+
+// Zigzags de lado a lado: cada parada de una cadena se va a un borde de la pista y la
+// siguiente al borde contrario, así la banda dorada cruza toda la pantalla.
+function widenChains(notes) {
+  const LO = [0, 1, 0, 2], HI = [12, 11, 12, 10];
+  for (const n of notes) {
+    if (!n.path) continue;
+    let low = n.path[0][1] < (POS - 1) / 2;
+    n.path = n.path.map(([t, _], i) => { const k = Math.floor(t * 5.17 + i) % 4; const l = low ? LO[k] : HI[k]; low = !low; return [t, l]; });
+    n.lane = n.path[0][1]; n.lane2 = n.path[n.path.length - 1][1]; n.end = n.path[n.path.length - 1][0];
+  }
+  return notes;
+}
+// HARD: convierte grupos de 3–4 notas sueltas seguidas (0,2–0,8 s entre ellas) en zigzags,
+// con al menos `sep` segundos entre una cadena y la siguiente.
+function addZigzags(notes, sep = 2.5) {
+  notes = notes.slice().sort((a, b) => a.t - b.t);
+  const cnt = new Map(); for (const n of notes) cnt.set(n.t, (cnt.get(n.t) || 0) + 1);
+  const single = n => n && !n.end && !n.path && cnt.get(n.t) === 1;
+  const out = []; let busy = -1, lastChain = -99;
+  const chainTimes = notes.filter(n => n.path).map(n => [n.t, n.end]);
+  const nearChain = (a, b) => chainTimes.some(([x, y]) => a < y + sep && b > x - sep);
+  for (let i = 0; i < notes.length; i++) {
+    const n = notes[i];
+    if (single(n) && n.t > busy && n.t - lastChain >= sep) {
+      let k = 1;
+      while (k < 4 && single(notes[i + k]) && notes[i + k].t - notes[i + k - 1].t >= 0.2 && notes[i + k].t - notes[i + k - 1].t <= 0.8) k++;
+      if (k >= 3 && !nearChain(n.t, notes[i + k - 1].t)) {
+        const run = notes.slice(i, i + k);
+        const path = run.map(m => [m.t, m.lane]);
+        out.push({ t: n.t, lane: n.lane, end: path[k - 1][0], lane2: path[k - 1][1], path });
+        lastChain = path[k - 1][0]; i += k - 1; continue;
+      }
+    }
+    if (n.end) busy = Math.max(busy, n.end);
+    out.push(n);
+  }
+  return out;
 }
 const FONT = '"Saira Condensed", "Arial Narrow", Poppins, system-ui, sans-serif';
 
@@ -53,7 +92,10 @@ export class Game {
     this.L = POS;
     this.keys = KEYS[4];
     const conv = toPositions(srcL);
-    opts = { ...opts, chart: { ...opts.chart, notes: conv(opts.chart.notes || []) } };
+    let cn = conv(opts.chart.notes || []);
+    if (opts.diff === 'hard') cn = addZigzags(cn);
+    cn = widenChains(cn);
+    opts = { ...opts, chart: { ...opts.chart, notes: cn } };
     this.o = opts;
     const byT = new Map();
     for (const n of opts.chart.notes) byT.set(n.t, (byT.get(n.t) || 0) + 1);
@@ -442,7 +484,7 @@ export class Game {
     thg.addColorStop(0, hexA(this.th.c2, 0.25)); thg.addColorStop(1, 'rgba(0,0,0,0)');
     g.fillStyle = thg; g.fillRect(0, 0, W, H);
 
-    const P1 = 1.1;
+    const P1 = 1.14;
     g.beginPath(); g.moveTo(this.edgeX(0, 0), this.yAt(0)); g.lineTo(this.edgeX(L, 0), this.yAt(0)); g.lineTo(this.edgeX(L, P1), this.yAt(P1)); g.lineTo(this.edgeX(0, P1), this.yAt(P1)); g.closePath();
     const fl = g.createLinearGradient(0, this.topY, 0, this.hitY);
     fl.addColorStop(0, 'rgba(40,10,60,0.15)'); fl.addColorStop(1, 'rgba(30,10,70,0.5)');
@@ -462,8 +504,8 @@ export class Game {
       }
     }
     // barra arcoíris bajo los botones
-    const y0 = this.yAt(0.965), y1 = this.yAt(P1);
-    g.beginPath(); g.moveTo(this.edgeX(0, 0.965), y0); g.lineTo(this.edgeX(L, 0.965), y0); g.lineTo(this.edgeX(L, P1), y1); g.lineTo(this.edgeX(0, P1), y1); g.closePath();
+    const B0 = 0.9, y0 = this.yAt(B0), y1 = this.yAt(P1);
+    g.beginPath(); g.moveTo(this.edgeX(0, B0), y0); g.lineTo(this.edgeX(L, B0), y0); g.lineTo(this.edgeX(L, P1), y1); g.lineTo(this.edgeX(0, P1), y1); g.closePath();
     const rb = g.createLinearGradient(this.edgeX(0, 1), 0, this.edgeX(L, 1), 0);
     rb.addColorStop(0, 'rgba(255,120,200,0.75)'); rb.addColorStop(0.3, 'rgba(160,140,255,0.7)');
     rb.addColorStop(0.55, 'rgba(120,220,255,0.7)'); rb.addColorStop(0.8, 'rgba(255,240,150,0.75)'); rb.addColorStop(1, 'rgba(255,140,210,0.75)');
@@ -471,7 +513,9 @@ export class Game {
     const sh = g.createLinearGradient(0, y0, 0, y1);
     sh.addColorStop(0, 'rgba(255,255,255,0.55)'); sh.addColorStop(0.35, 'rgba(255,255,255,0)'); sh.addColorStop(1, 'rgba(40,10,80,0.5)');
     g.fillStyle = sh; g.fill();
-    g.fillStyle = 'rgba(255,255,255,0.9)'; g.fillRect(this.edgeX(0, 0.965), y0 - 1, this.edgeX(L, 0.965) - this.edgeX(0, 0.965), 2);
+    g.fillStyle = 'rgba(255,255,255,0.9)'; g.fillRect(this.edgeX(0, B0), y0 - 1, this.edgeX(L, B0) - this.edgeX(0, B0), 2);
+    // línea suave donde llegan las notas (el centro de la barra)
+    g.fillStyle = 'rgba(255,255,255,0.45)'; g.fillRect(this.edgeX(0, 1), this.hitY - 1, this.edgeX(L, 1) - this.edgeX(0, 1), 2);
     if (y1 < H) { g.fillStyle = 'rgba(30,8,50,0.85)'; g.fillRect(0, y1, W, H - y1); }
     this.bg = c;
   }
