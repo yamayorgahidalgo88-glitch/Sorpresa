@@ -11,7 +11,7 @@ const PREPARED = ['no-more-dream', 'dynamite']; // canciones con partitura que s
 let P = loadProfile();
 let ctx = null;
 let screen = 'title';
-let diff = 'normal'; // sólo hay un nivel: NORMAL (4 botones)
+let diff = P.lastDiff || 'normal';
 let selectedSlot = -1;
 let game = null;
 let lastPlay = null;
@@ -210,12 +210,15 @@ function rSongs() {
   const songs = allSongs().map((s, i) => [s, i]).sort((a, b) => (loaded.has(b[0].id) - loaded.has(a[0].id)) || a[1] - b[1]).map(x => x[0]);
   view.innerHTML = `
   <div class="songs">
-    <div class="diff-one">NORMAL · 4 botones · 🎧 2</div>
+    <div class="diff-tabs">
+      ${DIFFS.map(d => `<button class="dtab ${d.id === diff ? 'on' : ''}" data-diff="${d.id}" style="--dc:${d.color}">${d.name}<small>🎧${d.cost} · ${d.lanes} botones</small></button>`).join('')}
+    </div>
     <label class="btn ghost import">＋ Importar canciones (varias a la vez)
       <input type="file" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.flac" multiple hidden id="multiIn">
     </label>
     <div class="song-list">${songs.map(songRow).join('')}</div>
   </div>`;
+  view.querySelectorAll('.dtab').forEach(b => b.onclick = () => { diff = b.dataset.diff; P.lastDiff = diff; save(); rSongs(); });
   $('#multiIn').onchange = e => importMany([...e.target.files]);
   view.querySelector('.song-list').addEventListener('click', onSongClick);
   view.querySelector('.song-list').addEventListener('change', onSongFile);
@@ -402,7 +405,7 @@ async function chartFor(id, buf, an, { ignoreUser = false } = {}) {
     ? { ...prep.charts[diff], bpm: prep.bpm, phase: prep.phase, beats: prep.beats, intensity: prep.intensity, start: prep.start || 0, end: prep.end }
     : makeChart(an, diff, id);
   const mine = !ignoreUser && P.userCharts && P.userCharts[id];
-  if (mine && Math.abs((mine.duration || buf.duration) - buf.duration) < 1.5) return { ...base, notes: mine.notes, lanes: 4, mine: true };
+  if (mine && diff === 'normal' && Math.abs((mine.duration || buf.duration) - buf.duration) < 1.5) return { ...base, notes: mine.notes, lanes: 4, mine: true };
   return base;
 }
 async function startSong(id, { free = false, chartOverride = null } = {}) {
@@ -479,6 +482,7 @@ function leaveLandscape() {
 
 // ---------------- grabar partitura ----------------
 async function recordSetup(id) {
+  diff = 'normal'; P.lastDiff = 'normal'; // se graba para NORMAL (4 botones)
   const s = songById(id);
   loading(true, 'Cargando…');
   let buf, an;

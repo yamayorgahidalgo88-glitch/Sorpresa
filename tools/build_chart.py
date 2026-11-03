@@ -285,6 +285,11 @@ def build(mp3, song_id, workdir, diffs=('normal',), start=None, end=None):
         cand = [dict(x, kind='v') for x in syl if start + 0.3 <= x['t'] <= end]
         cand += [dict(t=a, s=2.0, onBeat=False, on8=True, kind='a') for a in accents]
         cand += drum_cand
+        if diff == 'hard':
+            # en HARD sólo sílabas que se oyen claras o caen en el compás; la batería real tiene prioridad
+            cand = [x for x in cand if x['kind'] != 'v' or x['s'] >= 0.3 or x['on8']]
+            for x in cand:
+                if x['kind'] == 'd': x['s'] *= 1.4
         def prio(x):
             p = x['s'] + (0.6 if x['onBeat'] else 0.25 if x['on8'] else 0)
             if diff == 'easy' and not x['on8']: p -= 0.8
@@ -297,8 +302,10 @@ def build(mp3, song_id, workdir, diffs=('normal',), start=None, end=None):
             i = np.searchsorted(times, t)
             if i > 0 and t - times[i - 1] < c['minGap']: continue
             if i < len(times) and times[i] - t < c['minGap']: continue
-            win = sum(1 for u in times if abs(u - t) < 0.5)
-            if win + 1 > c['peak']: continue
+            # nunca más de "peak" notas en NINGÚN segundo que contenga esta nota
+            lo_i, hi_i = np.searchsorted(times, t - 1.0), np.searchsorted(times, t + 1.0)
+            near_t = times[lo_i:hi_i] + [t]; near_t.sort()
+            if any(sum(1 for u in near_t if w0 <= u < w0 + 1.0) > c['peak'] for w0 in near_t): continue
             times.insert(i, t); chosen.append(x)
         chosen.sort(key=lambda x: x['t'])
 
