@@ -15,7 +15,7 @@
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800;900&family=Saira+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body data-screen="title">
@@ -34,8 +34,16 @@
   <section id="play" hidden>
     <div class="play-bg"></div>
     <canvas id="cv"></canvas>
-    <div class="play-info"><span id="playTitle"></span> <b id="playDiff"></b></div>
+    <div class="play-info" hidden><span id="playTitle"></span> <b id="playDiff"></b></div>
     <button id="pauseBtn" aria-label="Pausa">❚❚</button>
+    <div id="rotate" hidden>
+      <div class="rot-box">
+        <div class="rot-ico">📱</div>
+        <h2>Gira el móvil</h2>
+        <p>Se juega en horizontal, como el original.</p>
+        <button class="btn ghost" id="rotateSkip">Jugar en vertical</button>
+      </div>
+    </div>
     <div id="pauseMenu" hidden>
       <div class="pm-box">
         <h2>PAUSA</h2>

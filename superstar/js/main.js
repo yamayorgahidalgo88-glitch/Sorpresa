@@ -368,12 +368,36 @@ async function startSong(id, { free = false } = {}) {
   $('#playDiff').style.color = d.color;
   $('#pauseMenu').hidden = true;
   ensureCtx();
+  await ensureLandscape();
   game = new Game($('#cv'), {
     ctx, buffer: buf, chart, settings: P.settings, maxScore, title: s.title, theme: th,
+    deck: P.deck.map(uid => P.cards.find(c => c.uid === uid)).filter(Boolean).map(c => { const m = memberById(c.member); return { photo: m.photo, name: m.name, grade: c.grade }; }),
+    bgPhotos: MEMBERS.map(m => m.photo),
     onEnd: res => endSong(res),
     onPause: () => togglePause(),
   });
   game.start();
+}
+
+// El original se juega en horizontal: pantalla completa + giro si el móvil lo permite.
+async function ensureLandscape() {
+  if (P.settings.orient === 'portrait') return;
+  try { if (!document.fullscreenElement && document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen({ navigationUI: 'hide' }); } catch {}
+  try { if (screen.orientation && screen.orientation.lock) await screen.orientation.lock('landscape'); } catch {}
+  if (innerWidth > innerHeight) return;
+  const ov = $('#rotate');
+  ov.hidden = false;
+  await new Promise(res => {
+    const done = () => { window.removeEventListener('resize', chk); ov.hidden = true; res(); };
+    const chk = () => { if (innerWidth > innerHeight) done(); };
+    window.addEventListener('resize', chk);
+    $('#rotateSkip').onclick = done;
+  });
+  await new Promise(r => setTimeout(r, 250));
+}
+function leaveLandscape() {
+  try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch {}
+  try { if (document.fullscreenElement) document.exitFullscreen(); } catch {}
 }
 
 function togglePause(force) {
@@ -382,9 +406,10 @@ function togglePause(force) {
   if (game.paused && force !== true) { pm.hidden = true; game.resume(); }
   else { game.pause(); pm.hidden = false; }
 }
-function quitGame() {
+function quitGame(keepOrientation = false) {
   if (game) { game.destroy(); game = null; }
   $('#play').hidden = true;
+  if (!keepOrientation) leaveLandscape();
 }
 
 function rankOf(ratio) { return ratio >= 0.88 ? 'S' : ratio >= 0.78 ? 'A' : ratio >= 0.66 ? 'B' : ratio >= 0.5 ? 'C' : 'D'; }
@@ -394,7 +419,7 @@ function endSong(res) {
   quitGame();
   const key = id + '|' + dId;
   const prev = P.records[key];
-  const rank = rankOf(res.score / maxScore);
+  const rank = rankOf((res.baseScore ?? res.score) / maxScore);
   const isNew = !prev || res.score > prev.score;
   P.records[key] = {
     score: Math.max(res.score, prev ? prev.score : 0),
@@ -422,6 +447,7 @@ function rResult(r) {
     <div class="res-rank r-${r.rank}">${r.rank}</div>
     ${r.ap ? '<div class="badge holo">ALL S.PERFECT</div>' : r.fc ? '<div class="badge">FULL COMBO</div>' : ''}
     <div class="res-score">${fmt(r.score)}${r.isNew ? '<span class="newrec">NEW RECORD</span>' : ''}</div>
+    ${r.bonus ? `<div class="muted small">incluye RAVE BONUS +${fmt(r.bonus)}</div>` : ''}
     <div class="res-grid">
       ${rows.map((n, i) => `<div class="jr j${i}"><span>${n}</span><b>${r.counts[i]}</b></div>`).join('')}
       <div class="jr"><span>MAX COMBO</span><b>${r.maxCombo}</b></div>
@@ -525,6 +551,7 @@ function rSettings() {
     <label class="set"><span>Volumen música <b id="v-music">${Math.round(S.music * 100)}%</b></span><input type="range" min="0" max="1" step="0.05" value="${S.music}" data-s="music"></label>
     <label class="set row"><span>Sonido al tocar</span><input type="checkbox" ${S.sfx ? 'checked' : ''} data-s="sfx"></label>
     <label class="set"><span>Volumen toque <b id="v-sfxVol">${Math.round(S.sfxVol * 100)}%</b></span><input type="range" min="0" max="1" step="0.05" value="${S.sfxVol}" data-s="sfxVol"></label>
+    <label class="set row"><span>Jugar en horizontal (como el original)</span><input type="checkbox" ${S.orient !== 'portrait' ? 'checked' : ''} data-orient></label>
     <label class="set row"><span>Efectos de partículas</span><input type="checkbox" ${S.fx ? 'checked' : ''} data-s="fx"></label>
     <div class="set"><span>Controles con teclado</span><small class="muted">EASY: F · Espacio · J — NORMAL: D F J K — HARD: S D F Espacio J K L — Pausa: Esc</small></div>
     <button class="btn ghost" data-act="clearAudio">Borrar canciones guardadas</button>
@@ -542,6 +569,7 @@ function rSettings() {
       if (lab) lab.textContent = k === 'offset' ? v + ' ms' : (k === 'music' || k === 'sfxVol') ? Math.round(v * 100) + '%' : v;
     };
   });
+  view.querySelector('[data-orient]').onchange = e => { S.orient = e.target.checked ? 'landscape' : 'portrait'; save(); };
   view.querySelector('[data-act=clearAudio]').onclick = () => confirmBox('¿Borrar todas las canciones guardadas en este dispositivo?', async () => {
     await idb.clear('audio'); await idb.clear('analysis'); loaded.clear(); levels.clear(); bufCache.clear(); toast('Canciones borradas');
   });
@@ -584,7 +612,7 @@ const isStandalone = () => window.matchMedia('(display-mode: standalone)').match
 document.querySelectorAll('#nav button').forEach(b => b.onclick = () => { selectedSlot = -1; go(b.dataset.go); });
 $('#pauseBtn').onclick = () => togglePause();
 $('#pmResume').onclick = () => togglePause();
-$('#pmRetry').onclick = () => { const lp = lastPlay; quitGame(); diff = lp.diff; startSong(lp.id, { free: true }); };
+$('#pmRetry').onclick = () => { const lp = lastPlay; quitGame(true); diff = lp.diff; startSong(lp.id, { free: true }); };
 $('#pmQuit').onclick = () => { quitGame(); go('songs'); };
 document.addEventListener('visibilitychange', () => { if (document.hidden && game && !game.paused) togglePause(true); });
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; if (screen === 'lobby') rLobby(); });

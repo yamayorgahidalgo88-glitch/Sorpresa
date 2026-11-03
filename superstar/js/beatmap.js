@@ -203,9 +203,9 @@ function mulberry32(a) {
 function hashStr(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
 
 const CFG = {
-  easy:   { lanes: 3, nps: 1.3, gap: 0.36, sub: 2, holdMin: 0.9, holdP: 0.55, chord: 0,    jack: 0.45 },
-  normal: { lanes: 4, nps: 2.25, gap: 0.19, sub: 2, holdMin: 0.7, holdP: 0.5, chord: 0.05, jack: 0.3 },
-  hard:   { lanes: 7, nps: 3.7, gap: 0.105, sub: 4, holdMin: 0.55, holdP: 0.45, chord: 0.13, jack: 0.2 },
+  easy:   { lanes: 3, nps: 1.3, gap: 0.36, sub: 2, holdMin: 0.9, holdP: 0.55, chord: 0,    jack: 0.45, slideP: 0 },
+  normal: { lanes: 4, nps: 2.25, gap: 0.19, sub: 2, holdMin: 0.7, holdP: 0.5, chord: 0.05, jack: 0.3, slideP: 0.3 },
+  hard:   { lanes: 7, nps: 3.7, gap: 0.105, sub: 4, holdMin: 0.55, holdP: 0.45, chord: 0.13, jack: 0.2, slideP: 0.45 },
 };
 
 export function makeChart(an, diffId, seedStr = '') {
@@ -297,7 +297,15 @@ export function makeChart(an, diffId, seedStr = '') {
     if (p.sus >= cfg.holdMin && room >= cfg.holdMin * 0.85 && rng() < cfg.holdP) {
       let end = p.t + Math.min(p.sus, room, 3.2);
       if (useGrid) end = an.phase + Math.floor((end - an.phase) / step) * step;
-      if (end - p.t >= cfg.holdMin * 0.8) { note.end = round3(end); freeAt[lane] = end + 0.08; }
+      if (end - p.t >= cfg.holdMin * 0.8) {
+        note.end = round3(end); freeAt[lane] = end + 0.08;
+        // slide: la nota larga termina en otro carril (hay que arrastrar el dedo)
+        if (cfg.slideP && rng() < cfg.slideP) {
+          const d = (rng() < 0.5 ? -1 : 1) * (L >= 7 && rng() < 0.4 ? 2 : 1);
+          let l2 = lane + d; if (l2 < 0 || l2 >= L) l2 = lane - d;
+          if (l2 >= 0 && l2 < L && freeAt[l2] < p.t) { note.lane2 = l2; freeAt[l2] = end + 0.08; }
+        }
+      }
     }
     notes.push(note);
     if (!note.end) freeAt[lane] = p.t + 0.02;
