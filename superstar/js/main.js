@@ -264,7 +264,10 @@ async function importMany(files) {
     const s = matchSong(f.name, allSongs());
     if (s) matched.push([s, f]); else extra.push(f);
   }
+  // si no se reconoce por el nombre, se pregunta qué canción es
   for (const f of extra) {
+    const chosen = await askWhichSong(f.name, matched.map(m => m[0].id));
+    if (chosen) { matched.push([songById(chosen), f]); continue; }
     const title = f.name.replace(/\.[a-z0-9]+$/i, '').replace(/[_]+/g, ' ').replace(/^\s*\d+[\s.-]+/, '').trim().slice(0, 60) || 'Canción';
     const s = { id: 'c-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), title, artist: 'Personal', theme: 'SPECIAL' };
     P.customSongs.push(s);
@@ -281,6 +284,31 @@ async function importMany(files) {
     try { await getAnalysis(s.id); } catch (e) { console.error(e); }
   }
   toast('¡Canciones listas!');
+}
+
+// Ventana: "¿Qué canción es este archivo?" -> id del catálogo o null (canción extra)
+function askWhichSong(fileName, taken = []) {
+  return new Promise(resolve => {
+    const opts = SONGS.filter(x => !taken.includes(x.id))
+      .map(x => `<option value="${x.id}">${esc(x.title)}${loaded.has(x.id) ? ' (ya cargada: se sustituye)' : ''}</option>`).join('');
+    modal(`<h2>¿Qué canción es?</h2>
+      <p>No reconozco <b>${esc(fileName)}</b> por su nombre. Elige cuál es:</p>
+      <select class="pick" id="pickSong"><option value="">— Es otra canción (añadir como extra) —</option>${opts}</select>
+      <button class="btn primary" data-act="ok">Aceptar</button>`, el => {
+      el.querySelector('[data-act=ok]').onclick = () => { const v = el.querySelector('#pickSong').value || null; modalOnClose = null; closeModal(); resolve(v); };
+    }, () => resolve(null));
+  });
+}
+// Mueve el audio de una canción extra a su sitio en la lista
+async function reassignSong(fromId, toId) {
+  const rec = await idb.get('audio', fromId);
+  if (!rec) return;
+  await idb.put('audio', toId, rec);
+  await idb.del('audio', fromId); await idb.del('analysis', fromId); await idb.del('analysis', toId);
+  loaded.delete(fromId); loaded.add(toId); levels.delete(fromId); levels.delete(toId); bufCache.delete(fromId); bufCache.delete(toId);
+  P.customSongs = P.customSongs.filter(x => x.id !== fromId);
+  for (const k of Object.keys(P.records)) if (k.startsWith(fromId + '|')) delete P.records[k];
+  save();
 }
 
 function onSongClick(e) {
@@ -314,10 +342,21 @@ async function songSheet(id) {
       <button class="btn ghost" data-act="auto">Mazo automático</button>
       <button class="btn ghost" data-act="remove">Quitar audio</button>
     </div>
+    ${id.startsWith('c-') ? '<div class="row2"><button class="btn ghost" data-act="assign">Es una canción de la lista…</button>' : '<div class="row2" hidden>'}
+    </div>
     <button class="btn primary huge" data-act="start">EMPEZAR <small>🎧 ${d.cost}</small></button>
   `, el => {
     el.querySelector('[data-act=start]').onclick = () => { closeModal(); startSong(id); };
     el.querySelector('[data-act=auto]').onclick = () => { autoDeck(P, s.theme); save(); songSheet(id); };
+    const asg = el.querySelector('[data-act=assign]');
+    if (asg) asg.onclick = async () => {
+      closeModal();
+      const to = await askWhichSong(s.title);
+      if (!to) return;
+      await reassignSong(id, to);
+      rSongs(); toast(`Ahora es «${songById(to).title}». Analizando…`);
+      try { await getAnalysis(to); } catch {}
+    };
     el.querySelector('[data-act=remove]').onclick = async () => {
       await idb.del('audio', id); await idb.del('analysis', id);
       loaded.delete(id); levels.delete(id); bufCache.delete(id);
