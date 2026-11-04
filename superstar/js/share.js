@@ -36,7 +36,7 @@ export function buildShareFile(audio, info) {
   const size = frames.reduce((a, f) => a + f.length, 0);
   const head = new Uint8Array(10); head.set(enc.encode('ID3'), 0); head[3] = 4; head[4] = 0; head[5] = 0; head.set(syncsafe(size), 6);
   const safe = info.song.title.replace(/[\\/:*?"<>|]+/g, '').trim() || 'cancion';
-  return new File([head, ...frames, body], `${safe} - SUPERSTAR.mp3`, { type: 'audio/mpeg' });
+  return new File([head, ...frames, body], `${safe.replace(/\s+/g, '_')}_SUPERSTAR.mp3`, { type: 'audio/mpeg' });
 }
 
 // Lee la información SUPERSTAR de un archivo (o null si no la tiene)
@@ -63,16 +63,9 @@ export async function readShareInfo(file) {
   return null;
 }
 
-// Mandar el archivo: menú de compartir del móvil (WhatsApp, Telegram…) o, si no se puede, descarga
-export async function sendFile(file, text) {
-  try {
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], title: file.name, text });
-      return 'shared';
-    }
-  } catch (e) { if (e && e.name === 'AbortError') return 'cancel'; }
+// Guardar el archivo en el móvil (Descargas)
+export function saveFile(file) {
   const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = file.name;
   document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 30000);
-  return 'downloaded';
+  setTimeout(() => URL.revokeObjectURL(a.href), 60000);
 }

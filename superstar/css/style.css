@@ -639,3 +639,4 @@ body[data-screen=title] #bg i{display:none}
 html,body{-webkit-touch-callout:none;touch-action:manipulation;-webkit-text-size-adjust:100%}
 canvas,.drop,.pk-zone{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 img{-webkit-user-drag:none}
+.modal-box > .btn,.modal-box > p,.modal-box > h2{flex:none}

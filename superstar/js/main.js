@@ -5,7 +5,7 @@ import { cardHTML, cardPower, deckPower, openPack, welcomePack, autoDeck, member
 import { CARD_CREDITS } from './card-credits.js';
 import { Game } from './engine.js';
 import { openDrop, preloadDrop } from './drop.js';
-import { buildShareFile, readShareInfo, sendFile, isMp3 } from './share.js';
+import { buildShareFile, readShareInfo, saveFile, isMp3 } from './share.js';
 
 // ---------------- estado ----------------
 let recState = null, pendingRec = null, afterTry = null;
@@ -523,24 +523,29 @@ async function shareSong(id) {
   const s = songById(id), rec = await idb.get('audio', id);
   if (!rec) { toast('Esta canción no tiene audio cargado'); return; }
   const mine = P.userCharts && P.userCharts[id];
-  const doIt = async () => {
-    loading(true, 'Preparando…');
-    let file;
-    try {
-      file = isMp3(rec.name, rec.blob.type)
-        ? buildShareFile(await rec.blob.arrayBuffer(), { song: { id: s.id, title: s.title, artist: s.artist, theme: s.theme }, chart: mine || null })
-        : new File([rec.blob], rec.name || s.title, { type: rec.blob.type });
-    } finally { loading(false); }
-    const r = await sendFile(file, `«${s.title}» para SUPERSTAR: ábrelo en el juego con «Importar canciones».`);
-    if (r === 'downloaded') toast('Guardada en Descargas: mándala por WhatsApp como documento');
-  };
+  // el archivo se prepara ANTES de tocar «Enviar»: así el móvil abre su menú de compartir (WhatsApp…) al instante
+  loading(true, 'Preparando…');
+  let file;
+  try {
+    file = isMp3(rec.name, rec.blob.type)
+      ? buildShareFile(await rec.blob.arrayBuffer(), { song: { id: s.id, title: s.title, artist: s.artist, theme: s.theme }, chart: mine || null })
+      : new File([rec.blob], rec.name || s.title, { type: rec.blob.type || 'audio/mpeg' });
+  } catch (e) { console.error(e); loading(false); toast('No se pudo preparar el archivo'); return; }
+  loading(false);
+  const canShare = !!(navigator.canShare && navigator.canShare({ files: [file] }));
   modal(`<h2>📤 Enviar «${esc(s.title)}»</h2>
-    <p>Se prepara un archivo de música con la canción${mine ? ' y <b>tu partitura grabada</b>' : ''}. Mándalo por privado (WhatsApp, Telegram…) a quien quieras.</p>
-    <p class="muted">La otra persona abre SUPERSTAR, va a <b>Canciones → Importar canciones</b> y elige el archivo: se coloca sola en su sitio${mine ? ' con tu partitura' : ''}. Sus puntuaciones y cartas son suyas.</p>
-    <p class="muted small">Es solo para compartir en privado, sin fines comerciales: la música es de sus autores.</p>
-    <button class="btn primary" data-act="go">Enviar</button>
-    <button class="btn ghost" data-close>Cancelar</button>`, el => {
-    el.querySelector('[data-act=go]').onclick = () => { closeModal(); doIt(); };
+    <p>Archivo listo: la canción${mine ? ' con <b>tu partitura grabada</b>' : ''} (${(file.size / 1048576).toFixed(1)} MB). Elige <b>WhatsApp</b> (o Telegram…) y a quién se lo mandas.</p>
+    <p class="muted">La otra persona abre SUPERSTAR, va a <b>Canciones → Importar canciones</b> y elige el archivo: se coloca sola en su sitio${mine ? ' con tu partitura' : ''}.</p>
+    ${canShare ? '<button class="btn primary" data-act="share">Compartir por WhatsApp…</button>' : ''}
+    <button class="btn ${canShare ? 'ghost' : 'primary'}" data-act="save">Guardar el archivo en el móvil</button>
+    <p class="muted small">${canShare ? 'Si WhatsApp no aparece en la lista: guarda el archivo y en WhatsApp toca 📎 → <b>Documento</b> y elígelo en Descargas.' : 'Tu navegador no deja compartir directamente: guarda el archivo y en WhatsApp toca 📎 → <b>Documento</b> y elígelo en Descargas.'} Solo para compartir en privado, sin fines comerciales.</p>`, el => {
+    const sh = el.querySelector('[data-act=share]');
+    if (sh) sh.onclick = () => {
+      // sin título ni texto: solo el archivo, para que WhatsApp lo acepte como audio/documento
+      navigator.share({ files: [file] }).then(() => { closeModal(); toast('¡Enviada!'); })
+        .catch(e => { if (!e || e.name !== 'AbortError') toast('No se pudo compartir: guarda el archivo y mándalo como documento'); });
+    };
+    el.querySelector('[data-act=save]').onclick = () => { saveFile(file); toast('Guardada en Descargas: en WhatsApp, 📎 → Documento'); };
   });
 }
 
