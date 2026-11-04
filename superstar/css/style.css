@@ -607,3 +607,25 @@ body.rot #app{inset:auto;top:0;left:0;width:var(--rw);height:var(--rh);transform
 .name-in:focus{border-color:var(--pink);box-shadow:0 0 14px rgba(255,95,200,.45)}
 .name-in.shake{animation:pknudge .4s ease-in-out}
 .drop-hold{position:absolute;inset:0;z-index:199;background:#0b0218 url(../img/drop/space.jpg) center/cover no-repeat}
+
+/* ===== portada (imagen del usuario) ===== */
+body[data-screen=title] #bg{background:#1b0b45 url(../img/title.jpg) center/cover no-repeat}
+body[data-screen=title] #bg i{display:none}
+.title-v2{padding:0}
+.title-v2 .tap-start{position:absolute;left:0;right:0;top:74%;margin:0;display:flex;align-items:center;justify-content:center;gap:22px;animation:none}
+.title-v2 .tap-start span{font:800 clamp(14px,calc(var(--ah) * 0.05),22px) Poppins,sans-serif;letter-spacing:.42em;margin-right:-.42em;color:#fff;animation:tapglow 1.6s ease-in-out infinite}
+.title-v2 .tap-start i{display:block;width:3px;height:clamp(16px,calc(var(--ah) * 0.065),28px);background:linear-gradient(#ff8be0,#c35bff);border-radius:2px;transform:skewX(-35deg);box-shadow:0 0 8px #ff5fc8;animation:tapbar 1.6s ease-in-out infinite}
+@keyframes tapglow{0%,100%{opacity:.55;text-shadow:0 0 4px rgba(255,140,230,.4)}50%{opacity:1;text-shadow:0 0 10px #fff,0 0 22px #ff7ad9,0 0 40px #b56bff;transform:scale(1.06)}}
+@keyframes tapbar{0%,100%{opacity:.5}50%{opacity:1;box-shadow:0 0 14px #ff5fc8,0 0 26px #b56bff}}
+.title-v2 .title-foot{bottom:calc(10px + var(--safeB));left:0;right:0;text-align:center;font-size:11px;color:rgba(255,255,255,.75)}
+
+/* recompensa de nivel sin recoger: el nivel brilla en un recuadro */
+.tb-lv.has-reward{margin:-5px -8px;padding:5px 8px;border-radius:12px;border:2px solid transparent;background:linear-gradient(#1f0a45,#1f0a45) padding-box,linear-gradient(120deg,#7bdcff,#b56bff,#ff5fc8,#ffd65a,#7bdcff) border-box;background-size:auto,300% 100%;animation:rewardglow 1.4s ease-in-out infinite,rewardflow 3s linear infinite}
+@keyframes rewardglow{0%,100%{box-shadow:0 0 4px rgba(255,95,200,.4)}50%{box-shadow:0 0 14px #ff5fc8,0 0 26px #b56bff}}
+@keyframes rewardflow{to{background-position:0 0,300% 0}}
+.lv-claim-title{margin:12px 0 2px;font-weight:800;color:var(--gold);animation:blink 1.4s ease-in-out infinite}
+.lv-item.claim{cursor:pointer;color:#fff;font:inherit;border:2px solid transparent;background:linear-gradient(160deg,#2b0f63,#140733) padding-box,linear-gradient(120deg,#7bdcff,#b56bff,#ff5fc8,#ffd65a,#7bdcff) border-box;background-size:auto,300% 100%;animation:rewardglow 1.4s ease-in-out infinite,rewardflow 3s linear infinite;position:relative;overflow:hidden}
+.lv-item.claim::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 30% 20%,rgba(255,255,255,.25),transparent 40%),radial-gradient(circle at 75% 70%,rgba(255,95,200,.25),transparent 45%);pointer-events:none}
+.lv-item.claim em{font-style:normal;font-size:9px;font-weight:900;letter-spacing:1px;color:var(--gold);margin-top:2px}
+.lv-item.claim small{color:#fff}
+.lv-list,.lv-head,.lv-claim-title,.lv-next{flex:none}

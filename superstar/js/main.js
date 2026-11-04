@@ -86,24 +86,40 @@ function addExp(x) {
   while (P.exp >= expNeed(P.level)) {
     P.exp -= expNeed(P.level); P.level++; up++;
     const r = levelReward(P.level);
-    if (r.packs) P.freePacks = (P.freePacks || 0) + r.packs;
-    if (r.rp) P.rp += r.rp;
+    // la recompensa queda pendiente hasta que se recoja tocando el nivel
+    P.pending = P.pending || [];
+    P.pending.push({ level: P.level, packs: r.packs || 0, rp: r.rp || 0 });
     lastRewards.push({ level: P.level, ...r });
   }
   if (up) P.hp = Math.max(P.hp, maxHP());
   return up;
 }
-// Ventana del nivel: barra de progreso y recompensas
+// Ventana del nivel: recompensas sin recoger, barra de progreso y próximas recompensas
 function levelSheet() {
   const need = expNeed(P.level), pct = Math.min(100, P.exp / need * 100);
   const next = levelReward(P.level + 1);
+  const pend = P.pending || [];
   const list = Array.from({ length: 8 }, (_, k) => P.level + 1 + k).map(l => { const r = levelReward(l); return `<div class="lv-item ${r.packs ? 'big' : ''}"><b>Nv. ${l}</b><span>${r.ico}</span><small>${r.text}</small></div>`; }).join('');
   modal(`<div class="lv-head"><div class="lv-num">Nv. ${P.level}</div><div class="lv-main">
       <div class="lv-bar"><i style="width:${pct.toFixed(1)}%"></i></div>
       <div class="muted small">${fmt(P.exp)} / ${fmt(need)} EXP · faltan <b>${fmt(need - P.exp)}</b> para el nivel ${P.level + 1}</div></div></div>
+    ${pend.length ? `<div class="lv-claim-title">¡Tienes recompensas sin recoger! Toca para recogerlas</div>
+      <div class="lv-list">${pend.map((r, k) => { const rw = levelReward(r.level); return `<button class="lv-item claim" data-claim="${k}"><b>Nv. ${r.level}</b><span>${rw.ico}</span><small>${rw.text}</small><em>RECOGER</em></button>`; }).join('')}</div>` : ''}
     <div class="lv-next">Al subir a nivel ${P.level + 1}: <b>${next.ico} ${next.text}</b></div>
     <div class="lv-list">${list}</div>
-    <p class="muted small">Ganas EXP jugando canciones. Cada nivel: 1.000 notas · cada 5 niveles (5, 15, 25…): 1 sobre gratis · cada 10 niveles: 5 sobres gratis.${P.freePacks ? ` Tienes <b>${P.freePacks}</b> sobre(s) gratis en la Tienda.` : ''}</p>`);
+    <p class="muted small">Ganas EXP jugando canciones. Cada nivel: 1.000 notas · cada 5 niveles (5, 15, 25…): 1 sobre gratis · cada 10 niveles: 5 sobres gratis.</p>`, el => {
+    el.querySelectorAll('[data-claim]').forEach(b => b.onclick = () => claimReward(+b.dataset.claim));
+  });
+}
+async function claimReward(k) {
+  const r = (P.pending || [])[k];
+  if (!r) return;
+  P.pending.splice(k, 1);
+  if (r.rp) { P.rp += r.rp; save(); renderTop(); toast(`+${fmt(r.rp)} notas`); levelSheet(); return; }
+  save(); closeModal(); renderTop();
+  await openPacksNow(r.packs);   // se abren los sobres directamente, como al empezar
+  if (screen === 'shop') rShop();
+  levelSheet();                  // y se vuelve a la ventana del nivel
 }
 
 // ---------------- audio ----------------
@@ -191,7 +207,7 @@ function renderTop() {
   tickHP();
   const need = expNeed(P.level);
   $('#topbar').innerHTML = `
-    <div class="tb-lv"><b>Lv.${P.level}</b><i style="--p:${(P.exp / need * 100).toFixed(1)}%"></i></div>
+    <div class="tb-lv ${(P.pending || []).length ? 'has-reward' : ''}"><b>Lv.${P.level}</b><i style="--p:${(P.exp / need * 100).toFixed(1)}%"></i></div>
     <div class="tb-name">${esc(P.name)}</div>
     <div class="pill rp" title="Rhythm Points"><span class="ico">♪</span>${fmt(P.rp)}</div>`;
 }
@@ -201,13 +217,8 @@ $('#topbar').addEventListener('click', e => { if (e.target.closest('.tb-lv')) le
 // ---------------- pantallas ----------------
 function rTitle() {
   view.innerHTML = `
-  <div class="title-screen">
-    <div class="sparkles"></div>
-    <div class="logo">
-      <div class="logo-top">SUPERSTAR</div>
-      <div class="logo-sub">ARMY EDITION</div>
-    </div>
-    <div class="tap-start">TOCA PARA EMPEZAR</div>
+  <div class="title-screen title-v2">
+    <div class="tap-start"><i></i><span>TOCA PARA EMPEZAR</span><i></i></div>
     <div class="title-foot">Fan game personal · sin afiliación oficial</div>
   </div>`;
   view.querySelector('.title-screen').addEventListener('click', () => {
@@ -247,17 +258,19 @@ function welcomeGift() {
   }, null, { locked: true });
 }
 // Abre sobres gratis uno detrás de otro, sin que se vea la pantalla de detrás entre medias
-async function openFreePacks(n) {
+async function openPacksNow(n, fromFree = false) {
   const hold = document.createElement('div');
   hold.className = 'drop-hold';
   $('#app').appendChild(hold);
   try {
-    for (let k = 0; k < n && (P.freePacks || 0) > 0; k++) {
-      P.freePacks--; const got = openPack(P); save();
+    for (let k = 0; k < n; k++) {
+      if (fromFree) { if ((P.freePacks || 0) <= 0) break; P.freePacks--; }
+      const got = openPack(P); save();
       await openDrop(got, { cardHTML, packs: 1 });
     }
   } finally { hold.remove(); }
 }
+const openFreePacks = n => openPacksNow(n, true);
 
 function rLobby() {
   const leader = P.cards.find(c => c.uid === P.deck[0]) || P.cards.find(c => P.deck.includes(c.uid));
@@ -814,7 +827,7 @@ function rResult(r) {
     <div class="res-rew">
       <div>♪ +${fmt(r.rp)} RP</div><div>EXP +${r.exp}</div>
     </div>
-    ${r.ups ? `<div class="levelup">¡SUBES A NIVEL ${P.level}! ${lastRewards.map(x => x.text).join(' · ')}</div>` : ''}
+    ${r.ups ? `<div class="levelup">¡SUBES A NIVEL ${P.level}! Recompensa: ${lastRewards.map(x => x.text).join(' · ')}<br><small>Recógela tocando tu nivel arriba</small></div>` : ''}
     <div class="row2">
       <button class="btn ghost" data-act="retry">Reintentar</button>
       <button class="btn primary" data-act="ok">Continuar</button>
