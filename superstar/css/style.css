@@ -555,3 +555,24 @@ body.rot #app{inset:auto;top:0;left:0;width:var(--rw);height:var(--rh);transform
 .drop-sum{max-height:calc(var(--ah) - 20px);overflow-y:auto;gap:10px;width:min(820px,calc(var(--aw) * 0.94));padding:8px 0}
 .drop-sum h2{margin:0}
 .drop-grid{grid-template-columns:repeat(auto-fit,minmax(58px,calc((var(--ah) - 130px) / 2 * .75)));gap:10px}
+
+/* ===== botón volver, filtros de colección y cambio de carta ===== */
+.back-btn{position:sticky;top:0;align-self:flex-start;flex:none;width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:rgba(0,0,0,.35);color:#fff;font-size:20px;font-weight:900;line-height:1;cursor:pointer;z-index:3;margin:-4px 0 2px -4px}
+.back-btn:active{transform:scale(.92)}
+.filters{display:flex;flex-direction:column;gap:6px;margin:-2px 0 12px}
+.f-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.f-row > span{min-width:52px}
+.chip{border:1px solid var(--line);background:rgba(0,0,0,.3);color:#fff;border-radius:999px;padding:5px 11px;font-size:11px;font-weight:800;cursor:pointer}
+.chip small{font-weight:600;opacity:.7;font-size:9px}
+.chip.on{background:linear-gradient(135deg,#ff5fc8,#9b6bff);border-color:transparent;box-shadow:0 0 12px rgba(255,95,200,.45)}
+.chip[data-era].on{background:linear-gradient(135deg,var(--c1),var(--c2))}
+.swap{position:absolute;inset:0;z-index:15;display:grid;grid-template-rows:minmax(0,1fr) auto;gap:8px;padding:calc(10px + var(--safeT)) calc(14px + var(--safeR)) calc(10px + var(--safeB)) calc(14px + var(--safeL));background:radial-gradient(90% 70% at 50% 25%,#3b1680,#12072e 80%);animation:dropin .2s ease-out}
+.swap > .back-btn{position:absolute;top:calc(10px + var(--safeT));left:calc(12px + var(--safeL));margin:0}
+.swap-top{display:flex;align-items:center;justify-content:center;gap:28px;min-height:0}
+.swap-cur{height:100%;display:grid;place-items:center}
+.swap-cur .card{width:auto;height:min(100%,300px);max-height:calc(var(--ah) * 0.52)}
+.swap-info{max-width:340px}.swap-info h2{margin:0 0 2px}.swap-info p{font-size:13px;margin:8px 0}
+.swap-list{display:flex;gap:10px;overflow-x:auto;overflow-y:hidden;padding:8px 4px 6px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;touch-action:pan-x}
+.swap-item{flex:none;width:calc(var(--ah) * 0.25);max-width:110px;min-width:62px;scroll-snap-align:start;cursor:pointer;text-align:center}
+.swap-item .card{width:100%}
+.swap-pow{font-size:10px;font-weight:800;color:var(--gold);margin-top:3px}

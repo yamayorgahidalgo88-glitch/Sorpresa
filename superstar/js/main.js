@@ -1,4 +1,4 @@
-import { SONGS, PHOTO_CREDITS, THEMES, DIFFS, MEMBERS, DECK_SIZE, PACK_COST, REFILL_COST, HP_REGEN_SEC, BASE_MAX_SCORE, matchSong, GRADE_INFO } from './data.js';
+import { SONGS, PHOTO_CREDITS, THEMES, ERAS, DIFFS, MEMBERS, DECK_SIZE, PACK_COST, REFILL_COST, HP_REGEN_SEC, BASE_MAX_SCORE, matchSong, GRADE_INFO } from './data.js';
 import { loadProfile, saveProfile, resetProfile, idb, askPersistent } from './store.js';
 import { analyzeAudio, makeChart, ANALYSIS_VERSION, beatGrid, nearestIn } from './beatmap.js';
 import { cardHTML, cardPower, deckPower, openPack, welcomePack, autoDeck, memberById, cardPhoto, migrateEras, grantCard } from './cards.js';
@@ -27,7 +27,6 @@ if (migrateEras(P)) saveProfile(P);
 let ctx = null;
 let screen = 'title';
 let diff = P.lastDiff || 'normal';
-let selectedSlot = -1;
 let game = null;
 let lastPlay = null;
 const loaded = new Set();
@@ -140,6 +139,8 @@ async function storeAudio(id, file) {
 
 // ---------------- navegación ----------------
 function go(s, arg) {
+  if (s === 'deck' && screen !== 'deck') deckFilter = { sort: 'desc', era: null };   // el filtro se reinicia al volver
+  document.querySelectorAll('.swap').forEach(e => e.remove());
   screen = s;
   document.body.dataset.screen = s;
   const menu = ['lobby', 'songs', 'deck', 'shop', 'settings'].includes(s);
@@ -758,8 +759,16 @@ function rResult(r) {
 }
 
 // ---------------- mazo ----------------
+// filtro de la colección: se reinicia cada vez que se entra en «Cartas» desde otra pantalla
+let deckFilter = { sort: 'desc', era: null };
+const GR = ['C', 'B', 'A', 'S', 'R'];
 function rDeck() {
-  const cards = [...P.cards].sort((a, b) => cardPower(b) - cardPower(a));
+  const f = deckFilter;
+  let cards = [...P.cards];
+  if (f.era) cards = cards.filter(c => c.theme === f.era);
+  const dir = f.sort === 'asc' ? 1 : -1;
+  cards.sort((a, b) => dir * (GR.indexOf(a.grade) - GR.indexOf(b.grade)) || dir * (a.lvl - b.lvl) || cardPower(b) - cardPower(a));
+  const eras = ERAS.filter(e => P.cards.some(c => c.theme === e));
   view.innerHTML = `
   <div class="deck">
     <div class="deck-head">
@@ -769,30 +778,64 @@ function rDeck() {
     <div class="mazo-bonus"><b>¿Para qué sirven?</b> Las 7 cartas del mazo suman poder, y el poder sube tu puntuación: ahora mismo <b>+${deckBonusPct()}%</b>.<br>
       • Rango más alto (C → B → A → S → R) = más poder. • Las repetidas suben de nivel la carta.<br>
       • Cartas de la <b>misma era</b> que la canción valen <b>x1.5</b>. • 4 o más de la misma era: bonus extra.</div>
-    <p class="hint">Toca un hueco y luego una carta para cambiarla.</p>
+    <p class="hint">Toca una carta del mazo para cambiarla.</p>
     <div class="deck-slots">
-      ${P.deck.map((uid, i) => cardHTML(P.cards.find(c => c.uid === uid), { size: 'sm', extra: `data-slot="${i}"` }).replace('class="card', `class="card${i === selectedSlot ? ' sel' : ''}`)).join('')}
+      ${P.deck.map((uid, i) => cardHTML(P.cards.find(c => c.uid === uid), { size: 'sm', extra: `data-slot="${i}"` })).join('')}
     </div>
-    <h3>Colección <span class="muted">(${cards.length})</span></h3>
+    <h3>Colección <span class="muted">(${cards.length}${f.era ? ' de ' + P.cards.length : ''})</span></h3>
+    <div class="filters">
+      <div class="f-row"><span class="muted small">Calidad</span>
+        <button class="chip ${f.sort === 'desc' ? 'on' : ''}" data-sort="desc">Mayor a menor</button>
+        <button class="chip ${f.sort === 'asc' ? 'on' : ''}" data-sort="asc">Menor a mayor</button></div>
+      <div class="f-row"><span class="muted small">Época</span>
+        <button class="chip ${!f.era ? 'on' : ''}" data-era="">Todas</button>
+        ${eras.map(e => `<button class="chip ${f.era === e ? 'on' : ''}" data-era="${e}" style="--c1:${THEMES[e].c1};--c2:${THEMES[e].c2}">${esc(THEMES[e].short)} <small>${THEMES[e].year}</small></button>`).join('')}</div>
+    </div>
     <div class="collection">
-      ${cards.length ? cards.map(c => cardHTML(c, { size: 'sm', extra: `data-uid="${c.uid}"` }).replace('class="card', `class="card${P.deck.includes(c.uid) ? ' in-deck' : ''}`)).join('') : '<p class="muted">Aún no tienes cartas. Abre sobres en la Tienda.</p>'}
+      ${cards.length ? cards.map(c => cardHTML(c, { size: 'sm', extra: `data-uid="${c.uid}"` }).replace('class="card', `class="card${P.deck.includes(c.uid) ? ' in-deck' : ''}`)).join('') : '<p class="muted">Aún no tienes cartas aquí. Abre sobres en la Tienda.</p>'}
     </div>
   </div>`;
-  view.querySelector('[data-act=auto]').onclick = () => { autoDeck(P); save(); selectedSlot = -1; rDeck(); };
-  view.querySelectorAll('[data-slot]').forEach(el => el.onclick = () => {
-    const i = +el.dataset.slot;
-    if (selectedSlot === i) { P.deck[i] = null; selectedSlot = -1; save(); }
-    else selectedSlot = i;
-    rDeck();
-  });
-  view.querySelectorAll('[data-uid]').forEach(el => el.onclick = () => {
-    const uid = +el.dataset.uid;
-    let slot = selectedSlot >= 0 ? selectedSlot : P.deck.indexOf(null);
-    if (slot < 0) { cardInfo(uid); return; }
-    const already = P.deck.indexOf(uid);
-    if (already >= 0) P.deck[already] = P.deck[slot];
-    P.deck[slot] = uid;
-    selectedSlot = -1; save(); rDeck();
+  view.querySelector('[data-act=auto]').onclick = () => { autoDeck(P); save(); rDeck(); };
+  view.querySelectorAll('[data-slot]').forEach(el => el.onclick = () => swapView(+el.dataset.slot));
+  view.querySelectorAll('[data-sort]').forEach(el => el.onclick = () => { f.sort = el.dataset.sort; rDeck(); });
+  view.querySelectorAll('[data-era]').forEach(el => el.onclick = () => { f.era = el.dataset.era || null; rDeck(); });
+  view.querySelectorAll('[data-uid]').forEach(el => el.onclick = () => cardInfo(+el.dataset.uid));
+}
+// Cambiar una carta del mazo (como los mazos de Clash Royale): la carta elegida en grande
+// y abajo todas las demás para deslizar y elegir con cuál cambiarla.
+function swapView(slot) {
+  const cur = P.cards.find(c => c.uid === P.deck[slot]);
+  const others = P.cards.filter(c => c.uid !== P.deck[slot])
+    .sort((a, b) => (P.deck.includes(a.uid) - P.deck.includes(b.uid)) || cardPower(b) - cardPower(a));
+  const ov = document.createElement('div');
+  ov.className = 'swap';
+  const m = cur && memberById(cur.member);
+  ov.innerHTML = `
+    <button class="back-btn" data-back aria-label="Volver">←</button>
+    <div class="swap-top">
+      <div class="swap-cur">${cardHTML(cur, { size: 'lg' })}</div>
+      <div class="swap-info">
+        ${cur ? `<h2>${esc(m.name)}</h2><div class="muted">${esc(THEMES[cur.theme].name)} · ${THEMES[cur.theme].year}</div>
+          <p>Rango <b>${cur.grade}</b> · Nivel ${cur.lvl}/${GRADE_INFO[cur.grade].maxLvl} · Poder <b>${fmt(cardPower(cur))}</b></p>
+          <button class="btn ghost small" data-remove>Quitar del mazo</button>` : '<h2>Hueco libre</h2>'}
+        <p class="hint">Desliza las cartas de abajo y toca la que quieras poner en su lugar.</p>
+      </div>
+    </div>
+    <div class="swap-list">${others.length ? others.map(c => `<div class="swap-item" data-uid="${c.uid}">${cardHTML(c, { size: 'sm' }).replace('class="card', `class="card${P.deck.includes(c.uid) ? ' in-deck' : ''}`)}<div class="swap-pow">${fmt(cardPower(c))}</div></div>`).join('') : '<p class="muted">No tienes más cartas. Abre sobres en la Tienda.</p>'}</div>`;
+  $('#app').appendChild(ov);
+  const close = () => { ov.remove(); rDeck(); };
+  ov.querySelector('[data-back]').onclick = close;
+  const rm = ov.querySelector('[data-remove]'); if (rm) rm.onclick = () => { P.deck[slot] = null; save(); close(); };
+  // deslizar con el dedo sin que cuente como toque
+  const list = ov.querySelector('.swap-list');
+  let downX = 0, moved = false;
+  list.addEventListener('pointerdown', e => { downX = e.clientX + e.clientY; moved = false; });
+  list.addEventListener('pointermove', e => { if (Math.abs(e.clientX + e.clientY - downX) > 8) moved = true; });
+  ov.querySelectorAll('.swap-item').forEach(el => el.onclick = () => {
+    if (moved) return;
+    const uid = +el.dataset.uid, already = P.deck.indexOf(uid);
+    if (already >= 0) P.deck[already] = P.deck[slot];   // si ya estaba en el mazo, se intercambian
+    P.deck[slot] = uid; save(); close();
   });
 }
 function cardInfo(uid) {
@@ -801,7 +844,7 @@ function cardInfo(uid) {
   modal(`${cardHTML(c, { size: 'lg' })}
     <h2>${esc(m.name)} · ${esc(THEMES[c.theme].name)}</h2>
     <p>Rango <b>${c.grade}</b> · Nivel ${c.lvl}/${GRADE_INFO[c.grade].maxLvl} · Poder ${fmt(cardPower(c))}</p>
-    <p class="muted">Toca primero un hueco del mazo para colocarla.</p>
+    <p class="muted">Para ponerla en el mazo, toca la carta del mazo que quieras cambiar.</p>
     <button class="btn primary" data-close>Vale</button>`);
 }
 
@@ -820,6 +863,10 @@ function rShop() {
   view.querySelectorAll('[data-n]').forEach(b => b.onclick = () => {
     const n = +b.dataset.n;
     if (P.rp < PACK_COST * n) return;
+    confirmBox(n > 1 ? '¿Seguro que quieres comprar 5 sobres?' : '¿Seguro que quieres comprar un sobre?', () => buyPacks(n), { no: 'No', ok: 'Sí', okClass: 'primary' });
+  });
+  const buyPacks = n => {
+    if (P.rp < PACK_COST * n) return;
     P.rp -= PACK_COST * n;
     // cada sobre trae 1, 2 o 3 cartas; «Abrir 5» junta las de los 5 sobres en una sola apertura
     const got = Array.from({ length: n }, () => openPack(P)).flat();
@@ -836,7 +883,7 @@ function rShop() {
     } catch {}
     save(); renderTop();
     openDrop(got, { cardHTML, packs: n }).then(() => rShop());
-  });
+  };
 }
 
 // ---------------- ajustes ----------------
@@ -928,7 +975,7 @@ function calibrate() {
 let modalOnClose = null;
 function modal(html, setup, onClose) {
   const m = $('#modal');
-  m.innerHTML = `<div class="modal-box">${html}</div>`;
+  m.innerHTML = `<div class="modal-box"><button class="back-btn" data-close aria-label="Volver">←</button>${html}</div>`;
   m.hidden = false;
   modalOnClose = onClose || null;
   m.querySelectorAll('[data-close]').forEach(b => b.onclick = closeModal);
@@ -939,8 +986,8 @@ function closeModal() {
   $('#modal').hidden = true; $('#modal').innerHTML = '';
   const f = modalOnClose; modalOnClose = null; if (f) f();
 }
-function confirmBox(text, yes) {
-  modal(`<p>${esc(text)}</p><div class="row2"><button class="btn ghost" data-close>Cancelar</button><button class="btn danger" data-act="yes">Sí</button></div>`,
+function confirmBox(text, yes, { no = 'Cancelar', ok = 'Sí', okClass = 'danger' } = {}) {
+  modal(`<p>${esc(text)}</p><div class="row2"><button class="btn ghost" data-close>${esc(no)}</button><button class="btn ${okClass}" data-act="yes">${esc(ok)}</button></div>`,
     el => { el.querySelector('[data-act=yes]').onclick = async () => { closeModal(); await yes(); }; });
 }
 let toastT = 0;
@@ -959,7 +1006,7 @@ const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.
 const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
 
 // ---------------- arranque ----------------
-document.querySelectorAll('#nav button').forEach(b => b.onclick = () => { selectedSlot = -1; go(b.dataset.go); });
+document.querySelectorAll('#nav button').forEach(b => b.onclick = () => go(b.dataset.go));
 $('#pauseBtn').onclick = () => { if (game && game.rec) game.stopRecording(); else togglePause(); };
 $('#pmResume').onclick = () => togglePause();
 $('#pmRetry').onclick = () => { const lp = lastPlay; quitGame(true); startSong(lp.id, { free: true }); };

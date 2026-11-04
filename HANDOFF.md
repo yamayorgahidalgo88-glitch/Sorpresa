@@ -5,7 +5,7 @@ Juego de ritmo web (PWA instalable) inspirado en **SuperStar BTS** (Dalcomsoft, 
 
 - **Web publicada:** https://superstar-army.vercel.app
 - **Repositorio:** `yamayorgahidalgo88-glitch/Sorpresa`, rama `claude/bts-superstar-game-vesiwx`. El juego está en `superstar/`. El `index.html` de la raíz es OTRO regalo («Flores Amarillas»): no tocarlo.
-- **Vercel:** equipo `team_AJTr7WqPBL2IVmRDgpky7Ac8` (La Quinta del Bnitre), proyecto `superstar-army`. Se despliega con la herramienta de Vercel `create_deployment` usando `gitSource` (github, org `yamayorgahidalgo88-glitch`, repo `Sorpresa`, ref de la rama) y `target: production`. En cada cambio hay que **subir la versión de caché** en `superstar/sw.js` (`superstar-vNN`, ahora v35).
+- **Vercel:** equipo `team_AJTr7WqPBL2IVmRDgpky7Ac8` (La Quinta del Bnitre), proyecto `superstar-army`. Se despliega con la herramienta de Vercel `create_deployment` usando `gitSource` (github, org `yamayorgahidalgo88-glitch`, repo `Sorpresa`, ref de la rama) y `target: production`. En cada cambio hay que **subir la versión de caché** en `superstar/sw.js` (`superstar-vNN`, ahora v36).
 - El usuario habla **español** y no es programador: explicarle en lenguaje sencillo.
 
 ## Reglas importantes (decididas con el usuario)
@@ -29,6 +29,11 @@ Juego de ritmo web (PWA instalable) inspirado en **SuperStar BTS** (Dalcomsoft, 
 - Mazo de 7 que da **+% de puntos**; las cartas de la misma era que la canción valen x1,5 y 4+ de la misma era dan bonus extra. **Antes de cada canción** sale la pantalla del mazo (`deckIntro` en `main.js`): brillan una a una las cartas de la era de la canción y se suma el bonus.
 - Sobres con apertura tipo «Star Drops». Las cartas antiguas (eras SCHOOL, HYYH, LY, MOTS, BUTTER, PROOF) se pasan solas a las nuevas (`migrateEras`).
 - **Sin auriculares (energía):** se juega sin límite. Nivel, RP, récords, PWA instalable.
+
+## Cartas (pantalla)
+- Tocar una carta del mazo abre `swapView` (como Clash Royale): la carta en grande y abajo una fila deslizable con las demás; tocar una la cambia (si ya estaba en el mazo, se intercambian).
+- Colección con filtros (calidad mayor/menor y época); se reinician al entrar en Cartas desde otra pantalla (`deckFilter` en `go()`).
+- Todas las ventanas tienen botón ← volver (`modal()`). Comprar sobres pide confirmación (Sí/No).
 
 ## Compartir canciones (por privado)
 - En la ficha de cada canción, **«📤 Enviar canción a alguien»** (`js/share.js`): crea un MP3 normal con una etiqueta ID3 (TXXX `SUPERSTAR`) que guarda id, título, era y la partitura grabada si la hay. Se manda con el menú de compartir del móvil (WhatsApp, Telegram…) o se descarga.
