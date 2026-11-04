@@ -629,3 +629,7 @@ body[data-screen=title] #bg i{display:none}
 .lv-item.claim em{font-style:normal;font-size:9px;font-weight:900;letter-spacing:1px;color:var(--gold);margin-top:2px}
 .lv-item.claim small{color:#fff}
 .lv-list,.lv-head,.lv-claim-title,.lv-next{flex:none}
+/* ventana del nivel: la flecha va en la misma fila que «Nv. X» y la barra */
+.modal-box{position:relative}
+.modal-box:has(.lv-head) > .back-btn{position:absolute;top:18px;left:16px;margin:0;width:38px;height:32px}
+.modal-box:has(.lv-head) .lv-head{margin-left:50px;min-height:42px}
