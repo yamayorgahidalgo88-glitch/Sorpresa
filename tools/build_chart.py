@@ -330,6 +330,16 @@ def build(mp3, song_id, workdir, diffs=('normal',), start=None, end=None):
     for d in sorted(drum_cand, key=lambda x: x['t']):
         if d['t'] - last_t >= 2 * period - 0.02: thin.append(d); last_t = d['t']
     drum_cand = thin
+    # HARD: además de la voz, los golpes de batería (bombo y caja) que caen en el compás (corcheas),
+    # en toda la canción, para que haya más notas pero siempre sobre algo que suena
+    # (confirmados por el detector general de golpes de la pista instrumental, para no inventar golpes)
+    oe_c = librosa.onset.onset_strength(y=inst, sr=SR, hop_length=128)
+    t_c = librosa.times_like(oe_c, sr=SR, hop_length=128)
+    inst_on = t_c[librosa.onset.onset_detect(onset_envelope=oe_c, sr=SR, hop_length=128)]
+    heard = lambda t: len(inst_on) and np.min(np.abs(inst_on - t)) < 0.04
+    drum_hard = [dict(d, kind='d', s=d['s'] * 0.75) for d in drums if heard(d['t'])
+                 and start <= d['t'] <= end and d['t'] > first_vocal + 0.1 and d['s'] > 0.15
+                 and abs(nearest(grid16, d['t']) - d['t']) < 0.01]
     sections = [dict(a=round(a_, 2), b=round(b_, 2)) for a_, b_ in inst_spans]
 
     charts = {}
@@ -342,8 +352,10 @@ def build(mp3, song_id, workdir, diffs=('normal',), start=None, end=None):
         cand += [dict(t=a, s=2.0, onBeat=False, on8=True, kind='a') for a in accents]
         cand += drum_cand
         if diff == 'hard':
+            cand += [x for x in drum_hard if not near_voice(x['t'], 0.08)]
+        if diff == 'hard':
             # en HARD sólo sílabas que se oyen claras o caen en el compás; la batería real tiene prioridad
-            cand = [x for x in cand if x['kind'] != 'v' or x['s'] >= 0.3 or x['on8']]
+            cand = [x for x in cand if x['kind'] != 'v' or x['s'] >= 0.15 or x['on8']]
             for x in cand:
                 if x['kind'] == 'd': x['s'] *= 1.4
         def prio(x):

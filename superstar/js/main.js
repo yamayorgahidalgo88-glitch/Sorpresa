@@ -173,9 +173,9 @@ async function getAnalysis(id) {
 }
 function computeLevels(id, an) {
   const lv = {};
-  for (const d of DIFFS) lv[d.id] = makeChart(an, 'normal', id).level + (d.id === 'hard' ? 3 : d.id === 'easy' ? -2 : 0);
+  for (const d of DIFFS) lv[d.id] = d.id === 'hard' ? makeChart(an, 'hard', id).level + 1 : makeChart(an, 'normal', id).level + (d.id === 'easy' ? -2 : 0);
   levels.set(id, lv);
-  getPrepared(id).then(pr => { if (pr && pr.charts.normal) { for (const d of DIFFS) lv[d.id] = pr.charts.normal.level + (d.id === 'hard' ? 3 : d.id === 'easy' ? -2 : 0); refreshRow(id); } });
+  getPrepared(id).then(pr => { if (pr && pr.charts.normal) { for (const d of DIFFS) lv[d.id] = d.id === 'hard' ? (pr.charts.hard ? pr.charts.hard.level + 1 : pr.charts.normal.level + 3) : pr.charts.normal.level + (d.id === 'easy' ? -2 : 0); refreshRow(id); } });
 }
 
 // Partituras preparadas que siguen la voz (charts/<id>.json). Sólo tiempos y carriles: el audio lo pone ella.
@@ -553,11 +553,13 @@ async function shareSong(id) {
 // Partitura a usar: la grabada por ti > la preparada (sigue la voz) > la automática
 async function chartFor(id, buf, an, { ignoreUser = false } = {}) {
   const prep = await getPrepared(id);
-  // todos los niveles usan la misma partitura (la de 4 botones); sólo cambia la velocidad
+  // EASY y NORMAL usan la misma partitura (sólo cambia la velocidad); HARD tiene más notas
+  // (voz + batería, siempre sobre algo que suena) y además va más rápida
+  const want = diff === 'hard' ? 'hard' : 'normal';
   const usePrep = prep && prep.charts.normal && Math.abs(prep.duration - buf.duration) < 1.5;
   const base = usePrep
-    ? { ...prep.charts.normal, bpm: prep.bpm, phase: prep.phase, beats: prep.beats, intensity: prep.intensity, start: prep.start || 0, end: prep.end }
-    : makeChart(an, 'normal', id);
+    ? { ...(prep.charts[want] || prep.charts.normal), bpm: prep.bpm, phase: prep.phase, beats: prep.beats, intensity: prep.intensity, start: prep.start || 0, end: prep.end }
+    : makeChart(an, want, id);
   const mine = !ignoreUser && P.userCharts && P.userCharts[id];
   if (mine && Math.abs((mine.duration || buf.duration) - buf.duration) < 1.5) return { ...base, notes: mine.notes, lanes: mine.lanes || 4, mine: true };
   return base;

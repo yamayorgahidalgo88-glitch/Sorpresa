@@ -5,7 +5,7 @@ Juego de ritmo web (PWA instalable) inspirado en **SuperStar BTS** (Dalcomsoft, 
 
 - **Web publicada:** https://superstar-army.vercel.app
 - **Repositorio:** `yamayorgahidalgo88-glitch/Sorpresa`, rama `claude/bts-superstar-game-vesiwx`. El juego está en `superstar/`. El `index.html` de la raíz es OTRO regalo («Flores Amarillas»): no tocarlo.
-- **Vercel:** equipo `team_AJTr7WqPBL2IVmRDgpky7Ac8` (La Quinta del Bnitre), proyecto `superstar-army`. Se despliega con la herramienta de Vercel `create_deployment` usando `gitSource` (github, org `yamayorgahidalgo88-glitch`, repo `Sorpresa`, ref de la rama) y `target: production`. En cada cambio hay que **subir la versión de caché** en `superstar/sw.js` (`superstar-vNN`, ahora v48).
+- **Vercel:** equipo `team_AJTr7WqPBL2IVmRDgpky7Ac8` (La Quinta del Bnitre), proyecto `superstar-army`. Se despliega con la herramienta de Vercel `create_deployment` usando `gitSource` (github, org `yamayorgahidalgo88-glitch`, repo `Sorpresa`, ref de la rama) y `target: production`. En cada cambio hay que **subir la versión de caché** en `superstar/sw.js` (`superstar-vNN`, ahora v49).
 - El usuario habla **español** y no es programador: explicarle en lenguaje sencillo.
 
 ## Reglas importantes (decididas con el usuario)
@@ -17,7 +17,7 @@ Juego de ritmo web (PWA instalable) inspirado en **SuperStar BTS** (Dalcomsoft, 
 - **Pista en perspectiva horizontal**, fondo con los 7 miembros tintado de rosa, láseres, medidor RAVE (ENERGY → ULTRA RAVE con bonus x1–x4), carta que puntúa arriba en el centro, cut-in del miembro, juicios S·PERFECT/PERFECT/GOOD/BAD/MISS y combo.
 - **Sin botones fijos:** abajo solo hay una barra de luz. Las notas caen en **13 posiciones** a lo ancho (como el original) y se toca donde llega cada nota (tolerancia ~1,7 posiciones).
 - **Notas:** sueltas azules/rosas, dobles moradas (gemas), doradas = unidas: notas largas, **deslizamientos en diagonal** y **zigzags de 3–4 monedas con bandas rectas** que cruzan la pista (como las imágenes del original que pasó el usuario).
-- **Niveles:** EASY / NORMAL / HARD usan **la misma partitura** y cambia la **velocidad de caída** (2,2 s / 1,65 s / 1,2 s). En HARD, además, hay menos zigzags y más cortos (`tameChains` en `engine.js`: uno de cada dos, 3 monedas máx., 4 posiciones de ancho).
+- **Niveles:** EASY y NORMAL usan **la misma partitura**; **HARD tiene su propia partitura con ~40 % más notas** (`charts.hard`: voz + golpes de bombo/caja en la rejilla de semicorcheas confirmados por el detector de la pista instrumental; `--diffs normal,hard` en `build_chart.py`; en la pista automática `nps` 4,7). Hay HARD para `danger` y `on`; para `dynamite`, `no-more-dream` y `the-truth-untold` falta volver a tener sus MP3 (si no hay `charts.hard`, HARD usa la de NORMAL). Además cambia la **velocidad de caída** (2,2 s / 1,65 s / 1,2 s). En HARD, además, hay menos zigzags y más cortos (`tameChains` en `engine.js`: uno de cada dos, 3 monedas máx., 4 posiciones de ancho).
 - **Barra de colores grande:** solo cuentan los toques dentro de ella (`barY0`); tolerancia lateral `HIT = 2.2` posiciones, medida siempre en la línea donde llegan las notas (la altura del dedo no cambia la posición). Ventanas de tiempo iguales antes y después: S·PERFECT ±42 ms, PERFECT ±85 ms, GOOD ±135 ms, BAD ±180 ms. Probado con un robot «persona real» (errores de tiempo y posición, toques a cualquier altura): 0,4 % de toques razonables sin contar (antes 1,8 %, por la ventana tardía de 120 ms).
 - **Partituras preparadas que siguen la voz** (`superstar/charts/<id>.json`): `dynamite`, `no-more-dream`, `the-truth-untold`, `danger`, `on`. Si el MP3 cargado tiene la misma duración (±1,5 s) se usa esa; si no, el **generador automático** en el navegador (`js/beatmap.js`).
 - **Recorte automático de intros/colas de videoclip** (`start`/`end` en la partitura): el juego arranca la canción en `start`.
@@ -61,7 +61,7 @@ Cada nota: `{t, lane}`; larga: `+end`; deslizamiento: `+lane2`; zigzag: `+path:[
 ## Añadir una canción nueva
 1. El usuario adjunta el MP3 en el chat.
 2. Si no está en `SONGS` (`js/data.js`), añadirla (id, título y `theme` = la era: el álbum de estudio donde sale, coreano o japonés; si no sale en ninguno, el más cercano en el tiempo).
-3. `python3 tools/build_chart.py cancion.mp3 <id> --out superstar/charts --diffs normal` (Demucs tarda ~2 min; requiere `pip install librosa soundfile torch demucs`).
+3. `PYTHONHASHSEED=0 python3 tools/build_chart.py cancion.mp3 <id> --out superstar/charts --diffs normal,hard` (Demucs tarda ~2 min; requiere `pip install librosa soundfile torch demucs`).
 4. `python3 tools/validate_chart.py superstar/charts/<id>.json cancion.mp3` → debe salir VÁLIDA.
 5. Añadir el id a `PREPARED` en `js/main.js`, subir versión de `sw.js`, commit, push y desplegar.
 6. Mandarle una **prueba de audio** (su MP3 con un «tic» en cada nota y un tono durante las notas largas) para que lo escuche.

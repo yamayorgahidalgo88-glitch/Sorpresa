@@ -282,7 +282,7 @@ const CFG = {
   // NORMAL y EASY escalan a partir de ahí.
   easy:   { lanes: 3, nps: 1.4, gap: 0.42, minGap: 0.33, peak: 2.5, sub: 2, holdMin: 0.6, holdP: 0.6, chord: 0,    jack: 0.5, slideP: 0 },
   normal: { lanes: 4, nps: 3.4, gap: 0.2, minGap: 0.13, peak: 6.5,   sub: 4, holdMin: 0.5, holdP: 0.5, chord: 0.08, jack: 0.3, slideP: 0.4 },
-  hard:   { lanes: 7, nps: 3.6, gap: 0.18, minGap: 0.13, peak: 6.5, sub: 4, holdMin: 0.4, holdP: 0.5, chord: 0.2,  jack: 0.2, slideP: 0.7 },
+  hard:   { lanes: 7, nps: 4.7, gap: 0.15, minGap: 0.13, peak: 6.5, sub: 4, holdMin: 0.4, holdP: 0.5, chord: 0.2,  jack: 0.2, slideP: 0.7 },
 };
 
 export function makeChart(an, diffId, seedStr = '') {
