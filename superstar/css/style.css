@@ -633,3 +633,4 @@ body[data-screen=title] #bg i{display:none}
 .modal-box{position:relative}
 .modal-box:has(.lv-head) > .back-btn{position:absolute;top:18px;left:16px;margin:0;width:38px;height:32px}
 .modal-box:has(.lv-head) .lv-head{margin-left:50px;min-height:42px}
+.tb-name{margin-left:22px}
