@@ -46,6 +46,7 @@ export const PHOTO_CREDITS = [
 export const SONGS = [
   { id: 'no-more-dream', title: 'No More Dream', theme: 'WAKEUP', alias: ['nomoredream'] },
   { id: 'boy-in-luv', title: 'Boy In Luv', theme: 'WAKEUP', alias: ['boyinluv', 'sangnamja'] },
+  { id: 'n-o', title: 'N.O', theme: 'DW', alias: ['no'] },
   { id: 'danger', title: 'Danger', theme: 'DW' },
   { id: 'i-need-u', title: 'I NEED U', theme: 'YOUTH', alias: ['ineedu'] },
   { id: 'dope', title: 'DOPE', theme: 'YOUTH', alias: ['ssaeonda'] },
