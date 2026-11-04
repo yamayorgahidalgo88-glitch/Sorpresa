@@ -1,0 +1,23 @@
+name: Fotos candidatas (Wikimedia Commons)
+on:
+  push:
+    paths: ['tools/fetch_photo_candidates.py', '.github/workflows/photo-candidates.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/fetch_photo_candidates.py
+        env:
+          PER: '15'
+          JOBS: '[["rm", "2013", "cat:Category:RM in 2013"], ["rm", "2020", "cat:Category:RM in 2020"], ["rm", "2021", "cat:Category:RM in 2021"], ["rm", "2022", "cat:Category:RM in 2022"], ["rm", "2023", "cat:Category:RM in 2023"], ["rm", "2024", "cat:Category:RM in 2024"], ["jin", "2013", "cat:Category:Jin (vocalist) in 2013"], ["jin", "2020", "cat:Category:Jin (vocalist) in 2020"], ["jin", "2021", "cat:Category:Jin (vocalist) in 2021"], ["jin", "2022", "cat:Category:Jin (vocalist) in 2022"], ["jin", "2023", "cat:Category:Jin (vocalist) in 2023"], ["jin", "2024", "cat:Category:Jin (vocalist) in 2024"], ["suga", "2013", "cat:Category:Suga in 2013"], ["suga", "2020", "cat:Category:Suga in 2020"], ["suga", "2021", "cat:Category:Suga in 2021"], ["suga", "2022", "cat:Category:Suga in 2022"], ["suga", "2023", "cat:Category:Suga in 2023"], ["suga", "2024", "cat:Category:Suga in 2024"], ["jh", "2013", "cat:Category:J-Hope in 2013"], ["jh", "2020", "cat:Category:J-Hope in 2020"], ["jh", "2021", "cat:Category:J-Hope in 2021"], ["jh", "2022", "cat:Category:J-Hope in 2022"], ["jh", "2023", "cat:Category:J-Hope in 2023"], ["jh", "2024", "cat:Category:J-Hope in 2024"], ["jm", "2013", "cat:Category:Jimin in 2013"], ["jm", "2020", "cat:Category:Jimin in 2020"], ["jm", "2021", "cat:Category:Jimin in 2021"], ["jm", "2022", "cat:Category:Jimin in 2022"], ["jm", "2023", "cat:Category:Jimin in 2023"], ["jm", "2024", "cat:Category:Jimin in 2024"], ["v", "2013", "cat:Category:V (vocalist) in 2013"], ["v", "2020", "cat:Category:V (vocalist) in 2020"], ["v", "2021", "cat:Category:V (vocalist) in 2021"], ["v", "2022", "cat:Category:V (vocalist) in 2022"], ["v", "2023", "cat:Category:V (vocalist) in 2023"], ["v", "2024", "cat:Category:V (vocalist) in 2024"], ["jk", "2013", "cat:Category:Jung Kook in 2013"], ["jk", "2020", "cat:Category:Jung Kook in 2020"], ["jk", "2021", "cat:Category:Jung Kook in 2021"], ["jk", "2022", "cat:Category:Jung Kook in 2022"], ["jk", "2023", "cat:Category:Jung Kook in 2023"], ["jk", "2024", "cat:Category:Jung Kook in 2024"], ["grp", "2013", "cat:Category:BTS in 2013"], ["grp", "2021", "cat:Category:BTS in 2021"], ["grp", "2022", "cat:Category:BTS in 2022"]]'
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898+github-actions[bot]@users.noreply.github.com"
+          git add tools/photo-candidates
+          git commit -m "Fotos candidatas de Wikimedia Commons (temporal)" || exit 0
+          git push
