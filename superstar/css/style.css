@@ -650,3 +650,21 @@ img{-webkit-user-drag:none}
 .deck-song{display:flex;align-items:center;gap:14px;justify-content:space-between;padding:10px 14px;margin-bottom:10px;border-radius:14px;background:linear-gradient(135deg,rgba(255,214,90,.16),rgba(255,95,200,.14));border:1px solid rgba(255,214,90,.5)}
 .deck-song > div{display:flex;flex-direction:column;gap:2px;font-size:12px}.deck-song b{font-size:13px}
 .deck-song .btn{flex:none}
+
+/* ficha de canción: cartas de la era iluminadas, las demás en gris; bonus bien visible */
+.sheet-bonus{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;padding:8px 14px;border-radius:14px;background:linear-gradient(135deg,rgba(255,214,90,.16),rgba(255,95,200,.12));border:1px solid rgba(255,214,90,.45);flex:none}
+.sheet-bonus > div{display:flex;align-items:baseline;gap:8px}
+.sheet-bonus b{font-size:26px;font-weight:900;color:var(--gold);text-shadow:0 0 12px rgba(255,214,90,.5)}
+.sheet-bonus span{font-size:12px;color:#fff}.sheet-bonus small{font-size:11px;color:var(--muted);text-align:right}
+.deck-mini.sinergy{gap:8px;flex:none}
+.deck-mini.sinergy .card-xs{width:min(64px,calc(var(--aw) * 0.075))}
+.deck-mini.sinergy .card:not(.has-bonus):not(.card-empty){filter:grayscale(1) brightness(.55);opacity:.75}
+.deck-mini.sinergy .card.has-bonus{outline:none;box-shadow:0 0 0 2px var(--gold),0 0 12px 2px rgba(255,214,90,.7),0 0 26px 6px rgba(255,95,200,.35);animation:sinergy 1.6s ease-in-out infinite;transform:translateY(-3px)}
+@keyframes sinergy{50%{box-shadow:0 0 0 2px var(--gold),0 0 18px 4px rgba(255,214,90,.9),0 0 34px 10px rgba(255,95,200,.5)}}
+/* la flecha de volver ya no se monta encima del contenido */
+.modal-box{padding-top:58px}
+.modal-box > .back-btn{position:absolute;top:12px;left:14px;margin:0}
+.modal-box:has(.lv-head){padding-top:16px}
+.modal-box:has(.sheet-head){padding-top:16px}
+.modal-box:has(.sheet-head) > .back-btn{top:18px;left:16px;width:38px;height:32px}
+.modal-box:has(.sheet-head) .sheet-head{margin-left:50px}

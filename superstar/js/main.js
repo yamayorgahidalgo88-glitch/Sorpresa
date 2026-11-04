@@ -471,8 +471,10 @@ async function songSheet(id) {
     </div>
     <div class="sheet-row"><span>Dificultad</span><b style="color:${d.color}">${d.name}${lv ? ' ★' + lv[diff] : ''}</b></div>
     <div class="sheet-row"><span>Mejor puntuación</span><b>${rec ? fmt(rec.score) + ' · ' + rec.rank : '—'}</b></div>
-    <div class="sheet-row"><span>Bonus de tu mazo en esta canción</span><b style="color:var(--gold)">+${deckBonusPct(s.theme)}% puntos</b></div>
-    <div class="deck-mini">${P.deck.map(uid => cardHTML(P.cards.find(c => c.uid === uid), { size: 'xs', songTheme: s.theme })).join('')}</div>
+    ${(() => { const nM = P.deck.map(u => P.cards.find(c => c.uid === u)).filter(c => c && c.theme === s.theme).length;
+      return `<div class="sheet-bonus"><div><b>+${deckBonusPct(s.theme)}%</b><span>puntos con tu mazo en esta canción</span></div>
+        <small>${nM ? `${nM} carta${nM > 1 ? 's' : ''} de ${esc(th.short)} · x1.5${nM >= 4 ? ' · combo de era' : ''}` : `Ninguna carta de ${esc(th.short)} en tu mazo`}</small></div>`; })()}
+    <div class="deck-mini sinergy">${P.deck.map(uid => cardHTML(P.cards.find(c => c.uid === uid), { size: 'xs', songTheme: s.theme })).join('')}</div>
     <div class="row2">
       <button class="btn ghost" data-act="deck">Cambiar mazo</button>
       <button class="btn ghost" data-act="remove">Quitar audio</button>
