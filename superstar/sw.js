@@ -1,5 +1,5 @@
 // Service worker: guarda la app para que funcione sin conexión.
-const CACHE = 'superstar-v36';
+const CACHE = 'superstar-v37';
 const SHELL = [
   './', './index.html', './css/style.css', './manifest.webmanifest',
   './js/main.js', './js/data.js', './js/store.js', './js/beatmap.js', './js/cards.js', './js/engine.js', './js/drop.js', './js/card-credits.js', './js/share.js',

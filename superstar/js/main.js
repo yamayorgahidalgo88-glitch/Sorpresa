@@ -63,12 +63,37 @@ function hpTimer() {
   return `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`;
 }
 const expNeed = l => 200 + l * 120;
+// Recompensa al llegar a cada nivel: cada 10 niveles 5 sobres gratis, cada 5 (5, 15, 25…) 1 sobre, el resto 1000 notas
+function levelReward(l) {
+  if (l % 10 === 0) return { packs: 5, text: '5 sobres gratis', ico: '🎁' };
+  if (l % 5 === 0) return { packs: 1, text: '1 sobre gratis', ico: '🎁' };
+  return { rp: 1000, text: '1.000 notas', ico: '♪' };
+}
+let lastRewards = [];
 function addExp(x) {
   P.exp += x;
-  let up = 0;
-  while (P.exp >= expNeed(P.level)) { P.exp -= expNeed(P.level); P.level++; up++; }
+  let up = 0; lastRewards = [];
+  while (P.exp >= expNeed(P.level)) {
+    P.exp -= expNeed(P.level); P.level++; up++;
+    const r = levelReward(P.level);
+    if (r.packs) P.freePacks = (P.freePacks || 0) + r.packs;
+    if (r.rp) P.rp += r.rp;
+    lastRewards.push({ level: P.level, ...r });
+  }
   if (up) P.hp = Math.max(P.hp, maxHP());
   return up;
+}
+// Ventana del nivel: barra de progreso y recompensas
+function levelSheet() {
+  const need = expNeed(P.level), pct = Math.min(100, P.exp / need * 100);
+  const next = levelReward(P.level + 1);
+  const list = Array.from({ length: 8 }, (_, k) => P.level + 1 + k).map(l => { const r = levelReward(l); return `<div class="lv-item ${r.packs ? 'big' : ''}"><b>Nv. ${l}</b><span>${r.ico}</span><small>${r.text}</small></div>`; }).join('');
+  modal(`<div class="lv-head"><div class="lv-num">Nv. ${P.level}</div><div class="lv-main">
+      <div class="lv-bar"><i style="width:${pct.toFixed(1)}%"></i></div>
+      <div class="muted small">${fmt(P.exp)} / ${fmt(need)} EXP · faltan <b>${fmt(need - P.exp)}</b> para el nivel ${P.level + 1}</div></div></div>
+    <div class="lv-next">Al subir a nivel ${P.level + 1}: <b>${next.ico} ${next.text}</b></div>
+    <div class="lv-list">${list}</div>
+    <p class="muted small">Ganas EXP jugando canciones. Cada nivel: 1.000 notas · cada 5 niveles (5, 15, 25…): 1 sobre gratis · cada 10 niveles: 5 sobres gratis.${P.freePacks ? ` Tienes <b>${P.freePacks}</b> sobre(s) gratis en la Tienda.` : ''}</p>`);
 }
 
 // ---------------- audio ----------------
@@ -161,6 +186,7 @@ function renderTop() {
     <div class="pill rp" title="Rhythm Points"><span class="ico">♪</span>${fmt(P.rp)}</div>`;
 }
 setInterval(() => { if (!$('#topbar').hidden) renderTop(); }, 1000);
+$('#topbar').addEventListener('click', e => { if (e.target.closest('.tb-lv')) levelSheet(); });
 
 // ---------------- pantallas ----------------
 function rTitle() {
@@ -747,7 +773,7 @@ function rResult(r) {
     <div class="res-rew">
       <div>♪ +${fmt(r.rp)} RP</div><div>EXP +${r.exp}</div>
     </div>
-    ${r.ups ? `<div class="levelup">¡SUBES A NIVEL ${P.level}!</div>` : ''}
+    ${r.ups ? `<div class="levelup">¡SUBES A NIVEL ${P.level}! ${lastRewards.map(x => x.ico + ' ' + x.text).join(' · ')}</div>` : ''}
     <div class="row2">
       <button class="btn ghost" data-act="retry">Reintentar</button>
       <button class="btn primary" data-act="ok">Continuar</button>
@@ -855,6 +881,7 @@ function rShop() {
     <div class="pack">
       <div class="pack-art"><div class="pack-logo">SUPERSTAR</div><div class="pack-sub">CARD PACK</div></div>
       <div class="odds">${Object.entries(GRADE_INFO).reverse().map(([g, i]) => `<span class="grade-chip" style="--gc:${i.color}">${g} ${+(i.odds * 100).toFixed(1)}%</span>`).join('')}</div>
+      ${P.freePacks ? `<button class="btn primary free" data-free="1">🎁 Abrir sobre gratis · tienes ${P.freePacks}</button>${P.freePacks >= 5 ? '<button class="btn ghost free" data-free="5">🎁 Abrir 5 gratis</button>' : ''}` : ''}
       <button class="btn primary" data-n="1" ${P.rp < PACK_COST ? 'disabled' : ''}>Abrir 1 · ${PACK_COST ? '♪ ' + fmt(PACK_COST) : 'GRATIS'}</button>
       <button class="btn ghost" data-n="5" ${P.rp < PACK_COST * 5 ? 'disabled' : ''}>Abrir 5 · ${PACK_COST ? '♪ ' + fmt(PACK_COST * 5) : 'GRATIS'}</button>
     </div>
@@ -865,9 +892,14 @@ function rShop() {
     if (P.rp < PACK_COST * n) return;
     confirmBox(n > 1 ? '¿Seguro que quieres comprar 5 sobres?' : '¿Seguro que quieres comprar un sobre?', () => buyPacks(n), { no: 'No', ok: 'Sí', okClass: 'primary' });
   });
-  const buyPacks = n => {
-    if (P.rp < PACK_COST * n) return;
-    P.rp -= PACK_COST * n;
+  view.querySelectorAll('[data-free]').forEach(b => b.onclick = () => {
+    const n = +b.dataset.free;
+    if ((P.freePacks || 0) < n) return;
+    confirmBox(n > 1 ? '¿Abrir 5 sobres gratis?' : '¿Abrir un sobre gratis?', () => buyPacks(n, true), { no: 'No', ok: 'Sí', okClass: 'primary' });
+  });
+  const buyPacks = (n, free = false) => {
+    if (free) { if ((P.freePacks || 0) < n) return; P.freePacks -= n; }
+    else { if (P.rp < PACK_COST * n) return; P.rp -= PACK_COST * n; }
     // cada sobre trae 1, 2 o 3 cartas; «Abrir 5» junta las de los 5 sobres en una sola apertura
     const got = Array.from({ length: n }, () => openPack(P)).flat();
     // PRUEBA (una sola vez): el siguiente sobre trae una carta R para ver su animación
@@ -1028,4 +1060,4 @@ window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); instal
 })();
 
 // para pruebas automáticas
-window.__ss = { get P() { return P; }, go, startSong, storeAudio, getAnalysis, get game() { return game; }, setDiff: d => { diff = d; } };
+window.__ss = { get P() { return P; }, go, addExp, startSong, storeAudio, getAnalysis, get game() { return game; }, setDiff: d => { diff = d; } };
