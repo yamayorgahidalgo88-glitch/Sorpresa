@@ -5,6 +5,7 @@ import { cardHTML, cardPower, deckPower, openPack, welcomePack, autoDeck, member
 import { CARD_CREDITS } from './card-credits.js';
 import { Game } from './engine.js';
 import { openDrop } from './drop.js';
+import { buildShareFile, readShareInfo, sendFile, isMp3 } from './share.js';
 
 // ---------------- estado ----------------
 let recState = null, pendingRec = null, afterTry = null;
@@ -272,6 +273,8 @@ async function onSongFile(e) {
   if (!id || !e.target.files[0]) return;
   const f = e.target.files[0];
   try {
+    const info = await readShareInfo(f);
+    if (info && info.chart && info.chart.notes && info.song && info.song.id === id && !(P.userCharts && P.userCharts[id])) { P.userCharts = P.userCharts || {}; P.userCharts[id] = info.chart; save(); }
     await storeAudio(id, f);
     refreshRow(id);
     await getAnalysis(id);
@@ -283,10 +286,25 @@ async function onSongFile(e) {
   }
 }
 
+// Archivo enviado desde otro móvil con «Enviar canción»: ya dice qué canción es (y trae su partitura)
+function songFromShare(info) {
+  const sh = info && info.song;
+  if (!sh || !sh.title) return null;
+  let s = songById(sh.id) || P.customSongs.find(x => x.title === sh.title);
+  if (!s) {
+    s = { id: sh.id && sh.id.startsWith('c-') ? sh.id : 'c-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), title: String(sh.title).slice(0, 60), artist: sh.artist || 'BTS', theme: THEMES[sh.theme] ? sh.theme : 'SPECIAL' };
+    P.customSongs.push(s);
+  }
+  if (info.chart && info.chart.notes && !(P.userCharts && P.userCharts[s.id])) { P.userCharts = P.userCharts || {}; P.userCharts[s.id] = info.chart; }
+  return s;
+}
+
 async function importMany(files) {
   if (!files.length) return;
   const matched = [], extra = [];
   for (const f of files) {
+    const shared = songFromShare(await readShareInfo(f));
+    if (shared) { matched.push([shared, f]); continue; }
     const s = matchSong(f.name, allSongs());
     if (s) matched.push([s, f]); else extra.push(f);
   }
@@ -368,6 +386,7 @@ async function songSheet(id) {
       <button class="btn ghost" data-act="auto">Mazo automático</button>
       <button class="btn ghost" data-act="remove">Quitar audio</button>
     </div>
+    <div class="row2"><button class="btn ghost" data-act="share">📤 Enviar canción a alguien</button></div>
     ${id.startsWith('c-') ? '<div class="row2"><button class="btn ghost" data-act="assign">Es una canción de la lista…</button>' : '<div class="row2" hidden>'}
     </div>
     <div class="rec-box">
@@ -399,12 +418,39 @@ async function songSheet(id) {
       rSongs(); toast(`Ahora es «${songById(to).title}». Analizando…`);
       try { await getAnalysis(to); } catch {}
     };
+    el.querySelector('[data-act=share]').onclick = () => shareSong(id);
     el.querySelector('[data-act=remove]').onclick = async () => {
       await idb.del('audio', id); await idb.del('analysis', id);
       loaded.delete(id); levels.delete(id); bufCache.delete(id);
       if (id.startsWith('c-')) { P.customSongs = P.customSongs.filter(x => x.id !== id); save(); }
       closeModal(); rSongs();
     };
+  });
+}
+
+// Enviar una canción por privado (WhatsApp, Telegram…): un MP3 que el otro juego reconoce solo
+async function shareSong(id) {
+  const s = songById(id), rec = await idb.get('audio', id);
+  if (!rec) { toast('Esta canción no tiene audio cargado'); return; }
+  const mine = P.userCharts && P.userCharts[id];
+  const doIt = async () => {
+    loading(true, 'Preparando…');
+    let file;
+    try {
+      file = isMp3(rec.name, rec.blob.type)
+        ? buildShareFile(await rec.blob.arrayBuffer(), { song: { id: s.id, title: s.title, artist: s.artist, theme: s.theme }, chart: mine || null })
+        : new File([rec.blob], rec.name || s.title, { type: rec.blob.type });
+    } finally { loading(false); }
+    const r = await sendFile(file, `«${s.title}» para SUPERSTAR: ábrelo en el juego con «Importar canciones».`);
+    if (r === 'downloaded') toast('Guardada en Descargas: mándala por WhatsApp como documento');
+  };
+  modal(`<h2>📤 Enviar «${esc(s.title)}»</h2>
+    <p>Se prepara un archivo de música con la canción${mine ? ' y <b>tu partitura grabada</b>' : ''}. Mándalo por privado (WhatsApp, Telegram…) a quien quieras.</p>
+    <p class="muted">La otra persona abre SUPERSTAR, va a <b>Canciones → Importar canciones</b> y elige el archivo: se coloca sola en su sitio${mine ? ' con tu partitura' : ''}. Sus puntuaciones y cartas son suyas.</p>
+    <p class="muted small">Es solo para compartir en privado, sin fines comerciales: la música es de sus autores.</p>
+    <button class="btn primary" data-act="go">Enviar</button>
+    <button class="btn ghost" data-close>Cancelar</button>`, el => {
+    el.querySelector('[data-act=go]').onclick = () => { closeModal(); doIt(); };
   });
 }
 

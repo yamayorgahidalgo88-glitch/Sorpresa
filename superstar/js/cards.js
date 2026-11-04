@@ -114,7 +114,6 @@ export function cardHTML(card, { size = 'md', extra = '', songTheme = null } = {
     <div class="card-art">
       ${m.photo ? `<div class="card-photo" style="background-image:url('${cardPhoto(card)}'),url('${m.photo}')"></div><div class="card-tint"></div>` : `<div class="card-orb"></div>
       <div class="card-mono">${esc(initials)}</div>`}
-      <div class="card-stars">${'★'.repeat(GRADES.indexOf(card.grade) + 1)}</div>
     </div>
     <div class="card-grade">${card.grade}</div>
     <div class="card-lvl">Lv.${card.lvl}</div>

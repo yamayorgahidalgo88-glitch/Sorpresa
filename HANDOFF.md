@@ -5,7 +5,7 @@ Juego de ritmo web (PWA instalable) inspirado en **SuperStar BTS** (Dalcomsoft, 
 
 - **Web publicada:** https://superstar-army.vercel.app
 - **Repositorio:** `yamayorgahidalgo88-glitch/Sorpresa`, rama `claude/bts-superstar-game-vesiwx`. El juego está en `superstar/`. El `index.html` de la raíz es OTRO regalo («Flores Amarillas»): no tocarlo.
-- **Vercel:** equipo `team_AJTr7WqPBL2IVmRDgpky7Ac8` (La Quinta del Bnitre), proyecto `superstar-army`. Se despliega con la herramienta de Vercel `create_deployment` usando `gitSource` (github, org `yamayorgahidalgo88-glitch`, repo `Sorpresa`, ref de la rama) y `target: production`. En cada cambio hay que **subir la versión de caché** en `superstar/sw.js` (`superstar-vNN`, ahora v29).
+- **Vercel:** equipo `team_AJTr7WqPBL2IVmRDgpky7Ac8` (La Quinta del Bnitre), proyecto `superstar-army`. Se despliega con la herramienta de Vercel `create_deployment` usando `gitSource` (github, org `yamayorgahidalgo88-glitch`, repo `Sorpresa`, ref de la rama) y `target: production`. En cada cambio hay que **subir la versión de caché** en `superstar/sw.js` (`superstar-vNN`, ahora v30).
 - El usuario habla **español** y no es programador: explicarle en lenguaje sencillo.
 
 ## Reglas importantes (decididas con el usuario)
@@ -24,10 +24,14 @@ Juego de ritmo web (PWA instalable) inspirado en **SuperStar BTS** (Dalcomsoft, 
 - **Ninguna nota antes de que empiecen a cantar**; en pausas instrumentales largas solo algún golpe fuerte.
 - **«🎙 Grabar partitura»:** el usuario puede tocar al ritmo (velocidad lenta opcional, guía en gris) y el juego cuadra los toques al compás; se guarda en el móvil y se puede exportar.
 - **Calibrar sincronía** en Ajustes (importante con Bluetooth).
-- **Cartas:** miembro × era × rango (C/B/A/S/R). **Eras = los 10 álbumes de estudio** (`ERAS` en `js/data.js`): DARK & WILD, WAKE UP, YOUTH, WINGS, FACE YOURSELF, LOVE YOURSELF 轉 TEAR, MAP OF THE SOUL : 7, THE JOURNEY, BE, ARIRANG. Cada carta lleva **la foto de ese miembro en el año de ese álbum** (`img/cards/<ERA>/<miembro>.jpg`, créditos en `img/cards/CREDITS.md` y `js/card-credits.js`). Probabilidades del sobre: C 55,5 %, B 28 %, A 12 %, S 4 %, **R 0,5 %**.
+- **Cartas:** miembro × era × rango (C/B/A/S/R). **Eras = los 10 álbumes de estudio** (`ERAS` en `js/data.js`): DARK & WILD, WAKE UP, YOUTH, WINGS, FACE YOURSELF, LOVE YOURSELF 轉 TEAR, MAP OF THE SOUL : 7, THE JOURNEY, BE, ARIRANG. Cada carta lleva **la foto de ese miembro en el año de ese álbum** (`img/cards/<ERA>/<miembro>.jpg`, créditos en `img/cards/CREDITS.md` y `js/card-credits.js`). Las cartas muestran solo la letra del rango (sin estrellas). Probabilidades del sobre: C 55,5 %, B 28 %, A 12 %, S 4 %, **R 0,5 %**.
 - Mazo de 7 que da **+% de puntos**; las cartas de la misma era que la canción valen x1,5 y 4+ de la misma era dan bonus extra. **Antes de cada canción** sale la pantalla del mazo (`deckIntro` en `main.js`): brillan una a una las cartas de la era de la canción y se suma el bonus.
 - Sobres con apertura tipo «Star Drops». Las cartas antiguas (eras SCHOOL, HYYH, LY, MOTS, BUTTER, PROOF) se pasan solas a las nuevas (`migrateEras`).
 - **Sin auriculares (energía):** se juega sin límite. Nivel, RP, récords, PWA instalable.
+
+## Compartir canciones (por privado)
+- En la ficha de cada canción, **«📤 Enviar canción a alguien»** (`js/share.js`): crea un MP3 normal con una etiqueta ID3 (TXXX `SUPERSTAR`) que guarda id, título, era y la partitura grabada si la hay. Se manda con el menú de compartir del móvil (WhatsApp, Telegram…) o se descarga.
+- La otra persona lo abre con **Canciones → Importar canciones**: se coloca solo en su sitio (`songFromShare`). Nada se sube a la web.
 
 ## Archivos clave
 - `superstar/js/engine.js` — motor: dibujo, entrada táctil, juicios, cadenas (`path`), modo grabar.
