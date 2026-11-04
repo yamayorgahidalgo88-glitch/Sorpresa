@@ -12,16 +12,27 @@ export const RARITY = {
 const TAPS = 3;
 const ORDER = ['C', 'B', 'A', 'S', 'R'];
 
+const IMG = 'img/drop/';
+const TEAR = 0.125;   // altura de la línea de corte del sobre (fracción del alto)
+let preloaded = false;
+function preload() {
+  if (preloaded) return; preloaded = true;
+  for (const f of ['pack.webp', 'card-back.webp', 'space.jpg', ...ORDER.map(g => `glow-${g}.webp`)]) { const im = new Image(); im.src = IMG + f; }
+}
+
 export function openDrop(results, { cardHTML, ctx }) {
+  preload();
   return new Promise(resolve => {
     const el = document.createElement('div');
     el.className = 'drop';
     el.innerHTML = `
+      <div class="drop-bg"></div>
+      <div class="drop-tint"></div>
       <canvas class="drop-fx"></canvas>
       <div class="drop-rays"></div>
       <div class="drop-stage"></div>
       <div class="drop-label"></div>
-      <div class="drop-hint">Toca el sobre</div>
+      <div class="drop-hint">Pasa el dedo por la línea para abrirlo</div>
       <div class="drop-count"></div>
       <div class="drop-flash"></div>`;
     document.getElementById('app').appendChild(el);
@@ -37,17 +48,55 @@ export function openDrop(results, { cardHTML, ctx }) {
     const setAura = c => el.style.setProperty('--aura', c);
     setAura('#c9a6ff');
 
+    // ---------- el sobre: se abre pasando el dedo por la línea de puntos ----------
     stage.innerHTML = `
       <div class="pk">
-        <div class="pk-half pk-top"></div><div class="pk-half pk-bot"></div>
-        <div class="pk-face">
-          <div class="pk-shine"></div>
-          <div class="pk-star">★</div>
-          <div class="pk-logo">SUPERSTAR</div>
-          <div class="pk-sub">CARD DROP</div>
-        </div>
+        <div class="pk-light"></div>
+        <div class="pk-body"><img src="${IMG}pack.webp" alt=""></div>
+        <div class="pk-top"><img src="${IMG}pack.webp" alt=""></div>
+        <div class="pk-line" style="top:${TEAR * 100}%"><b class="pk-cut"></b></div>
+        <div class="pk-scissors" style="top:${TEAR * 100}%"><svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.6 7.6 20 17M8.6 16.4 20 7M14.5 12h.01"/></svg></div>
+        <div class="pk-zone" style="top:${(TEAR - 0.11) * 100}%;height:22%"></div>
       </div>`;
+    const pk = stage.querySelector('.pk'), zone = stage.querySelector('.pk-zone'), cut = stage.querySelector('.pk-cut');
+    let lo = null, hi = null, cutting = false, lastSnd = 0;
+    const at = e => Math.max(0, Math.min(1, e.offsetX / zone.clientWidth));
+    const drawCut = () => { cut.style.left = (lo * 100) + '%'; cut.style.width = ((hi - lo) * 100) + '%'; pk.style.setProperty('--open', (hi - lo).toFixed(3)); };
+    zone.addEventListener('pointerdown', e => {
+      if (phase !== 'pack' || busy) return;
+      e.preventDefault(); e.stopPropagation();
+      cutting = true; try { zone.setPointerCapture(e.pointerId); } catch {}
+      const x = at(e); lo = lo === null ? x : Math.min(lo, x); hi = hi === null ? x : Math.max(hi, x);
+      pk.classList.add('cutting'); drawCut();
+    });
+    zone.addEventListener('pointermove', e => {
+      if (!cutting || busy) return;
+      const x = at(e); lo = Math.min(lo, x); hi = Math.max(hi, x); drawCut();
+      const now = performance.now();
+      if (now - lastSnd > 45) { sfx.rip(); lastSnd = now; }
+      const r = pk.getBoundingClientRect();
+      if (Math.random() < 0.5) fx.spark(e.clientX, e.clientY);
+      if (hi - lo >= 0.8) openPack();
+    });
+    const stopCut = () => { cutting = false; };
+    zone.addEventListener('pointerup', stopCut); zone.addEventListener('pointercancel', stopCut);
 
+    const openPack = () => {
+      if (busy) return;
+      busy = true; cutting = false; hint.textContent = '';
+      lo = 0; hi = 1; drawCut();
+      pk.classList.add('opened');      // la tira de arriba sale volando y sale luz de dentro
+      sfx.boom(); doFlash('#ffffff');
+      setTimeout(() => { pk.classList.add('glowing'); sfx.rumble(); }, 250);
+      setTimeout(() => {
+        doFlash('#ffffff', true);       // fogonazo que ocupa toda la pantalla
+        fx.burst(AW() / 2, AH() / 2, '#ffffff', 120, 1.8);
+        fx.rain('#e6c8ff', 60);
+      }, 1050);
+      setTimeout(() => { phase = 'card'; busy = false; el.classList.add('cards'); showCard(); }, 1400);
+    };
+
+    // ---------- cada carta: boca abajo con el brillo de su rango ----------
     const showCard = () => {
       const r = results[i];
       lvl = 0; taps = 0;
@@ -56,18 +105,35 @@ export function openDrop(results, { cardHTML, ctx }) {
       count.textContent = results.length > 1 ? `${i + 1} / ${results.length}` : '';
       hint.innerHTML = pips();
       stage.innerHTML = `
-        <div class="dc enter">
+        <div class="dc enter lv0">
+          <div class="dc-glow"><img src="${IMG}glow-C.webp" alt=""><img class="echo" src="${IMG}glow-C.webp" alt=""></div>
+          <div class="dc-swirl"><i></i><i></i><i></i></div>
           <div class="dc-in">
-            <div class="dc-back"><div class="dc-back-star">★</div><div class="dc-back-logo">SUPERSTAR</div></div>
+            <div class="dc-back"><img src="${IMG}card-back.webp" alt=""><div class="dc-sheen"></div></div>
             <div class="dc-front">${cardHTML(r.card, { size: 'lg' })}
               <div class="dc-tag ${r.dup ? '' : 'new'}">${r.dup ? (r.maxed ? '+800 ♪' : 'NIVEL +1') : 'NUEVA'}</div></div>
           </div>
         </div>`;
       sfx.whoosh();
+      setTimeout(() => emitAt(0), 60);
+    };
+    const setGlow = g => {
+      const dc = stage.querySelector('.dc'); if (!dc) return;
+      dc.querySelectorAll('.dc-glow img').forEach(im => { im.src = `${IMG}glow-${g}.webp`; });
+      const gl = dc.querySelector('.dc-glow'); gl.classList.remove('up'); void gl.offsetWidth; gl.classList.add('up');
+      dc.className = dc.className.replace(/\blv\d\b/, 'lv' + RARITY[g].lvl);
+    };
+    // chispas que salen sin parar del borde de la carta (más cuanto más alto el rango)
+    const emitAt = l => {
+      const c = stage.querySelector('.dc'); if (!c) return;
+      const rc = c.getBoundingClientRect();
+      let x = rc.left, y = rc.top, w = rc.width, h = rc.height;
+      if (document.body.classList.contains('rot')) { x = innerHeight - rc.bottom; y = rc.left; w = rc.height; h = rc.width; }
+      fx.emitter({ x, y, w, h, col: RARITY[ORDER[l]].color, rate: 10 + l * 16 });
     };
 
     const bump = (big = false) => {
-      const c = stage.querySelector('.dc') || stage.querySelector('.pk');
+      const c = stage.querySelector('.dc');
       if (!c) return;
       c.classList.remove('bump', 'bigbump'); void c.offsetWidth; c.classList.add(big ? 'bigbump' : 'bump');
     };
@@ -81,20 +147,7 @@ export function openDrop(results, { cardHTML, ctx }) {
 
     const onTap = () => {
       if (busy) return;
-      if (phase === 'pack') {
-        busy = true; hint.textContent = '';
-        const pk = stage.querySelector('.pk');
-        pk.classList.add('shake');
-        sfx.rumble();
-        setTimeout(() => {
-          pk.classList.add('burst');
-          doFlash('#ffffff', true);
-          fx.burst(AW() / 2, AH() / 2, '#ffffff', 90, 1.6);
-          sfx.boom();
-        }, 900);
-        setTimeout(() => { phase = 'card'; busy = false; showCard(); }, 1500);
-        return;
-      }
+      if (phase === 'pack') return;   // el sobre se abre deslizando, no tocando
       if (phase === 'card') {
         const r = results[i];
         const target = RARITY[r.card.grade].lvl;
@@ -113,11 +166,13 @@ export function openDrop(results, { cardHTML, ctx }) {
         }
         taps = 0;
         if (lvl < target) {
-          // al tercer toque sube de rango: otra luz y vuelta a empezar los 3 toques
+          // al tercer toque sube de rango: otro brillo y vuelta a empezar los 3 toques
           lvl++;
           hint.innerHTML = pips();
           const g = RARITY[ORDER[lvl]];
           setAura(g.color);
+          setGlow(ORDER[lvl]);
+          emitAt(lvl);
           label.textContent = g.name;
           label.classList.remove('pop'); void label.offsetWidth; label.classList.add('pop');
           bump(lvl >= 3);
@@ -144,7 +199,7 @@ export function openDrop(results, { cardHTML, ctx }) {
         i++;
         if (i < results.length) { phase = 'card'; showCard(); return; }
         // resumen
-        phase = 'summary';
+        phase = 'summary'; fx.emitter(null);
         setAura('#c9a6ff'); label.textContent = ''; count.textContent = ''; hint.textContent = '';
         stage.innerHTML = `<div class="drop-sum">
           <h2>¡Conseguido!</h2>
@@ -155,7 +210,7 @@ export function openDrop(results, { cardHTML, ctx }) {
       }
     };
     const close = () => { fx.stop(); el.classList.add('out'); setTimeout(() => { el.remove(); resolve(); }, 250); };
-    el.addEventListener('pointerdown', e => { if (e.target.closest('[data-done]')) return; e.preventDefault(); onTap(); });
+    el.addEventListener('pointerdown', e => { if (e.target.closest('[data-done]') || e.target.closest('.pk-zone')) return; e.preventDefault(); onTap(); });
   });
 }
 
@@ -164,7 +219,7 @@ const AW = () => document.getElementById('app').clientWidth, AH = () => document
 // ---------- partículas ----------
 function makeFx(cv) {
   const g = cv.getContext('2d');
-  let parts = [], raf = 0, last = 0, alive = true;
+  let parts = [], raf = 0, last = 0, alive = true, em = null, tw = 0;
   const resize = () => { const d = Math.min(2, devicePixelRatio || 1); cv.width = AW() * d; cv.height = AH() * d; g.setTransform(d, 0, 0, d, 0, 0); };
   resize(); addEventListener('resize', resize);
   const loop = ts => {
@@ -173,9 +228,24 @@ function makeFx(cv) {
     const dt = last ? Math.min(0.05, (ts - last) / 1000) : 0.016; last = ts;
     g.clearRect(0, 0, AW(), AH());
     g.globalCompositeOperation = 'lighter';
+    // estrellas del fondo que titilan
+    tw += dt * 6;
+    while (tw > 1) { tw--; parts.push({ x: Math.random() * AW(), y: Math.random() * AH(), vx: 0, vy: 0, gr: 0, age: 0, life: 1.6 + Math.random() * 1.6, r: 0.8 + Math.random() * 1.6, rot: 0, star: Math.random() < 0.4, col: '#ffffff', fade: true }); }
+    // chispas que salen del borde de la carta
+    if (em) {
+      em.acc = (em.acc || 0) + em.rate * dt;
+      while (em.acc > 1) {
+        em.acc--;
+        const side = Math.random() * 4 | 0, u = Math.random();
+        const x = side === 0 ? em.x + u * em.w : side === 1 ? em.x + em.w : side === 2 ? em.x + u * em.w : em.x;
+        const y = side === 0 ? em.y : side === 1 ? em.y + u * em.h : side === 2 ? em.y + em.h : em.y + u * em.h;
+        const ang = Math.atan2(y - (em.y + em.h / 2), x - (em.x + em.w / 2)), sp = 20 + Math.random() * 60;
+        parts.push({ x, y, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp - 30, gr: -20, age: 0, life: 0.8 + Math.random() * 0.9, r: 1 + Math.random() * 2.2, rot: Math.random() * 6, star: Math.random() < 0.6, col: Math.random() < 0.3 ? '#ffffff' : em.col });
+      }
+    }
     for (const p of parts) {
       p.age += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += p.gr * dt; p.vx *= 0.985; p.rot += dt * 5;
-      const a = Math.max(0, 1 - p.age / p.life);
+      const a = p.fade ? Math.sin(Math.PI * Math.min(1, p.age / p.life)) * 0.8 : Math.max(0, 1 - p.age / p.life);
       g.globalAlpha = a; g.fillStyle = p.col;
       if (p.star) star(g, p.x, p.y, p.r * 2.4, p.rot); else { g.beginPath(); g.arc(p.x, p.y, p.r, 0, Math.PI * 2); g.fill(); }
     }
@@ -190,6 +260,11 @@ function makeFx(cv) {
         parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, gr: 260, age: 0, life: 0.6 + Math.random() * 0.8, r: 1.5 + Math.random() * 3, rot: Math.random() * 6, star: Math.random() < 0.5, col: Math.random() < 0.35 ? '#ffffff' : col });
       }
     },
+    spark(sx, sy) {
+      let [x, y] = document.body.classList.contains('rot') ? [innerHeight - sy, sx] : [sx, sy];
+      for (let k = 0; k < 3; k++) { const a = Math.random() * Math.PI * 2, s = 60 + Math.random() * 200; parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, gr: 300, age: 0, life: 0.35 + Math.random() * 0.3, r: 1 + Math.random() * 1.5, rot: 0, star: false, col: Math.random() < 0.5 ? '#ffffff' : '#ffd6f5' }); }
+    },
+    emitter(e) { em = e; },
     rain(col, n) {
       for (let k = 0; k < n; k++) {
         parts.push({ x: Math.random() * AW(), y: -20 - Math.random() * 200, vx: (Math.random() - 0.5) * 40, vy: 120 + Math.random() * 240, gr: 60, age: 0, life: 2.2 + Math.random(), r: 1.5 + Math.random() * 2.5, rot: Math.random() * 6, star: true, col: Math.random() < 0.3 ? '#ffffff' : col });
@@ -230,6 +305,7 @@ function makeSfx(ctx) {
     whoosh() { noise(0, 0.35, 0.12, 1500); },
     rumble() { tone(70, 0, 0.9, 'sawtooth', 0.08, 140); noise(0.1, 0.8, 0.08, 300); },
     boom() { tone(120, 0, 0.6, 'sine', 0.3, 40); noise(0, 0.5, 0.3, 200); tone(1046, 0.05, 0.6, 'triangle', 0.1); },
+    rip() { noise(0, 0.06, 0.06, 2500 + Math.random() * 2500); },
     tick(k) { tone(520 + k * 90, 0, 0.12, 'square', 0.05); noise(0, 0.05, 0.05, 3000); },
     up(l) { const f = SCALE[Math.min(4, l)]; tone(f, 0, 0.4, 'triangle', 0.16); tone(f * 1.5, 0.06, 0.45, 'sine', 0.1); noise(0, 0.15, 0.08, 4000); },
     reveal(l) { [0, 2, 4].forEach((k, j) => tone(SCALE[Math.min(4, k)] * (1 + l * 0.12), j * 0.07, 0.6, 'triangle', 0.14)); if (l >= 3) tone(1568, 0.25, 0.9, 'sine', 0.12); },

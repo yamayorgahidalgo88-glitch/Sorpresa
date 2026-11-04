@@ -423,3 +423,69 @@ body.rot #app{inset:auto;top:0;left:0;width:var(--rw);height:var(--rh);transform
 .drop-hint .taps{display:inline-flex;gap:10px;vertical-align:middle}
 .drop-hint .taps i{width:14px;height:14px;border-radius:50%;border:2px solid var(--aura);background:transparent;box-shadow:0 0 8px color-mix(in srgb,var(--aura) 60%,transparent);transition:background .15s,transform .15s}
 .drop-hint .taps i.on{background:var(--aura);transform:scale(1.15)}
+
+/* ===== Sobres con las imágenes del juego ===== */
+.drop{background:#0b0218}
+.drop-bg{position:absolute;inset:-8%;background:url(../img/drop/space.jpg) center/cover no-repeat;animation:bgdrift 38s ease-in-out infinite alternate;will-change:transform}
+@keyframes bgdrift{0%{transform:scale(1.02) translate(0,0) rotate(0deg)}50%{transform:scale(1.1) translate(-2.5%,1.5%) rotate(.6deg)}100%{transform:scale(1.16) translate(2%,-2%) rotate(-.6deg)}}
+.drop-tint{position:absolute;inset:0;pointer-events:none;background:radial-gradient(60% 55% at 50% 45%,color-mix(in srgb,var(--aura) 30%,transparent),transparent 70%);mix-blend-mode:screen;transition:background .4s;opacity:0}
+.drop.cards .drop-tint{opacity:1}
+.drop-rays{opacity:0;transition:opacity .4s}
+.drop.cards .drop-rays{opacity:.55}
+/* el sobre */
+.pk{width:min(280px,calc(var(--aw) * 0.5),calc(var(--ah) * 0.7 / 1.556));aspect-ratio:540/840;animation:pkfloat 3s ease-in-out infinite}
+.pk img{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;user-select:none;-webkit-user-drag:none}
+.pk-body,.pk-top{position:absolute;inset:0;transition:transform .7s cubic-bezier(.3,.9,.4,1),opacity .7s}
+.pk-body{clip-path:inset(12.5% 0 0 0);filter:drop-shadow(0 18px 30px rgba(0,0,0,.55))}
+.pk-top{clip-path:inset(0 0 87.5% 0);transform-origin:8% 12.5%;transform:rotate(calc(var(--open,0) * -6deg)) translateY(calc(var(--open,0) * -4px))}
+.pk.opened .pk-top{transform:translate(32%,-120%) rotate(-28deg);opacity:0}
+/* brillo que recorre el sobre */
+.pk-body::after{content:"";position:absolute;inset:0;clip-path:inset(12.5% 0 0 0);background:linear-gradient(110deg,transparent 35%,rgba(255,255,255,.38) 47%,rgba(255,200,255,.25) 52%,transparent 62%);background-size:260% 100%;mix-blend-mode:screen;animation:pkgleam 3.2s ease-in-out infinite;pointer-events:none}
+@keyframes pkgleam{0%,25%{background-position:140% 0}100%{background-position:-60% 0}}
+/* línea de puntos, corte y tijeras */
+.pk-line{position:absolute;left:4%;right:4%;height:0;border-top:4px dashed #fff;filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 8px #ff7ad9) drop-shadow(0 0 16px #b98cff);animation:dashpulse 1.2s ease-in-out infinite;z-index:3}
+@keyframes dashpulse{50%{opacity:.45}}
+.pk-cut{position:absolute;top:-4px;height:6px;width:0;left:0;border-radius:3px;background:linear-gradient(90deg,#fff,#ffe8ff,#fff);box-shadow:0 0 10px #fff,0 0 22px #ff9be6,0 0 40px #b98cff}
+.pk.cutting .pk-line,.pk.opened .pk-line{animation:none;opacity:1}
+.pk.opened .pk-line{opacity:0;transition:opacity .4s .3s}
+.pk-scissors{position:absolute;left:0;z-index:4;width:34px;height:34px;transform:translate(-50%,-50%);filter:drop-shadow(0 0 4px #fff) drop-shadow(0 0 10px #ff7ad9);animation:snip 2.2s ease-in-out infinite;pointer-events:none}
+@keyframes snip{0%{left:-2%}70%{left:92%}100%{left:92%}}
+.pk.cutting .pk-scissors,.pk.opened .pk-scissors{display:none}
+.pk-zone{position:absolute;left:-6%;right:-6%;z-index:6;touch-action:none;cursor:ew-resize}
+/* luz que sale del sobre al abrirlo */
+.pk-light{position:absolute;left:8%;right:8%;top:12.5%;height:0;z-index:0;opacity:0;pointer-events:none}
+.pk.opened .pk-light{opacity:1}
+.pk-light::before{content:"";position:absolute;left:-30%;right:-30%;bottom:0;height:calc(var(--ah) * 0.9);background:radial-gradient(50% 100% at 50% 100%,rgba(255,255,255,.95),rgba(230,190,255,.55) 35%,transparent 70%);transform-origin:50% 100%;transform:scaleY(.1);transition:transform .9s cubic-bezier(.2,.9,.3,1)}
+.pk.glowing .pk-light::before{transform:scaleY(1)}
+.pk.glowing .pk-body{animation:pkshake .8s cubic-bezier(.36,.07,.19,.97) both}
+.pk.glowing{animation:none}
+/* la carta en el sobre: dorso, brillo animado y anillos (S y R) */
+.dc{width:min(220px,calc(var(--aw) * 0.42),calc(var(--ah) * 0.58 * 0.6667));aspect-ratio:2/3}
+.dc-back{background:none;overflow:hidden;border-radius:7.5%/5%;box-shadow:0 0 18px 2px color-mix(in srgb,var(--aura) 70%,transparent),0 0 46px 8px color-mix(in srgb,var(--aura) 40%,transparent);transition:box-shadow .4s}
+.dc-back::before,.dc-back::after{display:none}
+.dc-back img{width:100%;height:100%;display:block;pointer-events:none}
+.dc-sheen{position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.35) 48%,transparent 60%);background-size:250% 100%;animation:pkgleam 2.6s ease-in-out infinite;mix-blend-mode:screen}
+.dc-front .card{aspect-ratio:2/3}
+.dc-glow{position:absolute;left:-19.1%;top:-43.1%;width:138.2%;height:190.9%;pointer-events:none;z-index:-1}
+.dc-glow img{position:absolute;inset:0;width:100%;height:100%;animation:glowbreath 1.8s ease-in-out infinite}
+.dc-glow img.echo{mix-blend-mode:screen;opacity:.55;filter:blur(6px);animation:glowflicker 2.6s ease-in-out infinite}
+@keyframes glowbreath{0%,100%{transform:scale(1);filter:brightness(1)}50%{transform:scale(1.045);filter:brightness(1.25)}}
+@keyframes glowflicker{0%{transform:scale(1.04) rotate(-1.5deg);opacity:.35}35%{transform:scale(1.1) rotate(1deg);opacity:.7}70%{transform:scale(1.02) rotate(2deg);opacity:.45}100%{transform:scale(1.04) rotate(-1.5deg);opacity:.35}}
+.dc-glow.up img{animation:glowin .6s cubic-bezier(.2,1.4,.4,1),glowbreath 1.8s ease-in-out .6s infinite}
+.dc-glow.up img.echo{animation:glowin .6s cubic-bezier(.2,1.4,.4,1),glowflicker 2.6s ease-in-out .6s infinite}
+@keyframes glowin{from{transform:scale(.6);opacity:0;filter:brightness(3)}}
+.dc.lv2 .dc-glow img{animation-duration:1.4s}.dc.lv3 .dc-glow img,.dc.lv4 .dc-glow img{animation-duration:1.1s}
+.dc.flip .dc-glow{opacity:.35;transition:opacity .6s}
+.dc-swirl{position:absolute;inset:0;pointer-events:none;display:none;z-index:2}
+.dc.lv3 .dc-swirl,.dc.lv4 .dc-swirl{display:block}
+.dc-swirl i{position:absolute;left:-34%;right:-34%;top:22%;bottom:22%;border-radius:50%;border:2px solid transparent;border-top-color:color-mix(in srgb,var(--aura) 80%,#fff);border-left-color:rgba(255,255,255,.75);filter:drop-shadow(0 0 6px var(--aura)) drop-shadow(0 0 14px var(--aura));animation:swirl 2.2s linear infinite}
+.dc-swirl i:nth-child(2){transform:rotate(55deg);animation-duration:3s;animation-direction:reverse;top:12%;bottom:12%}
+.dc-swirl i:nth-child(3){display:none;left:-44%;right:-44%;top:30%;bottom:30%;animation-duration:1.7s}
+.dc.lv4 .dc-swirl i:nth-child(3){display:block}
+@keyframes swirl{from{transform:rotate(-25deg) rotateX(68deg) rotateZ(0)}to{transform:rotate(-25deg) rotateX(68deg) rotateZ(360deg)}}
+.dc.flip .dc-swirl{opacity:0;transition:opacity .4s}
+/* tienda: el sobre de verdad */
+.pack-art{background:url(../img/drop/pack.webp) center/contain no-repeat;box-shadow:none;aspect-ratio:540/840;border-radius:0;animation:pkfloat 3s ease-in-out infinite}
+.pack-art::after,.pack-art>*{display:none}
+.pk-scissors svg{display:block;animation:snipcut .35s ease-in-out infinite alternate}
+@keyframes snipcut{from{transform:scaleY(1)}to{transform:scaleY(.55)}}
