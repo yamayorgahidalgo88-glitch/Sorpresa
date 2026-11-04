@@ -821,10 +821,10 @@ function rShop() {
     const n = +b.dataset.n;
     if (P.rp < PACK_COST * n) return;
     P.rp -= PACK_COST * n;
-    // cada sobre trae 1, 2 o 3 cartas; los sobres se abren uno detrás de otro
-    const packs = Array.from({ length: n }, () => openPack(P));
+    // cada sobre trae 1, 2 o 3 cartas; «Abrir 5» junta las de los 5 sobres en una sola apertura
+    const got = Array.from({ length: n }, () => openPack(P)).flat();
     save(); renderTop();
-    (async () => { for (const got of packs) await openDrop(got, { cardHTML, ctx: ensureCtx() }); rShop(); })();
+    openDrop(got, { cardHTML, packs: n }).then(() => rShop());
   });
 }
 

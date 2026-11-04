@@ -13,7 +13,7 @@ const TAPS = 3;
 const ORDER = ['C', 'B', 'A', 'S', 'R'];
 
 const IMG = 'img/drop/';
-const TEAR = 0.125;   // altura de la línea de corte del sobre (fracción del alto)
+const TEAR = 0.10;    // altura de la línea de corte del sobre (fracción del alto)
 let ready = null;
 // Carga las imágenes de los sobres de antemano (al abrir la app), para que el fondo no salga en negro
 export function preloadDrop() {
@@ -29,7 +29,7 @@ export async function openDrop(results, opts) {
   await Promise.race([preloadDrop(), new Promise(r => setTimeout(r, 2000))]);
   return openDropNow(results, opts);
 }
-function openDropNow(results, { cardHTML }) {
+function openDropNow(results, { cardHTML, packs = 1 }) {
   return new Promise(resolve => {
     const el = document.createElement('div');
     el.className = 'drop';
@@ -42,6 +42,7 @@ function openDropNow(results, { cardHTML }) {
       <div class="drop-label"></div>
       <div class="drop-hint">Pasa el dedo por la línea para abrirlo</div>
       <div class="drop-count"></div>
+      <button class="btn ghost small drop-all" hidden>Desvelar todas</button>
       <div class="drop-flash"></div>`;
     document.getElementById('app').appendChild(el);
     const stage = el.querySelector('.drop-stage');
@@ -60,35 +61,49 @@ function openDropNow(results, { cardHTML }) {
     stage.innerHTML = `
       <div class="pk-wrap"><div class="pk-rays"></div><div class="pk">
         <div class="pk-light"></div>
-        <div class="pk-depth"><img src="${IMG}pack.webp" alt=""></div>
         <div class="pk-body"><img src="${IMG}pack.webp" alt=""><div class="pk-wash"></div></div>
         <div class="pk-top"><img src="${IMG}pack.webp" alt=""></div>
         <div class="pk-leak" style="top:${TEAR * 100}%"></div>
         <div class="pk-line" style="top:${TEAR * 100}%"><b class="pk-cut"></b></div>
         <div class="pk-scissors" style="top:${TEAR * 100}%"><svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.6 7.6 20 17M8.6 16.4 20 7M14.5 12h.01"/></svg></div>
         <div class="pk-zone" style="top:${(TEAR - 0.11) * 100}%;height:22%"></div>
+        ${packs > 1 ? `<div class="pk-badge">${packs} SOBRES · ${results.length} CARTAS</div>` : ''}
       </div></div>`;
     const pk = stage.querySelector('.pk'), zone = stage.querySelector('.pk-zone'), cut = stage.querySelector('.pk-cut'), leak = stage.querySelector('.pk-leak');
-    let lo = null, hi = null, cutting = false, lastSnd = 0;
-    const at = e => Math.max(0, Math.min(1, e.offsetX / zone.clientWidth));
-    const drawCut = () => { for (const e of [cut, leak]) { e.style.left = (lo * 100) + '%'; e.style.width = ((hi - lo) * 100) + '%'; } pk.style.setProperty('--open', (hi - lo).toFixed(3)); };
+    // la línea va del 4 % al 96 % del ancho del sobre; la zona táctil es un poco más ancha (−6 %…106 %)
+    let lo = null, hi = null, cutting = false, from = 0, lastSnd = 0;
+    const at = e => Math.max(0, Math.min(1, ((e.offsetX / zone.clientWidth) * 1.12 - 0.06 - 0.04) / 0.92));
+    const drawCut = () => {
+      cut.style.left = (lo * 100) + '%'; cut.style.width = ((hi - lo) * 100) + '%';
+      leak.style.left = (4 + lo * 92) + '%'; leak.style.width = ((hi - lo) * 92) + '%';   // la luz sale justo por el corte
+      pk.style.setProperty('--open', (hi - lo).toFixed(3));
+    };
     zone.addEventListener('pointerdown', e => {
       if (phase !== 'pack' || busy) return;
       e.preventDefault(); e.stopPropagation();
-      cutting = true; try { zone.setPointerCapture(e.pointerId); } catch {}
-      const x = at(e); lo = lo === null ? x : Math.min(lo, x); hi = hi === null ? x : Math.max(hi, x);
-      pk.classList.add('cutting'); drawCut();
+      const x = at(e);
+      if (x > 0.15 && x < 0.85) { nudge(); return; }           // hay que empezar en un extremo de la línea
+      cutting = true; from = x < 0.5 ? 0 : 1; try { zone.setPointerCapture(e.pointerId); } catch {}
+      lo = hi = x; pk.classList.remove('undo'); pk.classList.add('cutting'); drawCut();
     });
     zone.addEventListener('pointermove', e => {
       if (!cutting || busy) return;
-      const x = at(e); lo = Math.min(lo, x); hi = Math.max(hi, x); drawCut();
+      const x = at(e);
+      if (from === 0) hi = Math.max(hi, x); else lo = Math.min(lo, x);   // el corte avanza con el dedo
+      drawCut();
       const now = performance.now();
       if (now - lastSnd > 45) { sfx.rip(); lastSnd = now; }
       const r = pk.getBoundingClientRect();
       if (Math.random() < 0.5) fx.spark(e.clientX, e.clientY);
-      if (hi - lo >= 0.8) openPack();
+      if ((from === 0 && hi >= 0.97) || (from === 1 && lo <= 0.03)) openPack();
     });
-    const stopCut = () => { cutting = false; };
+    // si se levanta el dedo antes de llegar al final, el corte se deshace y el sobre sigue cerrado
+    const stopCut = () => {
+      if (!cutting || busy) return;
+      cutting = false; pk.classList.remove('cutting'); pk.classList.add('undo');
+      lo = hi = from === 0 ? 0 : 1; drawCut();
+    };
+    const nudge = () => { pk.classList.remove('nudge'); void pk.offsetWidth; pk.classList.add('nudge'); };
     zone.addEventListener('pointerup', stopCut); zone.addEventListener('pointercancel', stopCut);
 
     // apertura como en los fotogramas: la luz sale por el corte, la tira se dobla y sale volando,
@@ -111,7 +126,9 @@ function openDropNow(results, { cardHTML }) {
       lvl = 0; taps = 0;
       setAura(RARITY.C.color);
       label.textContent = '';
-      count.textContent = results.length > 1 ? `${i + 1} / ${results.length}` : '';
+      count.textContent = packs > 1 ? `${i + 1} / ${results.length}` : '';   // en un sobre solo no se dice cuántas trae
+      allBtn.hidden = results.length - i < 2;
+      el.classList.remove('revealed');
       hint.innerHTML = pips();
       stage.innerHTML = `
         <div class="dc enter lv0">
@@ -191,7 +208,7 @@ function openDropNow(results, { cardHTML }) {
         // se da la vuelta
         busy = true;
         const g = RARITY[r.card.grade];
-        c.classList.add('flip');
+        c.classList.add('flip'); el.classList.add('revealed');
         setTimeout(() => {
           fx.burst(cx, cy, g.color, 50 + target * 25, 1.2 + target * 0.3);
           if (target >= 2) fx.rain(g.color, 40 + target * 30);
@@ -204,19 +221,24 @@ function openDropNow(results, { cardHTML }) {
       if (phase === 'shown') {
         i++;
         if (i < results.length) { phase = 'card'; showCard(); return; }
-        // resumen
-        phase = 'summary'; fx.emitter(null);
+        summary();
+      }
+    };
+    // resumen final (también si se desvelan todas de golpe)
+    const summary = () => {
+        phase = 'summary'; fx.emitter(null); allBtn.hidden = true; el.classList.remove('revealed');
         setAura('#c9a6ff'); label.textContent = ''; count.textContent = ''; hint.textContent = '';
         stage.innerHTML = `<div class="drop-sum">
           <h2>¡Conseguido!</h2>
           <div class="drop-grid">${results.map((r, k) => `<div class="drop-mini" style="--d:${k * 0.07}s">${cardHTML(r.card, { size: 'sm' })}<div class="dc-tag small ${r.dup ? '' : 'new'}">${r.dup ? (r.maxed ? '+800 ♪' : 'Lv +1') : 'NUEVA'}</div></div>`).join('')}</div>
           <button class="btn primary" data-done>Genial</button></div>`;
         stage.querySelector('[data-done]').onclick = e => { e.stopPropagation(); close(); };
-        return;
-      }
     };
+    const allBtn = el.querySelector('.drop-all');
+    allBtn.addEventListener('pointerdown', e => e.stopPropagation());
+    allBtn.onclick = e => { e.stopPropagation(); if (phase === 'card' || phase === 'shown') summary(); };
     const close = () => { fx.stop(); el.classList.add('out'); setTimeout(() => { el.remove(); resolve(); }, 250); };
-    el.addEventListener('pointerdown', e => { if (e.target.closest('[data-done]') || e.target.closest('.pk-zone')) return; e.preventDefault(); onTap(); });
+    el.addEventListener('pointerdown', e => { if (e.target.closest('[data-done]') || e.target.closest('.pk-zone') || e.target.closest('.drop-all')) return; e.preventDefault(); onTap(); });
   });
 }
 

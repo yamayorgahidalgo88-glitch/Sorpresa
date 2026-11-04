@@ -531,3 +531,27 @@ body.rot #app{inset:auto;top:0;left:0;width:var(--rw);height:var(--rh);transform
 /* la carta, más grande */
 .dc{width:min(300px,calc(var(--aw) * 0.5),calc(var(--ah) * 0.8 * 0.6667))}
 .drop.cards .drop-hint{bottom:calc(4px + var(--safeB))}
+
+/* ===== Sobres v3: silueta limpia, corte de verdad, rayos solo al girar la carta ===== */
+.pk{aspect-ratio:520/786;width:min(360px,calc(var(--aw) * 0.6),calc(var(--ah) * 0.84 / 1.512))}
+.pack-art{aspect-ratio:520/786}
+.pk-body{clip-path:inset(10% 0 0 0)}
+.pk-top{clip-path:inset(0 0 90% 0);transform-origin:100% 10%}
+/* reflejo y luz solo dentro de la silueta del sobre (sin el «cuadrado invisible») */
+.pk-body::after,.pk-wash{clip-path:none;-webkit-mask:url(../img/drop/pack.webp) center/100% 100% no-repeat;mask:url(../img/drop/pack.webp) center/100% 100% no-repeat}
+.pk-wash{background:radial-gradient(80% 65% at 50% 12%,#fff,rgba(255,225,255,.9) 40%,rgba(235,180,255,.6) 75%,rgba(210,150,255,.4))}
+.pk-light{top:10%}
+.pk-light::before{left:-10%;right:-10%;border-radius:50% 50% 0 0/100% 100% 0 0;background:radial-gradient(60% 100% at 50% 100%,#fff,rgba(255,215,255,.7) 30%,rgba(200,140,255,.25) 55%,transparent 70%)}
+/* si se levanta el dedo, el corte se deshace */
+.pk.undo .pk-cut,.pk.undo .pk-leak{transition:width .35s ease-in,left .35s ease-in}
+.pk.nudge{animation:pknudge .4s ease-in-out}
+@keyframes pknudge{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.pk-badge{position:absolute;left:50%;bottom:-6%;transform:translateX(-50%);white-space:nowrap;font-weight:900;font-size:12px;letter-spacing:2px;padding:5px 12px;border-radius:999px;background:rgba(20,6,40,.75);border:1px solid rgba(255,255,255,.4);box-shadow:0 0 14px rgba(255,140,230,.5)}
+/* rayos girando: solo cuando la carta ya se ha dado la vuelta */
+.drop.cards .drop-rays{opacity:0}
+.drop.cards.revealed .drop-rays{opacity:.55}
+.drop-all{position:absolute;right:calc(14px + var(--safeR));bottom:calc(10px + var(--safeB));z-index:7}
+.pk-badge{bottom:auto;top:-9%}
+.drop-sum{max-height:calc(var(--ah) - 20px);overflow-y:auto;gap:10px;width:min(820px,calc(var(--aw) * 0.94));padding:8px 0}
+.drop-sum h2{margin:0}
+.drop-grid{grid-template-columns:repeat(auto-fit,minmax(58px,calc((var(--ah) - 130px) / 2 * .75)));gap:10px}
