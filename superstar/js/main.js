@@ -24,7 +24,7 @@ applyRot(); addEventListener('resize', applyRot);
 setTimeout(() => preloadDrop(), 1500);   // imágenes de los sobres listas antes de abrir uno
 let P = loadProfile();
 if (migrateEras(P)) saveProfile(P);
-const RESET_TAG = 'reset-2026-11-04b';
+const RESET_TAG = 'reset-2026-11-04c';
 try {
   if (localStorage.getItem('superstar.reset') !== RESET_TAG) {
     const keep = { name: P.name, settings: P.settings, customSongs: P.customSongs || [], userCharts: P.userCharts || {}, lastDiff: P.lastDiff };
