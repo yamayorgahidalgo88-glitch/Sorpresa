@@ -142,7 +142,6 @@ function renderTop() {
   $('#topbar').innerHTML = `
     <div class="tb-lv"><b>Lv.${P.level}</b><i style="--p:${(P.exp / need * 100).toFixed(1)}%"></i></div>
     <div class="tb-name">${esc(P.name)}</div>
-    <div class="pill hp" title="Auriculares"><span class="ico">🎧</span>${P.hp}/${maxHP()}<small>${hpTimer()}</small></div>
     <div class="pill rp" title="Rhythm Points"><span class="ico">♪</span>${fmt(P.rp)}</div>`;
 }
 setInterval(() => { if (!$('#topbar').hidden) renderTop(); }, 1000);
@@ -211,7 +210,7 @@ function rSongs() {
   view.innerHTML = `
   <div class="songs">
     <div class="diff-tabs">
-      ${DIFFS.map(d => `<button class="dtab ${d.id === diff ? 'on' : ''}" data-diff="${d.id}" style="--dc:${d.color}">${d.name}<small>🎧${d.cost} · velocidad ${d.label}</small></button>`).join('')}
+      ${DIFFS.map(d => `<button class="dtab ${d.id === diff ? 'on' : ''}" data-diff="${d.id}" style="--dc:${d.color}">${d.name}<small>velocidad ${d.label}</small></button>`).join('')}
     </div>
     <label class="btn ghost import">＋ Importar canciones (varias a la vez)
       <input type="file" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.flac" multiple hidden id="multiIn">
@@ -365,7 +364,7 @@ async function songSheet(id) {
         ${P.userCharts && P.userCharts[id] ? '<button class="btn ghost" data-act="recdel">Borrar la mía</button><button class="btn ghost" data-act="recexp">Exportar</button>' : ''}
       </div>
     </div>
-    <button class="btn primary huge" data-act="start">EMPEZAR <small>🎧 ${d.cost}</small></button>
+    <button class="btn primary huge" data-act="start">EMPEZAR</button>
   `, el => {
     el.querySelector('[data-act=start]').onclick = () => { closeModal(); startSong(id); };
     el.querySelector('[data-act=auto]').onclick = () => { autoDeck(P, s.theme); save(); songSheet(id); };
@@ -412,15 +411,7 @@ async function chartFor(id, buf, an, { ignoreUser = false } = {}) {
 async function startSong(id, { free = false, chartOverride = null } = {}) {
   tickHP();
   const d = diffInfo(diff);
-  if (!free && P.hp < d.cost) {
-    modal(`<h2>Sin auriculares 🎧</h2>
-      <p>Necesitas ${d.cost} y tienes ${P.hp}. Se recupera uno cada ${HP_REGEN_SEC / 60} minutos (siguiente en ${hpTimer()}).</p>
-      <button class="btn primary" data-act="refill" ${P.rp < REFILL_COST ? 'disabled' : ''}>Recargar por ${fmt(REFILL_COST)} RP</button>
-      <button class="btn ghost" data-close>Vale</button>`, el => {
-      el.querySelector('[data-act=refill]').onclick = () => { P.rp -= REFILL_COST; P.hp = maxHP(); P.hpTs = Date.now(); save(); closeModal(); renderTop(); startSong(id); };
-    });
-    return;
-  }
+  // sin auriculares: se puede jugar todas las veces que quiera
   const s = songById(id);
   loading(true, 'Cargando…');
   let buf, an;
@@ -431,7 +422,6 @@ async function startSong(id, { free = false, chartOverride = null } = {}) {
     console.error(e); loading(false); toast('No se pudo cargar la canción'); return;
   }
   loading(false);
-  if (!free) { P.hp -= d.cost; if (P.hp < maxHP() && P.hpTs > Date.now() - 1000) P.hpTs = Date.now(); save(); }
   const chart = chartOverride || await chartFor(id, buf, an);
   const th = THEMES[s.theme] || THEMES.SPECIAL;
   const dp = deckPower(P, s.theme);
@@ -653,7 +643,7 @@ function rResult(r) {
     <div class="res-rew">
       <div>♪ +${fmt(r.rp)} RP</div><div>EXP +${r.exp}</div>
     </div>
-    ${r.ups ? `<div class="levelup">¡SUBES A NIVEL ${P.level}! Auriculares recargados 🎧</div>` : ''}
+    ${r.ups ? `<div class="levelup">¡SUBES A NIVEL ${P.level}!</div>` : ''}
     <div class="row2">
       <button class="btn ghost" data-act="retry">Reintentar</button>
       <button class="btn primary" data-act="ok">Continuar</button>
@@ -721,10 +711,6 @@ function rShop() {
       <button class="btn primary" data-n="1" ${P.rp < PACK_COST ? 'disabled' : ''}>Abrir 1 · ♪ ${fmt(PACK_COST)}</button>
       <button class="btn ghost" data-n="5" ${P.rp < PACK_COST * 5 ? 'disabled' : ''}>Abrir 5 · ♪ ${fmt(PACK_COST * 5)}</button>
     </div>
-    <div class="shop-item">
-      <div><b>🎧 Recargar auriculares</b><div class="muted small">Llena tus auriculares al máximo</div></div>
-      <button class="btn small" data-act="refill" ${P.rp < REFILL_COST || P.hp >= maxHP() ? 'disabled' : ''}>♪ ${fmt(REFILL_COST)}</button>
-    </div>
     <p class="hint">Las cartas repetidas suben de nivel a la original. Gana RP jugando canciones.</p>
   </div>`;
   view.querySelectorAll('[data-n]').forEach(b => b.onclick = () => {
@@ -735,7 +721,6 @@ function rShop() {
     save(); renderTop();
     openDrop(got, { cardHTML, ctx: ensureCtx() }).then(() => rShop());
   });
-  view.querySelector('[data-act=refill]').onclick = () => { P.rp -= REFILL_COST; P.hp = maxHP(); P.hpTs = Date.now(); save(); renderTop(); rShop(); toast('Auriculares al máximo 🎧'); };
 }
 
 // ---------------- ajustes ----------------
