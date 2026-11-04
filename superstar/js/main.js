@@ -1,7 +1,7 @@
 import { SONGS, PHOTO_CREDITS, THEMES, ERAS, DIFFS, MEMBERS, DECK_SIZE, PACK_COST, REFILL_COST, HP_REGEN_SEC, BASE_MAX_SCORE, matchSong, GRADE_INFO } from './data.js';
 import { loadProfile, saveProfile, resetProfile, idb, askPersistent, defaultProfile } from './store.js';
 import { analyzeAudio, makeChart, ANALYSIS_VERSION, beatGrid, nearestIn } from './beatmap.js';
-import { cardHTML, cardPower, deckPower, openPack, welcomePack, autoDeck, memberById, cardPhoto, migrateEras, grantCard } from './cards.js';
+import { cardHTML, cardPower, deckPower, openPack, welcomePack, autoDeck, memberById, cardPhoto, migrateEras, grantCard, welcomeSizes } from './cards.js';
 import { CARD_CREDITS } from './card-credits.js';
 import { Game } from './engine.js';
 import { openDrop, preloadDrop } from './drop.js';
@@ -250,22 +250,22 @@ function welcomeGift() {
   P.freePacks = (P.freePacks || 0) + 5;
   P.welcomed = true; save();
   modal(`
-    <h2>¡Bienvenida, ${esc(P.name)}!</h2>
+    <h2>¡Bienvenid@, ${esc(P.name)}!</h2>
     <div class="welcome-packs">${'<img src="img/drop/pack.webp" alt="">'.repeat(5)}</div>
     <p>Un regalo para empezar: <b>5 sobres gratis</b> para conseguir las cartas de tu mazo.</p>
     <button class="btn primary" data-act="open">Abrir mis sobres</button>`, el => {
-    el.querySelector('[data-act=open]').onclick = () => { closeModal(); openFreePacks(P.freePacks).then(() => go('lobby')); };
+    el.querySelector('[data-act=open]').onclick = () => { closeModal(); openPacksNow(P.freePacks, true, welcomeSizes(P.freePacks)).then(() => go('lobby')); };
   }, null, { locked: true });
 }
 // Abre sobres gratis uno detrás de otro, sin que se vea la pantalla de detrás entre medias
-async function openPacksNow(n, fromFree = false) {
+async function openPacksNow(n, fromFree = false, sizes = null) {
   const hold = document.createElement('div');
   hold.className = 'drop-hold';
   $('#app').appendChild(hold);
   try {
     for (let k = 0; k < n; k++) {
       if (fromFree) { if ((P.freePacks || 0) <= 0) break; P.freePacks--; }
-      const got = openPack(P); save();
+      const got = sizes ? openPack(P, sizes[k], { noDup: true }) : openPack(P); save();
       await openDrop(got, { cardHTML, packs: 1 });
     }
   } finally { hold.remove(); }

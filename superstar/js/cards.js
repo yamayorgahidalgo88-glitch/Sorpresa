@@ -79,14 +79,22 @@ export function packSize(rng = Math.random) {
   for (const [n, p] of PACK_SIZES) { acc += p; if (r < acc) return n; }
   return 1;
 }
-export function openPack(profile, n = packSize()) {
+export function openPack(profile, n = packSize(), { noDup = false } = {}) {
   const out = [];
   for (let i = 0; i < n; i++) {
-    const m = MEMBERS[Math.floor(Math.random() * MEMBERS.length)].id;
-    const t = PACK_THEMES[Math.floor(Math.random() * PACK_THEMES.length)];
-    out.push(grantCard(profile, m, t, rollGrade()));
+    const g = rollGrade();
+    let m, t, tries = 0;
+    do {   // en los sobres de bienvenida no se repite carta, para que el mazo salga completo
+      m = MEMBERS[Math.floor(Math.random() * MEMBERS.length)].id;
+      t = PACK_THEMES[Math.floor(Math.random() * PACK_THEMES.length)];
+    } while (noDup && tries++ < 50 && profile.cards.some(c => c.member === m && c.theme === t && c.grade === g));
+    out.push(grantCard(profile, m, t, g));
   }
   return out;
+}
+// Tamaños de los 5 sobres de bienvenida: al azar como siempre, pero sumando al menos 7 cartas
+export function welcomeSizes(n = 5, min = 7) {
+  for (;;) { const s = Array.from({ length: n }, () => packSize()); if (s.reduce((a, b) => a + b, 0) >= min) return s; }
 }
 
 export function welcomePack(profile) {
