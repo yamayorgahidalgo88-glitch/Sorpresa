@@ -1,7 +1,29 @@
 // Cartas: miembro × era × rango. Arte original generado (sin fotos ni arte oficial).
-import { MEMBERS, THEMES, GRADES, GRADE_INFO, DECK_SIZE } from './data.js';
+import { MEMBERS, THEMES, GRADES, GRADE_INFO, DECK_SIZE, ERAS, LEGACY_ERA } from './data.js';
 
-const PACK_THEMES = ['SCHOOL', 'HYYH', 'WINGS', 'LY', 'MOTS', 'BE', 'BUTTER', 'PROOF'];
+const PACK_THEMES = ERAS;
+
+// Foto del miembro en el año de esa era (img/cards/<era>/<miembro>.jpg); si no hay, la foto general.
+export function cardPhoto(card) {
+  return ERAS.includes(card.theme) ? `img/cards/${card.theme}/${card.member}.jpg` : memberById(card.member).photo;
+}
+// Pasa las cartas guardadas con eras antiguas a las nuevas (sin perder ninguna).
+export function migrateEras(profile) {
+  let ch = false;
+  for (const c of profile.cards) if (LEGACY_ERA[c.theme]) { c.theme = LEGACY_ERA[c.theme]; ch = true; }
+  for (const s of profile.customSongs || []) if (LEGACY_ERA[s.theme]) { s.theme = LEGACY_ERA[s.theme]; ch = true; }
+  // si al cambiar quedan dos cartas iguales, se juntan (la mejor se queda, la otra le sube el nivel)
+  const seen = new Map();
+  for (const c of [...profile.cards]) {
+    const k = c.member + c.theme + c.grade, o = seen.get(k);
+    if (!o) { seen.set(k, c); continue; }
+    o.lvl = Math.min(GRADE_INFO[o.grade].maxLvl, Math.max(o.lvl, c.lvl) + 1);
+    profile.cards = profile.cards.filter(x => x !== c);
+    profile.deck = profile.deck.map(u => (u === c.uid ? (profile.deck.includes(o.uid) ? null : o.uid) : u));
+    ch = true;
+  }
+  return ch;
+}
 
 export function memberById(id) { return MEMBERS.find(m => m.id === id) || MEMBERS[0]; }
 
@@ -65,7 +87,7 @@ export function welcomePack(profile) {
   // Una carta de cada miembro para empezar con el mazo lleno.
   const out = [];
   MEMBERS.forEach((m, i) => {
-    const t = PACK_THEMES[i % PACK_THEMES.length];
+    const t = PACK_THEMES[(i * 3) % PACK_THEMES.length];
     out.push(grantCard(profile, m.id, t, i === 0 ? 'A' : (i < 3 ? 'B' : 'C')));
   });
   return out;
@@ -90,7 +112,7 @@ export function cardHTML(card, { size = 'md', extra = '', songTheme = null } = {
   <div class="card card-${size} grade-${card.grade} era-${card.theme}${bonus ? ' has-bonus' : ''}" ${extra}
        style="--c1:${th.c1};--c2:${th.c2};--ink:${th.ink};--mc:${m.color};--gc:${g.color}">
     <div class="card-art">
-      ${m.photo ? `<div class="card-photo" style="background-image:url('${m.photo}')"></div><div class="card-tint"></div>` : `<div class="card-orb"></div>
+      ${m.photo ? `<div class="card-photo" style="background-image:url('${cardPhoto(card)}'),url('${m.photo}')"></div><div class="card-tint"></div>` : `<div class="card-orb"></div>
       <div class="card-mono">${esc(initials)}</div>`}
       <div class="card-stars">${'★'.repeat(GRADES.indexOf(card.grade) + 1)}</div>
     </div>
@@ -99,7 +121,7 @@ export function cardHTML(card, { size = 'md', extra = '', songTheme = null } = {
     ${bonus ? '<div class="card-bonus">x1.5</div>' : ''}
     <div class="card-foot">
       <div class="card-name">${esc(m.name)}</div>
-      <div class="card-theme">${esc(th.short)}</div>
+      <div class="card-theme">${esc(th.short)}${th.year ? ' · ' + th.year : ''}</div>
     </div>
     ${card.grade === 'R' || card.grade === 'S' ? '<div class="card-holo"></div>' : ''}
   </div>`;

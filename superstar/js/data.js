@@ -1,16 +1,24 @@
 // Catálogo: canciones, miembros y eras (temas). Sin audio: el audio lo carga la jugadora.
 
+// Eras = los 10 álbumes de estudio de BTS (6 coreanos + 4 japoneses). Cada carta es de una era,
+// con la foto de ese miembro en ese año. Los colores son propios (no se copia el arte de los discos).
 export const THEMES = {
-  SCHOOL: { name: '2 COOL 4 SKOOL', short: 'SKOOL', c1: '#1d1d22', c2: '#d7263d', ink: '#fff' },
-  HYYH:   { name: 'THE MOST BEAUTIFUL MOMENT', short: 'HYYH', c1: '#ff8fab', c2: '#ffd6a5', ink: '#3b1830' },
-  WINGS:  { name: 'WINGS', short: 'WINGS', c1: '#1b1440', c2: '#b38cff', ink: '#fff' },
-  LY:     { name: 'LOVE YOURSELF', short: 'LY', c1: '#f7b7d8', c2: '#9fb8ff', ink: '#2b1f45' },
-  MOTS:   { name: 'MAP OF THE SOUL', short: 'MOTS', c1: '#ff6f91', c2: '#ffc75f', ink: '#3a0f22' },
-  BE:     { name: 'BE', short: 'BE', c1: '#c9c6ff', c2: '#7fd1ff', ink: '#1d2340' },
-  BUTTER: { name: 'BUTTER', short: 'BUTTER', c1: '#ffd36e', c2: '#ff9f68', ink: '#3d2300' },
-  PROOF:  { name: 'PROOF', short: 'PROOF', c1: '#0e1b2c', c2: '#d4af37', ink: '#fff' },
-  SPECIAL:{ name: 'SPECIAL', short: 'SP', c1: '#6a00f4', c2: '#ff4ecd', ink: '#fff' },
+  DW:      { name: 'DARK & WILD', short: 'D&W', year: 2014, c1: '#141414', c2: '#c8102e', ink: '#fff' },
+  WAKEUP:  { name: 'WAKE UP', short: 'WAKE UP', year: 2014, c1: '#1c2b4a', c2: '#f2f2f2', ink: '#fff' },
+  YOUTH:   { name: 'YOUTH', short: 'YOUTH', year: 2016, c1: '#ff8fab', c2: '#9fd3ff', ink: '#3b1830' },
+  WINGS:   { name: 'WINGS', short: 'WINGS', year: 2016, c1: '#1b1440', c2: '#b38cff', ink: '#fff' },
+  FACE:    { name: 'FACE YOURSELF', short: 'FACE', year: 2018, c1: '#e9e9ef', c2: '#5a5f73', ink: '#1d1d24' },
+  LYT:     { name: 'LOVE YOURSELF 轉 TEAR', short: 'TEAR', year: 2018, c1: '#1f2433', c2: '#f7b7d8', ink: '#fff' },
+  MOTS7:   { name: 'MAP OF THE SOUL : 7', short: 'MOTS:7', year: 2020, c1: '#ff6f91', c2: '#ffc75f', ink: '#3a0f22' },
+  JOURNEY: { name: 'MAP OF THE SOUL : 7 ~ THE JOURNEY ~', short: 'JOURNEY', year: 2020, c1: '#0f4c5c', c2: '#7fe0d4', ink: '#fff' },
+  BE:      { name: 'BE', short: 'BE', year: 2020, c1: '#c9c6ff', c2: '#7fd1ff', ink: '#1d2340' },
+  ARIRANG: { name: 'ARIRANG', short: 'ARIRANG', year: 2026, c1: '#1b2a6b', c2: '#e63946', ink: '#fff' },
+  SPECIAL: { name: 'SPECIAL', short: 'SP', year: 0, c1: '#6a00f4', c2: '#ff4ecd', ink: '#fff' },
 };
+export const ERAS = ['DW', 'WAKEUP', 'YOUTH', 'WINGS', 'FACE', 'LYT', 'MOTS7', 'JOURNEY', 'BE', 'ARIRANG'];
+// eras antiguas del juego -> era nueva (para no perder cartas guardadas)
+export const LEGACY_ERA = { SCHOOL: 'DW', HYYH: 'YOUTH', LY: 'LYT', MOTS: 'MOTS7', BUTTER: 'BE', PROOF: 'BE' };
+
 
 export const MEMBERS = [
   { id: 'rm', photo: 'img/members/rm.jpg', mono: 'RM',   name: 'RM',        color: '#5b8def' },
@@ -34,33 +42,34 @@ export const PHOTO_CREDITS = [
   { member: 'JUNG KOOK', file: 'Jeon Jungkook at the White House, 31 May 2022.jpg', author: 'The White House (Adam Schultz)', license: 'Dominio público' },
 ];
 
+// theme = era (álbum de estudio donde sale la canción; si no sale en ninguno, el más cercano en el tiempo)
 export const SONGS = [
-  { id: 'no-more-dream', title: 'No More Dream', theme: 'SCHOOL', alias: ['nomoredream'] },
-  { id: 'boy-in-luv', title: 'Boy In Luv', theme: 'SCHOOL', alias: ['boyinluv', 'sangnamja'] },
-  { id: 'danger', title: 'Danger', theme: 'SCHOOL' },
-  { id: 'i-need-u', title: 'I NEED U', theme: 'HYYH', alias: ['ineedu'] },
-  { id: 'dope', title: 'DOPE', theme: 'HYYH', alias: ['ssaeonda'] },
-  { id: 'run', title: 'RUN', theme: 'HYYH' },
-  { id: 'fire', title: 'FIRE', theme: 'HYYH', alias: ['burningup'] },
-  { id: 'save-me', title: 'Save ME', theme: 'HYYH', alias: ['saveme'] },
+  { id: 'no-more-dream', title: 'No More Dream', theme: 'WAKEUP', alias: ['nomoredream'] },
+  { id: 'boy-in-luv', title: 'Boy In Luv', theme: 'WAKEUP', alias: ['boyinluv', 'sangnamja'] },
+  { id: 'danger', title: 'Danger', theme: 'DW' },
+  { id: 'i-need-u', title: 'I NEED U', theme: 'YOUTH', alias: ['ineedu'] },
+  { id: 'dope', title: 'DOPE', theme: 'YOUTH', alias: ['ssaeonda'] },
+  { id: 'run', title: 'RUN', theme: 'YOUTH' },
+  { id: 'fire', title: 'FIRE', theme: 'YOUTH', alias: ['burningup'] },
+  { id: 'save-me', title: 'Save ME', theme: 'YOUTH', alias: ['saveme'] },
   { id: 'bst', title: 'Blood Sweat & Tears', theme: 'WINGS', alias: ['bloodsweattears', 'bloodsweatandtears', 'pittamnunmul'] },
   { id: 'spring-day', title: 'Spring Day', theme: 'WINGS', alias: ['springday', 'bomnal'] },
   { id: 'not-today', title: 'Not Today', theme: 'WINGS', alias: ['nottoday'] },
-  { id: 'dna', title: 'DNA', theme: 'LY' },
-  { id: 'mic-drop', title: 'MIC Drop', theme: 'LY', alias: ['micdrop'] },
-  { id: 'fake-love', title: 'FAKE LOVE', theme: 'LY', alias: ['fakelove'] },
-  { id: 'idol', title: 'IDOL', theme: 'LY' },
-  { id: 'the-truth-untold', title: 'The Truth Untold', theme: 'LY', alias: ['truthuntold', 'thetruthuntold'] },
-  { id: 'bwl', title: 'Boy With Luv', theme: 'MOTS', alias: ['boywithluv', 'jageungeotdeureulwihansi'] },
-  { id: 'make-it-right', title: 'Make It Right', theme: 'MOTS', alias: ['makeitright'] },
-  { id: 'on', title: 'ON', theme: 'MOTS' },
-  { id: 'black-swan', title: 'Black Swan', theme: 'MOTS', alias: ['blackswan'] },
+  { id: 'dna', title: 'DNA', theme: 'FACE' },
+  { id: 'mic-drop', title: 'MIC Drop', theme: 'FACE', alias: ['micdrop'] },
+  { id: 'fake-love', title: 'FAKE LOVE', theme: 'LYT', alias: ['fakelove'] },
+  { id: 'idol', title: 'IDOL', theme: 'JOURNEY' },
+  { id: 'the-truth-untold', title: 'The Truth Untold', theme: 'LYT', alias: ['truthuntold', 'thetruthuntold'] },
+  { id: 'bwl', title: 'Boy With Luv', theme: 'MOTS7', alias: ['boywithluv', 'jageungeotdeureulwihansi'] },
+  { id: 'make-it-right', title: 'Make It Right', theme: 'MOTS7', alias: ['makeitright'] },
+  { id: 'on', title: 'ON', theme: 'MOTS7' },
+  { id: 'black-swan', title: 'Black Swan', theme: 'MOTS7', alias: ['blackswan'] },
   { id: 'dynamite', title: 'Dynamite', theme: 'BE' },
   { id: 'life-goes-on', title: 'Life Goes On', theme: 'BE', alias: ['lifegoeson'] },
-  { id: 'butter', title: 'Butter', theme: 'BUTTER' },
-  { id: 'ptd', title: 'Permission to Dance', theme: 'BUTTER', alias: ['permissiontodance'] },
-  { id: 'yet-to-come', title: 'Yet To Come', theme: 'PROOF', alias: ['yettocome', 'mostbeautifulmoment'] },
-  { id: 'run-bts', title: 'Run BTS', theme: 'PROOF', alias: ['runbts', 'dallyeorabangtan'] },
+  { id: 'butter', title: 'Butter', theme: 'BE' },
+  { id: 'ptd', title: 'Permission to Dance', theme: 'BE', alias: ['permissiontodance'] },
+  { id: 'yet-to-come', title: 'Yet To Come', theme: 'BE', alias: ['yettocome', 'mostbeautifulmoment'] },
+  { id: 'run-bts', title: 'Run BTS', theme: 'BE', alias: ['runbts', 'dallyeorabangtan'] },
 ].map(s => ({ artist: 'BTS', ...s }));
 
 export const DIFFS = [
@@ -72,11 +81,12 @@ export const DIFFS = [
 
 export const GRADES = ['C', 'B', 'A', 'S', 'R'];
 export const GRADE_INFO = {
-  C: { power: 120, maxLvl: 5,  color: '#b7c0cc', odds: 0.50 },
-  B: { power: 240, maxLvl: 10, color: '#7fd1ff', odds: 0.30 },
-  A: { power: 420, maxLvl: 15, color: '#ffd166', odds: 0.14 },
-  S: { power: 720, maxLvl: 20, color: '#ff7eb6', odds: 0.05 },
-  R: { power: 1150, maxLvl: 25, color: '#c18cff', odds: 0.01 },
+  // R es la más difícil: 1 de cada 200 cartas
+  C: { power: 120, maxLvl: 5,  color: '#b7c0cc', odds: 0.555 },
+  B: { power: 240, maxLvl: 10, color: '#7fd1ff', odds: 0.28 },
+  A: { power: 420, maxLvl: 15, color: '#ffd166', odds: 0.12 },
+  S: { power: 720, maxLvl: 20, color: '#ff7eb6', odds: 0.04 },
+  R: { power: 1150, maxLvl: 25, color: '#c18cff', odds: 0.005 },
 };
 
 export const DECK_SIZE = 7;

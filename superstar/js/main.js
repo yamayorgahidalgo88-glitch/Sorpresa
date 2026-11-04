@@ -1,7 +1,8 @@
 import { SONGS, PHOTO_CREDITS, THEMES, DIFFS, MEMBERS, DECK_SIZE, PACK_COST, REFILL_COST, HP_REGEN_SEC, BASE_MAX_SCORE, matchSong, GRADE_INFO } from './data.js';
 import { loadProfile, saveProfile, resetProfile, idb, askPersistent } from './store.js';
 import { analyzeAudio, makeChart, ANALYSIS_VERSION, beatGrid, nearestIn } from './beatmap.js';
-import { cardHTML, cardPower, deckPower, openPack, welcomePack, autoDeck, memberById } from './cards.js';
+import { cardHTML, cardPower, deckPower, openPack, welcomePack, autoDeck, memberById, cardPhoto, migrateEras } from './cards.js';
+import { CARD_CREDITS } from './card-credits.js';
 import { Game } from './engine.js';
 import { openDrop } from './drop.js';
 
@@ -9,6 +10,7 @@ import { openDrop } from './drop.js';
 let recState = null, pendingRec = null, afterTry = null;
 const PREPARED = ['no-more-dream', 'dynamite', 'the-truth-untold']; // canciones con partitura que sigue la voz
 let P = loadProfile();
+if (migrateEras(P)) saveProfile(P);
 let ctx = null;
 let screen = 'title';
 let diff = P.lastDiff || 'normal';
@@ -344,7 +346,7 @@ async function songSheet(id) {
       <div class="song-jacket big"><span>${esc(th.short)}</span></div>
       <div>
         <h2>${esc(s.title)}</h2>
-        <div class="muted">${esc(s.artist || '')} · ${esc(th.name)}</div>
+        <div class="muted">${esc(s.artist || '')} · ${esc(th.name)}${th.year ? ' (' + th.year + ')' : ''}</div>
       </div>
     </div>
     <div class="sheet-row"><span>Dificultad</span><b style="color:${d.color}">${d.name}${lv ? ' ★' + lv[diff] : ''}</b></div>
@@ -442,12 +444,66 @@ async function startSong(id, { free = false, chartOverride = null } = {}) {
   await ensureLandscape();
   game = new Game($('#cv'), {
     ctx, buffer: buf, chart, settings: P.settings, maxScore, title: s.title, theme: th, speedMul: d.speed, diff: d.id,
-    deck: P.deck.map(uid => P.cards.find(c => c.uid === uid)).filter(Boolean).map(c => { const m = memberById(c.member); return { photo: m.photo, name: m.name, grade: c.grade }; }),
+    deck: P.deck.map(uid => P.cards.find(c => c.uid === uid)).filter(Boolean).map(c => { const m = memberById(c.member); return { photo: cardPhoto(c), name: m.name, grade: c.grade }; }),
     bgPhotos: MEMBERS.map(m => m.photo),
     onEnd: res => endSong(res),
     onPause: () => togglePause(),
   });
+  await deckIntro(s, th);
   game.start();
+}
+
+// Antes de empezar: aparece tu mazo, brillan las cartas de la misma era que la canción
+// (con su rango) y se suma el bonus de puntos que te dan.
+function deckIntro(s, th) {
+  const cards = P.deck.map(uid => P.cards.find(c => c.uid === uid)).filter(Boolean);
+  if (!cards.length) return Promise.resolve();
+  const era = s.theme, eraTh = THEMES[era] || THEMES.SPECIAL;
+  const pct = c => cardPower(c, era) / 6000 * 100;
+  const match = cards.filter(c => c.theme === era);
+  const total = deckBonusPct(era);
+  const ov = document.createElement('div');
+  ov.id = 'deckIntro';
+  ov.style.setProperty('--c2', th.c2);
+  ov.innerHTML = `
+    <div class="di-era">${esc(eraTh.name)}${eraTh.year ? ' · ' + eraTh.year : ''}</div>
+    <div class="di-title">${esc(s.title)}</div>
+    <div class="di-row">${cards.map(c => `<div class="di-slot"><div class="di-pct">+${pct(c).toFixed(1)}%</div>${cardHTML(c, { size: 'sm', songTheme: era })}</div>`).join('')}</div>
+    <div class="di-combo"></div>
+    <div class="di-total">+0%<small>PUNTOS DE TU MAZO</small></div>
+    <div class="di-skip">Toca para empezar</div>`;
+  document.body.appendChild(ov);
+  const slots = [...ov.querySelectorAll('.di-slot')], tot = ov.querySelector('.di-total'), combo = ov.querySelector('.di-combo');
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  const chime = (f, t = 0.18) => { try { const c = ensureCtx(), o = c.createOscillator(), g = c.createGain(); o.type = 'triangle'; o.frequency.value = f; g.gain.setValueAtTime(0.0001, c.currentTime); g.gain.exponentialRampToValueAtTime(0.18, c.currentTime + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + t); o.connect(g).connect(c.destination); o.start(); o.stop(c.currentTime + t + 0.05); } catch {} };
+  let skip = false, run = 0;
+  const setTot = v => { tot.firstChild.textContent = '+' + Math.round(v) + '%'; };
+  return new Promise(async resolve => {
+    const end = async () => { if (ov.classList.contains('out')) return; ov.classList.add('out'); await wait(450); ov.remove(); resolve(); };
+    ov.addEventListener('pointerdown', () => { skip = true; end(); });
+    for (const el of slots) { if (skip) return; el.classList.add('in'); await wait(90); }
+    await wait(250);
+    // primero las que no son de la era (suman poco), luego brillan una a una las que hacen combo
+    cards.forEach((c, i) => { if (c.theme !== era) { slots[i].classList.add('dim', 'show'); run += pct(c); } });
+    setTot(run);
+    await wait(350);
+    let k = 0;
+    for (let i = 0; i < cards.length; i++) {
+      if (skip) return;
+      if (cards[i].theme !== era) continue;
+      slots[i].classList.add('hit', 'show');
+      run += pct(cards[i]); setTot(run);
+      chime(660 * Math.pow(1.1225, k++));
+      await wait(380);
+    }
+    combo.textContent = match.length
+      ? `${match.length} carta${match.length > 1 ? 's' : ''} de ${eraTh.short} · x1.5${match.length >= 4 ? ` · ¡COMBO DE ERA +${5 * (match.length - 3)}%!` : ''}`
+      : `Ninguna carta de ${eraTh.short}: consíguelas en los sobres`;
+    setTot(total);
+    if (match.length) chime(1320, 0.4);
+    await wait(1400);
+    end();
+  });
 }
 
 // El original se juega en horizontal: pantalla completa + giro si el móvil lo permite.
@@ -707,7 +763,7 @@ function rShop() {
   <div class="shop">
     <div class="pack">
       <div class="pack-art"><div class="pack-logo">SUPERSTAR</div><div class="pack-sub">CARD PACK</div></div>
-      <div class="odds">${Object.entries(GRADE_INFO).reverse().map(([g, i]) => `<span class="grade-chip" style="--gc:${i.color}">${g} ${(i.odds * 100).toFixed(0)}%</span>`).join('')}</div>
+      <div class="odds">${Object.entries(GRADE_INFO).reverse().map(([g, i]) => `<span class="grade-chip" style="--gc:${i.color}">${g} ${+(i.odds * 100).toFixed(1)}%</span>`).join('')}</div>
       <button class="btn primary" data-n="1" ${P.rp < PACK_COST ? 'disabled' : ''}>Abrir 1 · ♪ ${fmt(PACK_COST)}</button>
       <button class="btn ghost" data-n="5" ${P.rp < PACK_COST * 5 ? 'disabled' : ''}>Abrir 5 · ♪ ${fmt(PACK_COST * 5)}</button>
     </div>
@@ -741,7 +797,7 @@ function rSettings() {
     <div class="set"><span>Controles con teclado</span><small class="muted">EASY: F · Espacio · J — NORMAL: D F J K — HARD: S D F Espacio J K L — Pausa: Esc</small></div>
     <button class="btn ghost" data-act="clearAudio">Borrar canciones guardadas</button>
     <button class="btn danger" data-act="reset">Reiniciar todo el progreso</button>
-    <div class="credits"><b>Fotos de las cartas</b> (Wikimedia Commons, recortadas):<br>${PHOTO_CREDITS.map(c => `${esc(c.member)}: <a href="https://commons.wikimedia.org/wiki/File:${encodeURIComponent(c.file.replace(/ /g, '_'))}" target="_blank" rel="noopener">${esc(c.author)}</a>, ${esc(c.license)}`).join('<br>')}</div>
+    <div class="credits"><b>Fotos</b> (Wikimedia Commons, recortadas):<br>${[...PHOTO_CREDITS, ...CARD_CREDITS].map(c => `${esc(c.member)}${c.era ? ' · ' + esc(THEMES[c.era].short) : ''}: <a href="https://commons.wikimedia.org/wiki/File:${encodeURIComponent(c.file.replace(/ /g, '_'))}" target="_blank" rel="noopener">${esc(c.author)}</a>, ${esc(c.license)}`).join('<br>')}</div>
     <p class="about">Remake personal hecho con cariño, inspirado en un juego de ritmo que ya no existe. Las canciones las pones tú y se quedan sólo en tu dispositivo. Sin afiliación con los artistas ni con la desarrolladora original.</p>
   </div>`;
   view.querySelector('[data-k=name]').onchange = e => { P.name = e.target.value.trim() || 'ARMY'; save(); renderTop(); };

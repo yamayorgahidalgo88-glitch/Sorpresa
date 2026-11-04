@@ -328,24 +328,49 @@ h2{margin:6px 0 10px;font-size:20px}h3{font-size:15px;margin:18px 0 10px}
 .mazo-bonus b{color:var(--gold);font-size:15px}
 /* cada era trata la foto a su manera: color, encuadre y marco distintos */
 .card .card-photo{transition:filter .2s}
-.era-SCHOOL .card-photo{filter:grayscale(1) contrast(1.25);background-size:135%;background-position:50% 15%}
-.era-SCHOOL .card-tint{background:linear-gradient(180deg,rgba(215,38,61,.35),transparent 35%,transparent 60%,rgba(20,20,26,.85))}
-.era-HYYH .card-photo{filter:sepia(.35) saturate(1.3) brightness(1.08) hue-rotate(-10deg);background-size:118%;background-position:40% 20%}
-.era-HYYH .card-tint{background:linear-gradient(180deg,rgba(255,143,171,.35),transparent 40%,rgba(255,214,165,.25) 70%,rgba(120,40,70,.7))}
-.era-WINGS .card-photo{filter:saturate(.6) contrast(1.2) brightness(.85);background-size:145%;background-position:50% 12%}
-.era-WINGS .card-tint{background:radial-gradient(circle at 50% 30%,transparent 30%,rgba(27,20,64,.75) 90%),linear-gradient(180deg,transparent 55%,rgba(110,60,200,.7))}
-.era-LY .card-photo{filter:saturate(1.1) brightness(1.12) contrast(.95);background-size:110%;background-position:55% 18%}
-.era-LY .card-tint{background:linear-gradient(160deg,rgba(247,183,216,.45),transparent 45%,rgba(159,184,255,.55) 100%)}
-.era-MOTS .card-photo{filter:saturate(1.45) contrast(1.1);background-size:128%;background-position:45% 16%}
-.era-MOTS .card-tint{background:linear-gradient(180deg,rgba(255,111,145,.3),transparent 40%,transparent 60%,rgba(255,199,95,.55))}
-.era-BE .card-photo{filter:saturate(.75) brightness(1.08) hue-rotate(8deg);background-size:122%;background-position:55% 22%}
-.era-BE .card-tint{background:linear-gradient(180deg,rgba(201,198,255,.4),transparent 45%,rgba(127,209,255,.5))}
-.era-BUTTER .card-photo{filter:sepia(.25) saturate(1.35) brightness(1.1);background-size:115%;background-position:50% 20%}
-.era-BUTTER .card-tint{background:linear-gradient(180deg,rgba(255,211,110,.35),transparent 40%,rgba(255,159,104,.6))}
-.era-PROOF .card-photo{filter:contrast(1.25) saturate(.9) brightness(.92);background-size:138%;background-position:48% 14%}
-.era-PROOF .card-tint{background:linear-gradient(180deg,rgba(14,27,44,.4),transparent 40%,rgba(14,27,44,.8)),linear-gradient(90deg,rgba(212,175,55,.3),transparent 30%,transparent 70%,rgba(212,175,55,.3))}
-.era-PROOF.card{box-shadow:0 0 0 2px var(--gc),inset 0 0 0 4px rgba(212,175,55,.6),0 6px 18px rgba(0,0,0,.35)}
-.era-WINGS.card::before,.era-BUTTER.card::before,.era-LY.card::before{content:"";position:absolute;inset:4px;border-radius:9px;border:1px solid rgba(255,255,255,.35);pointer-events:none;z-index:2}
+/* cada era: foto de ese año + su color y su marco */
+.era-DW .card-photo{filter:contrast(1.2) saturate(.85)}
+.era-DW .card-tint{background:linear-gradient(180deg,rgba(200,16,46,.35),transparent 35%,transparent 60%,rgba(20,20,20,.85))}
+.era-WAKEUP .card-photo{filter:contrast(1.1) saturate(.9) brightness(1.05)}
+.era-WAKEUP .card-tint{background:linear-gradient(180deg,rgba(242,242,242,.3),transparent 40%,rgba(28,43,74,.8))}
+.era-YOUTH .card-photo{filter:saturate(1.2) brightness(1.08)}
+.era-YOUTH .card-tint{background:linear-gradient(160deg,rgba(255,143,171,.4),transparent 45%,rgba(159,211,255,.55))}
+.era-WINGS .card-photo{filter:saturate(.75) contrast(1.15) brightness(.92)}
+.era-WINGS .card-tint{background:radial-gradient(circle at 50% 30%,transparent 35%,rgba(27,20,64,.7) 95%),linear-gradient(180deg,transparent 55%,rgba(110,60,200,.7))}
+.era-FACE .card-photo{filter:grayscale(.35) contrast(1.1) brightness(1.05)}
+.era-FACE .card-tint{background:linear-gradient(180deg,rgba(255,255,255,.3),transparent 40%,rgba(90,95,115,.75))}
+.era-LYT .card-photo{filter:saturate(.9) contrast(1.1) brightness(.95)}
+.era-LYT .card-tint{background:linear-gradient(180deg,rgba(31,36,51,.45),transparent 40%,rgba(247,183,216,.5) 80%,rgba(31,36,51,.8))}
+.era-MOTS7 .card-photo{filter:saturate(1.3) contrast(1.05)}
+.era-MOTS7 .card-tint{background:linear-gradient(180deg,rgba(255,111,145,.3),transparent 40%,transparent 60%,rgba(255,199,95,.6))}
+.era-JOURNEY .card-photo{filter:saturate(1.05) hue-rotate(-6deg)}
+.era-JOURNEY .card-tint{background:linear-gradient(180deg,rgba(127,224,212,.3),transparent 45%,rgba(15,76,92,.8))}
+.era-BE .card-photo{filter:saturate(.8) brightness(1.08)}
+.era-BE .card-tint{background:linear-gradient(180deg,rgba(201,198,255,.4),transparent 45%,rgba(127,209,255,.55))}
+.era-ARIRANG .card-photo{filter:saturate(1.15) contrast(1.08)}
+.era-ARIRANG .card-tint{background:linear-gradient(180deg,rgba(230,57,70,.3),transparent 40%,transparent 60%,rgba(27,42,107,.85))}
+.era-ARIRANG.card,.era-LYT.card{box-shadow:0 0 0 2px var(--gc),inset 0 0 0 4px color-mix(in srgb,var(--c2) 55%,transparent),0 6px 18px rgba(0,0,0,.35)}
+.era-WINGS.card::before,.era-YOUTH.card::before,.era-MOTS7.card::before,.era-JOURNEY.card::before{content:"";position:absolute;inset:4px;border-radius:9px;border:1px solid rgba(255,255,255,.35);pointer-events:none;z-index:2}
+/* presentación del mazo antes de cada canción */
+#deckIntro{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.6vh;background:radial-gradient(circle at 50% 40%,color-mix(in srgb,var(--c2) 35%,#14062b) 0%,#0b0418 75%);color:#fff;transition:opacity .45s}
+#deckIntro.out{opacity:0}
+#deckIntro .di-era{font-size:clamp(11px,2.6vh,15px);letter-spacing:3px;opacity:.85}
+#deckIntro .di-title{font-size:clamp(18px,5.5vh,30px);font-weight:900;letter-spacing:1px}
+#deckIntro .di-row{display:flex;gap:min(1.4vw,12px);align-items:flex-end;margin-top:26px}
+#deckIntro .di-slot{position:relative;width:min(12.4vw,calc(40vh * 0.75),130px);opacity:0;transform:translateY(18px) scale(.9);transition:opacity .3s,transform .3s,filter .3s}
+#deckIntro .di-slot.in{opacity:1;transform:none}
+#deckIntro .di-slot.dim{filter:brightness(.5) saturate(.6)}
+#deckIntro .di-slot .card{width:100%}
+#deckIntro .di-slot.hit{transform:translateY(-10px) scale(1.08);filter:none}
+#deckIntro .di-slot.hit .card{box-shadow:0 0 0 3px var(--gold),0 0 22px 6px color-mix(in srgb,var(--gold) 70%,transparent),0 0 46px 10px color-mix(in srgb,var(--gc) 55%,transparent)}
+#deckIntro .di-slot.hit::after{content:"";position:absolute;inset:-14%;border-radius:20px;background:radial-gradient(circle,rgba(255,240,180,.55),transparent 65%);animation:diBurst .7s ease-out forwards;pointer-events:none}
+@keyframes diBurst{from{opacity:1;transform:scale(.6)}to{opacity:0;transform:scale(1.5)}}
+#deckIntro .di-pct{position:absolute;left:-6px;right:-6px;top:-24px;text-align:center;font-weight:900;font-size:13px;color:var(--gold);text-shadow:0 0 8px rgba(0,0,0,.6);opacity:0;transition:opacity .25s}
+#deckIntro .di-slot.show .di-pct{opacity:1}
+#deckIntro .di-combo{font-size:clamp(12px,3vh,16px);min-height:1.4em;color:var(--gold);font-weight:800}
+#deckIntro .di-total{font-size:clamp(20px,6vh,36px);line-height:1;font-weight:900;color:var(--gold);text-shadow:0 0 18px rgba(255,200,80,.55)}
+#deckIntro .di-total small{display:block;font-size:.38em;color:#fff;opacity:.8;letter-spacing:2px;text-align:center}
+#deckIntro .di-skip{position:absolute;bottom:2vh;font-size:11px;opacity:.55}
 .rec-box{margin-top:10px;padding:10px 12px;border-radius:14px;background:rgba(255,59,92,.08);border:1px solid rgba(255,59,92,.35)}
 .rec-box .row2{margin-top:8px}
 .mine{font-size:13px;color:#ffd0da}

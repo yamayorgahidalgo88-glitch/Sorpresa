@@ -1,8 +1,8 @@
 // Service worker: guarda la app para que funcione sin conexión.
-const CACHE = 'superstar-v26';
+const CACHE = 'superstar-v27';
 const SHELL = [
   './', './index.html', './css/style.css', './manifest.webmanifest',
-  './js/main.js', './js/data.js', './js/store.js', './js/beatmap.js', './js/cards.js', './js/engine.js', './js/drop.js',
+  './js/main.js', './js/data.js', './js/store.js', './js/beatmap.js', './js/cards.js', './js/engine.js', './js/drop.js', './js/card-credits.js',
   './icons/icon-192.png', './icons/icon-512.png', './icons/icon-180.png',
   ...['rm', 'jin', 'suga', 'jh', 'jm', 'v', 'jk'].map(m => `./img/members/${m}.jpg`),
 ];
