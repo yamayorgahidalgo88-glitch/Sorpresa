@@ -9,6 +9,17 @@ import { openDrop } from './drop.js';
 // ---------------- estado ----------------
 let recState = null, pendingRec = null, afterTry = null;
 const PREPARED = ['no-more-dream', 'dynamite', 'the-truth-untold']; // canciones con partitura que sigue la voz
+// Siempre en horizontal: si el móvil está en vertical, la app se gira (sin avisos).
+function applyRot() {
+  const r = innerHeight > innerWidth;
+  document.body.classList.toggle('rot', r);
+  const st = document.documentElement.style;
+  st.setProperty('--rw', innerHeight + 'px'); st.setProperty('--rh', innerWidth + 'px');
+  // tamaño real de la app (ancho y alto en horizontal), para el CSS
+  st.setProperty('--aw', (r ? innerHeight : innerWidth) + 'px'); st.setProperty('--ah', (r ? innerWidth : innerHeight) + 'px');
+  if (window.__ss && window.__ss.game) window.__ss.game.resize();
+}
+applyRot(); addEventListener('resize', applyRot);
 let P = loadProfile();
 if (migrateEras(P)) saveProfile(P);
 let ctx = null;
@@ -472,7 +483,7 @@ function deckIntro(s, th) {
     <div class="di-combo"></div>
     <div class="di-total">+0%<small>PUNTOS DE TU MAZO</small></div>
     <div class="di-skip">Toca para empezar</div>`;
-  document.body.appendChild(ov);
+  $('#app').appendChild(ov);
   const slots = [...ov.querySelectorAll('.di-slot')], tot = ov.querySelector('.di-total'), combo = ov.querySelector('.di-combo');
   const wait = ms => new Promise(r => setTimeout(r, ms));
   const chime = (f, t = 0.18) => { try { const c = ensureCtx(), o = c.createOscillator(), g = c.createGain(); o.type = 'triangle'; o.frequency.value = f; g.gain.setValueAtTime(0.0001, c.currentTime); g.gain.exponentialRampToValueAtTime(0.18, c.currentTime + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + t); o.connect(g).connect(c.destination); o.start(); o.stop(c.currentTime + t + 0.05); } catch {} };

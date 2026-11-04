@@ -3,7 +3,8 @@
 
 export const JUDGE_NAMES = ['S·PERFECT', 'PERFECT', 'GOOD', 'BAD', 'MISS'];
 const MULT = [1, 0.85, 0.5, 0.2, 0];
-const WIN = { sp: 0.042, p: 0.085, gEarly: 0.135, bEarly: 0.18, late: 0.12 };
+// ventanas de tiempo (s): iguales antes y después de la nota; fuera de 0,18 s ya es MISS
+const WIN = { sp: 0.042, p: 0.085, gEarly: 0.135, bEarly: 0.18, late: 0.18 };
 const RAVE_NAMES = ['ENERGY', 'RAVE', 'SUPER RAVE', 'HYPER RAVE', 'ULTRA RAVE'];
 const RAVE_GAIN = [0.03, 0.024, 0.008, -0.06, -0.2];
 const KEYS = {
@@ -204,19 +205,24 @@ export class Game {
     return (-0.45 + Math.sqrt(0.2025 + 2.2 * Math.max(0, fv))) / 1.1;
   }
   laneAt(x, y) {
-    const p = Math.max(0.55, Math.min(1.1, this._pAtY(y)));
-    const l = ((x - this.cx) / this.wAt(p) + 0.5) * this.L - 0.5;   // posición continua: se toca donde llega la nota
+    // se mide en la línea donde llegan las notas: tocar más arriba o más abajo en la barra
+    // (o por debajo) no cambia la posición, cuenta lo mismo que tocar justo encima de la nota
+    const l = ((x - this.cx) / this.wAt(1) + 0.5) * this.L - 0.5;
     return Math.max(0, Math.min(this.L - 1, l));
   }
 
   // ---------- entrada ----------
   _bind() {
-    const pos = e => { const r = this.cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+    // con la app girada (móvil en vertical sin giro automático) se pasan las coordenadas a las de la pista
+    const pos = e => {
+      if (document.body.classList.contains('rot')) return [innerHeight - e.clientY, e.clientX];
+      const r = this.cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top];
+    };
     this._pd = e => {
       if (this.paused || this.ended) return;
       e.preventDefault();
       const [x, y] = pos(e);
-      if (y < this.barY0 - 6) return;   // sólo cuentan los toques dentro de la barra de colores
+      if (y < this.barY0 - 18) return;   // sólo cuentan los toques en la barra de colores (con un pequeño margen arriba)
       const lane = this.laneAt(x, y);
       this.pointers.set(e.pointerId, lane);
       try { this.cv.setPointerCapture(e.pointerId); } catch {}
@@ -285,7 +291,7 @@ export class Game {
     if (!best) return;
     const d = now - best.t, a = Math.abs(d);
     let j;
-    if (a <= WIN.sp) j = 0; else if (a <= WIN.p) j = 1; else if (d < 0) j = a <= WIN.gEarly ? 2 : 3; else j = 2;
+    if (a <= WIN.sp) j = 0; else if (a <= WIN.p) j = 1; else j = a <= WIN.gEarly ? 2 : 3;
     if (slide && j > 1) return;
     best.head = j;
     this._judge(j, lane);

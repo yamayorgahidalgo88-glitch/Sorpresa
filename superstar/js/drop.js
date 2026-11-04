@@ -23,7 +23,7 @@ export function openDrop(results, { cardHTML, ctx }) {
       <div class="drop-hint">Toca el sobre</div>
       <div class="drop-count"></div>
       <div class="drop-flash"></div>`;
-    document.body.appendChild(el);
+    document.getElementById('app').appendChild(el);
     const stage = el.querySelector('.drop-stage');
     const label = el.querySelector('.drop-label');
     const hint = el.querySelector('.drop-hint');
@@ -85,7 +85,7 @@ export function openDrop(results, { cardHTML, ctx }) {
         setTimeout(() => {
           pk.classList.add('burst');
           doFlash('#ffffff', true);
-          fx.burst(innerWidth / 2, innerHeight / 2, '#ffffff', 90, 1.6);
+          fx.burst(AW() / 2, AH() / 2, '#ffffff', 90, 1.6);
           sfx.boom();
         }, 900);
         setTimeout(() => { phase = 'card'; busy = false; showCard(); }, 1500);
@@ -96,7 +96,8 @@ export function openDrop(results, { cardHTML, ctx }) {
         const target = RARITY[r.card.grade].lvl;
         const c = stage.querySelector('.dc');
         const rect = c.getBoundingClientRect();
-        const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+        let cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+        if (document.body.classList.contains('rot')) [cx, cy] = [innerHeight - cy, cx];
         if (lvl < target) {
           // la luz sube de rareza
           lvl++;
@@ -143,17 +144,19 @@ export function openDrop(results, { cardHTML, ctx }) {
   });
 }
 
+// tamaño de la app (con el móvil en vertical la app va girada)
+const AW = () => document.getElementById('app').clientWidth, AH = () => document.getElementById('app').clientHeight;
 // ---------- partículas ----------
 function makeFx(cv) {
   const g = cv.getContext('2d');
   let parts = [], raf = 0, last = 0, alive = true;
-  const resize = () => { const d = Math.min(2, devicePixelRatio || 1); cv.width = innerWidth * d; cv.height = innerHeight * d; g.setTransform(d, 0, 0, d, 0, 0); };
+  const resize = () => { const d = Math.min(2, devicePixelRatio || 1); cv.width = AW() * d; cv.height = AH() * d; g.setTransform(d, 0, 0, d, 0, 0); };
   resize(); addEventListener('resize', resize);
   const loop = ts => {
     if (!alive) return;
     raf = requestAnimationFrame(loop);
     const dt = last ? Math.min(0.05, (ts - last) / 1000) : 0.016; last = ts;
-    g.clearRect(0, 0, innerWidth, innerHeight);
+    g.clearRect(0, 0, AW(), AH());
     g.globalCompositeOperation = 'lighter';
     for (const p of parts) {
       p.age += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += p.gr * dt; p.vx *= 0.985; p.rot += dt * 5;
@@ -174,7 +177,7 @@ function makeFx(cv) {
     },
     rain(col, n) {
       for (let k = 0; k < n; k++) {
-        parts.push({ x: Math.random() * innerWidth, y: -20 - Math.random() * 200, vx: (Math.random() - 0.5) * 40, vy: 120 + Math.random() * 240, gr: 60, age: 0, life: 2.2 + Math.random(), r: 1.5 + Math.random() * 2.5, rot: Math.random() * 6, star: true, col: Math.random() < 0.3 ? '#ffffff' : col });
+        parts.push({ x: Math.random() * AW(), y: -20 - Math.random() * 200, vx: (Math.random() - 0.5) * 40, vy: 120 + Math.random() * 240, gr: 60, age: 0, life: 2.2 + Math.random(), r: 1.5 + Math.random() * 2.5, rot: Math.random() * 6, star: true, col: Math.random() < 0.3 ? '#ffffff' : col });
       }
     },
     stop() { alive = false; cancelAnimationFrame(raf); removeEventListener('resize', resize); },

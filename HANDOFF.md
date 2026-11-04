@@ -1,11 +1,11 @@
 # SUPERSTAR · ARMY Edition — resumen para seguir trabajando
 
 ## Qué es
-Juego de ritmo web (PWA instalable) inspirado en **SuperStar BTS** (Dalcomsoft, 2018–2020, ya cerrado), hecho como **regalo para la novia del usuario**. Se juega en el móvil, **solo en horizontal**: la app ocupa toda la pantalla, menú en una barra a la izquierda; en vertical sale «Gira el móvil» (`#turn`). Icono de la app: el logo SUPERSTAR que pasó el usuario (`superstar/icons/`).
+Juego de ritmo web (PWA instalable) inspirado en **SuperStar BTS** (Dalcomsoft, 2018–2020, ya cerrado), hecho como **regalo para la novia del usuario**. Se juega en el móvil, **solo en horizontal**: la app ocupa toda la pantalla, menú en una barra a la izquierda; si el móvil está en vertical (sin giro automático) la app se dibuja girada (`body.rot`, `applyRot` en `main.js`; el motor y los sobres convierten las coordenadas del toque). El CSS usa `--aw`/`--ah` (tamaño de la app) en lugar de vw/vh. Icono de la app: el logo SUPERSTAR que pasó el usuario (`superstar/icons/`).
 
 - **Web publicada:** https://superstar-army.vercel.app
 - **Repositorio:** `yamayorgahidalgo88-glitch/Sorpresa`, rama `claude/bts-superstar-game-vesiwx`. El juego está en `superstar/`. El `index.html` de la raíz es OTRO regalo («Flores Amarillas»): no tocarlo.
-- **Vercel:** equipo `team_AJTr7WqPBL2IVmRDgpky7Ac8` (La Quinta del Bnitre), proyecto `superstar-army`. Se despliega con la herramienta de Vercel `create_deployment` usando `gitSource` (github, org `yamayorgahidalgo88-glitch`, repo `Sorpresa`, ref de la rama) y `target: production`. En cada cambio hay que **subir la versión de caché** en `superstar/sw.js` (`superstar-vNN`, ahora v28).
+- **Vercel:** equipo `team_AJTr7WqPBL2IVmRDgpky7Ac8` (La Quinta del Bnitre), proyecto `superstar-army`. Se despliega con la herramienta de Vercel `create_deployment` usando `gitSource` (github, org `yamayorgahidalgo88-glitch`, repo `Sorpresa`, ref de la rama) y `target: production`. En cada cambio hay que **subir la versión de caché** en `superstar/sw.js` (`superstar-vNN`, ahora v29).
 - El usuario habla **español** y no es programador: explicarle en lenguaje sencillo.
 
 ## Reglas importantes (decididas con el usuario)
@@ -18,7 +18,7 @@ Juego de ritmo web (PWA instalable) inspirado en **SuperStar BTS** (Dalcomsoft, 
 - **Sin botones fijos:** abajo solo hay una barra de luz. Las notas caen en **13 posiciones** a lo ancho (como el original) y se toca donde llega cada nota (tolerancia ~1,7 posiciones).
 - **Notas:** sueltas azules/rosas, dobles moradas (gemas), doradas = unidas: notas largas, **deslizamientos en diagonal** y **zigzags de 3–4 monedas con bandas rectas** que cruzan la pista (como las imágenes del original que pasó el usuario).
 - **Niveles:** EASY / NORMAL / HARD usan **la misma partitura** y cambia la **velocidad de caída** (2,2 s / 1,65 s / 1,2 s). En HARD, además, hay menos zigzags y más cortos (`tameChains` en `engine.js`: uno de cada dos, 3 monedas máx., 4 posiciones de ancho).
-- **Barra de colores grande:** solo cuentan los toques dentro de ella (`barY0`); tolerancia lateral `HIT = 2.2` posiciones. Probado con un robot en las 3 canciones: 0 fallos.
+- **Barra de colores grande:** solo cuentan los toques dentro de ella (`barY0`); tolerancia lateral `HIT = 2.2` posiciones, medida siempre en la línea donde llegan las notas (la altura del dedo no cambia la posición). Ventanas de tiempo iguales antes y después: S·PERFECT ±42 ms, PERFECT ±85 ms, GOOD ±135 ms, BAD ±180 ms. Probado con un robot «persona real» (errores de tiempo y posición, toques a cualquier altura): 0,4 % de toques razonables sin contar (antes 1,8 %, por la ventana tardía de 120 ms).
 - **Partituras preparadas que siguen la voz** (`superstar/charts/<id>.json`): `dynamite`, `no-more-dream`, `the-truth-untold`. Si el MP3 cargado tiene la misma duración (±1,5 s) se usa esa; si no, el **generador automático** en el navegador (`js/beatmap.js`).
 - **Recorte automático de intros/colas de videoclip** (`start`/`end` en la partitura): el juego arranca la canción en `start`.
 - **Ninguna nota antes de que empiecen a cantar**; en pausas instrumentales largas solo algún golpe fuerte.
