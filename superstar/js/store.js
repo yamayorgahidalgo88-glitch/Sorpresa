@@ -7,7 +7,8 @@ export function defaultProfile() {
     name: 'ARMY',
     level: 1,
     exp: 0,
-    rp: 6000,             // regalo de bienvenida: alcanza para el primer sobre
+    rp: 0,
+    freePacks: 0,         // sobres gratis guardados (al empezar se regalan 5)
     hp: 10,
     hpTs: Date.now(),
     cards: [],            // {uid, member, theme, grade, lvl}

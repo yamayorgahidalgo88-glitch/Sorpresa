@@ -95,7 +95,7 @@ export const DECK_SIZE = 7;
 export const PACK_SIZES = [[1, 0.5], [2, 0.3], [3, 0.2]];
 // cartas de bienvenida: al azar, con solo un 1 % de que salga una R
 export const WELCOME_ODDS = { C: 0.55, B: 0.28, A: 0.12, S: 0.04, R: 0.01 };
-export const PACK_COST = 0;        // RP por sobre (0 = gratis, para probar los sobres; antes 5000)
+export const PACK_COST = 10000;    // notas por sobre (5 sobres = 50.000)
 export const REFILL_COST = 2500;   // RP por recargar auriculares
 export const HP_REGEN_SEC = 180;   // un auricular cada 3 min
 export const BASE_MAX_SCORE = { easy: 1000000, normal: 1150000, hard: 1300000 };

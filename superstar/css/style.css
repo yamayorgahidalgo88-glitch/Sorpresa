@@ -581,7 +581,7 @@ body.rot #app{inset:auto;top:0;left:0;width:var(--rw);height:var(--rh);transform
 .tb-lv{cursor:pointer;padding:4px 6px;margin:-4px -6px;border-radius:10px}
 .tb-lv:active{background:rgba(255,255,255,.1)}
 .lv-head{display:flex;align-items:center;gap:16px;margin-top:2px}
-.lv-num{font-size:34px;font-weight:900;font-style:italic;background:linear-gradient(90deg,var(--cyan),var(--pink));-webkit-background-clip:text;background-clip:text;color:transparent;white-space:nowrap}
+.lv-num{font-size:34px;font-weight:900;font-style:italic;padding:0 .2em 0 .04em;line-height:1.15;background:linear-gradient(90deg,var(--cyan),var(--pink));-webkit-background-clip:text;background-clip:text;color:transparent;white-space:nowrap}
 .lv-main{flex:1;display:flex;flex-direction:column;gap:6px}
 .lv-bar{height:14px;border-radius:7px;background:rgba(255,255,255,.12);overflow:hidden;box-shadow:inset 0 1px 3px rgba(0,0,0,.4)}
 .lv-bar i{display:block;height:100%;border-radius:7px;background:linear-gradient(90deg,var(--cyan),var(--pink));box-shadow:0 0 12px var(--pink)}
@@ -591,3 +591,14 @@ body.rot #app{inset:auto;top:0;left:0;width:var(--rw);height:var(--rh);transform
 .lv-item span{font-size:22px;color:var(--gold)}.lv-item small{font-size:10px;color:var(--muted)}
 .lv-item.big{border-color:var(--pink);box-shadow:0 0 12px rgba(255,95,200,.35)}
 .btn.free{background:linear-gradient(135deg,#ffd65a,#ff8fc8)!important;color:#3a1030}
+
+/* flecha de volver: solo la flecha, rellena con colores de galaxia */
+.back-btn{width:46px;height:38px;border:0;border-radius:0;background:none;padding:0;filter:drop-shadow(0 0 6px rgba(181,107,255,.8)) drop-shadow(0 2px 4px rgba(0,0,0,.5))}
+.back-btn svg{width:100%;height:100%;display:block}
+.pk-ico{height:26px;width:auto;filter:drop-shadow(0 0 4px rgba(255,140,230,.7))}
+.pk-ico.x5{height:30px}
+.lv-item span{display:flex;align-items:center;justify-content:center;height:32px}
+.welcome-packs{display:flex;justify-content:center;gap:6px;margin:4px 0}
+.welcome-packs img{height:min(110px,calc(var(--ah) * 0.22));filter:drop-shadow(0 6px 12px rgba(0,0,0,.5));animation:pkfloat 3s ease-in-out infinite}
+.welcome-packs img:nth-child(2n){animation-delay:-1.5s}
+.lv-next .pk-ico{height:20px;vertical-align:middle}

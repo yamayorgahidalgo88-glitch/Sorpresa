@@ -1,5 +1,5 @@
 import { SONGS, PHOTO_CREDITS, THEMES, ERAS, DIFFS, MEMBERS, DECK_SIZE, PACK_COST, REFILL_COST, HP_REGEN_SEC, BASE_MAX_SCORE, matchSong, GRADE_INFO } from './data.js';
-import { loadProfile, saveProfile, resetProfile, idb, askPersistent } from './store.js';
+import { loadProfile, saveProfile, resetProfile, idb, askPersistent, defaultProfile } from './store.js';
 import { analyzeAudio, makeChart, ANALYSIS_VERSION, beatGrid, nearestIn } from './beatmap.js';
 import { cardHTML, cardPower, deckPower, openPack, welcomePack, autoDeck, memberById, cardPhoto, migrateEras, grantCard } from './cards.js';
 import { CARD_CREDITS } from './card-credits.js';
@@ -24,6 +24,16 @@ applyRot(); addEventListener('resize', applyRot);
 setTimeout(() => preloadDrop(), 1500);   // imágenes de los sobres listas antes de abrir uno
 let P = loadProfile();
 if (migrateEras(P)) saveProfile(P);
+const RESET_TAG = 'reset-2026-11-04';
+try {
+  if (localStorage.getItem('superstar.reset') !== RESET_TAG) {
+    const keep = { name: P.name, settings: P.settings, customSongs: P.customSongs || [], userCharts: P.userCharts || {}, lastDiff: P.lastDiff };
+    P = { ...defaultProfile(), ...keep };
+    saveProfile(P);
+    localStorage.setItem('superstar.reset', RESET_TAG);
+    localStorage.removeItem('superstar.testR');
+  }
+} catch {}
 let ctx = null;
 let screen = 'title';
 let diff = P.lastDiff || 'normal';
@@ -65,8 +75,8 @@ function hpTimer() {
 const expNeed = l => 200 + l * 120;
 // Recompensa al llegar a cada nivel: cada 10 niveles 5 sobres gratis, cada 5 (5, 15, 25…) 1 sobre, el resto 1000 notas
 function levelReward(l) {
-  if (l % 10 === 0) return { packs: 5, text: '5 sobres gratis', ico: '🎁' };
-  if (l % 5 === 0) return { packs: 1, text: '1 sobre gratis', ico: '🎁' };
+  if (l % 10 === 0) return { packs: 5, text: '5 sobres gratis', ico: '<img class="pk-ico x5" src="img/drop/pack.webp" alt="">' };
+  if (l % 5 === 0) return { packs: 1, text: '1 sobre gratis', ico: '<img class="pk-ico" src="img/drop/pack.webp" alt="">' };
   return { rp: 1000, text: '1.000 notas', ico: '♪' };
 }
 let lastRewards = [];
@@ -208,14 +218,16 @@ function rTitle() {
 }
 
 function welcome() {
-  const got = welcomePack(P);
+  P.freePacks = (P.freePacks || 0) + 5;
   P.welcomed = true; save();
   modal(`
     <h2>¡Bienvenida, ARMY!</h2>
-    <p>Un regalo para empezar: una carta de cada miembro. Ya están en tu mazo.</p>
-    <div class="reveal-grid">${got.map(g => cardHTML(g.card, { size: 'sm' })).join('')}</div>
-    <p class="muted">Ve a <b>Canciones</b> y carga tus canciones desde el móvil para jugar.</p>
-    <button class="btn primary" data-close>¡Vamos!</button>`, null, () => { if (screen === 'lobby') rLobby(); });
+    <div class="welcome-packs">${'<img src="img/drop/pack.webp" alt="">'.repeat(5)}</div>
+    <p>Un regalo para empezar: <b>5 sobres gratis</b>. Ábrelos en la <b>Tienda</b> para conseguir las cartas de tu mazo.</p>
+    <p class="muted">Luego ve a <b>Canciones</b> y carga tus canciones desde el móvil para jugar.</p>
+    <button class="btn primary" data-act="shop">Abrir mis sobres</button>`, el => {
+    el.querySelector('[data-act=shop]').onclick = () => { closeModal(); go('shop'); };
+  }, () => { if (screen === 'lobby') rLobby(); });
 }
 
 function rLobby() {
@@ -773,7 +785,7 @@ function rResult(r) {
     <div class="res-rew">
       <div>♪ +${fmt(r.rp)} RP</div><div>EXP +${r.exp}</div>
     </div>
-    ${r.ups ? `<div class="levelup">¡SUBES A NIVEL ${P.level}! ${lastRewards.map(x => x.ico + ' ' + x.text).join(' · ')}</div>` : ''}
+    ${r.ups ? `<div class="levelup">¡SUBES A NIVEL ${P.level}! ${lastRewards.map(x => x.text).join(' · ')}</div>` : ''}
     <div class="row2">
       <button class="btn ghost" data-act="retry">Reintentar</button>
       <button class="btn primary" data-act="ok">Continuar</button>
@@ -837,7 +849,7 @@ function swapView(slot) {
   ov.className = 'swap';
   const m = cur && memberById(cur.member);
   ov.innerHTML = `
-    <button class="back-btn" data-back aria-label="Volver">←</button>
+    <button class="back-btn" data-back aria-label="Volver"><svg viewBox="0 0 48 40" aria-hidden="true"><defs><linearGradient id="bkg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7bdcff"/><stop offset=".5" stop-color="#b56bff"/><stop offset="1" stop-color="#ff5fc8"/></linearGradient></defs><path d="M20 3 3 20l17 17v-10h25V13H20z" fill="url(#bkg)" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/><circle cx="31" cy="17" r="1.3" fill="#fff"/><circle cx="38" cy="23" r="1" fill="#fff" opacity=".8"/><circle cx="25" cy="23" r=".9" fill="#fff" opacity=".7"/></svg></button>
     <div class="swap-top">
       <div class="swap-cur">${cardHTML(cur, { size: 'lg' })}</div>
       <div class="swap-info">
@@ -881,7 +893,7 @@ function rShop() {
     <div class="pack">
       <div class="pack-art"><div class="pack-logo">SUPERSTAR</div><div class="pack-sub">CARD PACK</div></div>
       <div class="odds">${Object.entries(GRADE_INFO).reverse().map(([g, i]) => `<span class="grade-chip" style="--gc:${i.color}">${g} ${+(i.odds * 100).toFixed(1)}%</span>`).join('')}</div>
-      ${P.freePacks ? `<button class="btn primary free" data-free="1">🎁 Abrir sobre gratis · tienes ${P.freePacks}</button>${P.freePacks >= 5 ? '<button class="btn ghost free" data-free="5">🎁 Abrir 5 gratis</button>' : ''}` : ''}
+      ${P.freePacks ? `<button class="btn primary free" data-free="1">Abrir sobre gratis · tienes ${P.freePacks}</button>${P.freePacks >= 5 ? '<button class="btn ghost free" data-free="5">Abrir 5 gratis</button>' : ''}` : ''}
       <button class="btn primary" data-n="1" ${P.rp < PACK_COST ? 'disabled' : ''}>Abrir 1 · ${PACK_COST ? '♪ ' + fmt(PACK_COST) : 'GRATIS'}</button>
       <button class="btn ghost" data-n="5" ${P.rp < PACK_COST * 5 ? 'disabled' : ''}>Abrir 5 · ${PACK_COST ? '♪ ' + fmt(PACK_COST * 5) : 'GRATIS'}</button>
     </div>
@@ -902,17 +914,6 @@ function rShop() {
     else { if (P.rp < PACK_COST * n) return; P.rp -= PACK_COST * n; }
     // cada sobre trae 1, 2 o 3 cartas; «Abrir 5» junta las de los 5 sobres en una sola apertura
     const got = Array.from({ length: n }, () => openPack(P)).flat();
-    // PRUEBA (una sola vez): el siguiente sobre trae una carta R para ver su animación
-    try {
-      if (!localStorage.getItem('superstar.testR')) {
-        localStorage.setItem('superstar.testR', '1');
-        const c = got[0].card;
-        if (c.grade !== 'R') {
-          if (!got[0].dup && !P.cards.some(x => x !== c && x.member === c.member && x.theme === c.theme && x.grade === 'R')) c.grade = 'R';
-          else got[0] = grantCard(P, c.member, c.theme, 'R');
-        }
-      }
-    } catch {}
     save(); renderTop();
     openDrop(got, { cardHTML, packs: n }).then(() => rShop());
   };
@@ -1007,7 +1008,7 @@ function calibrate() {
 let modalOnClose = null;
 function modal(html, setup, onClose) {
   const m = $('#modal');
-  m.innerHTML = `<div class="modal-box"><button class="back-btn" data-close aria-label="Volver">←</button>${html}</div>`;
+  m.innerHTML = `<div class="modal-box"><button class="back-btn" data-close aria-label="Volver"><svg viewBox="0 0 48 40" aria-hidden="true"><defs><linearGradient id="bkg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7bdcff"/><stop offset=".5" stop-color="#b56bff"/><stop offset="1" stop-color="#ff5fc8"/></linearGradient></defs><path d="M20 3 3 20l17 17v-10h25V13H20z" fill="url(#bkg)" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/><circle cx="31" cy="17" r="1.3" fill="#fff"/><circle cx="38" cy="23" r="1" fill="#fff" opacity=".8"/><circle cx="25" cy="23" r=".9" fill="#fff" opacity=".7"/></svg></button>${html}</div>`;
   m.hidden = false;
   modalOnClose = onClose || null;
   m.querySelectorAll('[data-close]').forEach(b => b.onclick = closeModal);
