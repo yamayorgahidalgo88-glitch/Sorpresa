@@ -9,7 +9,7 @@ import { buildShareFile, readShareInfo, saveFile, isMp3 } from './share.js';
 
 // ---------------- estado ----------------
 let recState = null, pendingRec = null, afterTry = null;
-const PREPARED = ['no-more-dream', 'dynamite', 'the-truth-untold']; // canciones con partitura que sigue la voz
+const PREPARED = ['no-more-dream', 'dynamite', 'the-truth-untold', 'danger']; // canciones con partitura que sigue la voz
 // Siempre en horizontal: si el móvil está en vertical, la app se gira (sin avisos).
 function applyRot() {
   const r = innerHeight > innerWidth;
