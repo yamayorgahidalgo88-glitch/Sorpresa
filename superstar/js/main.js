@@ -125,12 +125,20 @@ async function claimReward(k) {
 // ---------------- audio ----------------
 function ensureCtx() {
   if (!ctx) {
+    // iPhone: que la música suene aunque el interruptor de silencio esté activado
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch {}
+    try {   // iOS antiguos: un audio HTML mudo cambia el modo de sonido a «reproducción»
+      const a = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=');
+      a.setAttribute('playsinline', ''); a.volume = 0; a.play().catch(() => {});
+    } catch {}
     const AC = window.AudioContext || window.webkitAudioContext;
     ctx = new AC({ latencyHint: 'interactive' });
   }
-  if (ctx.state === 'suspended') ctx.resume();
+  if (ctx.state === 'suspended' || ctx.state === 'interrupted') ctx.resume();
   return ctx;
 }
+// al volver a la app (iPhone puede «interrumpir» el sonido), se reactiva
+document.addEventListener('visibilitychange', () => { if (!document.hidden && ctx && ctx.state !== 'running' && ctx.state !== 'closed') ctx.resume().catch(() => {}); });
 async function getBuffer(id) {
   if (bufCache.has(id)) return bufCache.get(id);
   const rec = await idb.get('audio', id);
