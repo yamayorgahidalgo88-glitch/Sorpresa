@@ -1,11 +1,11 @@
 # SUPERSTAR · ARMY Edition — resumen para seguir trabajando
 
 ## Qué es
-Juego de ritmo web (PWA instalable) inspirado en **SuperStar BTS** (Dalcomsoft, 2018–2020, ya cerrado), hecho como **regalo para la novia del usuario**. Se juega en el móvil, en horizontal.
+Juego de ritmo web (PWA instalable) inspirado en **SuperStar BTS** (Dalcomsoft, 2018–2020, ya cerrado), hecho como **regalo para la novia del usuario**. Se juega en el móvil, **solo en horizontal**: la app ocupa toda la pantalla, menú en una barra a la izquierda; en vertical sale «Gira el móvil» (`#turn`). Icono de la app: el logo SUPERSTAR que pasó el usuario (`superstar/icons/`).
 
 - **Web publicada:** https://superstar-army.vercel.app
 - **Repositorio:** `yamayorgahidalgo88-glitch/Sorpresa`, rama `claude/bts-superstar-game-vesiwx`. El juego está en `superstar/`. El `index.html` de la raíz es OTRO regalo («Flores Amarillas»): no tocarlo.
-- **Vercel:** equipo `team_AJTr7WqPBL2IVmRDgpky7Ac8` (La Quinta del Bnitre), proyecto `superstar-army`. Se despliega con la herramienta de Vercel `create_deployment` usando `gitSource` (github, org `yamayorgahidalgo88-glitch`, repo `Sorpresa`, ref de la rama) y `target: production`. En cada cambio hay que **subir la versión de caché** en `superstar/sw.js` (`superstar-vNN`, ahora v27).
+- **Vercel:** equipo `team_AJTr7WqPBL2IVmRDgpky7Ac8` (La Quinta del Bnitre), proyecto `superstar-army`. Se despliega con la herramienta de Vercel `create_deployment` usando `gitSource` (github, org `yamayorgahidalgo88-glitch`, repo `Sorpresa`, ref de la rama) y `target: production`. En cada cambio hay que **subir la versión de caché** en `superstar/sw.js` (`superstar-vNN`, ahora v28).
 - El usuario habla **español** y no es programador: explicarle en lenguaje sencillo.
 
 ## Reglas importantes (decididas con el usuario)

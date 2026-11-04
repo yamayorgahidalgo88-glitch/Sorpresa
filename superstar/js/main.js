@@ -161,7 +161,7 @@ function rTitle() {
     <div class="title-foot">Fan game personal · sin afiliación oficial</div>
   </div>`;
   view.querySelector('.title-screen').addEventListener('click', () => {
-    ensureCtx();
+    ensureCtx(); ensureLandscape();
     go('lobby');
     if (!P.welcomed) welcome();
   }, { once: true });
@@ -506,26 +506,12 @@ function deckIntro(s, th) {
   });
 }
 
-// El original se juega en horizontal: pantalla completa + giro si el móvil lo permite.
+// El juego es solo en horizontal: en la app instalada se bloquea en horizontal; en el navegador,
+// si el móvil está en vertical, una capa pide girarlo (CSS #turn).
 async function ensureLandscape() {
-  if (P.settings.orient === 'portrait') return;
-  // Sin pedir pantalla completa (Chrome mostraría un aviso que tapa la pista).
-  // En la app instalada se puede bloquear en horizontal; en el navegador basta con girar el móvil.
   try { if (screen.orientation && screen.orientation.lock) await screen.orientation.lock('landscape'); } catch {}
-  if (innerWidth > innerHeight) return;
-  const ov = $('#rotate');
-  ov.hidden = false;
-  await new Promise(res => {
-    const done = () => { window.removeEventListener('resize', chk); ov.hidden = true; res(); };
-    const chk = () => { if (innerWidth > innerHeight) done(); };
-    window.addEventListener('resize', chk);
-    $('#rotateSkip').onclick = done;
-  });
-  await new Promise(r => setTimeout(r, 250));
 }
-function leaveLandscape() {
-  try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch {}
-}
+function leaveLandscape() {}
 
 // ---------------- grabar partitura ----------------
 async function recordSetup(id) {
@@ -686,11 +672,14 @@ function rResult(r) {
   const rows = ['S.PERFECT', 'PERFECT', 'GOOD', 'BAD', 'MISS'];
   view.innerHTML = `
   <div class="result">
+   <div class="res-left">
     <div class="res-song">${esc(s.title)} <span style="color:${d.color}">${d.name}</span></div>
     <div class="res-rank r-${r.rank}">${r.rank}</div>
     ${r.ap ? '<div class="badge holo">ALL S.PERFECT</div>' : r.fc ? '<div class="badge">FULL COMBO</div>' : ''}
     <div class="res-score">${fmt(r.score)}${r.isNew ? '<span class="newrec">NEW RECORD</span>' : ''}</div>
     ${r.bonus ? `<div class="muted small">incluye RAVE BONUS +${fmt(r.bonus)}</div>` : ''}
+   </div>
+   <div class="res-right">
     <div class="res-grid">
       ${rows.map((n, i) => `<div class="jr j${i}"><span>${n}</span><b>${r.counts[i]}</b></div>`).join('')}
       <div class="jr"><span>MAX COMBO</span><b>${r.maxCombo}</b></div>
@@ -704,6 +693,7 @@ function rResult(r) {
       <button class="btn ghost" data-act="retry">Reintentar</button>
       <button class="btn primary" data-act="ok">Continuar</button>
     </div>
+   </div>
   </div>`;
   view.querySelector('[data-act=ok]').onclick = () => go('songs');
   view.querySelector('[data-act=retry]').onclick = () => { diff = r.dId; startSong(r.id); };
@@ -792,7 +782,6 @@ function rSettings() {
     <label class="set"><span>Volumen música <b id="v-music">${Math.round(S.music * 100)}%</b></span><input type="range" min="0" max="1" step="0.05" value="${S.music}" data-s="music"></label>
     <label class="set row"><span>Sonido al tocar</span><input type="checkbox" ${S.sfx ? 'checked' : ''} data-s="sfx"></label>
     <label class="set"><span>Volumen toque <b id="v-sfxVol">${Math.round(S.sfxVol * 100)}%</b></span><input type="range" min="0" max="1" step="0.05" value="${S.sfxVol}" data-s="sfxVol"></label>
-    <label class="set row"><span>Jugar en horizontal (como el original)</span><input type="checkbox" ${S.orient !== 'portrait' ? 'checked' : ''} data-orient></label>
     <label class="set row"><span>Efectos de partículas</span><input type="checkbox" ${S.fx ? 'checked' : ''} data-s="fx"></label>
     <div class="set"><span>Controles con teclado</span><small class="muted">EASY: F · Espacio · J — NORMAL: D F J K — HARD: S D F Espacio J K L — Pausa: Esc</small></div>
     <button class="btn ghost" data-act="clearAudio">Borrar canciones guardadas</button>
@@ -811,7 +800,6 @@ function rSettings() {
     };
   });
   view.querySelector('[data-act=calib]').onclick = calibrate;
-  view.querySelector('[data-orient]').onchange = e => { S.orient = e.target.checked ? 'landscape' : 'portrait'; save(); };
   view.querySelector('[data-act=clearAudio]').onclick = () => confirmBox('¿Borrar todas las canciones guardadas en este dispositivo?', async () => {
     await idb.clear('audio'); await idb.clear('analysis'); loaded.clear(); levels.clear(); bufCache.clear(); toast('Canciones borradas');
   });
