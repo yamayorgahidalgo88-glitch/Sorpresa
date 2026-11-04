@@ -67,7 +67,6 @@ function openDropNow(results, { cardHTML, packs = 1 }) {
         <div class="pk-line" style="top:${TEAR * 100}%"><b class="pk-cut"></b></div>
         <div class="pk-scissors" style="top:${TEAR * 100}%"><svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.6 7.6 20 17M8.6 16.4 20 7M14.5 12h.01"/></svg></div>
         <div class="pk-zone" style="top:${(TEAR - 0.11) * 100}%;height:22%"></div>
-        ${packs > 1 ? `<div class="pk-badge">${packs} SOBRES · ${results.length} CARTAS</div>` : ''}
       </div></div>`;
     const pk = stage.querySelector('.pk'), zone = stage.querySelector('.pk-zone'), cut = stage.querySelector('.pk-cut'), leak = stage.querySelector('.pk-leak');
     // la línea va del 4 % al 96 % del ancho del sobre; la zona táctil es un poco más ancha (−6 %…106 %)
@@ -126,14 +125,13 @@ function openDropNow(results, { cardHTML, packs = 1 }) {
       lvl = 0; taps = 0;
       setAura(RARITY.C.color);
       label.textContent = '';
-      count.textContent = packs > 1 ? `${i + 1} / ${results.length}` : '';   // en un sobre solo no se dice cuántas trae
+      count.textContent = '';   // no se dice cuántas cartas quedan: cada sobre trae 1, 2 o 3 al azar
       allBtn.hidden = results.length - i < 2;
       el.classList.remove('revealed');
       hint.innerHTML = pips();
       stage.innerHTML = `
         <div class="dc enter lv0">
           <div class="dc-glow"><img src="${IMG}glow-C.webp" alt=""><img class="echo" src="${IMG}glow-C.webp" alt=""></div>
-          <div class="dc-swirl"><i></i><i></i><i></i></div>
           <div class="dc-in">
             <div class="dc-back"><img src="${IMG}card-back.webp" alt=""><div class="dc-sheen"></div></div>
             <div class="dc-front">${cardHTML(r.card, { size: 'lg' })}

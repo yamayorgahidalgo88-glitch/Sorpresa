@@ -1,7 +1,7 @@
 import { SONGS, PHOTO_CREDITS, THEMES, DIFFS, MEMBERS, DECK_SIZE, PACK_COST, REFILL_COST, HP_REGEN_SEC, BASE_MAX_SCORE, matchSong, GRADE_INFO } from './data.js';
 import { loadProfile, saveProfile, resetProfile, idb, askPersistent } from './store.js';
 import { analyzeAudio, makeChart, ANALYSIS_VERSION, beatGrid, nearestIn } from './beatmap.js';
-import { cardHTML, cardPower, deckPower, openPack, welcomePack, autoDeck, memberById, cardPhoto, migrateEras } from './cards.js';
+import { cardHTML, cardPower, deckPower, openPack, welcomePack, autoDeck, memberById, cardPhoto, migrateEras, grantCard } from './cards.js';
 import { CARD_CREDITS } from './card-credits.js';
 import { Game } from './engine.js';
 import { openDrop, preloadDrop } from './drop.js';
@@ -823,6 +823,17 @@ function rShop() {
     P.rp -= PACK_COST * n;
     // cada sobre trae 1, 2 o 3 cartas; «Abrir 5» junta las de los 5 sobres en una sola apertura
     const got = Array.from({ length: n }, () => openPack(P)).flat();
+    // PRUEBA (una sola vez): el siguiente sobre trae una carta R para ver su animación
+    try {
+      if (!localStorage.getItem('superstar.testR')) {
+        localStorage.setItem('superstar.testR', '1');
+        const c = got[0].card;
+        if (c.grade !== 'R') {
+          if (!got[0].dup && !P.cards.some(x => x !== c && x.member === c.member && x.theme === c.theme && x.grade === 'R')) c.grade = 'R';
+          else got[0] = grantCard(P, c.member, c.theme, 'R');
+        }
+      }
+    } catch {}
     save(); renderTop();
     openDrop(got, { cardHTML, packs: n }).then(() => rShop());
   });
