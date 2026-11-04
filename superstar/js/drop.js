@@ -14,14 +14,22 @@ const ORDER = ['C', 'B', 'A', 'S', 'R'];
 
 const IMG = 'img/drop/';
 const TEAR = 0.125;   // altura de la línea de corte del sobre (fracción del alto)
-let preloaded = false;
-function preload() {
-  if (preloaded) return; preloaded = true;
-  for (const f of ['pack.webp', 'card-back.webp', 'space.jpg', ...ORDER.map(g => `glow-${g}.webp`)]) { const im = new Image(); im.src = IMG + f; }
+let ready = null;
+// Carga las imágenes de los sobres de antemano (al abrir la app), para que el fondo no salga en negro
+export function preloadDrop() {
+  if (!ready) ready = Promise.all(['space.jpg', 'pack.webp', 'card-back.webp', ...ORDER.map(g => `glow-${g}.webp`)].map(f => {
+    const im = new Image(); im.src = IMG + f;
+    return (im.decode ? im.decode() : new Promise(r => { im.onload = r; })).catch(() => {});
+  }));
+  return ready;
 }
 
-export function openDrop(results, { cardHTML, ctx }) {
-  preload();
+export async function openDrop(results, opts) {
+  // espera a tener el fondo y el sobre listos (como mucho 2 s)
+  await Promise.race([preloadDrop(), new Promise(r => setTimeout(r, 2000))]);
+  return openDropNow(results, opts);
+}
+function openDropNow(results, { cardHTML }) {
   return new Promise(resolve => {
     const el = document.createElement('div');
     el.className = 'drop';
@@ -42,7 +50,7 @@ export function openDrop(results, { cardHTML, ctx }) {
     const count = el.querySelector('.drop-count');
     const flash = el.querySelector('.drop-flash');
     const fx = makeFx(el.querySelector('.drop-fx'));
-    const sfx = makeSfx(ctx);
+    const sfx = makeSfx(null);   // los sobres se abren sin sonidos
 
     let phase = 'pack', i = 0, lvl = 0, taps = 0, busy = false;
     const setAura = c => el.style.setProperty('--aura', c);
@@ -50,18 +58,20 @@ export function openDrop(results, { cardHTML, ctx }) {
 
     // ---------- el sobre: se abre pasando el dedo por la línea de puntos ----------
     stage.innerHTML = `
-      <div class="pk">
+      <div class="pk-wrap"><div class="pk-rays"></div><div class="pk">
         <div class="pk-light"></div>
-        <div class="pk-body"><img src="${IMG}pack.webp" alt=""></div>
+        <div class="pk-depth"><img src="${IMG}pack.webp" alt=""></div>
+        <div class="pk-body"><img src="${IMG}pack.webp" alt=""><div class="pk-wash"></div></div>
         <div class="pk-top"><img src="${IMG}pack.webp" alt=""></div>
+        <div class="pk-leak" style="top:${TEAR * 100}%"></div>
         <div class="pk-line" style="top:${TEAR * 100}%"><b class="pk-cut"></b></div>
         <div class="pk-scissors" style="top:${TEAR * 100}%"><svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.6 7.6 20 17M8.6 16.4 20 7M14.5 12h.01"/></svg></div>
         <div class="pk-zone" style="top:${(TEAR - 0.11) * 100}%;height:22%"></div>
-      </div>`;
-    const pk = stage.querySelector('.pk'), zone = stage.querySelector('.pk-zone'), cut = stage.querySelector('.pk-cut');
+      </div></div>`;
+    const pk = stage.querySelector('.pk'), zone = stage.querySelector('.pk-zone'), cut = stage.querySelector('.pk-cut'), leak = stage.querySelector('.pk-leak');
     let lo = null, hi = null, cutting = false, lastSnd = 0;
     const at = e => Math.max(0, Math.min(1, e.offsetX / zone.clientWidth));
-    const drawCut = () => { cut.style.left = (lo * 100) + '%'; cut.style.width = ((hi - lo) * 100) + '%'; pk.style.setProperty('--open', (hi - lo).toFixed(3)); };
+    const drawCut = () => { for (const e of [cut, leak]) { e.style.left = (lo * 100) + '%'; e.style.width = ((hi - lo) * 100) + '%'; } pk.style.setProperty('--open', (hi - lo).toFixed(3)); };
     zone.addEventListener('pointerdown', e => {
       if (phase !== 'pack' || busy) return;
       e.preventDefault(); e.stopPropagation();
@@ -81,19 +91,18 @@ export function openDrop(results, { cardHTML, ctx }) {
     const stopCut = () => { cutting = false; };
     zone.addEventListener('pointerup', stopCut); zone.addEventListener('pointercancel', stopCut);
 
+    // apertura como en los fotogramas: la luz sale por el corte, la tira se dobla y sale volando,
+    // salen rayos, la luz inunda el sobre, destello blanco que llena la pantalla y se desvanece
     const openPack = () => {
       if (busy) return;
       busy = true; cutting = false; hint.textContent = '';
       lo = 0; hi = 1; drawCut();
-      pk.classList.add('opened');      // la tira de arriba sale volando y sale luz de dentro
-      sfx.boom(); doFlash('#ffffff');
-      setTimeout(() => { pk.classList.add('glowing'); sfx.rumble(); }, 250);
-      setTimeout(() => {
-        doFlash('#ffffff', true);       // fogonazo que ocupa toda la pantalla
-        fx.burst(AW() / 2, AH() / 2, '#ffffff', 120, 1.8);
-        fx.rain('#e6c8ff', 60);
-      }, 1050);
-      setTimeout(() => { phase = 'card'; busy = false; el.classList.add('cards'); showCard(); }, 1400);
+      pk.classList.add('cut');                                  // luz por toda la línea, la tira empieza a doblarse
+      setTimeout(() => pk.classList.add('opened'), 380);       // la tira sale volando y sube el chorro de luz
+      setTimeout(() => { pk.classList.add('glowing'); stage.querySelector('.pk-wrap').classList.add('glowing'); }, 650);      // rayos detrás y la luz blanquea el sobre
+      setTimeout(() => { el.classList.add('whiteout'); fx.burst(AW() / 2, AH() * 0.35, '#ffffff', 90, 1.6); }, 1250);
+      setTimeout(() => { phase = 'card'; busy = false; el.classList.add('cards'); showCard(); }, 1650);
+      setTimeout(() => el.classList.remove('whiteout'), 1750);  // el destello se desvanece y aparece la carta
     };
 
     // ---------- cada carta: boca abajo con el brillo de su rango ----------
@@ -101,7 +110,7 @@ export function openDrop(results, { cardHTML, ctx }) {
       const r = results[i];
       lvl = 0; taps = 0;
       setAura(RARITY.C.color);
-      label.textContent = RARITY.C.name;
+      label.textContent = '';
       count.textContent = results.length > 1 ? `${i + 1} / ${results.length}` : '';
       hint.innerHTML = pips();
       stage.innerHTML = `
@@ -173,8 +182,6 @@ export function openDrop(results, { cardHTML, ctx }) {
           setAura(g.color);
           setGlow(ORDER[lvl]);
           emitAt(lvl);
-          label.textContent = g.name;
-          label.classList.remove('pop'); void label.offsetWidth; label.classList.add('pop');
           bump(lvl >= 3);
           doFlash(g.color, lvl >= 3);
           fx.burst(cx, cy, g.color, 30 + lvl * 18, 1 + lvl * 0.25);
@@ -184,7 +191,6 @@ export function openDrop(results, { cardHTML, ctx }) {
         // se da la vuelta
         busy = true;
         const g = RARITY[r.card.grade];
-        label.textContent = g.name;
         c.classList.add('flip');
         setTimeout(() => {
           fx.burst(cx, cy, g.color, 50 + target * 25, 1.2 + target * 0.3);

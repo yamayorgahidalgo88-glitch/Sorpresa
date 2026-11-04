@@ -1,5 +1,5 @@
 // Cartas: miembro × era × rango. Arte original generado (sin fotos ni arte oficial).
-import { MEMBERS, THEMES, GRADES, GRADE_INFO, DECK_SIZE, ERAS, LEGACY_ERA, PACK_SIZES } from './data.js';
+import { MEMBERS, THEMES, GRADES, GRADE_INFO, DECK_SIZE, ERAS, LEGACY_ERA, PACK_SIZES, WELCOME_ODDS } from './data.js';
 
 const PACK_THEMES = ERAS;
 
@@ -49,9 +49,9 @@ export function deckPower(profile, songTheme) {
   return sum;
 }
 
-export function rollGrade(rng = Math.random) {
+export function rollGrade(rng = Math.random, odds = null) {
   let r = rng(), acc = 0;
-  for (const g of [...GRADES].reverse()) { acc += GRADE_INFO[g].odds; if (r < acc) return g; }
+  for (const g of [...GRADES].reverse()) { acc += odds ? odds[g] : GRADE_INFO[g].odds; if (r < acc) return g; }
   return 'C';
 }
 
@@ -93,8 +93,8 @@ export function welcomePack(profile) {
   // Una carta de cada miembro para empezar con el mazo lleno.
   const out = [];
   MEMBERS.forEach((m, i) => {
-    const t = PACK_THEMES[(i * 3) % PACK_THEMES.length];
-    out.push(grantCard(profile, m.id, t, i === 0 ? 'A' : (i < 3 ? 'B' : 'C')));
+    const t = PACK_THEMES[Math.floor(Math.random() * PACK_THEMES.length)];
+    out.push(grantCard(profile, m.id, t, rollGrade(Math.random, WELCOME_ODDS)));
   });
   return out;
 }

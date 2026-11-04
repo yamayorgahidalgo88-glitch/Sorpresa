@@ -4,7 +4,7 @@ import { analyzeAudio, makeChart, ANALYSIS_VERSION, beatGrid, nearestIn } from '
 import { cardHTML, cardPower, deckPower, openPack, welcomePack, autoDeck, memberById, cardPhoto, migrateEras } from './cards.js';
 import { CARD_CREDITS } from './card-credits.js';
 import { Game } from './engine.js';
-import { openDrop } from './drop.js';
+import { openDrop, preloadDrop } from './drop.js';
 import { buildShareFile, readShareInfo, sendFile, isMp3 } from './share.js';
 
 // ---------------- estado ----------------
@@ -21,6 +21,7 @@ function applyRot() {
   if (window.__ss && window.__ss.game) window.__ss.game.resize();
 }
 applyRot(); addEventListener('resize', applyRot);
+setTimeout(() => preloadDrop(), 1500);   // imágenes de los sobres listas antes de abrir uno
 let P = loadProfile();
 if (migrateEras(P)) saveProfile(P);
 let ctx = null;
@@ -811,8 +812,8 @@ function rShop() {
     <div class="pack">
       <div class="pack-art"><div class="pack-logo">SUPERSTAR</div><div class="pack-sub">CARD PACK</div></div>
       <div class="odds">${Object.entries(GRADE_INFO).reverse().map(([g, i]) => `<span class="grade-chip" style="--gc:${i.color}">${g} ${+(i.odds * 100).toFixed(1)}%</span>`).join('')}</div>
-      <button class="btn primary" data-n="1" ${P.rp < PACK_COST ? 'disabled' : ''}>Abrir 1 · ♪ ${fmt(PACK_COST)}</button>
-      <button class="btn ghost" data-n="5" ${P.rp < PACK_COST * 5 ? 'disabled' : ''}>Abrir 5 · ♪ ${fmt(PACK_COST * 5)}</button>
+      <button class="btn primary" data-n="1" ${P.rp < PACK_COST ? 'disabled' : ''}>Abrir 1 · ${PACK_COST ? '♪ ' + fmt(PACK_COST) : 'GRATIS'}</button>
+      <button class="btn ghost" data-n="5" ${P.rp < PACK_COST * 5 ? 'disabled' : ''}>Abrir 5 · ${PACK_COST ? '♪ ' + fmt(PACK_COST * 5) : 'GRATIS'}</button>
     </div>
     <p class="hint">Cada sobre trae 1 carta (50 %), 2 (30 %) o 3 (20 %). Toca cada carta 3 veces: si sube de rango, vuelve a tocarla 3 veces. Las repetidas suben de nivel a la original. Gana RP jugando canciones.</p>
   </div>`;
