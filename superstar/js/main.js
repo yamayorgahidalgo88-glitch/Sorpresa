@@ -24,7 +24,7 @@ applyRot(); addEventListener('resize', applyRot);
 setTimeout(() => preloadDrop(), 1500);   // imágenes de los sobres listas antes de abrir uno
 let P = loadProfile();
 if (migrateEras(P)) saveProfile(P);
-const RESET_TAG = 'reset-2026-11-04';
+const RESET_TAG = 'reset-2026-11-04b';
 try {
   if (localStorage.getItem('superstar.reset') !== RESET_TAG) {
     const keep = { name: P.name, settings: P.settings, customSongs: P.customSongs || [], userCharts: P.userCharts || {}, lastDiff: P.lastDiff };
@@ -217,17 +217,46 @@ function rTitle() {
   }, { once: true });
 }
 
+// Primera vez: primero el nombre, luego el regalo de 5 sobres que se abren directamente
 function welcome() {
+  modal(`
+    <h2>¿Cuál es tu nombre?</h2>
+    <p class="muted">Así te llamará el juego.</p>
+    <input class="name-in" type="text" maxlength="16" placeholder="Tu nombre" autocomplete="off" value="">
+    <button class="btn primary" data-act="ok">Empezar</button>`, el => {
+    const inp = el.querySelector('.name-in'), ok = el.querySelector('[data-act=ok]');
+    const go2 = () => {
+      const n = inp.value.trim();
+      if (!n) { inp.classList.remove('shake'); void inp.offsetWidth; inp.classList.add('shake'); inp.focus(); return; }
+      P.name = n.slice(0, 16); save(); renderTop(); closeModal(); welcomeGift();
+    };
+    ok.onclick = go2;
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') go2(); });
+    setTimeout(() => inp.focus(), 50);
+  }, null, { locked: true });
+}
+function welcomeGift() {
   P.freePacks = (P.freePacks || 0) + 5;
   P.welcomed = true; save();
   modal(`
-    <h2>¡Bienvenida, ARMY!</h2>
+    <h2>¡Bienvenida, ${esc(P.name)}!</h2>
     <div class="welcome-packs">${'<img src="img/drop/pack.webp" alt="">'.repeat(5)}</div>
-    <p>Un regalo para empezar: <b>5 sobres gratis</b>. Ábrelos en la <b>Tienda</b> para conseguir las cartas de tu mazo.</p>
-    <p class="muted">Luego ve a <b>Canciones</b> y carga tus canciones desde el móvil para jugar.</p>
-    <button class="btn primary" data-act="shop">Abrir mis sobres</button>`, el => {
-    el.querySelector('[data-act=shop]').onclick = () => { closeModal(); go('shop'); };
-  }, () => { if (screen === 'lobby') rLobby(); });
+    <p>Un regalo para empezar: <b>5 sobres gratis</b> para conseguir las cartas de tu mazo.</p>
+    <button class="btn primary" data-act="open">Abrir mis sobres</button>`, el => {
+    el.querySelector('[data-act=open]').onclick = () => { closeModal(); openFreePacks(P.freePacks).then(() => go('lobby')); };
+  }, null, { locked: true });
+}
+// Abre sobres gratis uno detrás de otro, sin que se vea la pantalla de detrás entre medias
+async function openFreePacks(n) {
+  const hold = document.createElement('div');
+  hold.className = 'drop-hold';
+  $('#app').appendChild(hold);
+  try {
+    for (let k = 0; k < n && (P.freePacks || 0) > 0; k++) {
+      P.freePacks--; const got = openPack(P); save();
+      await openDrop(got, { cardHTML, packs: 1 });
+    }
+  } finally { hold.remove(); }
 }
 
 function rLobby() {
@@ -893,7 +922,7 @@ function rShop() {
     <div class="pack">
       <div class="pack-art"><div class="pack-logo">SUPERSTAR</div><div class="pack-sub">CARD PACK</div></div>
       <div class="odds">${Object.entries(GRADE_INFO).reverse().map(([g, i]) => `<span class="grade-chip" style="--gc:${i.color}">${g} ${+(i.odds * 100).toFixed(1)}%</span>`).join('')}</div>
-      ${P.freePacks ? `<button class="btn primary free" data-free="1">Abrir sobre gratis · tienes ${P.freePacks}</button>${P.freePacks >= 5 ? '<button class="btn ghost free" data-free="5">Abrir 5 gratis</button>' : ''}` : ''}
+      ${P.freePacks ? `<button class="btn primary free" data-free>Abrir ${P.freePacks > 1 ? `mis ${P.freePacks} sobres gratis` : 'mi sobre gratis'}</button>` : ''}
       <button class="btn primary" data-n="1" ${P.rp < PACK_COST ? 'disabled' : ''}>Abrir 1 · ${PACK_COST ? '♪ ' + fmt(PACK_COST) : 'GRATIS'}</button>
       <button class="btn ghost" data-n="5" ${P.rp < PACK_COST * 5 ? 'disabled' : ''}>Abrir 5 · ${PACK_COST ? '♪ ' + fmt(PACK_COST * 5) : 'GRATIS'}</button>
     </div>
@@ -904,11 +933,7 @@ function rShop() {
     if (P.rp < PACK_COST * n) return;
     confirmBox(n > 1 ? '¿Seguro que quieres comprar 5 sobres?' : '¿Seguro que quieres comprar un sobre?', () => buyPacks(n), { no: 'No', ok: 'Sí', okClass: 'primary' });
   });
-  view.querySelectorAll('[data-free]').forEach(b => b.onclick = () => {
-    const n = +b.dataset.free;
-    if ((P.freePacks || 0) < n) return;
-    confirmBox(n > 1 ? '¿Abrir 5 sobres gratis?' : '¿Abrir un sobre gratis?', () => buyPacks(n, true), { no: 'No', ok: 'Sí', okClass: 'primary' });
-  });
+  view.querySelectorAll('[data-free]').forEach(b => b.onclick = () => openFreePacks(P.freePacks).then(() => rShop()));
   const buyPacks = (n, free = false) => {
     if (free) { if ((P.freePacks || 0) < n) return; P.freePacks -= n; }
     else { if (P.rp < PACK_COST * n) return; P.rp -= PACK_COST * n; }
@@ -1006,13 +1031,14 @@ function calibrate() {
 
 // ---------------- utilidades UI ----------------
 let modalOnClose = null;
-function modal(html, setup, onClose) {
+function modal(html, setup, onClose, { locked = false } = {}) {
   const m = $('#modal');
   m.innerHTML = `<div class="modal-box"><button class="back-btn" data-close aria-label="Volver"><svg viewBox="0 0 48 40" aria-hidden="true"><defs><linearGradient id="bkg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7bdcff"/><stop offset=".5" stop-color="#b56bff"/><stop offset="1" stop-color="#ff5fc8"/></linearGradient></defs><path d="M20 3 3 20l17 17v-10h25V13H20z" fill="url(#bkg)" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/><circle cx="31" cy="17" r="1.3" fill="#fff"/><circle cx="38" cy="23" r="1" fill="#fff" opacity=".8"/><circle cx="25" cy="23" r=".9" fill="#fff" opacity=".7"/></svg></button>${html}</div>`;
   m.hidden = false;
+  if (locked) m.querySelector('.modal-box > .back-btn').remove();   // ventana que no se puede cerrar
   modalOnClose = onClose || null;
   m.querySelectorAll('[data-close]').forEach(b => b.onclick = closeModal);
-  m.onclick = e => { if (e.target === m) closeModal(); };
+  m.onclick = e => { if (e.target === m && !locked) closeModal(); };
   if (setup) setup(m);
 }
 function closeModal() {

@@ -602,3 +602,8 @@ body.rot #app{inset:auto;top:0;left:0;width:var(--rw);height:var(--rh);transform
 .welcome-packs img{height:min(110px,calc(var(--ah) * 0.22));filter:drop-shadow(0 6px 12px rgba(0,0,0,.5));animation:pkfloat 3s ease-in-out infinite}
 .welcome-packs img:nth-child(2n){animation-delay:-1.5s}
 .lv-next .pk-ico{height:20px;vertical-align:middle}
+
+.name-in{width:100%;padding:13px 14px;border-radius:14px;border:1px solid var(--line);background:rgba(0,0,0,.35);color:#fff;font:700 18px Poppins,sans-serif;margin:6px 0 4px;outline:none;user-select:text;-webkit-user-select:text}
+.name-in:focus{border-color:var(--pink);box-shadow:0 0 14px rgba(255,95,200,.45)}
+.name-in.shake{animation:pknudge .4s ease-in-out}
+.drop-hold{position:absolute;inset:0;z-index:199;background:#0b0218 url(../img/drop/space.jpg) center/cover no-repeat}
