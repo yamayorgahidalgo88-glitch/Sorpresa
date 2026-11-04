@@ -1,23 +1,35 @@
 // Catálogo: canciones, miembros y eras (temas). Sin audio: el audio lo carga la jugadora.
 
-// Eras = los 10 álbumes de estudio de BTS (6 coreanos + 4 japoneses). Cada carta es de una era,
-// con la foto de ese miembro en ese año. Los colores son propios (no se copia el arte de los discos).
+// Eras = álbumes de BTS (sencillo de debut, miniálbumes, álbumes de estudio coreanos y japoneses,
+// recopilatorios y sencillos con era propia), en orden. Cada carta lleva la foto de ese miembro en ese año.
+// Los colores son propios (no se copia el arte de los discos).
 export const THEMES = {
+  SKOOL:   { name: '2 COOL 4 SKOOL', short: '2C4S', year: 2013, c1: '#1d1d22', c2: '#e8c547', ink: '#fff' },
+  ORUL:    { name: 'O!RUL8,2?', short: 'O!RUL8', year: 2013, c1: '#2b2b2b', c2: '#d7263d', ink: '#fff' },
+  SLA:     { name: 'SKOOL LUV AFFAIR', short: 'SLA', year: 2014, c1: '#3a1c1c', c2: '#ff6b6b', ink: '#fff' },
   DW:      { name: 'DARK & WILD', short: 'D&W', year: 2014, c1: '#141414', c2: '#c8102e', ink: '#fff' },
   WAKEUP:  { name: 'WAKE UP', short: 'WAKE UP', year: 2014, c1: '#1c2b4a', c2: '#f2f2f2', ink: '#fff' },
+  HYYH1:   { name: 'THE MOST BEAUTIFUL MOMENT IN LIFE PT.1', short: 'HYYH 1', year: 2015, c1: '#ff9eb5', c2: '#fff1c1', ink: '#3b1830' },
+  HYYH2:   { name: 'THE MOST BEAUTIFUL MOMENT IN LIFE PT.2', short: 'HYYH 2', year: 2015, c1: '#5aa7d8', c2: '#ffe0e9', ink: '#10263a' },
+  YF:      { name: 'THE MOST BEAUTIFUL MOMENT IN LIFE: YOUNG FOREVER', short: 'YOUNG FOREVER', year: 2016, c1: '#ffb3a7', c2: '#c3f0ff', ink: '#3b1830' },
   YOUTH:   { name: 'YOUTH', short: 'YOUTH', year: 2016, c1: '#ff8fab', c2: '#9fd3ff', ink: '#3b1830' },
   WINGS:   { name: 'WINGS', short: 'WINGS', year: 2016, c1: '#1b1440', c2: '#b38cff', ink: '#fff' },
+  LYH:     { name: 'LOVE YOURSELF 承 HER', short: 'HER', year: 2017, c1: '#f7c6d9', c2: '#b9e3ff', ink: '#2b1f45' },
   FACE:    { name: 'FACE YOURSELF', short: 'FACE', year: 2018, c1: '#e9e9ef', c2: '#5a5f73', ink: '#1d1d24' },
   LYT:     { name: 'LOVE YOURSELF 轉 TEAR', short: 'TEAR', year: 2018, c1: '#1f2433', c2: '#f7b7d8', ink: '#fff' },
+  LYA:     { name: 'LOVE YOURSELF 結 ANSWER', short: 'ANSWER', year: 2018, c1: '#fdf6e3', c2: '#f4a6c6', ink: '#2b1f45' },
+  PERSONA: { name: 'MAP OF THE SOUL : PERSONA', short: 'PERSONA', year: 2019, c1: '#ffc2d4', c2: '#e2e2ff', ink: '#3a0f22' },
   MOTS7:   { name: 'MAP OF THE SOUL : 7', short: 'MOTS:7', year: 2020, c1: '#ff6f91', c2: '#ffc75f', ink: '#3a0f22' },
   JOURNEY: { name: 'MAP OF THE SOUL : 7 ~ THE JOURNEY ~', short: 'JOURNEY', year: 2020, c1: '#0f4c5c', c2: '#7fe0d4', ink: '#fff' },
   BE:      { name: 'BE', short: 'BE', year: 2020, c1: '#c9c6ff', c2: '#7fd1ff', ink: '#1d2340' },
+  BUTTER:  { name: 'BUTTER', short: 'BUTTER', year: 2021, c1: '#ffd36e', c2: '#ff9f68', ink: '#3d2300' },
+  PROOF:   { name: 'PROOF', short: 'PROOF', year: 2022, c1: '#0e1b2c', c2: '#d4af37', ink: '#fff' },
   ARIRANG: { name: 'ARIRANG', short: 'ARIRANG', year: 2026, c1: '#1b2a6b', c2: '#e63946', ink: '#fff' },
   SPECIAL: { name: 'SPECIAL', short: 'SP', year: 0, c1: '#6a00f4', c2: '#ff4ecd', ink: '#fff' },
 };
-export const ERAS = ['DW', 'WAKEUP', 'YOUTH', 'WINGS', 'FACE', 'LYT', 'MOTS7', 'JOURNEY', 'BE', 'ARIRANG'];
+export const ERAS = ['SKOOL', 'ORUL', 'SLA', 'DW', 'WAKEUP', 'HYYH1', 'HYYH2', 'YF', 'YOUTH', 'WINGS', 'LYH', 'FACE', 'LYT', 'LYA', 'PERSONA', 'MOTS7', 'JOURNEY', 'BE', 'BUTTER', 'PROOF', 'ARIRANG'];
 // eras antiguas del juego -> era nueva (para no perder cartas guardadas)
-export const LEGACY_ERA = { SCHOOL: 'DW', HYYH: 'YOUTH', LY: 'LYT', MOTS: 'MOTS7', BUTTER: 'BE', PROOF: 'BE' };
+export const LEGACY_ERA = { SCHOOL: 'SKOOL', HYYH: 'HYYH1', LY: 'LYH', MOTS: 'PERSONA' };
 
 
 export const MEMBERS = [
@@ -42,35 +54,35 @@ export const PHOTO_CREDITS = [
   { member: 'JUNG KOOK', file: 'Jeon Jungkook at the White House, 31 May 2022.jpg', author: 'The White House (Adam Schultz)', license: 'Dominio público' },
 ];
 
-// theme = era (álbum de estudio donde sale la canción; si no sale en ninguno, el más cercano en el tiempo)
+// theme = era (álbum donde salió la canción por primera vez)
 export const SONGS = [
-  { id: 'no-more-dream', title: 'No More Dream', theme: 'WAKEUP', alias: ['nomoredream'] },
-  { id: 'boy-in-luv', title: 'Boy In Luv', theme: 'WAKEUP', alias: ['boyinluv', 'sangnamja'] },
-  { id: 'n-o', title: 'N.O', theme: 'DW', alias: ['no'] },
+  { id: 'no-more-dream', title: 'No More Dream', theme: 'SKOOL', alias: ['nomoredream'] },
+  { id: 'boy-in-luv', title: 'Boy In Luv', theme: 'SLA', alias: ['boyinluv', 'sangnamja'] },
+  { id: 'n-o', title: 'N.O', theme: 'ORUL', alias: ['no'] },
   { id: 'danger', title: 'Danger', theme: 'DW' },
-  { id: 'i-need-u', title: 'I NEED U', theme: 'YOUTH', alias: ['ineedu'] },
-  { id: 'dope', title: 'DOPE', theme: 'YOUTH', alias: ['ssaeonda'] },
-  { id: 'run', title: 'RUN', theme: 'YOUTH' },
-  { id: 'fire', title: 'FIRE', theme: 'YOUTH', alias: ['burningup'] },
-  { id: 'save-me', title: 'Save ME', theme: 'YOUTH', alias: ['saveme'] },
+  { id: 'i-need-u', title: 'I NEED U', theme: 'HYYH1', alias: ['ineedu'] },
+  { id: 'dope', title: 'DOPE', theme: 'HYYH1', alias: ['ssaeonda'] },
+  { id: 'run', title: 'RUN', theme: 'HYYH2' },
+  { id: 'fire', title: 'FIRE', theme: 'YF', alias: ['burningup'] },
+  { id: 'save-me', title: 'Save ME', theme: 'YF', alias: ['saveme'] },
   { id: 'bst', title: 'Blood Sweat & Tears', theme: 'WINGS', alias: ['bloodsweattears', 'bloodsweatandtears', 'pittamnunmul'] },
   { id: 'spring-day', title: 'Spring Day', theme: 'WINGS', alias: ['springday', 'bomnal'] },
   { id: 'not-today', title: 'Not Today', theme: 'WINGS', alias: ['nottoday'] },
-  { id: 'dna', title: 'DNA', theme: 'FACE' },
-  { id: 'mic-drop', title: 'MIC Drop', theme: 'FACE', alias: ['micdrop'] },
+  { id: 'dna', title: 'DNA', theme: 'LYH' },
+  { id: 'mic-drop', title: 'MIC Drop', theme: 'LYH', alias: ['micdrop'] },
   { id: 'fake-love', title: 'FAKE LOVE', theme: 'LYT', alias: ['fakelove'] },
-  { id: 'idol', title: 'IDOL', theme: 'JOURNEY' },
+  { id: 'idol', title: 'IDOL', theme: 'LYA' },
   { id: 'the-truth-untold', title: 'The Truth Untold', theme: 'LYT', alias: ['truthuntold', 'thetruthuntold'] },
-  { id: 'bwl', title: 'Boy With Luv', theme: 'MOTS7', alias: ['boywithluv', 'jageungeotdeureulwihansi'] },
-  { id: 'make-it-right', title: 'Make It Right', theme: 'MOTS7', alias: ['makeitright'] },
+  { id: 'bwl', title: 'Boy With Luv', theme: 'PERSONA', alias: ['boywithluv', 'jageungeotdeureulwihansi'] },
+  { id: 'make-it-right', title: 'Make It Right', theme: 'PERSONA', alias: ['makeitright'] },
   { id: 'on', title: 'ON', theme: 'MOTS7' },
   { id: 'black-swan', title: 'Black Swan', theme: 'MOTS7', alias: ['blackswan'] },
   { id: 'dynamite', title: 'Dynamite', theme: 'BE' },
   { id: 'life-goes-on', title: 'Life Goes On', theme: 'BE', alias: ['lifegoeson'] },
-  { id: 'butter', title: 'Butter', theme: 'BE' },
-  { id: 'ptd', title: 'Permission to Dance', theme: 'BE', alias: ['permissiontodance'] },
-  { id: 'yet-to-come', title: 'Yet To Come', theme: 'BE', alias: ['yettocome', 'mostbeautifulmoment'] },
-  { id: 'run-bts', title: 'Run BTS', theme: 'BE', alias: ['runbts', 'dallyeorabangtan'] },
+  { id: 'butter', title: 'Butter', theme: 'BUTTER' },
+  { id: 'ptd', title: 'Permission to Dance', theme: 'BUTTER', alias: ['permissiontodance'] },
+  { id: 'yet-to-come', title: 'Yet To Come', theme: 'PROOF', alias: ['yettocome', 'mostbeautifulmoment'] },
+  { id: 'run-bts', title: 'Run BTS', theme: 'PROOF', alias: ['runbts', 'dallyeorabangtan'] },
 ].map(s => ({ artist: 'BTS', ...s }));
 
 export const DIFFS = [
