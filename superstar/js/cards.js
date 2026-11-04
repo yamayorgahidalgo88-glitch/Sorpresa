@@ -1,5 +1,5 @@
 // Cartas: miembro × era × rango. Arte original generado (sin fotos ni arte oficial).
-import { MEMBERS, THEMES, GRADES, GRADE_INFO, DECK_SIZE, ERAS, LEGACY_ERA } from './data.js';
+import { MEMBERS, THEMES, GRADES, GRADE_INFO, DECK_SIZE, ERAS, LEGACY_ERA, PACK_SIZES } from './data.js';
 
 const PACK_THEMES = ERAS;
 
@@ -73,7 +73,13 @@ export function grantCard(profile, member, theme, grade) {
   return { card, dup: false };
 }
 
-export function openPack(profile, n = 1) {
+// Un sobre: 1, 2 o 3 cartas (50 / 30 / 20 %), cada una con su rango al azar
+export function packSize(rng = Math.random) {
+  let r = rng(), acc = 0;
+  for (const [n, p] of PACK_SIZES) { acc += p; if (r < acc) return n; }
+  return 1;
+}
+export function openPack(profile, n = packSize()) {
   const out = [];
   for (let i = 0; i < n; i++) {
     const m = MEMBERS[Math.floor(Math.random() * MEMBERS.length)].id;

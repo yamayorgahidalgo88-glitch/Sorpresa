@@ -81,15 +81,18 @@ export const DIFFS = [
 
 export const GRADES = ['C', 'B', 'A', 'S', 'R'];
 export const GRADE_INFO = {
-  // R es la más difícil: 1 de cada 200 cartas
-  C: { power: 120, maxLvl: 5,  color: '#b7c0cc', odds: 0.555 },
+  // probabilidades de los Star Drops normales de Brawl Stars (raro, súper raro, épico, mítico, legendario)
+  // colores: C gris plateado, B azul claro, A amarillo dorado, S rosa, R lila (iguales en cartas y sobres)
+  C: { power: 120, maxLvl: 5,  color: '#b7c0cc', odds: 0.50 },
   B: { power: 240, maxLvl: 10, color: '#7fd1ff', odds: 0.28 },
-  A: { power: 420, maxLvl: 15, color: '#ffd166', odds: 0.12 },
-  S: { power: 720, maxLvl: 20, color: '#ff7eb6', odds: 0.04 },
-  R: { power: 1150, maxLvl: 25, color: '#c18cff', odds: 0.005 },
+  A: { power: 420, maxLvl: 15, color: '#ffd166', odds: 0.15 },
+  S: { power: 720, maxLvl: 20, color: '#ff7eb6', odds: 0.05 },
+  R: { power: 1150, maxLvl: 25, color: '#c18cff', odds: 0.02 },
 };
 
 export const DECK_SIZE = 7;
+// cartas por sobre: 1 (50 %), 2 (30 %) o 3 (20 %)
+export const PACK_SIZES = [[1, 0.5], [2, 0.3], [3, 0.2]];
 export const PACK_COST = 5000;     // RP por sobre
 export const REFILL_COST = 2500;   // RP por recargar auriculares
 export const HP_REGEN_SEC = 180;   // un auricular cada 3 min

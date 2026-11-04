@@ -814,15 +814,16 @@ function rShop() {
       <button class="btn primary" data-n="1" ${P.rp < PACK_COST ? 'disabled' : ''}>Abrir 1 · ♪ ${fmt(PACK_COST)}</button>
       <button class="btn ghost" data-n="5" ${P.rp < PACK_COST * 5 ? 'disabled' : ''}>Abrir 5 · ♪ ${fmt(PACK_COST * 5)}</button>
     </div>
-    <p class="hint">Las cartas repetidas suben de nivel a la original. Gana RP jugando canciones.</p>
+    <p class="hint">Cada sobre trae 1 carta (50 %), 2 (30 %) o 3 (20 %). Toca cada carta 3 veces: si sube de rango, vuelve a tocarla 3 veces. Las repetidas suben de nivel a la original. Gana RP jugando canciones.</p>
   </div>`;
   view.querySelectorAll('[data-n]').forEach(b => b.onclick = () => {
     const n = +b.dataset.n;
     if (P.rp < PACK_COST * n) return;
     P.rp -= PACK_COST * n;
-    const got = openPack(P, n);
+    // cada sobre trae 1, 2 o 3 cartas; los sobres se abren uno detrás de otro
+    const packs = Array.from({ length: n }, () => openPack(P));
     save(); renderTop();
-    openDrop(got, { cardHTML, ctx: ensureCtx() }).then(() => rShop());
+    (async () => { for (const got of packs) await openDrop(got, { cardHTML, ctx: ensureCtx() }); rShop(); })();
   });
 }
 

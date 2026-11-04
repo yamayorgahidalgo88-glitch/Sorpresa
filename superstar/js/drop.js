@@ -1,14 +1,15 @@
 // Apertura de sobres: el sobre tiembla y estalla, y cada carta sale boca abajo.
-// Cada toque sube la luz de rareza (blanca → azul → morada → rosa → dorada) hasta la real;
-// el siguiente toque le da la vuelta.
+// Hay que tocar la carta 3 veces: si sube de rango, la luz cambia de color y hay que volver a
+// tocarla 3 veces; cuando ya no sube, se da la vuelta (como los Star Drops).
 
 export const RARITY = {
-  C: { name: 'COMÚN', color: '#ffffff', lvl: 0 },
-  B: { name: 'RARA', color: '#3fa9ff', lvl: 1 },
-  A: { name: 'ÉPICA', color: '#a65bff', lvl: 2 },
-  S: { name: 'SÚPER RARA', color: '#ff4fa8', lvl: 3 },
-  R: { name: 'LEGENDARIA', color: '#ffd34f', lvl: 4 },
+  C: { name: 'COMÚN', color: '#b7c0cc', lvl: 0 },
+  B: { name: 'RARA', color: '#7fd1ff', lvl: 1 },
+  A: { name: 'ÉPICA', color: '#ffd166', lvl: 2 },
+  S: { name: 'SÚPER RARA', color: '#ff7eb6', lvl: 3 },
+  R: { name: 'LEGENDARIA', color: '#c18cff', lvl: 4 },
 };
+const TAPS = 3;
 const ORDER = ['C', 'B', 'A', 'S', 'R'];
 
 export function openDrop(results, { cardHTML, ctx }) {
@@ -32,7 +33,7 @@ export function openDrop(results, { cardHTML, ctx }) {
     const fx = makeFx(el.querySelector('.drop-fx'));
     const sfx = makeSfx(ctx);
 
-    let phase = 'pack', i = 0, lvl = 0, busy = false;
+    let phase = 'pack', i = 0, lvl = 0, taps = 0, busy = false;
     const setAura = c => el.style.setProperty('--aura', c);
     setAura('#c9a6ff');
 
@@ -43,17 +44,17 @@ export function openDrop(results, { cardHTML, ctx }) {
           <div class="pk-shine"></div>
           <div class="pk-star">★</div>
           <div class="pk-logo">SUPERSTAR</div>
-          <div class="pk-sub">${results.length > 1 ? `${results.length} CARTAS` : 'CARD DROP'}</div>
+          <div class="pk-sub">CARD DROP</div>
         </div>
       </div>`;
 
     const showCard = () => {
       const r = results[i];
-      lvl = 0;
+      lvl = 0; taps = 0;
       setAura(RARITY.C.color);
-      label.textContent = '';
+      label.textContent = RARITY.C.name;
       count.textContent = results.length > 1 ? `${i + 1} / ${results.length}` : '';
-      hint.textContent = 'Toca la carta';
+      hint.innerHTML = pips();
       stage.innerHTML = `
         <div class="dc enter">
           <div class="dc-in">
@@ -74,6 +75,9 @@ export function openDrop(results, { cardHTML, ctx }) {
       flash.style.background = color;
       flash.classList.remove('on', 'strong'); void flash.offsetWidth; flash.classList.add('on'); if (strong) flash.classList.add('strong');
     };
+
+    // tres puntos: cuántos toques quedan antes de ver si sube de rango
+    const pips = () => `<span class="taps">${[0, 1, 2].map(k => `<i class="${k < taps ? 'on' : ''}"></i>`).join('')}</span>`;
 
     const onTap = () => {
       if (busy) return;
@@ -98,9 +102,20 @@ export function openDrop(results, { cardHTML, ctx }) {
         const rect = c.getBoundingClientRect();
         let cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
         if (document.body.classList.contains('rot')) [cx, cy] = [innerHeight - cy, cx];
+        if (taps < TAPS - 1) {
+          // toque: la carta tiembla y se enciende un punto
+          taps++;
+          hint.innerHTML = pips();
+          bump(false);
+          fx.burst(cx, cy, RARITY[ORDER[lvl]].color, 10 + lvl * 4, 0.7);
+          sfx.tick(taps);
+          return;
+        }
+        taps = 0;
         if (lvl < target) {
-          // la luz sube de rareza
+          // al tercer toque sube de rango: otra luz y vuelta a empezar los 3 toques
           lvl++;
+          hint.innerHTML = pips();
           const g = RARITY[ORDER[lvl]];
           setAura(g.color);
           label.textContent = g.name;
@@ -215,6 +230,7 @@ function makeSfx(ctx) {
     whoosh() { noise(0, 0.35, 0.12, 1500); },
     rumble() { tone(70, 0, 0.9, 'sawtooth', 0.08, 140); noise(0.1, 0.8, 0.08, 300); },
     boom() { tone(120, 0, 0.6, 'sine', 0.3, 40); noise(0, 0.5, 0.3, 200); tone(1046, 0.05, 0.6, 'triangle', 0.1); },
+    tick(k) { tone(520 + k * 90, 0, 0.12, 'square', 0.05); noise(0, 0.05, 0.05, 3000); },
     up(l) { const f = SCALE[Math.min(4, l)]; tone(f, 0, 0.4, 'triangle', 0.16); tone(f * 1.5, 0.06, 0.45, 'sine', 0.1); noise(0, 0.15, 0.08, 4000); },
     reveal(l) { [0, 2, 4].forEach((k, j) => tone(SCALE[Math.min(4, k)] * (1 + l * 0.12), j * 0.07, 0.6, 'triangle', 0.14)); if (l >= 3) tone(1568, 0.25, 0.9, 'sine', 0.12); },
   };
