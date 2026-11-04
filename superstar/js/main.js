@@ -198,7 +198,8 @@ async function storeAudio(id, file) {
 
 // ---------------- navegación ----------------
 function go(s, arg) {
-  if (s === 'deck' && screen !== 'deck') deckFilter = { sort: 'desc', era: null };   // el filtro se reinicia al volver
+  if (s === 'deck' && screen !== 'deck') deckFilter = { sort: 'desc', era: null };
+  if (s === 'deck' && !(arg && arg.songId) && screen !== 'deck') deckSong = null;   // el filtro se reinicia al volver
   document.querySelectorAll('.swap').forEach(e => e.remove());
   screen = s;
   document.body.dataset.screen = s;
@@ -473,7 +474,7 @@ async function songSheet(id) {
     <div class="sheet-row"><span>Bonus de tu mazo en esta canción</span><b style="color:var(--gold)">+${deckBonusPct(s.theme)}% puntos</b></div>
     <div class="deck-mini">${P.deck.map(uid => cardHTML(P.cards.find(c => c.uid === uid), { size: 'xs', songTheme: s.theme })).join('')}</div>
     <div class="row2">
-      <button class="btn ghost" data-act="auto">Mazo automático</button>
+      <button class="btn ghost" data-act="deck">Cambiar mazo</button>
       <button class="btn ghost" data-act="remove">Quitar audio</button>
     </div>
     <div class="row2"><button class="btn ghost" data-act="share">📤 Enviar canción a alguien</button></div>
@@ -489,7 +490,7 @@ async function songSheet(id) {
     <button class="btn primary huge" data-act="start">EMPEZAR</button>
   `, el => {
     el.querySelector('[data-act=start]').onclick = () => { closeModal(); startSong(id); };
-    el.querySelector('[data-act=auto]').onclick = () => { autoDeck(P, s.theme); save(); songSheet(id); };
+    el.querySelector('[data-act=deck]').onclick = () => { closeModal(); go('deck', { songId: id }); };
     el.querySelector('[data-act=rec]').onclick = () => { closeModal(); recordSetup(id); };
     const del = el.querySelector('[data-act=recdel]');
     if (del) del.onclick = () => confirmBox('¿Borrar tu partitura de esta canción? Volverá la automática.', () => { delete P.userCharts[id]; save(); toast('Borrada'); });
@@ -817,7 +818,7 @@ function endSong(res) {
   P.rp += rp;
   const ups = addExp(exp);
   save();
-  go('result', { ...res, rank, isNew, rp, exp, ups, id, dId, deckPct: deckBonusPct(songById(id).theme) });
+  go('result', { ...res, rank, isNew, prevScore: prev ? prev.score : 0, rp, exp, ups, id, dId, deckPct: deckBonusPct(songById(id).theme) });
 }
 
 function rResult(r) {
@@ -830,7 +831,8 @@ function rResult(r) {
     <div class="res-song">${esc(s.title)} <span style="color:${d.color}">${d.name}</span></div>
     <div class="res-rank r-${r.rank}">${r.rank}</div>
     ${r.ap ? '<div class="badge holo">ALL S.PERFECT</div>' : r.fc ? '<div class="badge">FULL COMBO</div>' : ''}
-    <div class="res-score">${fmt(r.score)}${r.isNew ? '<span class="newrec">NEW RECORD</span>' : ''}</div>
+    ${r.isNew ? `<div class="newrec-banner"><b>¡NUEVO RÉCORD!</b>${r.prevScore ? `<small>antes ${fmt(r.prevScore)} · +${fmt(r.score - r.prevScore)}</small>` : '<small>primera vez en este nivel</small>'}</div>` : ''}
+    <div class="res-score">${fmt(r.score)}${!r.isNew && r.prevScore ? `<span class="muted small">récord: ${fmt(r.prevScore)}</span>` : ''}</div>
     ${r.bonus ? `<div class="muted small">incluye RAVE BONUS +${fmt(r.bonus)}</div>` : ''}
    </div>
    <div class="res-right">
@@ -857,25 +859,29 @@ function rResult(r) {
 // filtro de la colección: se reinicia cada vez que se entra en «Cartas» desde otra pantalla
 let deckFilter = { sort: 'desc', era: null };
 const GR = ['C', 'B', 'A', 'S', 'R'];
-function rDeck() {
+let deckSong = null;   // si se viene desde una canción: se marcan las cartas de su era
+function rDeck(arg) {
+  if (arg && arg.songId) deckSong = arg.songId;
+  const song = deckSong && songById(deckSong), era = song ? song.theme : null;
   const f = deckFilter;
   let cards = [...P.cards];
   if (f.era) cards = cards.filter(c => c.theme === f.era);
   const dir = f.sort === 'asc' ? 1 : -1;
-  cards.sort((a, b) => dir * (GR.indexOf(a.grade) - GR.indexOf(b.grade)) || dir * (a.lvl - b.lvl) || cardPower(b) - cardPower(a));
+  cards.sort((a, b) => (era ? (b.theme === era) - (a.theme === era) : 0) || dir * (GR.indexOf(a.grade) - GR.indexOf(b.grade)) || dir * (a.lvl - b.lvl) || cardPower(b) - cardPower(a));
   const eras = ERAS.filter(e => P.cards.some(c => c.theme === e));
   view.innerHTML = `
   <div class="deck">
+    ${song ? `<div class="deck-song"><div><b>Mazo para «${esc(song.title)}»</b><span>Las cartas de <b>${esc(THEMES[era].name)}</b> valen <b>x1.5</b> en esta canción: salen primero y marcadas. Bonus ahora: <b>+${deckBonusPct(era)}%</b></span></div><button class="btn primary small" data-act="back-song">Volver a la canción</button></div>` : ''}
     <div class="deck-head">
       <div><div class="muted small">PODER DEL MAZO</div><div class="big">${fmt(deckPower(P))}</div></div>
       <button class="btn ghost small" data-act="auto">Auto</button>
     </div>
-    <div class="mazo-bonus"><b>¿Para qué sirven?</b> Las 7 cartas del mazo suman poder, y el poder sube tu puntuación: ahora mismo <b>+${deckBonusPct()}%</b>.<br>
+    <div class="mazo-bonus"><b>¿Para qué sirven?</b> Las 7 cartas del mazo suman poder, y el poder sube tu puntuación: ahora mismo <b>+${deckBonusPct(era)}%</b>${era ? ' en esta canción' : ''}.<br>
       • Rango más alto (C → B → A → S → R) = más poder. • Las repetidas suben de nivel la carta.<br>
       • Cartas de la <b>misma era</b> que la canción valen <b>x1.5</b>. • 4 o más de la misma era: bonus extra.</div>
     <p class="hint">Toca una carta del mazo para cambiarla.</p>
     <div class="deck-slots">
-      ${P.deck.map((uid, i) => cardHTML(P.cards.find(c => c.uid === uid), { size: 'sm', extra: `data-slot="${i}"` })).join('')}
+      ${P.deck.map((uid, i) => cardHTML(P.cards.find(c => c.uid === uid), { size: 'sm', extra: `data-slot="${i}"`, songTheme: era })).join('')}
     </div>
     <h3>Colección <span class="muted">(${cards.length}${f.era ? ' de ' + P.cards.length : ''})</span></h3>
     <div class="filters">
@@ -887,10 +893,12 @@ function rDeck() {
         ${eras.map(e => `<button class="chip ${f.era === e ? 'on' : ''}" data-era="${e}" style="--c1:${THEMES[e].c1};--c2:${THEMES[e].c2}">${esc(THEMES[e].short)} <small>${THEMES[e].year}</small></button>`).join('')}</div>
     </div>
     <div class="collection">
-      ${cards.length ? cards.map(c => cardHTML(c, { size: 'sm', extra: `data-uid="${c.uid}"` }).replace('class="card', `class="card${P.deck.includes(c.uid) ? ' in-deck' : ''}`)).join('') : '<p class="muted">Aún no tienes cartas aquí. Abre sobres en la Tienda.</p>'}
+      ${cards.length ? cards.map(c => cardHTML(c, { size: 'sm', extra: `data-uid="${c.uid}"`, songTheme: era }).replace('class="card', `class="card${P.deck.includes(c.uid) ? ' in-deck' : ''}`)).join('') : '<p class="muted">Aún no tienes cartas aquí. Abre sobres en la Tienda.</p>'}
     </div>
   </div>`;
-  view.querySelector('[data-act=auto]').onclick = () => { autoDeck(P); save(); rDeck(); };
+  view.querySelector('[data-act=auto]').onclick = () => { autoDeck(P, era); save(); rDeck(); };
+  const bs = view.querySelector('[data-act=back-song]');
+  if (bs) bs.onclick = () => { const id = deckSong; go('songs'); songSheet(id); };
   view.querySelectorAll('[data-slot]').forEach(el => el.onclick = () => swapView(+el.dataset.slot));
   view.querySelectorAll('[data-sort]').forEach(el => el.onclick = () => { f.sort = el.dataset.sort; rDeck(); });
   view.querySelectorAll('[data-era]').forEach(el => el.onclick = () => { f.era = el.dataset.era || null; rDeck(); });
@@ -900,8 +908,9 @@ function rDeck() {
 // y abajo todas las demás para deslizar y elegir con cuál cambiarla.
 function swapView(slot) {
   const cur = P.cards.find(c => c.uid === P.deck[slot]);
+  const era = deckSong && songById(deckSong) ? songById(deckSong).theme : null;
   const others = P.cards.filter(c => c.uid !== P.deck[slot])
-    .sort((a, b) => (P.deck.includes(a.uid) - P.deck.includes(b.uid)) || cardPower(b) - cardPower(a));
+    .sort((a, b) => (era ? (b.theme === era) - (a.theme === era) : 0) || (P.deck.includes(a.uid) - P.deck.includes(b.uid)) || cardPower(b, era) - cardPower(a, era));
   const ov = document.createElement('div');
   ov.className = 'swap';
   const m = cur && memberById(cur.member);
@@ -916,7 +925,7 @@ function swapView(slot) {
         <p class="hint">Desliza las cartas de abajo y toca la que quieras poner en su lugar.</p>
       </div>
     </div>
-    <div class="swap-list">${others.length ? others.map(c => `<div class="swap-item" data-uid="${c.uid}">${cardHTML(c, { size: 'sm' }).replace('class="card', `class="card${P.deck.includes(c.uid) ? ' in-deck' : ''}`)}<div class="swap-pow">${fmt(cardPower(c))}</div></div>`).join('') : '<p class="muted">No tienes más cartas. Abre sobres en la Tienda.</p>'}</div>`;
+    <div class="swap-list">${others.length ? others.map(c => `<div class="swap-item" data-uid="${c.uid}">${cardHTML(c, { size: 'sm', songTheme: era }).replace('class="card', `class="card${P.deck.includes(c.uid) ? ' in-deck' : ''}`)}<div class="swap-pow">${fmt(cardPower(c, era))}</div></div>`).join('') : '<p class="muted">No tienes más cartas. Abre sobres en la Tienda.</p>'}</div>`;
   $('#app').appendChild(ov);
   const close = () => { ov.remove(); rDeck(); };
   ov.querySelector('[data-back]').onclick = close;

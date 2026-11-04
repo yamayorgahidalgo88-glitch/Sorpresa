@@ -640,3 +640,13 @@ html,body{-webkit-touch-callout:none;touch-action:manipulation;-webkit-text-size
 canvas,.drop,.pk-zone{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 img{-webkit-user-drag:none}
 .modal-box > .btn,.modal-box > p,.modal-box > h2{flex:none}
+
+/* nuevo récord en el resultado */
+.newrec-banner{display:flex;flex-direction:column;align-items:center;padding:6px 18px;border-radius:14px;border:2px solid transparent;background:linear-gradient(#2a0f5c,#2a0f5c) padding-box,linear-gradient(120deg,#ffd65a,#ff5fc8,#7bdcff,#ffd65a) border-box;background-size:auto,300% 100%;animation:rewardglow 1.2s ease-in-out infinite,rewardflow 2.5s linear infinite,pop .7s cubic-bezier(.2,1.5,.4,1) both}
+.newrec-banner b{font-size:20px;font-weight:900;letter-spacing:2px;background:linear-gradient(90deg,#fff,#ffd65a,#ff9be6);-webkit-background-clip:text;background-clip:text;color:transparent}
+.newrec-banner small{font-size:11px;color:#fff;opacity:.85}
+.res-score{gap:2px}
+/* cambiar mazo desde una canción */
+.deck-song{display:flex;align-items:center;gap:14px;justify-content:space-between;padding:10px 14px;margin-bottom:10px;border-radius:14px;background:linear-gradient(135deg,rgba(255,214,90,.16),rgba(255,95,200,.14));border:1px solid rgba(255,214,90,.5)}
+.deck-song > div{display:flex;flex-direction:column;gap:2px;font-size:12px}.deck-song b{font-size:13px}
+.deck-song .btn{flex:none}
