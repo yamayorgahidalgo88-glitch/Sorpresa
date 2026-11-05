@@ -5,7 +5,7 @@ Juego de ritmo web (PWA instalable) inspirado en **SuperStar BTS** (Dalcomsoft, 
 
 - **Web publicada:** https://superstar-army.vercel.app
 - **Repositorio:** `yamayorgahidalgo88-glitch/Sorpresa`, rama `claude/bts-superstar-game-vesiwx`. El juego está en `superstar/`. El `index.html` de la raíz es OTRO regalo («Flores Amarillas»): no tocarlo.
-- **Vercel:** equipo `team_AJTr7WqPBL2IVmRDgpky7Ac8` (La Quinta del Bnitre), proyecto `superstar-army`. Se despliega con la herramienta de Vercel `create_deployment` usando `gitSource` (github, org `yamayorgahidalgo88-glitch`, repo `Sorpresa`, ref de la rama) y `target: production`. En cada cambio hay que **subir la versión de caché** en `superstar/sw.js` (`superstar-vNN`, ahora v53).
+- **Vercel:** equipo `team_AJTr7WqPBL2IVmRDgpky7Ac8` (La Quinta del Bnitre), proyecto `superstar-army`. Se despliega con la herramienta de Vercel `create_deployment` usando `gitSource` (github, org `yamayorgahidalgo88-glitch`, repo `Sorpresa`, ref de la rama) y `target: production`. En cada cambio hay que **subir la versión de caché** en `superstar/sw.js` (`superstar-vNN`, ahora v54).
 - El usuario habla **español** y no es programador: explicarle en lenguaje sencillo.
 
 ## Reglas importantes (decididas con el usuario)
@@ -32,7 +32,7 @@ Juego de ritmo web (PWA instalable) inspirado en **SuperStar BTS** (Dalcomsoft, 
 
 ## Cartas (pantalla)
 - Tocar una carta del mazo abre `swapView` (como Clash Royale): la carta en grande y abajo una fila deslizable con las demás; tocar una la cambia (si ya estaba en el mazo, se intercambian).
-- Colección con filtros (calidad mayor/menor y época); se reinician al entrar en Cartas desde otra pantalla (`deckFilter` en `go()`).
+- Colección con filtros (calidad mayor/menor y época: siempre las 21 etapas, con cuántas cartas tienes de cada una); se reinician al entrar en Cartas desde otra pantalla (`deckFilter` en `go()`).
 - Desde la ficha de una canción, «Cambiar mazo» abre Cartas para esa canción (`go('deck', {songId})`, `deckSong`): aviso arriba con el bonus, las cartas de la era de la canción primero y marcadas x1.5 (también en `swapView`), y «Volver a la canción».
 - Ficha de canción: el bonus del mazo grande arriba (`.sheet-bonus`) y en el mazo las cartas de la era de la canción iluminadas y las demás en gris (`.deck-mini.sinergy`).
 - Resultado: si es nuevo récord sale «¡NUEVO RÉCORD!» con la puntuación anterior y la mejora.

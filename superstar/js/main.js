@@ -870,7 +870,8 @@ function rDeck(arg) {
   if (f.era) cards = cards.filter(c => c.theme === f.era);
   const dir = f.sort === 'asc' ? 1 : -1;
   cards.sort((a, b) => (era ? (b.theme === era) - (a.theme === era) : 0) || dir * (GR.indexOf(a.grade) - GR.indexOf(b.grade)) || dir * (a.lvl - b.lvl) || cardPower(b) - cardPower(a));
-  const eras = ERAS.filter(e => P.cards.some(c => c.theme === e));
+  const eras = ERAS;   // siempre todas las etapas (cada canción va en una), con cuántas cartas tienes de cada una
+  const nEra = e => P.cards.filter(c => c.theme === e).length;
   view.innerHTML = `
   <div class="deck">
     ${song ? `<div class="deck-song"><div><b>Mazo para «${esc(song.title)}»</b><span>Las cartas de <b>${esc(THEMES[era].name)}</b> valen <b>x1.5</b> en esta canción: salen primero y marcadas. Bonus ahora: <b>+${deckBonusPct(era)}%</b></span></div><button class="btn primary small" data-act="back-song">Volver a la canción</button></div>` : ''}
@@ -892,10 +893,10 @@ function rDeck(arg) {
         <button class="chip ${f.sort === 'asc' ? 'on' : ''}" data-sort="asc">Menor a mayor</button></div>
       <div class="f-row"><span class="muted small">Época</span>
         <button class="chip ${!f.era ? 'on' : ''}" data-era="">Todas</button>
-        ${eras.map(e => `<button class="chip ${f.era === e ? 'on' : ''}" data-era="${e}" style="--c1:${THEMES[e].c1};--c2:${THEMES[e].c2}">${esc(THEMES[e].short)} <small>${THEMES[e].year}</small></button>`).join('')}</div>
+        ${eras.map(e => `<button class="chip ${f.era === e ? 'on' : ''} ${nEra(e) ? '' : 'none'}" data-era="${e}" style="--c1:${THEMES[e].c1};--c2:${THEMES[e].c2}">${esc(THEMES[e].short)} <small>${THEMES[e].year} · ${nEra(e)}</small></button>`).join('')}</div>
     </div>
     <div class="collection">
-      ${cards.length ? cards.map(c => cardHTML(c, { size: 'sm', extra: `data-uid="${c.uid}"`, songTheme: era }).replace('class="card', `class="card${P.deck.includes(c.uid) ? ' in-deck' : ''}`)).join('') : '<p class="muted">Aún no tienes cartas aquí. Abre sobres en la Tienda.</p>'}
+      ${cards.length ? cards.map(c => cardHTML(c, { size: 'sm', extra: `data-uid="${c.uid}"`, songTheme: era }).replace('class="card', `class="card${P.deck.includes(c.uid) ? ' in-deck' : ''}`)).join('') : `<p class="muted">${f.era ? `Aún no tienes cartas de <b>${esc(THEMES[f.era].name)}</b> (${THEMES[f.era].year}). Pueden salirte en los sobres de la Tienda.` : 'Aún no tienes cartas. Abre sobres en la Tienda.'}</p>`}
     </div>
   </div>`;
   view.querySelector('[data-act=auto]').onclick = () => { autoDeck(P, era); save(); rDeck(); };

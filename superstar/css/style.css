@@ -668,3 +668,5 @@ img{-webkit-user-drag:none}
 .modal-box:has(.sheet-head){padding-top:16px}
 .modal-box:has(.sheet-head) > .back-btn{top:18px;left:16px;width:38px;height:32px}
 .modal-box:has(.sheet-head) .sheet-head{margin-left:50px}
+.chip.none{opacity:.55}.chip.none.on{opacity:1}
+.collection > p{grid-column:1/-1}
