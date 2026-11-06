@@ -146,6 +146,18 @@ svg { fill: currentColor; }
   .btn:hover svg { transform: translateX(3px); }
 }
 
+/* Al pulsarlo se rellena de oro y el texto pasa a negro: respuesta inmediata
+   al tocar; al soltar vuelve con la transición normal. */
+.btn--line:active,
+a.btn--line:active {
+  color: #1b1307;
+  border-color: #f0cf86;
+  background: linear-gradient(118deg, #9a7329 0%, #e3bf72 26%, #f7e2a6 44%, #d2a957 62%, #a37b2e 100%);
+  box-shadow: 0 8px 24px -10px rgba(212, 168, 82, 0.7);
+  transition-duration: 0ms;
+}
+.btn--line:active svg { color: #1b1307; }
+
 /* Principal: oro pulido, con un marco fino alrededor y un brillo que lo cruza */
 .btn--gold, a.btn--gold, a.btn--gold:hover {
   color: #1b1307;
@@ -280,9 +292,10 @@ svg { fill: currentColor; }
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  border: 1px solid var(--muted);
+  border: 1px solid transparent;
   flex: none;
 }
+.hours__dot { border-color: #d9584a; background: #d9584a; }
 .hours.is-open .hours__dot { border-color: #8fc27c; background: #8fc27c; }
 .hours.is-open .hours__state { color: var(--gold-hi); }
 @media (prefers-reduced-motion: no-preference) {

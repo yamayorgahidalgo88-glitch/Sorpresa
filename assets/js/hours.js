@@ -1,4 +1,4 @@
-// Estado del local en la cabecera: «Abierto ahora · Cierra a las 14:00» o
+// Estado del local en la cabecera: «Abierto · Cierra a las 14:00» o
 // «Cerrado · Abre mañana a las 10:00». Se calcula con la hora de Madrid,
 // sea cual sea la zona horaria del móvil del visitante.
 
@@ -40,7 +40,7 @@ function madridNow() {
 export function hoursStatus({ day, min } = madridNow()) {
   for (const [from, to] of HOURS[day]) {
     if (min >= toMin(from) && min < toMin(to)) {
-      return { open: true, state: 'Abierto ahora', next: `Cierra a las ${to}` };
+      return { open: true, state: 'Abierto', next: `Cierra a las ${to}` };
     }
   }
   // Cerrado: buscamos la próxima apertura, hoy más tarde o en los próximos días
