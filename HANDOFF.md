@@ -16,19 +16,14 @@ Web one-page de una barbería real: **Ayoub Lahmany Barber Shop**, C/ Princesa D
 - La página antigua de las flores sigue intacta en `/flores/`.
 
 ## Stack
-HTML, CSS y JS estático sin compilación, más una función serverless de Vercel en `api/try-on.js`.
+HTML, CSS y JS estático sin compilación.
 - `index.html`
 - `assets/css/site.css`
 - `assets/js/`:
   - `main.js`
   - `motion.js`: GSAP y ScrollTrigger con Lenis desde CDN.
   - `reel.js`: carrusel infinito.
-  - `advisor.js`: asesor de cortes.
-  - `face.js`: MediaPipe Face Landmarker en el navegador.
-  - `cuts.js`: 12 cortes, reglas por forma de cara y pictogramas de respaldo.
-  - `turntable.js`: visor 360°.
 - `scripts/dev.mjs`: servidor local con `PORT=4173 node scripts/dev.mjs`. Los procesos en segundo plano se cortan por límite de tiempo; lánzalo con `nohup … &`.
-- `scripts/generate-references.mjs`: genera las fotos 360° (ver pendientes).
 
 ## Diseño actual (lo aprobó el usuario tras varias vueltas)
 - **Negro y dorado.** Es la marca: el logo real está en `assets/img/logo-ayoub-lahmany.webp`, sacado de Booksy, con el fondo hecho transparente y sin redibujar. La versión pequeña, con trazo engrosado, es `logo-ayoub-lahmany-sm.webp`.
@@ -38,11 +33,10 @@ HTML, CSS y JS estático sin compilación, más una función serverless de Verce
   2. **Interludio:** vídeo de herramientas sin personas, en un marco que se abre al hacer scroll. Encima, la frase «Cortes a tu medida. Degradados limpios, barba perfilada y una cara cuidada. Ayoub Lahmany, en Alcorcón.», que se ilumina palabra a palabra.
   3. **Servicios y precios:** las tijeras recorren una línea discontinua.
   4. **Cortes reales en Alcorcón:** carrusel infinito (`reel.js`) con 14 fotos de su Booksy (portfolio y reseñas hechas en el local), que se mueve solo y se puede arrastrar con inercia.
-  5. **Asesor de cortes.**
-  6. **Preguntas frecuentes** (7 desplegables, añadidas por SEO).
-  7. **Cómo llegar a la barbería.**
-  8. **Cierre:** «Tu silla te espera» con vídeo.
-  9. **Barra inferior en móvil.**
+  5. **Preguntas frecuentes** (7 desplegables, añadidas por SEO).
+  6. **Cómo llegar a la barbería.** Pagos: «Se admiten pagos en efectivo y con tarjeta».
+  7. **Cierre:** «Tu silla te espera» con vídeo.
+  8. **Barra inferior en móvil:** Precios (icono €), Ubicación (icono de pin) y Reservar.
 - **Botones:** el principal es de oro pulido, con un marco fino exterior y un brillo (`btn--glint` en la portada y el cierre). Los secundarios llevan esquinas doradas.
 - Los vídeos son de **Mixkit** (licencia gratuita) y se citan en el pie.
 
@@ -57,21 +51,11 @@ HTML, CSS y JS estático sin compilación, más una función serverless de Verce
 - Los cortes 3D generados por código sobre una cabeza escaneada: «no se parecen a los cortes reales».
 - Muy importante: **los cortes deben ser fieles a la realidad**.
 
-## Asesor de cortes (estado)
-- El análisis de la cara se hace en el navegador. Mide largo/ancho, mandíbula, frente y simetría, clasifica en 6 formas y ordena los 12 cortes: solo los 3 primeros pueden ser «muy recomendado».
-- Hay filtros (con/sin degradado, corto, medio, largo), consentimiento obligatorio, el botón «Borrar mi foto» y una vista de la foto en duotono dorado con calibres de medida.
-- **Visor 360°** (`turntable.js`):
-  - Muestra 8 ángulos por corte. Se gira arrastrando, con inercia, o con las flechas del teclado.
-  - Lee `assets/img/cortes/manifest.json` y las imágenes `assets/img/cortes/<id>/<0-7>.webp`, además de `thumb.webp`.
-  - **Esas imágenes todavía no existen**, así que el visor está oculto y la lista muestra pictogramas.
-- **«Pruébatelo»** llama a `/api/try-on`.
-  - Con `FAL_KEY` y la foto de referencia del corte ya publicada, usa `fal-ai/nano-banana/edit` con la foto del cliente y la referencia.
-  - Sin referencia, cae a FLUX Kontext.
-  - Sin clave, devuelve `not_configured` y la web muestra un aviso.
-  - Límites: 3 pruebas por visita en el cliente y un límite por IP en el servidor.
+## Asesor de cortes: QUITADO (6-11-2026)
+El usuario decidió quitar de la web el asesor de cortes con IA y todo lo suyo (sección, enlaces, `advisor.js`, `face.js`, `cuts.js`, `turntable.js`, `api/try-on.js`, `scripts/generate-references.mjs`): «no le veo futuro para este proyecto; a lo mejor para uno más adelante». Si algún día se recupera, está en el historial de git (commit anterior a «Remove haircut advisor»). No vuelvas a proponerlo ni la clave de fal.ai para esta web.
 
 ## SEO local (hecho el 6-11-2026; detalle en `SEO.md`)
-- Título «Peluquería en Alcorcón · Corte hombre 11 € · Ayoub Lahmany», meta descripción, H1 con texto oculto «peluquería y barbería en Alcorcón», línea visible bajo el logo con el precio de 11 €.
+- Título «Peluquería en Alcorcón · Corte hombre 11 € · Ayoub Lahmany», meta descripción, H1 con texto oculto «peluquería y barbería en Alcorcón», línea visible bajo el logo: «Corte de caballero: 11 €» (con dos puntos, lo pidió el usuario).
 - Títulos con palabra clave, `alt` locales en la galería, sección de preguntas frecuentes, JSON-LD `HairSalon` (NAP, 11 servicios con precio, Booksy) y `FAQPage` (sin `aggregateRating` de Booksy, a propósito).
 - `canonical`, Open Graph con `assets/img/og.jpg`, `robots.txt`, `sitemap.xml`, `noindex` en `/flores/`.
 - Si se compra dominio propio, cambiar la URL en `index.html` (canonical, og, JSON-LD), `robots.txt` y `sitemap.xml`.
@@ -79,21 +63,11 @@ HTML, CSS y JS estático sin compilación, más una función serverless de Verce
 - Lo que más pesa (Perfil de Empresa de Google, reseñas, NAP, Booksy, Search Console) es trabajo fuera de la web: lista en `SEO.md`.
 
 ## PENDIENTE (siguiente paso)
-0. El usuario **no quiere pagar fal.ai de momento**. La alternativa ofrecida: poner fotos reales de cada corte (Unsplash/Pexels, licencia libre) en el asesor en vez de los pictogramas. Pregúntale antes si lo quiere.
-1. El usuario tiene que crear una clave de fal.ai y añadirla como **`FAL_KEY`**:
-   - en el entorno cloud: menú del entorno, Edit, secretos o variable de entorno. Hace falta una sesión nueva para que la coja.
-   - en Vercel: Settings → Environment Variables. Eso activa «Pruébatelo».
-   - Nunca pidas que pegue la clave en el chat.
-2. Cuando diga «genera las referencias», ejecuta `node scripts/generate-references.mjs`. Usa Nano Banana: primero un modelo base en 8 ángulos y luego cada corte de frente y en cada ángulo. Coste aproximado: 4 $ por unas 104 imágenes. Guarda una caché en `scripts/.cache/` y escribe `manifest.json`.
-   - **Revisa una a una que cada corte sea fiel** (altura del degradado, largos, dirección del peinado) y regenera las que no lo sean, por ejemplo `node scripts/generate-references.mjs buzz` tras borrar la caché de ese corte.
-   - Luego haz commit, push y vuelve a publicar.
-3. Prueba «Pruébatelo» de punta a punta en producción con la clave puesta.
+1. El usuario irá pidiendo más ajustes de diseño.
+2. Teléfono de la barbería: añadirlo a la web y al JSON-LD cuando lo dé.
+3. Quizá dominio propio más adelante (ver `SEO.md`).
 4. Recuerda al usuario que confirme con Ayoub el uso de su logo y de las fotos de Booksy (en algunas se ven caras de clientes), el horario semanal (la web remite a Booksy) y los precios.
-5. Flujo de Impeccable sin cerrar:
-   - Falta la revisión final de esta versión con el agente `impeccable-finish-reviewer`.
-   - Hay que reescribir `DESIGN.md` y `.impeccable/design.json` con el agente `impeccable-documenter`: ahora describen el estilo cartel, ya obsoleto.
-   - El contrato de dirección está en `.impeccable/surfaces/index-html.md`.
-   - Hazlo cuando el diseño esté estable.
+5. Flujo de Impeccable sin cerrar: revisión final con `impeccable-finish-reviewer` y reescribir `DESIGN.md` y `.impeccable/design.json` con `impeccable-documenter` (describen el estilo cartel, obsoleto). Hazlo cuando el diseño esté estable.
 
 ## Herramientas instaladas por el usuario (úsalas, se queja si no)
 - **Impeccable**, en `.claude/skills/impeccable`: el detector se lanza con `.claude/skills/impeccable/scripts/impeccable detect --json index.html assets/css/site.css assets/js`. Los avisos de contraste «ivory on gold» son falsos positivos (ya comprobado en el navegador).

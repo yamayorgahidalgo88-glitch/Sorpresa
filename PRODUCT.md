@@ -17,6 +17,8 @@ Delegada: el usuario dejó la elección a Claude. Como las reservas se quedan en
 Una web de reservas para una peluquería real, más una aplicación privada para el peluquero que guarda y calendariza las reservas y le avisa antes de cada cita. Éxito: el peluquero deja la libreta y los clientes reservan sin llamar.
 
 ## Positioning
+> **6-11-2026: el asesor de cortes con IA se ha quitado de la web por decisión del usuario.** Lo de abajo queda como historial; la web actual es la de la barbería sin asesor.
+
 Un apartado donde el cliente sube una foto, la web analiza la forma de su rostro, le recomienda cortes (con o sin degradado, pelo más largo, etc.) y le muestra una vista previa realista de sí mismo con ese corte, sin que la cara cambie. Se plantea como un asesor de imagen para esa peluquería.
 
 ## Operating Context

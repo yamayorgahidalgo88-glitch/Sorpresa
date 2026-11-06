@@ -2,7 +2,7 @@
   "name": "ayoub-lahmany-barber-shop",
   "private": true,
   "type": "module",
-  "description": "Web de Ayoub Lahmany Barber Shop (Alcorcón) con asesor de cortes por forma de cara.",
+  "description": "Web de Ayoub Lahmany Barber Shop (Alcorcón).",
   "scripts": {
     "dev": "node scripts/dev.mjs"
   },
