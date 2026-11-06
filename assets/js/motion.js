@@ -113,7 +113,7 @@ export function initMotion({ reduce }) {
   });
 
   gsap.utils.toArray('[data-stagger]').forEach((g) => {
-    gsap.from(g.querySelectorAll('h3, li'), {
+    gsap.from(g.querySelectorAll('h3, li, .faq__item'), {
       y: 20,
       opacity: 0,
       duration: 0.9,
