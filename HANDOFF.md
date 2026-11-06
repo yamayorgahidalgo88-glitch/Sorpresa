@@ -34,9 +34,10 @@ HTML, CSS y JS estático sin compilación.
   3. **Servicios y precios:** las tijeras recorren una línea discontinua.
   4. **Cortes reales en Alcorcón:** carrusel infinito (`reel.js`) con 14 fotos de su Booksy (portfolio y reseñas hechas en el local), que se mueve solo y se puede arrastrar con inercia.
   5. **Preguntas frecuentes** (7 desplegables, añadidas por SEO).
-  6. **Cómo llegar a la barbería.** Pagos: «Se admiten pagos en efectivo y con tarjeta».
+  6. **Cómo llegar a la barbería:** dirección y botones (Cómo llegar, Instagram). Sin frases sueltas: el usuario quitó «Horario y huecos libres en Booksy», la de los pagos y «Ambiente para niños».
   7. **Cierre:** «Tu silla te espera» con vídeo.
   8. **Barra inferior en móvil:** Precios (icono €), Ubicación (icono de pin) y Reservar.
+- **Cabecera:** sin botón de reservar (lo quitó el usuario). A la derecha, el estado del local según la hora de Madrid: «Abierto ahora · Cierra a las 14:00» o «Cerrado · Abre mañana a las 10:00» (`assets/js/hours.js`). El horario sale de Booksy (L–S 10:00–14:00 y 15:00–21:00, domingo cerrado) porque Google no se pudo consultar desde la sesión: si el usuario da el de Google y es distinto, cambia `HOURS` en `hours.js` y `openingHoursSpecification` en el JSON-LD.
 - **Botones:** el principal es de oro pulido, con un marco fino exterior y un brillo (`btn--glint` en la portada y el cierre). Los secundarios llevan esquinas doradas.
 - Los vídeos son de **Mixkit** (licencia gratuita) y se citan en el pie.
 
