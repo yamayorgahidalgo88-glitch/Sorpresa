@@ -1,5 +1,7 @@
 # Handoff: web de Ayoub Lahmany Barber Shop
 
+> **Responde siempre en español al usuario.** Todas las respuestas, explicaciones y preguntas deben ir en español.
+
 Para continuar en otra sesión de Claude Code. Lee también `PRODUCT.md` y `README.md`.
 
 ## Qué es
@@ -35,11 +37,12 @@ HTML, CSS y JS estático sin compilación, más una función serverless de Verce
   1. **Portada:** vídeo a pantalla completa (`assets/video/hero.mp4`, o `hero-movil.mp4` en vertical), bandas de cine que se abren y el logo con un barrido de brillo.
   2. **Interludio:** vídeo de herramientas sin personas, en un marco que se abre al hacer scroll. Encima, la frase «Cortes a tu medida. Degradados limpios, barba perfilada y una cara cuidada. Ayoub Lahmany, en Alcorcón.», que se ilumina palabra a palabra.
   3. **Servicios y precios:** las tijeras recorren una línea discontinua.
-  4. **Trabajos:** carrusel infinito con 14 fotos de su Booksy (portfolio y reseñas hechas en el local) que se mueve solo y se puede arrastrar.
+  4. **Cortes reales en Alcorcón:** carrusel infinito (`reel.js`) con 14 fotos de su Booksy (portfolio y reseñas hechas en el local), que se mueve solo y se puede arrastrar con inercia.
   5. **Asesor de cortes.**
-  6. **Dónde estamos.**
-  7. **Cierre:** «Tu silla te espera» con vídeo.
-  8. **Barra inferior en móvil.**
+  6. **Preguntas frecuentes** (7 desplegables, añadidas por SEO).
+  7. **Cómo llegar a la barbería.**
+  8. **Cierre:** «Tu silla te espera» con vídeo.
+  9. **Barra inferior en móvil.**
 - **Botones:** el principal es de oro pulido, con un marco fino exterior y un brillo (`btn--glint` en la portada y el cierre). Los secundarios llevan esquinas doradas.
 - Los vídeos son de **Mixkit** (licencia gratuita) y se citan en el pie.
 
@@ -67,7 +70,16 @@ HTML, CSS y JS estático sin compilación, más una función serverless de Verce
   - Sin clave, devuelve `not_configured` y la web muestra un aviso.
   - Límites: 3 pruebas por visita en el cliente y un límite por IP en el servidor.
 
+## SEO local (hecho el 6-11-2026; detalle en `SEO.md`)
+- Título «Peluquería en Alcorcón · Corte hombre 11 € · Ayoub Lahmany», meta descripción, H1 con texto oculto «peluquería y barbería en Alcorcón», línea visible bajo el logo con el precio de 11 €.
+- Títulos con palabra clave, `alt` locales en la galería, sección de preguntas frecuentes, JSON-LD `HairSalon` (NAP, 11 servicios con precio, Booksy) y `FAQPage` (sin `aggregateRating` de Booksy, a propósito).
+- `canonical`, Open Graph con `assets/img/og.jpg`, `robots.txt`, `sitemap.xml`, `noindex` en `/flores/`.
+- Si se compra dominio propio, cambiar la URL en `index.html` (canonical, og, JSON-LD), `robots.txt` y `sitemap.xml`.
+- Falta el **teléfono** de la barbería: cuando lo dé el usuario, añadirlo a la web y al JSON-LD.
+- Lo que más pesa (Perfil de Empresa de Google, reseñas, NAP, Booksy, Search Console) es trabajo fuera de la web: lista en `SEO.md`.
+
 ## PENDIENTE (siguiente paso)
+0. El usuario **no quiere pagar fal.ai de momento**. La alternativa ofrecida: poner fotos reales de cada corte (Unsplash/Pexels, licencia libre) en el asesor en vez de los pictogramas. Pregúntale antes si lo quiere.
 1. El usuario tiene que crear una clave de fal.ai y añadirla como **`FAL_KEY`**:
    - en el entorno cloud: menú del entorno, Edit, secretos o variable de entorno. Hace falta una sesión nueva para que la coja.
    - en Vercel: Settings → Environment Variables. Eso activa «Pruébatelo».
