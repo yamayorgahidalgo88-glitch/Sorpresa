@@ -289,28 +289,28 @@ a.btn--line:active {
 }
 .hours__dot {
   position: relative;
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  border: 1px solid transparent;
   flex: none;
 }
-.hours__dot { border-color: #d9584a; background: #d9584a; }
-.hours.is-open .hours__dot { border-color: #8fc27c; background: #8fc27c; }
+/* Cerrado: rojo encendido, con luz propia y sin moverse */
+.hours__dot {
+  background: radial-gradient(circle at 40% 35%, #ffb3a8 0%, #ff5a46 45%, #d23a2a 100%);
+  box-shadow: 0 0 4px 1px rgba(255, 90, 70, 0.85), 0 0 12px 3px rgba(255, 70, 50, 0.45);
+}
+/* Abierto: verde encendido que parpadea despacio */
+.hours.is-open .hours__dot {
+  background: radial-gradient(circle at 40% 35%, #e2ffd6 0%, #7ee05f 45%, #3fae2c 100%);
+  box-shadow: 0 0 4px 1px rgba(126, 224, 95, 0.85), 0 0 12px 3px rgba(110, 220, 80, 0.45);
+}
 .hours.is-open .hours__state { color: var(--gold-hi); }
 @media (prefers-reduced-motion: no-preference) {
-  .hours.is-open .hours__dot::after {
-    content: "";
-    position: absolute;
-    inset: -1px;
-    border-radius: 50%;
-    background: #8fc27c;
-    animation: hours-pulse 2.4s cubic-bezier(0.23, 1, 0.32, 1) infinite;
-  }
+  .hours.is-open .hours__dot { animation: hours-blink 2.6s ease-in-out infinite; }
 }
-@keyframes hours-pulse {
-  from { transform: scale(1); opacity: 0.55; }
-  to { transform: scale(3); opacity: 0; }
+@keyframes hours-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; box-shadow: 0 0 2px 0 rgba(126, 224, 95, 0.4), 0 0 4px 0 rgba(110, 220, 80, 0.15); }
 }
 
 /* ---------- Portada: vídeo a pantalla completa ---------- */
