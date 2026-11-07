@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Ajustes Neptune 3 Pro</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="styles.css">
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <span class="plate" aria-hidden="true"></span>
+    <div>
+      <h1>Ajustes Neptune 3 Pro</h1>
+      <p class="sub">Sube tu modelo y obtén el perfil exacto para imprimirlo en tu Elegoo Neptune 3 Pro · volumen útil 225 × 225 × 280 mm</p>
+    </div>
+  </div>
+</header>
+
+<main class="layout">
+  <!-- ============================== ENTRADA ============================== -->
+  <section class="panel inputs" aria-label="Datos de la pieza">
+    <div class="tabs" role="tablist">
+      <button id="tab-file" class="tab active" role="tab" aria-selected="true">Archivo 3D <small>recomendado</small></button>
+      <button id="tab-photo" class="tab" role="tab" aria-selected="false">Fotos <small>hasta 5</small></button>
+    </div>
+
+    <div id="pane-file" class="pane">
+      <label class="drop" id="drop-file" for="file-input">
+        <input id="file-input" type="file" accept=".stl,.obj,.3mf" hidden>
+        <strong>Arrastra aquí tu STL, 3MF u OBJ</strong>
+        <span>o pulsa para elegirlo · se analiza en tu navegador, no se sube a ningún sitio</span>
+      </label>
+      <div class="filename" id="file-name">Ejemplo cargado: <b>soporte en L con ménsula</b> (sustitúyelo por tu archivo)</div>
+      <div class="field">
+        <label for="scale">Escala (%)</label>
+        <input id="scale" type="number" min="1" max="1000" step="1" value="100">
+      </div>
+    </div>
+
+    <div id="pane-photo" class="pane" hidden>
+      <p class="note">Con fotos no se ve la cara oculta ni se pueden medir voladizos: el perfil será <b>conservador</b> (confianza baja). Si tienes el STL, úsalo.</p>
+      <label class="drop" id="drop-photo" for="photo-input">
+        <input id="photo-input" type="file" accept="image/*" multiple hidden>
+        <strong>Añade hasta 5 fotos</strong>
+        <span>frente, lateral, trasera, arriba y abajo si puedes</span>
+      </label>
+      <div class="thumbs" id="thumbs"></div>
+      <fieldset class="dims">
+        <legend>Medidas reales (mm)</legend>
+        <div class="row3">
+          <div class="field"><label for="ph-x">Ancho X</label><input id="ph-x" type="number" min="1" step="0.1" value="60"></div>
+          <div class="field"><label for="ph-y">Fondo Y</label><input id="ph-y" type="number" min="1" step="0.1" value="40"></div>
+          <div class="field"><label for="ph-z">Alto Z</label><input id="ph-z" type="number" min="1" step="0.1" value="80"></div>
+        </div>
+      </fieldset>
+      <div class="row2">
+        <div class="field"><label for="ph-kind">Tipo de pieza</label>
+          <select id="ph-kind">
+            <option value="figura">Figura</option>
+            <option value="miniatura">Miniatura (&lt; 30 mm)</option>
+            <option value="mecanica" selected>Pieza mecánica</option>
+            <option value="caja">Caja / recipiente</option>
+            <option value="placa">Placa / tapa</option>
+            <option value="organica">Forma orgánica</option>
+          </select></div>
+        <div class="field"><label for="ph-over">Voladizos</label>
+          <select id="ph-over">
+            <option value="none">Ninguno</option>
+            <option value="few" selected>Algunos</option>
+            <option value="many">Muchos</option>
+            <option value="unknown">No lo sé</option>
+          </select></div>
+      </div>
+      <div class="checks">
+        <label><input id="ph-flat" type="checkbox" checked> Tiene una base plana grande</label>
+        <label><input id="ph-thin" type="checkbox"> Tiene partes muy finas (&lt; 1 mm)</label>
+      </div>
+      <details class="ai">
+        <summary>Analizar las fotos con Claude (opcional)</summary>
+        <p class="note">Rellena tipo, voladizos y base a partir de las fotos. Necesita tu clave de la API de Anthropic; se guarda solo en este navegador.</p>
+        <div class="field"><label for="api-key">Clave API</label><input id="api-key" type="password" autocomplete="off" placeholder="sk-ant-…"></div>
+        <button id="ai-run" class="btn ghost" type="button">Analizar fotos</button>
+        <p class="note" id="ai-status"></p>
+      </details>
+      <button id="photo-run" class="btn" type="button">Calcular perfil con estas fotos</button>
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="row2">
+      <div class="field"><label for="material">Material</label>
+        <select id="material">
+          <option value="PLA" selected>PLA</option>
+          <option value="PETG">PETG</option>
+          <option value="TPU">TPU 95A</option>
+          <option value="ABS">ABS (con cerramiento)</option>
+          <option value="ASA">ASA (con cerramiento)</option>
+        </select></div>
+      <div class="field"><label for="nozzle">Boquilla</label>
+        <select id="nozzle">
+          <option value="0.2">0,2 mm</option>
+          <option value="0.4" selected>0,4 mm (serie)</option>
+          <option value="0.6">0,6 mm</option>
+          <option value="0.8">0,8 mm</option>
+        </select></div>
+      <div class="field"><label for="use">Uso de la pieza</label>
+        <select id="use">
+          <option value="decorativo">Decorativa / figura</option>
+          <option value="funcional">Funcional ligera</option>
+          <option value="mecanica" selected>Mecánica / con carga</option>
+          <option value="roscas">Roscas / insertos</option>
+          <option value="jarron">Modo jarrón</option>
+        </select></div>
+      <div class="field"><label for="quality">Prioridad</label>
+        <select id="quality">
+          <option value="detalle">Detalle (capa fina)</option>
+          <option value="estandar" selected>Estándar</option>
+          <option value="funcional">Rápida</option>
+          <option value="borrador">Borrador</option>
+        </select></div>
+    </div>
+
+    <details class="mine" id="mine">
+      <summary>Mi impresora <small>tus calibraciones mandan sobre los valores base</small></summary>
+      <div class="row2">
+        <div class="field"><label for="c-fw">Firmware</label>
+          <select id="c-fw">
+            <option value="marlin">Marlin de serie (Elegoo)</option>
+            <option value="marlin-is">Marlin con input shaping</option>
+            <option value="klipper">Klipper</option>
+          </select></div>
+        <div class="field"><label for="c-flow">Caudal máx. (mm³/s)</label><input id="c-flow" type="number" step="0.5" min="3" max="30" placeholder="11"></div>
+        <div class="field"><label for="c-k">Pressure / Linear Advance K</label><input id="c-k" type="number" step="0.005" min="0" max="2" placeholder="sin calibrar"></div>
+        <div class="field"><label for="c-ratio">Flow ratio</label><input id="c-ratio" type="number" step="0.01" min="0.8" max="1.2" placeholder="1.00"></div>
+        <div class="field"><label for="c-temp">Temp. calibrada (material actual)</label><input id="c-temp" type="number" step="1" min="180" max="260" placeholder="torre de temperatura"></div>
+        <div class="field"><label for="c-retract">Retracción calibrada (mm)</label><input id="c-retract" type="number" step="0.1" min="0" max="4" placeholder="torre de retracción"></div>
+      </div>
+      <p class="note">Temperatura y retracción se guardan por material.</p>
+    </details>
+  </section>
+
+  <!-- ============================== VISOR ============================== -->
+  <section class="panel viewer-panel" aria-label="Vista 3D">
+    <div class="viewer" id="viewer">
+      <div class="viewer-msg" id="viewer-msg">Cargando visor 3D…</div>
+    </div>
+    <div class="legend">
+      <span><i class="sw bed"></i>Apoyo en cama</span>
+      <span><i class="sw over"></i>Voladizo (necesita atención)</span>
+      <span><i class="sw bridge"></i>Puente / techo plano</span>
+      <span><i class="sw near"></i>Cerca del límite</span>
+      <span><i class="sw thin"></i>Pared fina</span>
+    </div>
+    <div class="orient" id="orient-box">
+      <label for="orient">Orientación</label>
+      <select id="orient"></select>
+      <button id="dl-stl" class="btn ghost small" type="button">Descargar STL orientado</button>
+    </div>
+  </section>
+
+  <!-- ============================== RESULTADO ============================== -->
+  <section class="panel results" aria-label="Perfil recomendado" id="results">
+    <div class="busy" id="busy" hidden>Analizando la pieza…</div>
+    <div id="summary" class="summary"></div>
+    <div id="alerts"></div>
+    <div id="table"></div>
+    <details class="why" open>
+      <summary>Por qué cada ajuste</summary>
+      <ol id="reasons"></ol>
+    </details>
+    <div id="advice-box"></div>
+    <div class="exports">
+      <h2>Llévalo a tu laminador</h2>
+      <div class="ex-tabs" role="tablist">
+        <button class="ex-tab active" data-ex="orca-process" type="button">Orca / Elegoo · proceso</button>
+        <button class="ex-tab" data-ex="orca-filament" type="button">Orca / Elegoo · filamento</button>
+        <button class="ex-tab" data-ex="prusa" type="button">PrusaSlicer .ini</button>
+        <button class="ex-tab" data-ex="cura" type="button">Cura</button>
+        <button class="ex-tab" data-ex="gcode" type="button">G-code de inicio</button>
+      </div>
+      <pre class="code" id="ex-code"></pre>
+      <div class="ex-actions">
+        <button id="ex-copy" class="btn" type="button">Copiar</button>
+        <button id="ex-dl" class="btn ghost" type="button">Descargar archivo</button>
+        <span class="note" id="ex-note"></span>
+      </div>
+      <p class="note">ElegooSlicer / OrcaSlicer: Archivo → Importar → Importar configuraciones, elige los JSON de proceso y filamento con la impresora «Elegoo Neptune 3 Pro» seleccionada. Revisa siempre la vista previa por capas antes de imprimir.</p>
+    </div>
+    <details class="trouble">
+      <summary>Si algo sale mal (síntoma → ajuste)</summary>
+      <dl id="trouble"></dl>
+    </details>
+  </section>
+</main>
+
+<footer class="foot">Reglas basadas en el manual y la FAQ de Elegoo, reseñas probadas y el consenso de la comunidad. Ángulos de voladizo medidos desde la vertical; el umbral se convierte para cada laminador.</footer>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
