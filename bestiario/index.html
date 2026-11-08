@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <style>
 :root{--ink:#16142e;--gold:#ffd84a;--p:#3d8bfd;--e:#ff4d5e;--panel1:#5b4a98;--panel2:#33285f}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
@@ -128,6 +129,8 @@ img{-webkit-user-drag:none}
 #viewer{position:relative;height:min(48vh,440px);touch-action:none;cursor:grab;margin:0 -14px}
 #viewer .plat{position:absolute;left:50%;bottom:7%;width:62%;height:16%;transform:translateX(-50%);border-radius:50%;background:radial-gradient(closest-side,rgba(255,216,74,.45),rgba(255,216,74,.12) 60%,transparent);box-shadow:0 0 0 3px rgba(255,216,74,.5) inset}
 #viewer img{position:absolute;left:50%;bottom:13%;transform:translateX(-50%) scaleX(var(--m,1));transform-origin:50% 100%;filter:drop-shadow(0 12px 10px rgba(0,0,0,.45));pointer-events:none}
+#viewer canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+#viewer .load3d{position:absolute;left:0;right:0;top:45%;text-align:center;font-size:15px;opacity:.8}
 #viewer .tip{position:absolute;left:0;right:0;bottom:0;text-align:center;font-size:13px;color:#e6e0ff;opacity:.85}
 .views{display:flex;gap:6px;overflow-x:auto;padding:6px 2px 10px;margin:0 -2px;touch-action:pan-x;scrollbar-width:none}
 .views::-webkit-scrollbar{display:none}
@@ -217,25 +220,26 @@ const CHARS = {
     abilName: 'Tajo de jade', desc: 'Súper: un tajo giratorio de su espada de jade golpea a todos los enemigos a su alrededor.',
     h: 1.2, front: 'front', card: 'front', pose: 'pose',
     turn: [['front', 0], ['q', -45], ['bq', -135], ['back', 180]], up: 'top', down: 'bottom',
-    all: ['pose', 'front', 'q', 'bq', 'back', 'top', 'bottom'],
+    all: ['pose', 'front', 'q', 'bq', 'back', 'top', 'bottom'], model: 'assets/models/bushi.glb',
   },
   bolab: {
     name: 'Bolab', cost: 2, role: 'Tanque', color: '#f08a2c', hp: 950, atk: 45, range: 1, as: 1.3, ms: 1.0, abil: 'clash',
     abilName: 'Coraza de lava', desc: 'Clash: al empezar el combate se cubre con una coraza de roca volcánica (35% de su vida).',
     h: 1.15, front: 'front', card: 'front', pose: 'pose',
     turn: [['front', 0], ['q', -45], ['side', -90], ['back', 180]], up: 'top', down: 'bottom',
-    all: ['pose', 'front', 'q', 'side', 'back', 'top', 'fronttop', 'bottom'],
+    all: ['pose', 'front', 'q', 'side', 'back', 'top', 'fronttop', 'bottom'], model: 'assets/models/bolab.glb',
   },
   ogul: {
     name: 'Ogul', cost: 4, role: 'Mago', color: '#8b4fd8', hp: 400, atk: 70, range: 3, as: 1.5, ms: 0.8, abil: 'super', proj: '#ff7a4a',
     abilName: 'Ojo estelar', desc: 'Súper: su ojo lanza un orbe de energía que estalla y daña a los enemigos de alrededor.',
     h: 1.5, front: 'front', card: 'front', pose: 'pose', float: true,
     turn: [['front', 0], ['q', -45], ['side', -90], ['back', 180]], up: 'top', down: 'frontbottom',
-    all: ['pose', 'front', 'q', 'side', 'back', 'top', 'top2', 'frontbottom'],
+    all: ['pose', 'front', 'q', 'side', 'back', 'top', 'top2', 'frontbottom'], model: 'assets/models/ogul.glb',
   },
 };
 const VIEW_NAMES = { pose: 'Pose', front: 'Frente', q: '3/4', bq: '3/4 espalda', side: 'Perfil', back: 'Espalda', top: 'Arriba', top2: 'Arriba 2', bottom: 'Abajo', fronttop: 'Abajo frente', frontbottom: 'Abajo frente' };
 const TYPES = Object.keys(CHARS);
+const VIEW_ANGLES = { pose: [0, 0], front: [0, 0], q: [-45, 0], bq: [-135, 0], side: [-90, 0], back: [180, 0], top: [0, 70], top2: [180, 70], bottom: [0, -70], fronttop: [0, -40], frontbottom: [0, -50] };
 const COLS = 5, ROWS = 8, MAX_UNITS = 7, WIN_ROUNDS = 3, ROUND_CAP = 40, ELIXIR_CAP = 20;
 const LVL_MULT = [0, 1, 1.6, 2.4];
 const FRONT_ROLES = ['Tanque', 'Luchador'];
@@ -503,18 +507,72 @@ function openDetail(t) {
     <div class="itags"><span style="background:${ch.color};color:#fff">${ch.role}</span><span>${ch.cost} de elíxir</span><span>${ch.range === 1 ? 'Cuerpo a cuerpo' : 'A distancia'}</span></div>
     <div class="istats"><div>Vida<b>${Math.round(ch.hp * m)}</b></div><div>Ataque<b>${Math.round(ch.atk * m)}</b></div><div>Alcance<b>${ch.range === 1 ? 'Melé' : ch.range}</b></div><div>Ritmo<b>${ch.as}s</b></div></div>
     <p class="idesc"><b>${ch.abilName}</b> · ${ch.desc}<br><em>Estadísticas y habilidad provisionales.</em></p>`;
-  VW = { t, yaw: 0, pitch: 0, auto: true, fixed: null, raf: 0 };
+  VW = { t, yaw: 0, pitch: 0, auto: true, fixed: null, raf: 0, vel: 0, three: !!ch.model };
+  $('#vA').style.display = $('#vB').style.display = VW.three ? 'none' : '';
+  $('#viewer .tip').textContent = VW.three ? '↔ Desliza para girar 360° · ↕ para inclinarla' : '↔ Desliza para girar · ↕ para verla desde arriba o abajo';
+  if (VW.three) start3D(t);
   document.querySelectorAll('#views button').forEach(b => b.onclick = () => {
     const v = b.dataset.v, turn = ch.turn.find(x => x[0] === v);
     VW.auto = false;
+    if (VW.three) { const [y, p] = VIEW_ANGLES[v] || [0, 0]; VW.goal = { yaw: y, pitch: p }; VW.vel = 0; document.querySelectorAll('#views button').forEach(x => x.classList.toggle('on', x === b)); return; }
     if (turn) { VW.fixed = null; VW.yaw = turn[1]; VW.pitch = 0; } else VW.fixed = v;
     renderViewer();
   });
   show('detail'); renderViewer();
-  const tick = () => { if (!VW) return; if (VW.auto) { VW.yaw = (VW.yaw - 0.35 + 540) % 360 - 180; renderViewer(); } VW.raf = requestAnimationFrame(tick); };
+  const tick = () => {
+    if (!VW) return;
+    if (VW.three) {
+      if (VW.goal) { VW.yaw += angDiff(VW.goal.yaw, VW.yaw) * .12; VW.pitch += (VW.goal.pitch - VW.pitch) * .12; if (Math.abs(angDiff(VW.goal.yaw, VW.yaw)) < .3 && Math.abs(VW.goal.pitch - VW.pitch) < .3) VW.goal = null; }
+      else if (!VW.dragging) { VW.yaw += VW.auto ? -0.35 : VW.vel; VW.vel *= 0.94; }
+      render3D();
+    } else if (VW.auto) { VW.yaw = (VW.yaw - 0.35 + 540) % 360 - 180; renderViewer(); }
+    VW.raf = requestAnimationFrame(tick);
+  };
   VW.raf = requestAnimationFrame(tick);
 }
-function stopViewer() { if (VW) cancelAnimationFrame(VW.raf); VW = null; }
+function stopViewer() { if (VW) cancelAnimationFrame(VW.raf); VW = null; if (T3 && T3.pivot) T3.pivot.visible = false; }
+/* ---------- visor 3D (modelos .glb) ---------- */
+let T3 = null; const MODEL_CACHE = {};
+async function start3D(t) {
+  const box = $('#viewer');
+  let msg = box.querySelector('.load3d'); if (!msg) { msg = document.createElement('div'); msg.className = 'load3d o'; box.appendChild(msg); }
+  msg.textContent = 'Cargando modelo 3D…'; msg.style.display = '';
+  const THREE = await import('three');
+  if (!T3) {
+    const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(28, 1, 0.05, 50), pivot = new THREE.Group();
+    scene.add(pivot);
+    T3 = { THREE, renderer, scene, camera, pivot, loader: new GLTFLoader(), model: null };
+  }
+  if (!box.contains(T3.renderer.domElement)) box.insertBefore(T3.renderer.domElement, box.querySelector('.tip'));
+  T3.pivot.visible = true;
+  if (T3.model) { T3.pivot.remove(T3.model); T3.model = null; }
+  const url = CHARS[t].model;
+  if (!MODEL_CACHE[url]) MODEL_CACHE[url] = new Promise((res, rej) => T3.loader.load(url, g => {
+    const c = new THREE.Color();
+    g.scene.traverse(m => {
+      if (!m.isMesh) return;
+      const a = m.geometry.attributes.color;
+      if (a) for (let i = 0; i < a.count; i++) { c.setRGB(a.getX(i), a.getY(i), a.getZ(i)); c.convertSRGBToLinear(); a.setXYZ(i, c.r, c.g, c.b); }
+      m.material = new THREE.MeshBasicMaterial({ vertexColors: !!a });
+    });
+    res(g.scene);
+  }, undefined, rej));
+  const model = await MODEL_CACHE[url];
+  if (!VW || VW.t !== t) return;
+  T3.model = model; T3.pivot.add(model); msg.style.display = 'none';
+}
+function render3D() {
+  if (!T3 || !T3.model || !VW) return;
+  const box = $('#viewer'), w = box.clientWidth, h = box.clientHeight, { renderer, camera, scene, pivot } = T3;
+  if (renderer.domElement.width !== Math.round(w * renderer.getPixelRatio())) { renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+  const p = VW.pitch * Math.PI / 180, dist = 3.3;
+  camera.position.set(0, 0.5 + Math.sin(p) * dist, Math.cos(p) * dist); camera.lookAt(0, 0.45, 0);
+  pivot.rotation.y = VW.yaw * Math.PI / 180;
+  renderer.render(scene, camera);
+}
 function setViewImg(el, t, v, mir, op) {
   const ch = CHARS[t], im = IMG[t + '_' + v], fh = IMG[t + '_' + ch.front].height;
   const box = $('#viewer'), H = box.clientHeight * 0.74;
@@ -543,14 +601,19 @@ function renderViewer() {
 }
 (function viewerInput() {
   const box = $('#viewer'); let d = null;
-  box.addEventListener('pointerdown', e => { if (!VW) return; d = { x: e.clientX, y: e.clientY }; VW.auto = false; VW.fixed = null; box.setPointerCapture(e.pointerId); });
+  box.addEventListener('pointerdown', e => { if (!VW) return; d = { x: e.clientX, y: e.clientY }; VW.auto = false; VW.fixed = null; VW.goal = null; VW.dragging = true; VW.vel = 0; box.setPointerCapture(e.pointerId); });
   box.addEventListener('pointermove', e => {
     if (!d || !VW) return;
+    if (VW.three) {
+      const dx = (e.clientX - d.x) * 0.6; VW.yaw += dx; VW.vel = dx;
+      VW.pitch = clamp(VW.pitch + (e.clientY - d.y) * 0.4, -60, 75);
+      d = { x: e.clientX, y: e.clientY }; return;
+    }
     VW.yaw = ((VW.yaw + (e.clientX - d.x) * 0.7) % 360 + 540) % 360 - 180;
     VW.pitch = clamp(VW.pitch - (e.clientY - d.y) * 0.5, -60, 60);
     d = { x: e.clientX, y: e.clientY }; renderViewer();
   });
-  const up = () => { d = null; if (VW && Math.abs(VW.pitch) <= 30) VW.pitch = 0; renderViewer(); };
+  const up = () => { d = null; if (!VW) return; VW.dragging = false; if (VW.three) return; if (Math.abs(VW.pitch) <= 30) VW.pitch = 0; renderViewer(); };
   box.addEventListener('pointerup', up); box.addEventListener('pointercancel', up);
 })();
 
