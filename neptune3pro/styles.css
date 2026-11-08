@@ -146,8 +146,35 @@ details.mine summary small { display: block; font-size: 12px; }
 .pill.media { background: color-mix(in srgb, var(--warn) 20%, transparent); color: var(--warn); }
 .pill.baja { background: color-mix(in srgb, var(--bad) 18%, transparent); color: var(--bad); }
 
-.alert { border-left: 4px solid var(--bad); background: color-mix(in srgb, var(--bad) 9%, var(--surface)); padding: 8px 12px; border-radius: 0 6px 6px 0; font-size: 14px; }
+.alert {
+  display: grid; gap: 3px; width: 100%; text-align: left; cursor: pointer; color: var(--ink);
+  border: 0; border-left: 4px solid var(--bad); background: color-mix(in srgb, var(--bad) 9%, var(--surface));
+  padding: 8px 12px; border-radius: 0 6px 6px 0; font: 400 14px/1.45 var(--f-body);
+}
+.alert:hover { background: color-mix(in srgb, var(--bad) 15%, var(--surface)); }
+.alert .more { font-size: 12px; font-weight: 600; color: var(--bad); text-decoration: underline; text-underline-offset: 2px; }
 .alert.warn { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 10%, var(--surface)); }
+.alert.warn:hover { background: color-mix(in srgb, var(--warn) 17%, var(--surface)); }
+.alert.warn .more { color: var(--warn); }
+button.pill { border: 0; cursor: pointer; font-size: 13px; padding: 3px 10px; }
+button.pill:hover { text-decoration: underline; }
+
+.dlg { border: 1px solid var(--line); border-radius: 12px; padding: 0; background: var(--surface); color: var(--ink); width: min(620px, calc(100vw - 32px)); max-height: calc(100vh - 48px); box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+.dlg::backdrop { background: rgba(10, 12, 14, .55); }
+.dlg-in { position: relative; padding: 22px 22px 18px; display: grid; gap: 12px; }
+.dlg-x { position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; border: 0; border-radius: 50%; background: var(--sunk); color: var(--ink); font-size: 20px; line-height: 1; cursor: pointer; }
+#dlg-body { display: grid; gap: 8px; }
+#dlg-body h2 { font-size: 24px; padding-right: 36px; }
+#dlg-body h3 { font-size: 15px; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); margin-top: 6px; }
+#dlg-body p, #dlg-body ol { margin: 0; max-width: 65ch; }
+#dlg-body ol { padding-left: 20px; display: grid; gap: 5px; }
+#dlg-body .pen { font-weight: 600; color: var(--bad); }
+.dlg form { display: flex; justify-content: flex-end; }
+table.conf { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.conf td { padding: 5px 0; border-top: 1px dashed var(--line); }
+table.conf td.val { text-align: right; font: 600 14px var(--f-mono); font-variant-numeric: tabular-nums; }
+table.conf td.neg { color: var(--bad); }
+table.conf tr.tot td { border-top: 2px solid var(--ink); font-weight: 600; }
 #alerts, #advice-box { display: grid; gap: 6px; }
 #advice-box ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; }
 

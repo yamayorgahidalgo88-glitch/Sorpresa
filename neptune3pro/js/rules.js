@@ -18,7 +18,8 @@ export function computeProfile(input) {
   const N = NOZZLES[nozzle];
   const U = USES[use];
   const reasons = [];   // por qué se eligió cada valor
-  const warnings = [];  // problemas serios
+  const warnings = [];  // problemas: { id, text, data, penalty } (penalty resta confianza)
+  const warn = (id, text, data = {}, penalty = 0) => warnings.push({ id, text, data, penalty });
   const advice = [];    // consejos
   const why = (id, text) => reasons.push({ id, text });
 
@@ -144,7 +145,7 @@ export function computeProfile(input) {
       (i.kind === 'cantilever' && i.cantileverMm > 3) ||
       (i.kind === 'slope' && i.spanMm > 3)));
     for (const b of metrics.bridges.filter(b => b.spanMm > 30 && b.spanMm <= 50)) {
-      warnings.push(`Puente de ${r1(b.spanMm)} mm a ${r1(b.z)} mm de altura: arriesgado (30–50 mm). Haz un test de puentes o activa soporte si cuelga.`);
+      warn('bridge_risky', `Puente de ${r1(b.spanMm)} mm a ${r1(b.z)} mm de altura: arriesgado (30–50 mm). Haz un test de puentes o activa soporte si cuelga.`, { span: r1(b.spanMm), z: r1(b.z), speed: sp.bridge, fan: fan.bridge }, 10);
     }
     const cants = metrics.islands.filter(i => i.kind === 'cantilever' && i.cantileverMm > 3 && i.areaMm2 > 4);
     if (cants.length) {
@@ -221,19 +222,19 @@ export function computeProfile(input) {
   if (metrics) {
     if (!metrics.fit.fits) {
       if (metrics.fit.rotated) advice.push('No cabe recta pero sí girada 45° en XY: ya se ha aplicado/conviene aplicarlo.');
-      else warnings.push(`NO CABE: ${dims.map(r1).join(' × ')} mm frente al volumen útil ${metrics.fit.usable.join(' × ')} mm. Escala la pieza, gírala o divídela.`);
+      else warn('no_fit', `NO CABE: ${dims.map(r1).join(' × ')} mm frente al volumen útil ${metrics.fit.usable.join(' × ')} mm. Escala la pieza, gírala o divídela.`, { dims: dims.map(r1), usable: metrics.fit.usable }, 60);
     }
-    if (!metrics.watertight) warnings.push(`La malla no es estanca (${metrics.openEdges} aristas abiertas${metrics.nonManifold ? `, ${metrics.nonManifold} no-manifold` : ''}). Repárala (Orca: "Reparar", Windows 3D Builder, Meshmixer) o el laminado puede tener huecos.`);
+    if (!metrics.watertight) warn('not_watertight', `La malla no es estanca (${metrics.openEdges} aristas abiertas${metrics.nonManifold ? `, ${metrics.nonManifold} no-manifold` : ''}). Repárala (Orca: "Reparar", Windows 3D Builder, Meshmixer) o el laminado puede tener huecos.`, { open: metrics.openEdges, nonManifold: metrics.nonManifold }, 25);
     if (minFeat !== null) {
-      if (metrics.thickness.fracBelowLw > 0.01) warnings.push(`Hay paredes más finas que el ancho de línea (${lw} mm; mínimo medido ≈ ${r2(minFeat)} mm): esas partes NO se imprimirán. ${nozzle > 0.2 && minFeat < 0.4 ? 'Considera boquilla 0,2 o engrosar el modelo.' : 'Activa "detectar paredes finas" y engrosa el modelo.'}`);
+      if (metrics.thickness.fracBelowLw > 0.01) warn('thin_walls', `Hay paredes más finas que el ancho de línea (${lw} mm; mínimo medido ≈ ${r2(minFeat)} mm): esas partes NO se imprimirán. ${nozzle > 0.2 && minFeat < 0.4 ? 'Considera boquilla 0,2 o engrosar el modelo.' : 'Activa "detectar paredes finas" y engrosa el modelo.'}`, { lw, min: r2(minFeat), nozzle, frac: Math.round(metrics.thickness.fracBelowLw * 1000) / 10 }, 20);
       else if (metrics.thickness.fracBelow2Lw > 0.02) advice.push(`Paredes finas (< ${r2(2 * lw)} mm) en ~${Math.round(metrics.thickness.fracBelow2Lw * 100)} % de la superficie: generador de paredes Arachne y "detectar paredes finas" activados.`);
     }
-    if (!metrics.comInside && metrics.contactCm2 > 0) warnings.push('El centro de masas cae fuera de la huella de apoyo: la pieza puede volcar durante la impresión. Borde ancho y/o soporte.');
+    if (!metrics.comInside && metrics.contactCm2 > 0) warn('com_outside', 'El centro de masas cae fuera de la huella de apoyo: la pieza puede volcar durante la impresión. Borde ancho y/o soporte.', { contact: r2(metrics.contactCm2), height: r1(height), brim: 8 }, 20);
     if (maxXY > 150 && ['mecanica', 'funcional'].includes(use) && minFeat > 1.2 && nozzle === 0.4) advice.push('Pieza grande y robusta: considera boquilla 0,6 (capa 0,3, ≤ 45 mm/s por límite de caudal) para ahorrar tiempo.');
     if (metrics.flipped) advice.push('Las normales del archivo venían invertidas; se han corregido para el análisis.');
   }
-  if (M.enclosure) warnings.push(`${M.label}: necesita cerramiento (warping y vapores). No superes 250 °C de forma continuada: el hotend lleva PTFE interno.`);
-  if (N.warn) warnings.push(N.warn);
+  if (M.enclosure) warn('enclosure', `${M.label}: necesita cerramiento (warping y vapores). No superes 250 °C de forma continuada: el hotend lleva PTFE interno.`, { material: M.label, nozzle: temps.nozzle, bed: temps.bed }, 5);
+  if (N.warn) warn('nozzle_' + String(nozzle).replace('.', ''), N.warn, { nozzle, layer, cap }, 5);
   if (material === 'PETG') advice.push('PETG en PEI texturizada: sin adhesivo, se despega solo al enfriar. En PEI lisa puede arrancar la capa de PEI.');
   if (height > 150) advice.push('Impresión alta en cama móvil: revisa tensión de correas antes de empezar (desplazamientos de capa).');
   advice.push('Nivelación: la malla de 36 puntos depende de la temperatura de la cama. Si cambias mucho de temperatura, vuelve a nivelar (o usa G29 en el inicio).');
@@ -264,10 +265,18 @@ export function computeProfile(input) {
     est = { grams: r1(grams), meters: r2(meters), minutes: Math.round(seconds / 60), layers };
   }
 
-  const confidence = metrics ? (metrics.watertight ? 'alta' : 'media') : 'baja';
+  if (!metrics && photo) {
+    const usable = PRINTER.buildVolume.map(v => v - PRINTER.marginMm);
+    if (dims[0] > usable[0] || dims[1] > usable[1] || dims[2] > usable[2]) warnings.unshift({ id: 'no_fit_photo', text: `Con ${dims.join(' × ')} mm no cabe en el volumen útil (${usable.join(' × ')} mm). Gírala, escálala o divídela.`, data: { dims, usable }, penalty: 30 });
+    warnings.unshift({ id: 'photo_mode', text: 'Confianza baja: perfil calculado desde fotos y medidas. Sube el STL/3MF para un análisis exacto de voladizos, puentes y paredes.', data: {}, penalty: 0 });
+  }
+  // Confianza: 100 con archivo 3D (40 con fotos) menos lo que resta cada aviso.
+  const confBase = metrics ? 100 : 40;
+  const confScore = Math.max(0, confBase - warnings.reduce((a, w) => a + w.penalty, 0));
+  const confidence = confScore >= 80 ? 'alta' : confScore >= 50 ? 'media' : 'baja';
 
   return {
-    confidence, reasons, warnings, advice, estimates: est,
+    confidence, confScore, confBase, reasons, warnings, advice, estimates: est,
     material, nozzle, use, quality: q, firmware,
     settings: {
       layerHeight: layer, firstLayerHeight: first, lineWidth: lw, firstLineWidth: lw0,

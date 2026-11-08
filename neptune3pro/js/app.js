@@ -1,6 +1,7 @@
 import { prepareMesh, findOrientations, analyze } from './analyzer.js';
 import { computeProfile } from './rules.js';
 import { PRINTER, MATERIALS, NOZZLES, TROUBLESHOOT, startGcode } from './knowledge.js';
+import { explainWarning, explainConfidence } from './explain.js';
 import { orcaProcess, orcaFilament, prusaIni, curaList, stlBinary } from './exporters.js';
 
 const $ = id => document.getElementById(id);
@@ -151,10 +152,6 @@ function recompute() {
     state.profile = computeProfile({ ...base, metrics: state.metrics, calib });
   } else if (state.mode === 'photo') {
     state.profile = computeProfile({ ...base, photo: photoInfo(), calib });
-    const dims = photoDims();
-    const usable = PRINTER.buildVolume.map(v => v - PRINTER.marginMm);
-    if (dims[0] > usable[0] || dims[1] > usable[1] || dims[2] > usable[2]) state.profile.warnings.unshift(`Con ${dims.join(' × ')} mm no cabe en el volumen útil (${usable.join(' × ')} mm). Gírala, escálala o divídela.`);
-    state.profile.warnings.unshift('Confianza baja: perfil calculado desde fotos y medidas. Sube el STL/3MF para un análisis exacto de voladizos, puentes y paredes.');
   }
   render();
 }
@@ -268,7 +265,7 @@ function render() {
   const dims = m ? m.dims : photoDims();
 
   const stats = [
-    ['Confianza', `<span class="pill ${p.confidence}">${p.confidence}</span>`, m ? (m.watertight ? 'malla estanca' : 'malla con huecos') : 'desde fotos'],
+    ['Confianza', `<button type="button" class="pill ${p.confidence}" id="conf-btn">${p.confidence} · ${p.confScore}/100</button>`, p.warnings.some(w => w.penalty) ? 'pulsa para ver qué la baja' : (m ? 'sin problemas detectados' : 'desde fotos')],
     ['Tamaño', `${fmt(dims[0], 1)} × ${fmt(dims[1], 1)} × ${fmt(dims[2], 1)}`, 'mm (X × Y × Z)'],
     ['Soporte', s.support.enabled ? (s.support.type === 'tree' ? 'Árbol' : 'Normal') : 'No', s.support.enabled ? (s.support.buildPlateOnly ? 'solo desde la cama' : 'en todas partes') : m ? `${fmt(m.overhangPct, 1)} % en voladizo` : ''],
     ['Adhesión', s.adhesion.type === 'brim' ? `Borde ${s.adhesion.brimWidth} mm` : s.adhesion.type === 'raft' ? 'Balsa' : 'Falda', m ? `apoyo ${fmt(m.contactCm2, 1)} cm²` : ''],
@@ -280,7 +277,8 @@ function render() {
   }
   $('summary').innerHTML = stats.map(([k, v, d]) => `<div class="stat"><span class="k">${k}</span><span class="v">${v}</span><span class="d">${d}</span></div>`).join('');
 
-  $('alerts').innerHTML = p.warnings.map(w => `<div class="alert${/Confianza baja|0,2|0,6|0,8|cerramiento/.test(w) ? ' warn' : ''}">${escapeHtml(w)}</div>`).join('');
+  $('alerts').innerHTML = p.warnings.map((w, i) => `<button type="button" class="alert${w.penalty >= 20 ? '' : ' warn'}" data-w="${i}">`
+    + `<span>${escapeHtml(w.text)}</span><span class="more">${w.penalty ? `−${w.penalty} confianza · ` : ''}Ver explicación</span></button>`).join('');
 
   const sp = s.speeds, a = s.accel, t = s.temps, f = s.fan, r = s.retract, su = s.support, ad = s.adhesion;
   const yes = b => (b ? 'Sí' : 'No');
@@ -419,6 +417,36 @@ $('dl-stl').onclick = () => {
   download(`${slug(state.fileName)}-orientado-n3pro.stl`, stlBinary(out, state.fileName), 'model/stl');
 };
 $('trouble').innerHTML = TROUBLESHOOT.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+
+// ------------------------------------------------------------------ cuadro de explicación
+function openDialog(html) {
+  $('dlg-body').innerHTML = html;
+  const d = $('dlg');
+  if (d.showModal) d.showModal(); else d.setAttribute('open', '');
+}
+$('dlg-close').onclick = () => $('dlg').close();
+$('dlg').addEventListener('click', e => { if (e.target === $('dlg')) $('dlg').close(); });
+$('alerts').addEventListener('click', e => {
+  const b = e.target.closest('[data-w]'); if (!b || !state.profile) return;
+  const w = state.profile.warnings[Number(b.dataset.w)];
+  const x = explainWarning(w);
+  openDialog(`<h2>${escapeHtml(x.title)}</h2>`
+    + (w.penalty ? `<p class="pen">Resta ${w.penalty} puntos de confianza</p>` : '')
+    + `<h3>Qué ocurre</h3><p>${escapeHtml(x.what)}</p>`
+    + (x.why ? `<h3>Por qué</h3><p>${escapeHtml(x.why)}</p>` : '')
+    + (x.risk ? `<h3>Qué pasará si imprimes así</h3><p>${escapeHtml(x.risk)}</p>` : '')
+    + (x.fix.length ? `<h3>Cómo solucionarlo</h3><ol>${x.fix.map(f => `<li>${escapeHtml(f)}</li>`).join('')}</ol>` : ''));
+});
+$('summary').addEventListener('click', e => {
+  if (!e.target.closest('#conf-btn') || !state.profile) return;
+  const c = explainConfidence(state.profile);
+  openDialog(`<h2>${escapeHtml(c.title)}</h2><p>${escapeHtml(c.what)}</p>`
+    + `<table class="conf"><tr><td>Punto de partida</td><td class="val">${c.base}</td></tr>`
+    + c.lines.map(l => `<tr><td>${escapeHtml(l.label)}</td><td class="val neg">−${l.penalty}</td></tr>`).join('')
+    + `<tr class="tot"><td>Resultado</td><td class="val">${state.profile.confScore}</td></tr></table>`
+    + `<p class="note">${escapeHtml(c.scale)}</p>`
+    + (c.lines.length ? '<p class="note">Pulsa cada aviso rojo o naranja para ver cómo corregirlo.</p>' : ''));
+});
 
 // ------------------------------------------------------------------ arranque con el ejemplo
 loadCalibForm();
