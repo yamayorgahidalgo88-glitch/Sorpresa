@@ -5,7 +5,7 @@ Juego de ritmo web (PWA instalable) inspirado en **SuperStar BTS** (Dalcomsoft, 
 
 - **Web publicada:** https://superstar-army.vercel.app
 - **Repositorio:** `yamayorgahidalgo88-glitch/Sorpresa`, rama `claude/bts-superstar-game-vesiwx`. El juego está en `superstar/`. El `index.html` de la raíz es OTRO regalo («Flores Amarillas»): no tocarlo.
-- **Vercel:** equipo `team_AJTr7WqPBL2IVmRDgpky7Ac8` (La Quinta del Bnitre), proyecto `superstar-army`. Se despliega con la herramienta de Vercel `create_deployment` usando `gitSource` (github, org `yamayorgahidalgo88-glitch`, repo `Sorpresa`, ref de la rama) y `target: production`. En cada cambio hay que **subir la versión de caché** en `superstar/sw.js` (`superstar-vNN`, ahora v55).
+- **Vercel:** equipo `team_AJTr7WqPBL2IVmRDgpky7Ac8` (La Quinta del Bnitre), proyecto `superstar-army`. Se despliega con la herramienta de Vercel `create_deployment` usando `gitSource` (github, org `yamayorgahidalgo88-glitch`, repo `Sorpresa`, ref de la rama) y `target: production`. En cada cambio hay que **subir la versión de caché** en `superstar/sw.js` (`superstar-vNN`, ahora v56).
 - El usuario habla **español** y no es programador: explicarle en lenguaje sencillo.
 
 ## Reglas importantes (decididas con el usuario)
@@ -65,6 +65,7 @@ Cada nota: `{t, lane}`; larga: `+end`; deslizamiento: `+lane2`; zigzag: `+path:[
 1. El usuario adjunta el MP3 en el chat.
 2. Si no está en `SONGS` (`js/data.js`), añadirla (id, título y `theme` = la era: el álbum de estudio donde sale, coreano o japonés; si no sale en ninguno, el más cercano en el tiempo).
 3. `PYTHONHASHSEED=0 python3 tools/build_chart.py cancion.mp3 <id> --out superstar/charts --diffs normal,hard` (Demucs tarda ~2 min; requiere `pip install librosa soundfile torch demucs`).
+   (las cadenas que siguen la melodía se añaden solas)
 4. `python3 tools/validate_chart.py superstar/charts/<id>.json cancion.mp3` → debe salir VÁLIDA.
 5. Añadir el id a `PREPARED` en `js/main.js`, subir versión de `sw.js`, commit, push y desplegar.
 6. Mandarle una **prueba de audio** (su MP3 con un «tic» en cada nota y un tono durante las notas largas) para que lo escuche.
@@ -87,6 +88,11 @@ Cada nota: `{t, lane}`; larga: `+end`; deslizamiento: `+lane2`; zigzag: `+path:[
 ## iPhone (iOS)
 - No se ha podido probar en Safari real (solo hay Chromium en el contenedor). Arreglos preventivos: `navigator.audioSession.type='playback'` + audio HTML mudo (que suene con el interruptor de silencio), reanudar el audio al volver a la app, `-webkit-backdrop-filter`, sin menú de pulsación larga ni zoom por doble toque.
 - Necesita iOS 16.2 o más (usa `color-mix` y `:has`). En Safari sin instalar, el navegador puede borrar los datos tras 7 días sin abrir la web: mejor instalarla en la pantalla de inicio. Las canciones de Apple Music no se pueden cargar (están protegidas): hacen falta archivos MP3 en la app Archivos.
+
+## Cadenas de monedas que siguen la melodía
+- `tools/add_chains.py` (y `build_chart.py` al final, función `chainify`): las notas largas ≥ 0,6 s cuya voz cambia de tono (≥ 1 semitono) se vuelven cadenas de 3–6 monedas en corcheas del compás; suben/bajan de carril con el tono, dentro de una ventana de anchura máx. 2 carriles (de 4) o 3 (de 7), solo por carriles libres (ninguna nota cerca mientras se mantiene). Marcadas con `mel: true`; en HARD `tameChains` no las toca.
+- En el juego, `narrowChains`: ninguna cadena ni deslizamiento ocupa más de 7 de las 13 posiciones.
+- Para una canción ya hecha: `python3 tools/add_chains.py superstar/charts/<id>.json cancion.mp3`.
 
 ## Cut-in del miembro (al subir el RAVE / cada 100 de combo)
 - Franja arriba a la izquierda, con ancho limitado al hueco entre el borde de la pantalla y la pista (`edgeX`/`_pAtY`), para no taparla nunca. Foto en una ventana a la izquierda encuadrada en la cara; nombre y rango al lado.

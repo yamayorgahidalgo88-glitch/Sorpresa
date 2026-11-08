@@ -20,6 +20,7 @@ Sólo se guardan tiempos y carriles (JSON). El audio nunca se copia al juego.
 import argparse, json, os, subprocess, sys, tempfile
 import numpy as np
 import librosa, soundfile as sf
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 SR = 22050
 HOP = 256
@@ -457,6 +458,9 @@ def build(mp3, song_id, workdir, diffs=('normal',), start=None, end=None):
         peak4 = max((np.sum((tt_ >= a) & (tt_ < a + 4)) / 4 for a in tt_), default=0)
         level = int(np.clip(round(peak4 * 1.9 + (L - 3) * 0.9), 1, 15))
         charts[diff] = dict(lanes=L, notes=notes, level=level)
+        # notas largas con cambios de tono -> cadenas de monedas que siguen la melodía (tools/add_chains.py)
+        from add_chains import chainify
+        chainify(charts[diff], beats, period, pitch_at, L, min_gap=0.25 if diff != 'hard' else 0.2)
 
     return dict(
         v=3, id=song_id, duration=round(dur, 3), firstVocal=round(first_vocal, 3), start=start, end=end, accents=len(accents),

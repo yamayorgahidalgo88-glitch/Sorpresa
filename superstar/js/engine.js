@@ -36,10 +36,28 @@ function toPositions(srcL) {
 
 // HARD: menos zigzags y más cortos. Se queda uno de cada dos (el resto pasan a notas
 // sueltas en los mismos tiempos), con 3 monedas como mucho y poco ancho de lado a lado.
+// Ninguna cadena ocupa toda la pista: anchura máxima de 7 de las 13 posiciones (las que se pasan
+// se estrechan alrededor de su centro, conservando la forma); los deslizamientos, igual.
+const MAX_CHAIN = 7;
+function narrowChains(notes) {
+  for (const n of notes) {
+    if (n.path) {
+      const ls = n.path.map(q => q[1]), lo = Math.min(...ls), hi = Math.max(...ls), w = hi - lo;
+      if (w > MAX_CHAIN) {
+        const c = Math.max(MAX_CHAIN / 2, Math.min(POS - 1 - MAX_CHAIN / 2, (lo + hi) / 2));
+        n.path = n.path.map(([t, l]) => [t, Math.round(c + ((l - lo) / w - 0.5) * MAX_CHAIN)]);
+        n.lane = n.path[0][1]; n.lane2 = n.path[n.path.length - 1][1];
+      }
+    } else if (n.lane2 !== undefined && Math.abs(n.lane2 - n.lane) > MAX_CHAIN) {
+      n.lane2 = n.lane + Math.sign(n.lane2 - n.lane) * MAX_CHAIN;
+    }
+  }
+  return notes;
+}
 function tameChains(notes) {
   const out = []; let keep = false;
   for (const n of notes) {
-    if (!n.path) { out.push(n); continue; }
+    if (!n.path || n.mel) { out.push(n); continue; }   // las cadenas que siguen la melodía se quedan
     keep = !keep;
     if (!keep) { for (const [t, l] of n.path) out.push({ t, lane: l }); continue; }
     const pts = n.path.slice(0, 3), rest = n.path.slice(3);
@@ -76,6 +94,7 @@ export class Game {
     const conv = toPositions(srcL);
     let cn = conv(opts.chart.notes || []);
     if (opts.diff === 'hard') cn = tameChains(cn);
+    cn = narrowChains(cn);
     opts = { ...opts, chart: { ...opts.chart, notes: cn } };
     this.o = opts;
     const byT = new Map();
