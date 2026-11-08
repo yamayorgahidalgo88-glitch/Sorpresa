@@ -873,26 +873,43 @@ export class Game {
       if (age > 1.8) this.cutin = null;
       else {
         const c = this.deck[this.cutin.i], im2 = this.deckImgs[this.cutin.i];
-        const bw = this.land ? Math.min(W * 0.32, 300 * S) : W * 0.55, bh2 = bw * 0.36;
+        // la franja va arriba a la izquierda, donde la pista es estrecha, y nunca la toca:
+        // su ancho se limita al hueco que queda entre el borde de la pantalla y la pista
+        const bh2 = Math.min(this.H * 0.26, 96 * S);
+        const y0 = this.land ? this.topY + 6 : midY - bh2 * 0.6;
+        const edge = this.edgeX(0, Math.max(0, this._pAtY(y0 + bh2))) - 10;
+        const bw = Math.max(bh2 * 1.6, Math.min(this.land ? W * 0.34 : W * 0.55, 300 * S, edge));
         const slide = age < 0.25 ? 1 - age / 0.25 : age > 1.5 ? (age - 1.5) / 0.3 : 0;
-        const x0 = -bw * slide, y0 = midY - bh2 * 0.6;
+        const x0 = -bw * slide;
+        const cut = bh2 * 0.35;                       // inclinación del lado derecho
         g.save();
         g.globalAlpha = 1 - Math.max(0, (age - 1.5) / 0.3);
-        g.beginPath(); g.moveTo(x0, y0); g.lineTo(x0 + bw, y0); g.lineTo(x0 + bw - bh2 * 0.35, y0 + bh2); g.lineTo(x0, y0 + bh2); g.closePath();
+        g.beginPath(); g.moveTo(x0, y0); g.lineTo(x0 + bw, y0); g.lineTo(x0 + bw - cut, y0 + bh2); g.lineTo(x0, y0 + bh2); g.closePath();
         g.save(); g.clip();
-        g.fillStyle = '#fff'; g.fillRect(x0, y0, bw, bh2);
+        const bgr = g.createLinearGradient(x0, 0, x0 + bw, 0);
+        bgr.addColorStop(0, '#2a0f5c'); bgr.addColorStop(0.5, '#7b3fd0'); bgr.addColorStop(1, '#ff6fc8');
+        g.fillStyle = bgr; g.fillRect(x0, y0, bw, bh2);
+        // foto: ventana a la izquierda, encuadrada en la cara (de la cabeza al pecho)
+        const pw = bh2 * 0.95;
         if (im2 && im2.complete && im2.naturalWidth) {
-          const s = bw / im2.naturalWidth;
-          g.drawImage(im2, x0, y0 - im2.naturalHeight * s * 0.12, bw, im2.naturalHeight * s);
+          const iw = im2.naturalWidth, ih = im2.naturalHeight;
+          const sw = iw * 0.95, sh = sw * bh2 / pw;
+          const sx = (iw - sw) / 2, sy = Math.max(0, Math.min(ih - sh, ih * 0.36 - sh * 0.42));
+          g.drawImage(im2, sx, sy, sw, sh, x0, y0, pw, bh2);
         }
-        const fade = g.createLinearGradient(x0, 0, x0 + bw, 0);
-        fade.addColorStop(0, 'rgba(60,140,255,0.55)'); fade.addColorStop(0.5, 'rgba(255,255,255,0)');
-        g.fillStyle = fade; g.fillRect(x0, y0, bw, bh2);
+        const fade = g.createLinearGradient(x0 + pw * 0.7, 0, x0 + pw, 0);
+        fade.addColorStop(0, 'rgba(123,63,208,0)'); fade.addColorStop(1, 'rgba(123,63,208,0.9)');
+        g.fillStyle = fade; g.fillRect(x0 + pw * 0.7, y0, pw * 0.3, bh2);
         g.restore();
         g.strokeStyle = 'rgba(255,255,255,0.9)'; g.lineWidth = 2; g.stroke();
-        g.font = `800 ${15 * S}px ${FONT}`; g.textBaseline = 'bottom'; g.textAlign = 'left';
-        g.fillStyle = '#fff'; g.shadowColor = 'rgba(0,40,120,0.8)'; g.shadowBlur = 6;
-        skewText(g, (c.name || '').toUpperCase(), x0 + 10, y0 + bh2 - 4);
+        const tx = x0 + pw + 8, maxT = bw - pw - cut - 12;
+        g.textBaseline = 'middle'; g.textAlign = 'left';
+        g.fillStyle = '#fff'; g.shadowColor = 'rgba(40,0,80,0.8)'; g.shadowBlur = 6;
+        let fs = 18 * S; g.font = `800 ${fs}px ${FONT}`;
+        const nm = (c.name || '').toUpperCase();
+        while (fs > 9 && g.measureText(nm).width > maxT) { fs -= 1; g.font = `800 ${fs}px ${FONT}`; }
+        skewText(g, nm, tx, y0 + bh2 * 0.45);
+        if (c.grade) { g.font = `700 ${11 * S}px ${FONT}`; g.fillStyle = 'rgba(255,255,255,0.85)'; skewText(g, c.grade + ' · ¡RAVE!', tx, y0 + bh2 * 0.72); }
         g.restore();
       }
     }

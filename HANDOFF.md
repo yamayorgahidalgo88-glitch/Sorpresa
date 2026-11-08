@@ -5,7 +5,7 @@ Juego de ritmo web (PWA instalable) inspirado en **SuperStar BTS** (Dalcomsoft, 
 
 - **Web publicada:** https://superstar-army.vercel.app
 - **Repositorio:** `yamayorgahidalgo88-glitch/Sorpresa`, rama `claude/bts-superstar-game-vesiwx`. El juego está en `superstar/`. El `index.html` de la raíz es OTRO regalo («Flores Amarillas»): no tocarlo.
-- **Vercel:** equipo `team_AJTr7WqPBL2IVmRDgpky7Ac8` (La Quinta del Bnitre), proyecto `superstar-army`. Se despliega con la herramienta de Vercel `create_deployment` usando `gitSource` (github, org `yamayorgahidalgo88-glitch`, repo `Sorpresa`, ref de la rama) y `target: production`. En cada cambio hay que **subir la versión de caché** en `superstar/sw.js` (`superstar-vNN`, ahora v54).
+- **Vercel:** equipo `team_AJTr7WqPBL2IVmRDgpky7Ac8` (La Quinta del Bnitre), proyecto `superstar-army`. Se despliega con la herramienta de Vercel `create_deployment` usando `gitSource` (github, org `yamayorgahidalgo88-glitch`, repo `Sorpresa`, ref de la rama) y `target: production`. En cada cambio hay que **subir la versión de caché** en `superstar/sw.js` (`superstar-vNN`, ahora v55).
 - El usuario habla **español** y no es programador: explicarle en lenguaje sencillo.
 
 ## Reglas importantes (decididas con el usuario)
@@ -87,6 +87,9 @@ Cada nota: `{t, lane}`; larga: `+end`; deslizamiento: `+lane2`; zigzag: `+path:[
 ## iPhone (iOS)
 - No se ha podido probar en Safari real (solo hay Chromium en el contenedor). Arreglos preventivos: `navigator.audioSession.type='playback'` + audio HTML mudo (que suene con el interruptor de silencio), reanudar el audio al volver a la app, `-webkit-backdrop-filter`, sin menú de pulsación larga ni zoom por doble toque.
 - Necesita iOS 16.2 o más (usa `color-mix` y `:has`). En Safari sin instalar, el navegador puede borrar los datos tras 7 días sin abrir la web: mejor instalarla en la pantalla de inicio. Las canciones de Apple Music no se pueden cargar (están protegidas): hacen falta archivos MP3 en la app Archivos.
+
+## Cut-in del miembro (al subir el RAVE / cada 100 de combo)
+- Franja arriba a la izquierda, con ancho limitado al hueco entre el borde de la pantalla y la pista (`edgeX`/`_pAtY`), para no taparla nunca. Foto en una ventana a la izquierda encuadrada en la cara; nombre y rango al lado.
 
 ## Cómo probar
 - Servidor local: `python3 -m http.server 8765` en la raíz y abrir `http://localhost:8765/superstar/`.
