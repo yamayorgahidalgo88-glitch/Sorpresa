@@ -209,3 +209,19 @@ No hacen falta para empezar: son valores que **vamos a decidir nosotros** y ajus
 - [GamingonPhone – Server shutdown late April 2024](https://gamingonphone.com/news/clash-mini-discontinues-development-server-shut-down-to-begin-in-late-april-2024)
 - [mobilematters.gg – Release date, minis, gameplay](https://mobilematters.gg/gaming/clash-mini-release-date-pre-registration-minis-gameplay-more)
 - Opiniones de jugadores en r/ClashMini (críticas sobre el posicionamiento)
+
+---
+
+## 15. Decisiones tomadas y prototipo v0.1
+
+- **Temática:** criaturas fantásticas. **Nombre provisional:** *Bestiario*.
+- **Estilo:** figuritas de juguete 3D sobre un tablero de mesa (como el género), con personajes y modelos propios.
+- **Plataforma:** navegador del móvil primero. **Rival:** IA primero, online después.
+
+Prototipo jugable en [`bestiario/index.html`](../bestiario/index.html) (un solo archivo, Three.js):
+- Tablero 5 × 8, héroe fijo por bando (Dragón Rubí contra Rey Troll) y 6 criaturas: Gólem, Trasgo, Hada, Grifo, Seta, Búho.
+- Elíxir: 6 por ronda (9 si pierdes), lo sobrante se guarda (máx. 20). Tienda de 3, 1 cambio gratis y luego a 1.
+- Fusión hasta ★3, mejora del héroe (4 de elíxir), vender, recolocar entre rondas.
+- Habilidades Clash (escudo del Gólem, salto del Grifo) y Súper (barra de energía).
+- **Vínculos por familia** (Bosque / Bestia / Arcano): +15% vida y ataque por vecino de la misma familia.
+- Al mejor de 5 rondas contra una IA que compra, mejora y coloca por rol.
