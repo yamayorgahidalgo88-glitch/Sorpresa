@@ -81,7 +81,7 @@ export function initMotion({ reduce }) {
       opacity: 1,
       stagger: 0.1,
       ease: 'none',
-      scrollTrigger: { trigger: st, start: 'top 80%', end: 'bottom 45%', scrub: 0.4 },
+      scrollTrigger: { trigger: st, start: 'top 82%', end: 'bottom 62%', scrub: 0.4 },
     });
   }
 
@@ -131,7 +131,9 @@ export function initMotion({ reduce }) {
     const trig = { trigger: cut, start: 'top 92%', end: 'top 35%', scrub: 0.6 };
     gsap.fromTo(sc, { x: 0 }, { x: () => cut.offsetWidth - 28, ease: 'none', scrollTrigger: trig });
     gsap.fromTo(rule, { clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)', ease: 'none', scrollTrigger: { ...trig } });
-    gsap.to(sc, { scaleY: 0.55, duration: 0.16, repeat: -1, yoyo: true, ease: 'power1.inOut' });
+    // las tijeras solo cortan mientras se ven
+    const snip = gsap.to(sc, { scaleY: 0.55, duration: 0.16, repeat: -1, yoyo: true, ease: 'power1.inOut', paused: true });
+    ST.create({ trigger: cut, start: 'top bottom', end: 'bottom top', onToggle: (self) => (self.isActive ? snip.play() : snip.pause()) });
   }
 
   // ---------- Carrusel: las fotos entran escalonadas ----------

@@ -5,7 +5,7 @@
 Para continuar en otra sesión de Claude Code. Lee también `PRODUCT.md` y `README.md`.
 
 ## Qué es
-Web one-page de una barbería real: **Ayoub Lahmany Barber Shop**, C/ Princesa Doña Sofía posterior 1, local 9B, 28924 Alcorcón. El dueño es Ayoub. Las reservas se hacen en su **Booksy**, y la web enlaza allí: https://booksy.com/es-es/86074_ayoub-lahmany-barber-shop_barberia_52935_alcorcon. Instagram: @ayoub_lahmany03. Valoración: 5,0 con 131 reseñas en Booksy (dato de octubre de 2026). Precios: los 11 servicios de Booksy, ya en la web.
+Web one-page de una barbería real: **Ayoub Lahmany Barber Shop**, C/ Princesa Doña Sofía posterior 1, local 9B, 28924 Alcorcón. El dueño es Ayoub. Las reservas se hacen en su **Booksy**, y la web enlaza allí: https://booksy.com/es-es/86074_ayoub-lahmany-barber-shop_barberia_52935_alcorcon. Instagram: @ayoub_lahmany03. Valoración: 5,0 con 135 reseñas en Booksy (dato del 10-11-2026). Precios: los 11 servicios de Booksy, ya en la web.
 
 ## Dónde está
 - Repo: `yamayorgahidalgo88-glitch/Sorpresa`, rama **`claude/barbershop-hairstyle-preview-irqt06`**. Todo está subido. No hay ningún PR abierto, y no hay que crearlo salvo que el usuario lo pida.
@@ -62,6 +62,14 @@ El usuario decidió quitar de la web el asesor de cortes con IA y todo lo suyo (
 - Si se compra dominio propio, cambiar la URL en `index.html` (canonical, og, JSON-LD), `robots.txt` y `sitemap.xml`.
 - Falta el **teléfono** de la barbería: cuando lo dé el usuario, añadirlo a la web y al JSON-LD.
 - Lo que más pesa (Perfil de Empresa de Google, reseñas, NAP, Booksy, Search Console) es trabajo fuera de la web: lista en `SEO.md`.
+
+## Revisión general del 10-11-2026
+- Menos espacio vacío entre secciones (`--space-6`), título de preguntas separado de la lista.
+- «Cómo llegar»: bloque de horario visible (también en `hours.js` y JSON-LD) y botón «Abrir en Google Maps».
+- Preguntas frecuentes: se abren con animación de altura y el texto entra suave.
+- Barra inferior del móvil: marca la sección actual (Precios o Ubicación). En móvil se oculta «Ver huecos libres» porque Reservar ya está en la barra.
+- SEO: coordenadas (`geo`), `hasMap` y perfil de Google en `sameAs`; reseñas actualizadas a 135; precarga de la imagen de portada según pantalla.
+- Plan para la ficha de Booksy en `BOOKSY.md` (puesto 17 de 20 en «Barbería en Alcorcón»; sin texto de «Sobre nosotros»).
 
 ## PENDIENTE (siguiente paso)
 1. El usuario irá pidiendo más ajustes de diseño.
