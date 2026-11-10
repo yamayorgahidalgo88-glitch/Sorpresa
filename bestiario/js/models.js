@@ -435,8 +435,137 @@ function buildBushi() {
   return b.bake();
 }
 
+/* =====================================================================
+   ROGUE — guerrero de la máscara de piedra
+   ===================================================================== */
+function buildRogue() {
+  const b = new Blueprint();
+  b.group('all', 'root').group('legL', 'all', [0.12, 0.25, 0]).group('legR', 'all', [-0.12, 0.25, 0])
+    .group('torso', 'all', [0, 0.25, 0]).group('head', 'torso', [0, 0.58, 0])
+    .group('armL', 'torso', [0.27, 0.52, 0]).group('armR', 'torso', [-0.28, 0.52, 0]);
+  for (const s of [1, -1]) {
+    const L = s > 0 ? 'legL' : 'legR';
+    b.add(L, 'pants', cyl(0.095, 0.17, 20), { local: true, p: [0, -0.07, 0] });
+    b.add(L, 'gold', torus(0.098, 0.022, PI * 2, 24), { local: true, p: [0, -0.13, 0], r: [PI / 2, 0, 0] });
+    b.add(L, 'boot', SPH, { local: true, p: [0, -0.185, 0.035], s: [0.11, 0.07, 0.15] });
+  }
+  // túnica, faldón central, cinturón y correa
+  b.add('torso', 'tunic', lathe([[0.27, 0.22], [0.27, 0.3], [0.225, 0.42], [0.215, 0.52], [0.12, 0.6]]));
+  b.add('torso', 'gold', torus(0.268, 0.022), { p: [0, 0.228, 0], r: [PI / 2, 0, 0] });
+  b.add('torso', 'pants', new THREE.CircleGeometry(0.26, 24), { p: [0, 0.225, 0], r: [PI / 2, 0, 0] });
+  const tab = new THREE.Shape(); tab.moveTo(-0.075, 0.12); tab.lineTo(0.075, 0.12); tab.lineTo(0.075, -0.05); tab.lineTo(0, -0.1); tab.lineTo(-0.075, -0.05); tab.lineTo(-0.075, 0.12);
+  b.add('torso', 'teal', new THREE.ExtrudeGeometry(tab, { depth: 0.02, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.008, bevelSegments: 2 }), { p: [0, 0.28, 0.25], r: [-0.12, 0, 0] });
+  b.add('torso', 'leather', torus(0.228, 0.04), { p: [0, 0.4, 0], r: [PI / 2, 0, 0], s: [1, 1, 1.25] });
+  b.add('torso', 'gold', torus(0.052, 0.02, PI * 2, 24), { p: [0, 0.4, 0.255] });
+  b.add('torso', 'leather', torus(0.235, 0.032), { p: [0, 0.47, 0], r: [PI / 2, 0, 0], q: new THREE.Quaternion().setFromEuler(new THREE.Euler(PI / 2 - 0.1, 0, 0.62, 'ZXY')), s: [1, 1, 1.3] });
+  const bk = new THREE.Shape(); bk.moveTo(-0.045, -0.04); bk.lineTo(0.045, -0.04); bk.lineTo(0.045, 0.04); bk.lineTo(-0.045, 0.04); bk.lineTo(-0.045, -0.04);
+  const hole = new THREE.Path(); hole.moveTo(-0.022, -0.018); hole.lineTo(-0.022, 0.018); hole.lineTo(0.022, 0.018); hole.lineTo(0.022, -0.018); hole.lineTo(-0.022, -0.018); bk.holes.push(hole);
+  b.add('torso', 'gold', new THREE.ExtrudeGeometry(bk, { depth: 0.02, bevelEnabled: false }), { p: [0.05, 0.5, 0.215], r: [-0.1, 0.2, 0.62] });
+  // bufanda
+  b.add('torso', 'teal', torus(0.17, 0.065), { p: [0, 0.6, 0.01], r: [PI / 2 + 0.12, 0, 0], s: [1, 1, 1.1] });
+  // hombreras
+  for (const s of [1, -1]) {
+    b.add('torso', 'tunic', SPH, { p: [s * 0.27, 0.55, 0], s: [0.13, 0.1, 0.14] });
+    b.add('torso', 'gold', torus(0.125, 0.02, PI * 2, 28), { p: [s * 0.275, 0.52, 0], r: [PI / 2, 0, s * -0.2], s: [1, 1.1, 1] });
+    b.add('torso', 'gold', cyl(0.052, 0.035, 20), { p: [s * 0.215, 0.565, 0.115], r: [PI / 2 - 0.3, 0, 0] });
+  }
+  // brazo izquierdo con escudo
+  b.add('armL', 'tunic', sweep([[0, 0, 0], [0.05, -0.08, 0.03], [0.08, -0.16, 0.07]], [0.07, 0.062, 0.056], 12, 10), { local: true });
+  b.add('armL', 'leather', SPH, { local: true, p: [0.09, -0.2, 0.09], s: [0.07, 0.07, 0.07] });
+  const sh = (k) => { const S = new THREE.Shape(); S.moveTo(0, 0.25 * k); S.lineTo(0.16 * k, 0.17 * k); S.lineTo(0.16 * k, -0.08 * k); S.lineTo(0, -0.27 * k); S.lineTo(-0.16 * k, -0.08 * k); S.lineTo(-0.16 * k, 0.17 * k); S.lineTo(0, 0.25 * k); return S; };
+  const SP = [0.15, -0.17, 0.13], SR = [0, 0.75, -0.08];
+  const shieldQ = new THREE.Quaternion().setFromEuler(new THREE.Euler(...SR));
+  const shAdd = (mat, geom, off) => { const o = new V3(...off).applyQuaternion(shieldQ); b.add('armL', mat, geom, { local: true, p: [SP[0] + o.x, SP[1] + o.y, SP[2] + o.z], q: shieldQ }); };
+  shAdd('gold', new THREE.ExtrudeGeometry(sh(1), { depth: 0.035, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.012, bevelSegments: 2 }), [0, 0, 0]);
+  shAdd('tunic', new THREE.ExtrudeGeometry(sh(0.76), { depth: 0.02, bevelEnabled: false }), [0, 0, 0.034]);
+  const spiral = []; for (let i = 0; i <= 26; i++) { const a = i / 26 * PI * 3.3, r = 0.012 + i / 26 * 0.085; spiral.push([Math.cos(a) * r, Math.sin(a) * r - 0.01, 0.06]); }
+  shAdd('rune', sweep(spiral, [0.012, 0.016, 0.016, 0.012], 6, 60), [0, 0, 0]);
+  // brazo derecho de piedra con runas
+  b.add('armR', 'tunic', SPH, { local: true, p: [-0.02, -0.03, 0], s: [0.085, 0.08, 0.085] });
+  b.add('armR', 'stone', DODE, { local: true, p: [-0.06, -0.13, 0.03], r: [0.3, 0.5, 0.2], s: [0.115, 0.12, 0.115], flat: true });
+  b.add('armR', 'stoneLight', DODE, { local: true, p: [-0.09, -0.24, 0.06], r: [1.1, 0.2, 0.7], s: [0.155, 0.15, 0.155], flat: true });
+  b.add('armR', 'stone', ICO, { local: true, p: [-0.06, -0.3, 0.14], r: [0.2, 0.9, 0], s: [0.07, 0.06, 0.07], flat: true });
+  b.add('armR', 'stone', ICO, { local: true, p: [-0.13, -0.31, 0.1], r: [0.7, 0.1, 0.4], s: [0.065, 0.06, 0.065], flat: true });
+  b.add('armR', 'rune', sweep([[-0.02, -0.08, 0.09], [-0.07, -0.13, 0.125], [-0.04, -0.19, 0.15], [-0.1, -0.23, 0.185], [-0.07, -0.29, 0.19]], [0.011, 0.014, 0.014, 0.014, 0.01], 6, 24), { local: true });
+  b.add('armR', 'rune', sweep([[-0.15, -0.12, 0.05], [-0.185, -0.19, 0.07], [-0.2, -0.26, 0.1]], [0.01, 0.013, 0.01], 6, 12), { local: true });
+  b.sprite('fist', 'armR', [-0.09, -0.22, 0.14], 0x3dffd0, 0.4, 0.4, 0.4, true);
+  // cabeza: piel, orejas, máscara de piedra, pelo
+  b.add('head', 'skin', SPH, { p: [0, 0.83, 0], s: [0.255, 0.255, 0.245] });
+  for (const s of [1, -1]) b.add('head', 'skin', SPH, { p: [s * 0.255, 0.8, 0.0], s: [0.05, 0.07, 0.06] });
+  const mk = new THREE.Shape(), mw = 0.165, mh = 0.2, mr = 0.07;
+  mk.moveTo(-mw + mr, -mh); mk.lineTo(mw - mr, -mh); mk.quadraticCurveTo(mw, -mh, mw, -mh + mr); mk.lineTo(mw, mh - mr); mk.quadraticCurveTo(mw, mh, mw - mr, mh); mk.lineTo(-mw + mr, mh); mk.quadraticCurveTo(-mw, mh, -mw, mh - mr); mk.lineTo(-mw, -mh + mr); mk.quadraticCurveTo(-mw, -mh, -mw + mr, -mh);
+  b.add('head', 'mask', new THREE.ExtrudeGeometry(mk, { depth: 0.07, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 4, curveSegments: 10 }), { p: [0, 0.81, 0.17] });
+  const MZ = 0.272;
+  b.add('head', 'crack', sweep([[0.04, 1.03, MZ], [0.0, 0.95, MZ], [0.04, 0.87, MZ], [-0.005, 0.8, MZ], [0.035, 0.72, MZ], [0.0, 0.59, MZ]], [0.004, 0.009, 0.008, 0.01, 0.008, 0.004], 5, 30));
+  b.add('head', 'crack', sweep([[0.04, 0.87, MZ], [0.09, 0.9, MZ], [0.12, 0.96, MZ]], [0.007, 0.006, 0.003], 5, 10));
+  b.add('head', 'crack', sweep([[-0.005, 0.8, MZ], [-0.06, 0.74, MZ], [-0.08, 0.68, MZ]], [0.006, 0.005, 0.003], 5, 10));
+  for (const s of [1, -1]) {
+    b.add('head', 'eyeLine', eyeGeo(s, 0.8), { p: [s * 0.095, 0.835, MZ + 0.004] });
+    b.add('head', 'eyeW', eyeGeo(s, 0.62), { p: [s * 0.095, 0.835, MZ + 0.008] });
+    b.sprite('eye' + (s > 0 ? 'L' : 'R'), 'head', [s * 0.095, 0.835, MZ + 0.05], 0xfff2d0, 0.2, 0.14, 0.45);
+  }
+  b.add('head', 'hair', SPH, { p: [0, 0.9, -0.04], s: [0.285, 0.25, 0.28] });
+  b.add('head', 'hair', SPH, { p: [0, 0.78, -0.12], s: [0.26, 0.22, 0.2] });
+  const tuft = (p0, p1, p2, r) => b.add('head', 'hair', sweep([p0, p1, p2], [r, r * 0.75, 0.008], 8, 12));
+  tuft([0.02, 1.08, 0.12], [0.1, 1.17, 0.2], [0.2, 1.17, 0.26], 0.1);
+  tuft([-0.05, 1.08, 0.1], [-0.14, 1.14, 0.2], [-0.25, 1.1, 0.25], 0.09);
+  tuft([0.12, 1.06, 0.02], [0.24, 1.16, 0.05], [0.33, 1.2, 0.02], 0.09);
+  tuft([-0.14, 1.04, 0.0], [-0.27, 1.1, 0.02], [-0.36, 1.1, -0.02], 0.085);
+  tuft([0, 1.08, -0.05], [0.05, 1.17, -0.1], [0.14, 1.2, -0.18], 0.1);
+  tuft([0.05, 1.08, 0.16], [0.02, 1.07, 0.27], [-0.06, 1.0, 0.33], 0.08);
+  tuft([0.12, 1.06, 0.16], [0.17, 1.04, 0.27], [0.19, 0.97, 0.31], 0.07);
+  tuft([-0.1, 1.06, 0.16], [-0.15, 1.05, 0.27], [-0.2, 0.99, 0.3], 0.07);
+  tuft([-0.08, 1.06, -0.14], [-0.14, 1.16, -0.22], [-0.2, 1.2, -0.3], 0.09);
+  tuft([0.1, 1.0, -0.2], [0.16, 1.05, -0.32], [0.2, 1.04, -0.4], 0.09);
+  tuft([-0.05, 0.92, -0.26], [-0.08, 0.9, -0.37], [-0.1, 0.84, -0.43], 0.09);
+  tuft([0.2, 0.98, 0.12], [0.27, 0.98, 0.2], [0.3, 0.92, 0.25], 0.06);
+  tuft([-0.2, 0.98, 0.12], [-0.27, 0.96, 0.2], [-0.29, 0.9, 0.24], 0.06);
+  b.mats = {
+    tunic: std(0x2f3d73, { roughness: 0.55, side: THREE.DoubleSide }), pants: std(0x262240, { roughness: 0.6, side: THREE.DoubleSide }),
+    boot: std(0x4a3029, { roughness: 0.6 }), leather: std(0x6a3f2c, { roughness: 0.6 }), teal: std(0x2c6f82, { roughness: 0.6 }), gold,
+    skin: std(0xf2a26e, { roughness: 0.6 }), mask: std(0xe9dcc4, { roughness: 0.75 }), crack: std(0x3a302c, { roughness: 0.9 }),
+    hair: std(0x4d2a2c, { roughness: 0.55 }), stone: std(0x6c6860, { roughness: 0.9 }), stoneLight: std(0x857f74, { roughness: 0.9 }),
+    rune: basic(0x45f5cf), eyeW: basic(0xfffbe8, { side: THREE.DoubleSide }), eyeLine: basic(0x2c2424, { side: THREE.DoubleSide }),
+  };
+  b.height = 1.42; b.durations = { attack: 0.5, super: 0.85 };
+  b.animate = (rig, t, st) => {
+    const g = rig.g, w = st.walk, sn = Math.sin(rig.walkT * 11);
+    let punch = Math.sin(t * 1.6) * 0.05, shield = 0, twist = 0, lean = 0, bob = Math.abs(sn) * 0.04 * w, hot = 0;
+    if (st.atk >= 0) {
+      const a = st.atk;
+      punch = kf(a, [[0, 0], [0.22, 0.75], [0.4, -1.65], [0.6, -1.4], [1, 0]]);
+      twist = kf(a, [[0, 0], [0.22, 0.5], [0.4, -0.55], [1, 0]]);
+      lean = kf(a, [[0, 0], [0.22, -0.1], [0.4, 0.28], [1, 0]]);
+      hot = kf(a, [[0.15, 0], [0.4, 1], [0.9, 0]]);
+    }
+    if (st.sup >= 0) {
+      const a = st.sup;
+      shield = kf(a, [[0, 0], [0.2, 1], [0.5, 1], [0.75, 0.3], [1, 0]]);
+      punch = kf(a, [[0, 0], [0.4, 0.9], [0.58, -1.8], [0.8, -1.5], [1, 0]]);
+      twist = kf(a, [[0, 0], [0.2, -0.3], [0.4, 0.55], [0.58, -0.6], [1, 0]]);
+      lean = kf(a, [[0, 0], [0.4, -0.12], [0.58, 0.32], [1, 0]]);
+      hot = kf(a, [[0, 0], [0.4, 1], [0.7, 1], [1, 0]]) * 1.5;
+    }
+    if (st.cheer > 0) { punch = -2.6 + Math.sin(t * 12) * 0.2; bob += Math.abs(Math.sin(t * 8)) * 0.1; }
+    g.all.position.y = bob;
+    g.legL.rotation.x = sn * 0.7 * w; g.legR.rotation.x = -sn * 0.7 * w;
+    const br = Math.sin(t * 2.3) * 0.012;
+    g.torso.scale.set(1 + br, 1 - br, 1 + br);
+    g.torso.rotation.set(lean + w * 0.07, twist, sn * 0.06 * w);
+    g.head.rotation.set(Math.sin(t * 1.5) * 0.03 - lean * 0.4, -twist * 0.6 + Math.sin(t * 0.7) * 0.05, -sn * 0.04 * w);
+    g.armR.rotation.set(punch - sn * 0.5 * w, 0, 0);
+    g.armL.rotation.set(-shield * 1.15 + sn * 0.35 * w, -shield * 0.7, 0);
+    const pulse = 0.5 + 0.5 * Math.sin(t * 3);
+    rig.mats.rune.color.setRGB(0.25 + 0.3 * hot, 0.9 + 0.1 * pulse, 0.78 + 0.1 * pulse, THREE.SRGBColorSpace);
+    rig.sp.fist.material.opacity = 0.3 + 0.12 * pulse + 0.5 * Math.min(1, hot);
+    rig.sp.fist.scale.setScalar(0.4 + 0.3 * Math.min(1.5, hot));
+    rig.sp.eyeL.material.opacity = rig.sp.eyeR.material.opacity = 0.4 + 0.15 * pulse + 0.3 * Math.min(1, hot);
+  };
+  return b.bake();
+}
+
 /* ---------------- creación de instancias ---------------- */
-const BUILDERS = { bushi: buildBushi, bolab: buildBolab, ogul: buildOgul }, BP = {};
+const BUILDERS = { bushi: buildBushi, bolab: buildBolab, ogul: buildOgul, rogue: buildRogue }, BP = {};
 export function createCharacter(type) {
   const bp = BP[type] || (BP[type] = BUILDERS[type]());
   const g = {}, mats = {}, sp = {};

@@ -14,13 +14,16 @@ const CHARS = {
   ogul: { name: 'Ogul', cost: 4, role: 'Mago', color: '#8b4fd8', hp: 400, atk: 70, range: 3, as: 1.5, ms: 0.8, abil: 'super', proj: '#ff7a4a',
     abilName: 'Ojo estelar', desc: 'Súper: su ojo lanza un orbe de energía que estalla y daña a los enemigos de alrededor.',
     all: ['pose', 'front', 'q', 'side', 'back', 'top', 'top2', 'frontbottom'] },
+  rogue: { name: 'Rogue', cost: 3, role: 'Defensor', color: '#3a5fa8', hp: 800, atk: 55, range: 1, as: 1.15, ms: 0.7, abil: 'super',
+    abilName: 'Puño rúnico', desc: 'Súper: se cubre con su escudo (30% de su vida) y descarga un puñetazo de piedra que hace mucho daño a su objetivo.',
+    all: ['pose', 'front', 'side', 'bq', 'back', 'top', 'bottom'] },
 };
 const VIEW_NAMES = { pose: 'Pose', front: 'Frente', q: '3/4', bq: '3/4 espalda', side: 'Perfil', back: 'Espalda', top: 'Arriba', top2: 'Arriba 2', bottom: 'Abajo', fronttop: 'Abajo frente', frontbottom: 'Abajo frente' };
 const VIEW_ANGLES = { pose: [-25, 12], front: [0, 6], q: [-45, 6], bq: [-135, 6], side: [-90, 6], back: [180, 6], top: [0, 70], top2: [180, 70], bottom: [0, -35], fronttop: [0, -30], frontbottom: [0, -30] };
 const TYPES = Object.keys(CHARS);
 const COLS = 5, ROWS = 8, MAX_UNITS = 7, WIN_ROUNDS = 3, ROUND_CAP = 40, ELIXIR_CAP = 20;
 const LVL_MULT = [0, 1, 1.6, 2.4], LVL_SCALE = [0, 0.84, 0.95, 1.07];
-const FRONT_ROLES = ['Tanque', 'Luchador'];
+const FRONT_ROLES = ['Tanque', 'Luchador', 'Defensor'];
 // Tablero: imagen, esquinas de la rejilla 5x8 y cámara 3D ajustada a su perspectiva
 const BOARD = { src: 'assets/tablero.webp', w: 962, h: 1024, corners: [[280, 267], [694, 266], [742, 780], [225, 781]],
   cam: { pos: [0.2313, 17.934, 18.81], rot: [-0.768588, 0.014848, -0.012653], fov: 24.1817 } };
@@ -210,7 +213,7 @@ function initStage() {
   for (const t of TYPES) { const pv = new THREE.Group(), rig = createCharacter(t); pv.add(rig.root); scene.add(pv); rigs[t] = { rig, pv, next: rand(1.5, 4) }; }
   Object.assign(ST, { renderer, scene, camera, rigs, w: 0, h: 0, mode: null });
 }
-const HOME_POS = { bolab: [-1.0, 0.1, 0.3], bushi: [0, 0.35, 0.2], ogul: [1.0, 0.1, -0.3] };
+const HOME_POS = { bolab: [-1.5, 0, 0.35], bushi: [-0.5, 0.35, 0.15], rogue: [0.5, 0.35, -0.15], ogul: [1.5, 0, -0.35] };
 function stageMount(mode) {
   const box = mode === 'home' ? $('#homeStage') : $('#viewer');
   if (ST.renderer.domElement.parentNode !== box) box.insertBefore(ST.renderer.domElement, box.querySelector('.tip'));
@@ -226,7 +229,7 @@ function stageRender(dt) {
   const w = box.clientWidth, h = box.clientHeight; if (!w || !h) return;
   if (w !== ST.w || h !== ST.h) { ST.w = w; ST.h = h; renderer.setSize(w, h, false); camera.aspect = w / h; }
   if (ST.mode === 'home') {
-    const d = Math.max(4.6, 3.5 / (0.4618 * camera.aspect));
+    const d = Math.max(4.6, 4.5 / (0.4618 * camera.aspect));
     camera.position.set(0, 1.5, d); camera.lookAt(0, 0.62, 0);
     for (const t of TYPES) {
       const r = rigs[t]; r.next -= dt;
@@ -269,7 +272,7 @@ $('#mute').onclick = () => { muted = !muted; $('#mute').textContent = muted ? '�
    BESTIARIO
    ========================================================= */
 // Progreso del jugador (de momento: las tres criaturas desbloqueadas a nivel 1)
-const COLLECTION = { bushi: { level: 1 }, bolab: { level: 1 }, ogul: { level: 1 } };
+const COLLECTION = { bushi: { level: 1 }, bolab: { level: 1 }, ogul: { level: 1 }, rogue: { level: 1 } };
 function renderBestiary() {
   $('#bcount').textContent = `${Object.keys(COLLECTION).length}/${TYPES.length}`;
   $('#bgrid').innerHTML = TYPES.map(t => {
@@ -570,7 +573,7 @@ function attack(u, t) {
   if (u.range <= 1) {
     u.lunge = .42;
     if (u.type === 'bushi') sfx.slash();
-    schedule(.19, () => { if (u.alive) { damage(t, u.atk, u); sfx.hit(); burstAt(t.gx, t.gy, .5, u.type === 'bolab' ? '#ff8a2a' : '#5dffb0', 6, { glow: true, spd: 1.2 }); } });
+    schedule(.19, () => { if (u.alive) { damage(t, u.atk, u); sfx.hit(); burstAt(t.gx, t.gy, .5, u.type === 'bolab' ? '#ff8a2a' : u.type === 'rogue' ? '#45f5cf' : '#5dffb0', 6, { glow: true, spd: 1.2 }); } });
   } else schedule(.17, () => { if (u.alive) { sfx.shoot(); shoot(u, t, { color: u.def.proj, size: .09, arc: .3, onHit: () => damage(t, u.atk, u) }); } });
 }
 function aoe(source, c, r, rad, dmg) {
@@ -581,6 +584,9 @@ function doSuper(u, t) {
   if (u.type === 'bushi') {
     fxs.push({ gx: u.gx, gy: u.gy, r: 1.5, color: '#5dffb0', t: 0, dur: .6 });
     schedule(.3, () => { if (!u.alive) return; aoe(u, u.c, u.r, 1, u.atk * 1.7); burstAt(u.gx, u.gy, .4, '#5dffb0', 24, { spd: 3, up: .8, glow: true }); sfx.slash(); });
+  } else if (u.type === 'rogue') {
+    u.shield += Math.round(u.maxHp * .3); u.lunge = .6;
+    schedule(.5, () => { if (!u.alive) return; damage(t, u.atk * 2.4, u, 'big'); fxs.push({ gx: t.gx, gy: t.gy, r: 0.9, color: '#45f5cf', t: 0, dur: .45 }); burstAt(t.gx, t.gy, .5, '#45f5cf', 20, { spd: 2.5, up: 1.6, glow: true }); sfx.boom(); shake = Math.max(shake, 6); });
   } else if (u.type === 'ogul') {
     schedule(.26, () => u.alive && shoot(u, t, { color: '#ff4a6a', size: .2, speed: 4.5, arc: .9, onHit: p => {
       aoe(u, Math.floor(p.tgx), Math.floor(p.tgy), 1, u.atk * 2.3); fxs.push({ gx: p.tgx, gy: p.tgy, r: 1.3, color: '#ff9a3c', t: 0, dur: .5 });
@@ -721,7 +727,8 @@ function drawShields(time) {
     const r = (u.sy - u.top) * .62, cy = u.sy - r * .75;
     fx.save(); fx.globalCompositeOperation = 'lighter'; fx.globalAlpha = .3 + Math.sin(time * 6) * .07;
     const g = fx.createRadialGradient(u.sx, cy, r * .3, u.sx, cy, r);
-    g.addColorStop(0, 'rgba(255,140,40,0)'); g.addColorStop(.8, 'rgba(255,150,50,.65)'); g.addColorStop(1, 'rgba(255,140,40,0)');
+    const sc = u.type === 'rogue' ? '70,230,210' : '255,150,50';
+    g.addColorStop(0, `rgba(${sc},0)`); g.addColorStop(.8, `rgba(${sc},.65)`); g.addColorStop(1, `rgba(${sc},0)`);
     fx.fillStyle = g; fx.beginPath(); fx.arc(u.sx, cy, r, 0, Math.PI * 2); fx.fill(); fx.restore();
   }
 }
