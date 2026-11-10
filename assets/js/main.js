@@ -29,3 +29,10 @@ if (dockLinks.size && 'IntersectionObserver' in window) {
     if (el) io.observe(el);
   }
 }
+
+// Créditos del pie en una ventanita
+const credits = document.getElementById('credits');
+document.querySelector('[data-credits]')?.addEventListener('click', () => credits?.showModal());
+credits?.addEventListener('click', (e) => {
+  if (e.target === credits || e.target.closest('[data-close]')) credits.close();
+});

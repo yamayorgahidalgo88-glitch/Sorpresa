@@ -76,6 +76,12 @@ El usuario decidió quitar de la web el asesor de cortes con IA y todo lo suyo (
 - Título de precios: «Precios de nuestros servicios» (el usuario no quiere «Precios de peluquería en Alcorcón»; la palabra clave sigue en el `<title>` y la meta descripción).
 - «¿Cómo llegar a la barbería?» con interrogaciones y sin la línea fina entre el título y la dirección.
 
+## Cambios del 10-11-2026 (noche)
+- Es «peluquería» ante todo: «¿Cómo llegar a la peluquería?» y la pregunta «¿Dónde está Ayoub Lahmany?».
+- Quitadas las preguntas «¿Hacéis degradados?» y «¿Por qué es tan económica?» (también del JSON-LD). Quedan 5.
+- Título de la galería: «Nuestros trabajos» (el usuario no quiere «Cortes reales en Alcorcón»: suena exagerado).
+- Pie: el texto de fuentes (Booksy, Mixkit) va en una ventanita que se abre con el enlace «Créditos».
+
 ## PENDIENTE (siguiente paso)
 1. El usuario irá pidiendo más ajustes de diseño.
 2. Teléfono de la barbería: añadirlo a la web y al JSON-LD cuando lo dé.
