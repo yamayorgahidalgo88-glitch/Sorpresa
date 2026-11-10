@@ -7,7 +7,7 @@ Objetivo: salir arriba en Google con «peluquería Alcorcón», «barbería Alco
 - **Meta descripción:** incluye barbería, precios (11 €, 9 €, 5 €), degradados, las reseñas y la reserva en Booksy.
 - **H1:** «Ayoub Lahmany Barber Shop: peluquería y barbería en Alcorcón». El H1 es el logo, y el texto queda oculto a la vista pero lo leen Google y los lectores de pantalla.
 - **Bajo el logo, visible:** «Peluquería y barbería en Alcorcón. Corte de caballero, 11 €». El precio aparece arriba del todo, como recomienda el informe.
-- **Títulos con la palabra clave:** «Precios de peluquería en Alcorcón», «Cortes reales en Alcorcón» y «Cómo llegar a la barbería».
+- **Títulos con la palabra clave:** «Precios de nuestros servicios», «Cortes reales en Alcorcón» y «¿Cómo llegar a la barbería?».
 - **Galería:** las 14 fotos llevan un texto alternativo descriptivo que termina en «corte de hombre en Alcorcón». Son fotos reales, no de stock.
 - **Preguntas frecuentes:** siete preguntas desplegables que responden a búsquedas reales (precio del corte de hombre en Alcorcón, degradados, niños, cita, tarjeta, dirección, por qué es económica).
 - **Datos estructurados (JSON-LD):**

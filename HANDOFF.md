@@ -38,7 +38,7 @@ HTML, CSS y JS estático sin compilación.
   7. **Cierre:** «Tu silla te espera» con vídeo.
   8. **Barra inferior en móvil:** Precios (icono €), Ubicación (icono de pin) y Reservar.
 - **Cabecera:** sin botón de reservar (lo quitó el usuario). A la derecha, el estado del local según la hora de Madrid: «Abierto · Cierra a las 14:00» (punto verde encendido que parpadea despacio; cerrado, punto rojo encendido y fijo) o «Cerrado · Abre mañana a las 10:00» (`assets/js/hours.js`). El horario sale de Booksy (L–S 10:00–14:00 y 15:00–21:00, domingo cerrado) porque Google no se pudo consultar desde la sesión: si el usuario da el de Google y es distinto, cambia `HOURS` en `hours.js` y `openingHoursSpecification` en el JSON-LD.
-- **Botones:** los secundarios (Cómo llegar, Instagram) se rellenan de oro al pulsarlos. El principal es de oro pulido, con un marco fino exterior y un brillo (`btn--glint` en la portada y el cierre). Los secundarios llevan esquinas doradas.
+- **Botones:** los secundarios (Google Maps, Instagram) NO cambian al pulsarlos: el usuario lo probó y lo quitó. El principal es de oro pulido, con un marco fino exterior y un brillo (`btn--glint` en la portada y el cierre). Los secundarios llevan esquinas doradas.
 - Los vídeos son de **Mixkit** (licencia gratuita) y se citan en el pie.
 
 ## Lo que el usuario NO quiere (ya probado y rechazado)
@@ -70,6 +70,11 @@ El usuario decidió quitar de la web el asesor de cortes con IA y todo lo suyo (
 - Barra inferior del móvil: marca la sección actual (Precios o Ubicación). En móvil se oculta «Ver huecos libres» porque Reservar ya está en la barra.
 - SEO: coordenadas (`geo`), `hasMap` y perfil de Google en `sameAs`; reseñas actualizadas a 135; precarga de la imagen de portada según pantalla.
 - Plan para la ficha de Booksy en `BOOKSY.md` (puesto 17 de 20 en «Barbería en Alcorcón»; sin texto de «Sobre nosotros»).
+
+## Cambios del 10-11-2026 (tarde)
+- Preguntas frecuentes movidas abajo del todo, después de «Tu silla te espera» y antes del pie.
+- Título de precios: «Precios de nuestros servicios» (el usuario no quiere «Precios de peluquería en Alcorcón»; la palabra clave sigue en el `<title>` y la meta descripción).
+- «¿Cómo llegar a la barbería?» con interrogaciones y sin la línea fina entre el título y la dirección.
 
 ## PENDIENTE (siguiente paso)
 1. El usuario irá pidiendo más ajustes de diseño.
