@@ -191,14 +191,21 @@ function setupLoopVideo(sel) {
 
 function onScrollHeader(header) {
   if (!header) return;
+  // En el móvil la cabecera se queda siempre visible (enseña si está abierto).
+  // En pantallas grandes se esconde al bajar y vuelve al subir, sin parpadear:
+  // solo cambia cuando el desplazamiento es claro, no con cada píxel.
+  const small = window.matchMedia('(max-width: 760px)');
   let last = window.scrollY;
   const update = () => {
     const y = window.scrollY;
+    const dy = y - last;
     header.classList.toggle('is-scrolled', y > 60);
-    header.classList.toggle('is-hidden', y > 700 && y > last + 2);
-    if (y < last - 2) header.classList.remove('is-hidden');
-    last = y;
+    if (small.matches || y < 700) header.classList.remove('is-hidden');
+    else if (dy > 6) header.classList.add('is-hidden');
+    else if (dy < -6) header.classList.remove('is-hidden');
+    if (Math.abs(dy) > 6 || y < 700) last = y;
   };
   window.addEventListener('scroll', update, { passive: true });
+  small.addEventListener('change', update);
   update();
 }

@@ -410,34 +410,6 @@ svg { fill: currentColor; }
   margin-top: 6px;
 }
 .hero__actions .btn--line { background: rgba(11, 10, 8, 0.35); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
-.hero__scroll {
-  position: absolute;
-  z-index: 2;
-  bottom: 28px;
-  left: 50%;
-  width: 26px;
-  height: 44px;
-  margin-left: -13px;
-  border: 1px solid var(--line-strong);
-  border-radius: 14px;
-}
-.hero__scroll span {
-  position: absolute;
-  left: 50%;
-  top: 9px;
-  width: 2px;
-  height: 8px;
-  margin-left: -1px;
-  background: var(--gold);
-  color: var(--bg);
-  border-radius: 1px;
-  animation: scrollcue 1.8s var(--ease-in-out) infinite;
-}
-@keyframes scrollcue {
-  0% { transform: translateY(0); opacity: 0; }
-  30% { opacity: 1; }
-  100% { transform: translateY(16px); opacity: 0; }
-}
 
 /* ---------- Interludio: las herramientas, el texto se enciende al leer ---------- */
 
@@ -489,13 +461,13 @@ svg { fill: currentColor; }
   font-variation-settings: "opsz" 12;
   font-weight: 500;
   font-size: clamp(2.6rem, 6.4vw, 5.6rem);
-  line-height: 1;
+  line-height: 1.1;
   letter-spacing: -0.02em;
   color: var(--ivory);
   text-wrap: balance;
 }
 .title--xl { font-size: clamp(3rem, 8vw, 6rem); }
-.title .w { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: 0.1em; margin-bottom: -0.1em; }
+.title .w { display: inline-block; overflow: hidden; vertical-align: top; padding: 0.06em 0 0.24em; margin: -0.06em 0 -0.24em; }
 .title .w > span { display: inline-block; transform-origin: 0 100%; }
 .title em { color: var(--gold); }
 .lead {
@@ -885,7 +857,6 @@ svg { fill: currentColor; }
   .motion .header:not(.is-in) { transform: translateY(-100%); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .hero__scroll span { animation: none; }
 
 }
 
@@ -907,7 +878,6 @@ svg { fill: currentColor; }
   .hero__content { padding: 110px var(--gutter) 120px; gap: 18px; }
   .hero__actions { flex-direction: column; align-items: stretch; width: 100%; max-width: 360px; }
   .hero__rating { font-size: 0.7rem; letter-spacing: 0.14em; }
-  .hero__scroll { display: none; }
   .menu { grid-template-columns: 1fr; }
   .menu li { grid-template-columns: minmax(0, auto) minmax(12px, 1fr) auto; }
   .menu__time { display: none; }

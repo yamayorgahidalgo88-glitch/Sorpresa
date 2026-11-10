@@ -82,6 +82,13 @@ El usuario decidió quitar de la web el asesor de cortes con IA y todo lo suyo (
 - Título de la galería: «Nuestros trabajos» (el usuario no quiere «Cortes reales en Alcorcón»: suena exagerado).
 - Pie: el texto de fuentes (Booksy, Mixkit) va en una ventanita que se abre con el enlace «Créditos».
 
+## Cambios del 11-11-2026
+- Portada: «Corte de caballero: 11 €» sin punto final; quitado el indicador de «bajar» (óvalo con línea).
+- Títulos: interlineado 1,1 y más hueco en el recorte de cada palabra, para que no se corten la g, j, p, q ni choque la «¿».
+- Primera pregunta: «¿Cuánto cuesta un corte de pelo de hombre en nuestra peluquería de Alcorcón?».
+- Cabecera: en móvil siempre visible; en escritorio se esconde al bajar y vuelve al subir con umbral de 6 px (antes parpadeaba al bajar despacio).
+- Dudas legales que planteó el usuario: derechos de imagen de las fotos de clientes (Ayoub debe confirmar el consentimiento; ofrecer quitar o difuminar las que tengan cara) y aviso legal (LSSI, necesita nombre, NIF y contacto de Ayoub). Cookies: la web no usa ninguna, no hace falta banner.
+
 ## PENDIENTE (siguiente paso)
 1. El usuario irá pidiendo más ajustes de diseño.
 2. Teléfono de la barbería: añadirlo a la web y al JSON-LD cuando lo dé.
