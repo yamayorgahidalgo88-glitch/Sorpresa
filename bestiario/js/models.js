@@ -564,8 +564,289 @@ function buildRogue() {
   return b.bake();
 }
 
+/* =====================================================================
+   OSKO — esqueleto con astas espectrales
+   ===================================================================== */
+function buildOsko() {
+  const b = new Blueprint(), BOX = (x, y, z) => new THREE.BoxGeometry(x, y, z);
+  b.group('all', 'root').group('legL', 'all', [0.12, 0.34, 0]).group('legR', 'all', [-0.12, 0.34, 0])
+    .group('torso', 'all', [0, 0.34, 0]).group('head', 'torso', [0, 0.7, 0]).group('antlers', 'head', [0, 1.02, 0])
+    .group('armL', 'torso', [0.27, 0.63, 0]).group('armR', 'torso', [-0.27, 0.63, 0]);
+  for (const s of [1, -1]) {
+    const L = s > 0 ? 'legL' : 'legR', A = s > 0 ? 'armL' : 'armR';
+    b.add(L, 'dark', SPH, { local: true, p: [0, -0.01, 0], s: 0.062 });
+    b.add(L, 'bone', cyl(0.042, 0.2, 10), { local: true, p: [0, -0.13, 0] });
+    b.add(L, 'ghost', SPH, { local: true, p: [0, -0.22, 0], s: [0.07, 0.04, 0.07] });
+    b.add(L, 'bone', SPH, { local: true, p: [0, -0.28, 0.04], s: [0.1, 0.065, 0.14] });
+    b.add('torso', 'dark', SPH, { p: [s * 0.27, 0.63, 0], s: 0.08 });
+    b.add(A, 'bone', sweep([[0, 0, 0], [s * 0.05, -0.12, 0.02], [s * 0.07, -0.23, 0.05]], [0.045, 0.036, 0.042], 10, 10), { local: true });
+    b.add(A, 'dark', SPH, { local: true, p: [s * 0.072, -0.245, 0.052], s: 0.05 });
+    b.add(A, 'bone', SPH, { local: true, p: [s * 0.078, -0.31, 0.06], s: [0.072, 0.066, 0.072] });
+  }
+  b.add('torso', 'dark', SPH, { p: [0, 0.36, 0], s: [0.185, 0.1, 0.13] });
+  b.add('torso', 'dark', cyl(0.04, 0.32, 10), { p: [0, 0.5, -0.04] });
+  [[0.43, 0.15], [0.51, 0.188], [0.59, 0.172]].forEach(([y, r]) => b.add('torso', 'bone', torus(r, 0.03, PI * 2, 30), { p: [0, y, 0], r: [PI / 2, 0, 0], s: [1, 0.8, 1] }));
+  b.add('torso', 'ghost', SPH, { p: [0, 0.5, 0], s: 0.095 });
+  b.sprite('core', 'torso', [0, 0.5, 0.05], 0x3dffa8, 0.6, 0.6, 0.45);
+  b.add('torso', 'bone', BOX(0.058, 0.23, 0.04), { p: [0, 0.5, 0.158] });
+  b.add('torso', 'bone', BOX(0.17, 0.058, 0.04), { p: [0, 0.545, 0.158] });
+  // cráneo
+  b.add('head', 'dark', SPH, { p: [0, 0.9, 0], s: [0.25, 0.22, 0.25] });
+  b.add('head', 'bone', SPH, { p: [0, 0.835, 0.25], s: [0.14, 0.085, 0.19] });
+  b.add('head', 'dark', SPH, { p: [0, 0.785, 0.21], s: [0.115, 0.04, 0.16] });
+  b.add('head', 'bone', SPH, { p: [0, 0.745, 0.19], s: [0.115, 0.045, 0.15] });
+  for (let i = -2; i <= 2; i++) b.add('head', 'white', new THREE.ConeGeometry(0.022, 0.055, 6), { p: [i * 0.048, 0.778, 0.385 - Math.abs(i) * 0.04], r: [PI, 0, 0] });
+  for (const s of [1, -1]) {
+    b.add('head', 'eye', SPH, { p: [s * 0.115, 0.905, 0.19], s: [0.062, 0.068, 0.04] });
+    b.sprite('eye' + (s > 0 ? 'L' : 'R'), 'head', [s * 0.115, 0.905, 0.25], 0x5dffb8, 0.26, 0.22, 0.6);
+    b.add('head', 'dark', new THREE.ConeGeometry(0.055, 0.17, 8), { p: [s * 0.28, 0.93, -0.04], r: [0, 0, s * -1.25] });
+    b.add('antlers', 'ghost', sweep([[s * 0.11, 1.04, 0], [s * 0.2, 1.2, 0], [s * 0.31, 1.28, 0], [s * 0.34, 1.43, 0]], [0.052, 0.046, 0.04, 0.014], 10, 20));
+    b.add('antlers', 'ghost', sweep([[s * 0.2, 1.2, 0], [s * 0.14, 1.32, 0], [s * 0.17, 1.43, 0]], [0.036, 0.03, 0.012], 8, 12));
+    b.add('antlers', 'ghost', sweep([[s * 0.31, 1.28, 0], [s * 0.41, 1.31, 0], [s * 0.45, 1.4, 0]], [0.032, 0.028, 0.01], 8, 12));
+    b.sprite('ant' + (s > 0 ? 'L' : 'R'), 'antlers', [s * 0.27, 1.28, 0], 0x3dffa8, 0.55, 0.6, 0.4);
+  }
+  b.mats = {
+    bone: std(0xe3d5c4, { roughness: 0.6 }), dark: std(0x2b2632, { roughness: 0.6 }), white: std(0xfaf5ea),
+    ghost: () => new THREE.MeshBasicMaterial({ color: 0x62ffbc, transparent: true, opacity: 0.82, depthWrite: false }), eye: basic(0xdcffec),
+  };
+  b.noShadow = ['ghost'];
+  b.height = 1.55; b.modelScale = 0.9; b.durations = { attack: 0.5, super: 0.9 };
+  b.animate = (rig, t, st) => {
+    const g = rig.g, w = st.walk, sn = Math.sin(rig.walkT * 11);
+    let thr = Math.sin(t * 1.5) * 0.06, both = 0, twist = 0, lean = 0, bob = Math.abs(sn) * 0.04 * w, hot = 0;
+    if (st.atk >= 0) { const a = st.atk; thr = kf(a, [[0, 0], [0.22, 1.0], [0.38, -1.9], [0.6, -1.5], [1, 0]]); twist = kf(a, [[0, 0], [0.22, 0.45], [0.38, -0.5], [1, 0]]); lean = kf(a, [[0, 0], [0.38, 0.2], [1, 0]]); }
+    if (st.sup >= 0) { const a = st.sup; both = kf(a, [[0, 0], [0.25, 1], [0.6, 1], [1, 0]]); lean = kf(a, [[0, 0], [0.25, -0.2], [0.4, 0.25], [1, 0]]); hot = both; }
+    if (st.cheer > 0) { both = 0.9 + Math.sin(t * 12) * 0.1; bob += Math.abs(Math.sin(t * 8)) * 0.1; }
+    g.all.position.y = bob;
+    g.legL.rotation.x = sn * 0.7 * w; g.legR.rotation.x = -sn * 0.7 * w;
+    g.torso.rotation.set(lean + w * 0.08, twist, sn * 0.06 * w);
+    g.head.rotation.set(Math.sin(t * 1.6) * 0.04 - lean * 0.4, -twist * 0.6, Math.sin(t * 1.1) * 0.03);
+    g.armR.rotation.set(thr - both * 2.6 - sn * 0.5 * w, 0, -both * 0.3);
+    g.armL.rotation.set(-both * 2.6 + sn * 0.5 * w, 0, both * 0.3);
+    const pulse = 0.5 + 0.5 * Math.sin(t * 3);
+    g.head.scale.setScalar(1.22);
+    g.antlers.scale.setScalar(1 + 0.03 * pulse + 0.25 * hot);
+    rig.mats.ghost.opacity = 0.7 + 0.15 * pulse;
+    rig.sp.core.material.opacity = 0.35 + 0.15 * pulse + 0.4 * hot;
+    rig.sp.antL.material.opacity = rig.sp.antR.material.opacity = 0.3 + 0.12 * pulse + 0.5 * hot;
+  };
+  return b.bake();
+}
+
+/* =====================================================================
+   GLOOP — alienígena en traje robot
+   ===================================================================== */
+function buildGloop() {
+  const b = new Blueprint(), BOX = (x, y, z) => new THREE.BoxGeometry(x, y, z);
+  b.group('all', 'root').group('legL', 'all', [0.14, 0.3, 0]).group('legR', 'all', [-0.14, 0.3, 0])
+    .group('torso', 'all', [0, 0.3, 0]).group('head', 'torso', [0, 0.8, 0]).group('blob', 'head', [0, 0.86, 0])
+    .group('armL', 'torso', [0.32, 0.64, 0]).group('armR', 'torso', [-0.32, 0.64, 0]);
+  for (const s of [1, -1]) {
+    const L = s > 0 ? 'legL' : 'legR', A = s > 0 ? 'armL' : 'armR';
+    b.add(L, 'dark', cyl(0.09, 0.17, 8), { local: true, p: [0, -0.08, 0] });
+    b.add(L, 'grey', BOX(0.17, 0.07, 0.17), { local: true, p: [0, -0.03, 0.01] });
+    b.add(L, 'neon', BOX(0.07, 0.03, 0.02), { local: true, p: [0, -0.03, 0.1] });
+    b.add(L, 'dark', SPH, { local: true, p: [0, -0.21, 0.04], s: [0.12, 0.085, 0.165] });
+    b.add(L, 'neon', cyl(0.1, 0.022, 18), { local: true, p: [0, -0.285, 0.04], s: [1.15, 1, 1.6] });
+    b.add(A, 'grey', SPH, { local: true, p: [0, 0, 0], s: [0.105, 0.095, 0.105] });
+    b.add(A, 'dark', cyl(0.062, 0.14, 10), { local: true, p: [s * 0.03, -0.1, 0] });
+    b.add(A, 'grey', cyl(0.09, 0.075, 8), { local: true, p: [s * 0.04, -0.19, 0.02] });
+    b.add(A, 'dark', SPH, { local: true, p: [s * 0.045, -0.29, 0.03], s: [0.115, 0.105, 0.115] });
+    for (const k of [-1, 1]) b.add(A, 'neon', BOX(0.028, 0.075, 0.02), { local: true, p: [s * 0.045 + k * 0.035, -0.29, 0.14] });
+    b.sprite('fist' + (s > 0 ? 'L' : 'R'), A, [s * 0.045, -0.29, 0.1], 0xa8ff20, 0.45, 0.45, 0.25, true);
+    b.add('torso', 'neon', SPH, { p: [s * 0.325, 0.775, 0.06], s: 0.052 });
+    b.sprite('lamp' + (s > 0 ? 'L' : 'R'), 'torso', [s * 0.34, 0.775, 0.1], 0xa8ff20, 0.25, 0.25, 0.5);
+  }
+  b.add('torso', 'dark', cyl(0.2, 0.3, 8, 0.25), { p: [0, 0.47, 0] });
+  b.add('torso', 'grey', cyl(0.27, 0.1, 8, 0.31), { p: [0, 0.66, 0] });
+  b.add('torso', 'grey', cyl(0.335, 0.09, 8, 0.3), { p: [0, 0.765, 0] });
+  b.add('torso', 'grey', BOX(0.17, 0.13, 0.04), { p: [0, 0.66, 0.275], r: [-0.25, 0, 0] });
+  [[0.69, 0.11], [0.66, 0.09], [0.63, 0.065]].forEach(([y, wd], i) => b.add('torso', 'neon', BOX(wd, 0.02, 0.02), { p: [0, y, 0.295 - i * 0.008] }));
+  b.add('torso', 'neon', BOX(0.17, 0.045, 0.02), { p: [0, 0.5, 0.225] });
+  [[0.43, 0.14], [0.39, 0.11], [0.35, 0.08]].forEach(([y, wd]) => b.add('torso', 'neon', BOX(wd, 0.018, 0.02), { p: [0, y, 0.205] }));
+  // criatura dentro de la cúpula
+  b.add('blob', 'slime', SPH, { p: [0, 1.0, 0], s: [0.12, 0.15, 0.1] });
+  b.add('blob', 'slime', SPH, { p: [0, 0.87, 0], s: [0.19, 0.075, 0.17] });
+  for (const s of [1, -1]) b.add('blob', 'eyeY', SPH, { p: [s * 0.045, 1.03, 0.092], s: [0.022, 0.034, 0.012] });
+  b.add('head', 'glass', SPH, { p: [0, 0.98, 0], s: [0.255, 0.31, 0.255] });
+  b.sprite('dome', 'head', [0, 1.0, 0.1], 0x9dff2a, 0.75, 0.8, 0.25);
+  b.mats = {
+    dark: std(0x27272c, { roughness: 0.5 }), grey: std(0x77737a, { roughness: 0.4, metalness: 0.3 }), neon: basic(0xb8ff30),
+    slime: std(0xc0ff45, { roughness: 0.3, emissive: 0x5fa80a }), eyeY: basic(0xfffbc0),
+    glass: () => new THREE.MeshStandardMaterial({ color: 0x9dff3a, transparent: true, opacity: 0.36, roughness: 0.08, emissive: 0x2f6600, depthWrite: false }),
+  };
+  b.noShadow = ['glass'];
+  b.height = 1.38; b.durations = { attack: 0.48, super: 0.85 };
+  b.animate = (rig, t, st) => {
+    const g = rig.g, w = st.walk, sn = Math.sin(rig.walkT * 10);
+    let pR = Math.sin(t * 1.5) * 0.05, pL = 0, twist = 0, lean = 0, bob = Math.abs(sn) * 0.035 * w, hot = 0;
+    if (st.atk >= 0) { const a = st.atk; pR = kf(a, [[0, 0], [0.22, 0.8], [0.4, -1.7], [0.6, -1.45], [1, 0]]); twist = kf(a, [[0, 0], [0.22, 0.5], [0.4, -0.55], [1, 0]]); lean = kf(a, [[0, 0], [0.4, 0.28], [1, 0]]); hot = kf(a, [[0.1, 0], [0.4, 1], [0.9, 0]]); }
+    if (st.sup >= 0) { const a = st.sup; pR = pL = kf(a, [[0, 0], [0.3, 0.7], [0.48, -1.65], [0.8, -1.5], [1, 0]]); lean = kf(a, [[0, 0], [0.3, -0.15], [0.48, 0.4], [1, 0]]); hot = kf(a, [[0, 0], [0.3, 1], [0.8, 1], [1, 0]]) * 1.4; }
+    if (st.cheer > 0) { pR = pL = -2.7 + Math.sin(t * 12) * 0.2; bob += Math.abs(Math.sin(t * 8)) * 0.09; }
+    g.all.position.y = bob;
+    g.legL.rotation.x = sn * 0.6 * w; g.legR.rotation.x = -sn * 0.6 * w;
+    g.torso.rotation.set(lean + w * 0.06, twist, sn * 0.05 * w);
+    g.armR.rotation.set(pR - sn * 0.45 * w, 0, 0); g.armL.rotation.set(pL + sn * 0.45 * w, 0, 0);
+    g.blob.scale.set(1 + Math.sin(t * 2.6) * 0.05, 1 - Math.sin(t * 2.6) * 0.06, 1); g.blob.rotation.y = Math.sin(t * 0.9) * 0.4 - twist;
+    const pulse = 0.5 + 0.5 * Math.sin(t * 3);
+    rig.sp.fistR.material.opacity = 0.15 + 0.1 * pulse + 0.7 * Math.min(1, hot);
+    rig.sp.fistL.material.opacity = 0.15 + 0.1 * pulse + (st.sup >= 0 ? 0.7 * Math.min(1, hot) : 0);
+    rig.sp.fistR.scale.setScalar(0.45 + 0.35 * Math.min(1.4, hot)); rig.sp.fistL.scale.setScalar(0.45 + (st.sup >= 0 ? 0.35 * Math.min(1.4, hot) : 0));
+    rig.sp.dome.material.opacity = 0.2 + 0.08 * pulse + 0.2 * Math.min(1, hot);
+  };
+  return b.bake();
+}
+
+/* =====================================================================
+   TANKO — pingüino en tanque
+   ===================================================================== */
+let _camo;
+function camoTex() {
+  if (_camo) return _camo;
+  const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d');
+  x.fillStyle = '#cfd3ec'; x.fillRect(0, 0, 256, 256);
+  let sd = 5; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 26; i++) {
+    x.fillStyle = i % 3 ? '#7f88ba' : '#5c6596'; const cx = rnd() * 256, cy = rnd() * 256, r = 18 + rnd() * 26;
+    for (const [ox, oy] of [[0, 0], [256, 0], [-256, 0], [0, 256], [0, -256]]) { x.beginPath(); x.ellipse(cx + ox, cy + oy, r, r * (0.5 + rnd() * 0.4), rnd() * 3, 0, PI * 2); x.fill(); x.beginPath(); x.ellipse(cx + ox + r * 0.7, cy + oy + r * 0.3, r * 0.6, r * 0.4, 1, 0, PI * 2); x.fill(); }
+  }
+  _camo = new THREE.CanvasTexture(c); _camo.colorSpace = THREE.SRGBColorSpace; _camo.wrapS = _camo.wrapT = THREE.RepeatWrapping; _camo.repeat.set(0.6, 0.6); return _camo;
+}
+function buildTanko() {
+  const b = new Blueprint(), BOX = (x, y, z) => new THREE.BoxGeometry(x, y, z);
+  b.group('all', 'root').group('hull', 'all', [0, 0.2, 0]).group('turret', 'hull', [0, 0.42, 0]).group('cannon', 'turret', [0, 0.52, 0.25]).group('pingu', 'turret', [0, 0.62, -0.08]);
+  const WZ = [-0.29, 0, 0.29];
+  for (const s of [1, -1]) {
+    b.add('all', 'track', BOX(0.2, 0.2, 0.84), { p: [s * 0.36, 0.115, 0] });
+    for (const z of [-0.42, 0.42]) b.add('all', 'track', cyl(0.1, 0.2, 14), { p: [s * 0.36, 0.115, z], r: [0, 0, PI / 2] });
+    WZ.forEach((z, i) => { const n = 'w' + (s > 0 ? 'l' : 'r') + i; b.group(n, 'all', [s * 0.465, 0.115, z]); b.add(n, 'wheel', cyl(0.078, 0.03, 12), { local: true, r: [0, 0, PI / 2] }); b.add(n, 'track', BOX(0.035, 0.03, 0.1), { local: true }); });
+    b.add('hull', 'light', BOX(0.11, 0.06, 0.02), { p: [s * 0.3, 0.31, 0.545] });
+    b.sprite('lamp' + (s > 0 ? 'L' : 'R'), 'hull', [s * 0.3, 0.31, 0.58], 0xbfd8ff, 0.3, 0.25, 0.5);
+    b.add('pingu', 'black', SPH, { p: [s * 0.2, 0.72, -0.06], s: [0.06, 0.12, 0.08] });
+  }
+  b.add('hull', 'camo', BOX(0.96, 0.045, 1.0), { p: [0, 0.245, 0] });
+  b.add('hull', 'camo', BOX(0.64, 0.17, 0.92), { p: [0, 0.335, -0.02] });
+  b.add('hull', 'camo', BOX(0.64, 0.13, 0.2), { p: [0, 0.3, 0.47], r: [0.55, 0, 0] });
+  b.add('turret', 'camo', BOX(0.5, 0.2, 0.5), { p: [0, 0.51, 0.02] });
+  b.add('turret', 'gun', BOX(0.38, 0.3, 0.06), { p: [0, 0.72, -0.3], r: [-0.12, 0, 0] });
+  b.add('cannon', 'gun', SPH, { p: [0, 0.52, 0.27], s: 0.115 });
+  b.add('cannon', 'gun', cyl(0.07, 0.4, 16), { p: [0, 0.52, 0.47], r: [PI / 2, 0, 0] });
+  b.add('cannon', 'gun', cyl(0.098, 0.1, 16), { p: [0, 0.52, 0.69], r: [PI / 2, 0, 0] });
+  b.add('cannon', 'black', cyl(0.062, 0.02, 16), { p: [0, 0.52, 0.735], r: [PI / 2, 0, 0] });
+  b.sprite('muzzle', 'cannon', [0, 0.52, 0.8], 0xffb040, 0.6, 0.6, 0);
+  // pingüino
+  const FC = [0, 0.77, 0.02], FR = [0.15, 0.16, 0.13];
+  b.add('pingu', 'black', SPH, { p: [0, 0.75, -0.08], s: [0.2, 0.22, 0.19] });
+  b.add('pingu', 'white', SPH, { p: FC, s: FR });
+  b.add('pingu', 'orange', new THREE.ConeGeometry(0.05, 0.1, 10), { p: [0, 0.775, 0.18], r: [PI / 2, 0, 0] });
+  for (const s of [1, -1]) { b.add('pingu', 'eyeLine', eyeGeo(s, 0.62), onEllipsoid(FC, FR, s * 30, 26, 1.03)); b.add('pingu', 'eyeIce', eyeGeo(s, 0.44), onEllipsoid(FC, FR, s * 30, 26, 1.06)); }
+  b.add('pingu', 'camo', new THREE.SphereGeometry(1, 28, 12, 0, PI * 2, 0, PI / 2), { p: [0, 0.875, -0.06], s: [0.235, 0.2, 0.235] });
+  b.add('pingu', 'camo', cyl(0.265, 0.03, 26), { p: [0, 0.875, -0.06] });
+  b.mats = {
+    camo: () => new THREE.MeshStandardMaterial({ map: camoTex(), roughness: 0.6 }), track: std(0x2d2b3a, { roughness: 0.8 }), wheel: std(0x666b86, { roughness: 0.5, metalness: 0.3 }),
+    gun: std(0x4a4c63, { roughness: 0.5, metalness: 0.2 }), black: std(0x1c1b24, { roughness: 0.6 }), white: std(0xfafaff), orange: std(0xff8f1f),
+    light: basic(0xe6f0ff), eyeLine: basic(0x14131c, { side: THREE.DoubleSide }), eyeIce: basic(0xdfeaff, { side: THREE.DoubleSide }),
+  };
+  b.height = 1.25; b.modelScale = 0.88; b.durations = { attack: 0.55, super: 0.9 };
+  b.animate = (rig, t, st) => {
+    const g = rig.g, w = st.walk;
+    let rec = 0, kick = 0, flash = 0, charge = 0;
+    if (st.atk >= 0) { const a = st.atk; rec = kf(a, [[0, 0], [0.26, 0], [0.34, 1], [1, 0]]); kick = rec; flash = kf(a, [[0.26, 0], [0.33, 1], [0.6, 0]]); }
+    if (st.sup >= 0) { const a = st.sup; charge = kf(a, [[0, 0], [0.38, 1], [0.44, 0]]); rec = kf(a, [[0.38, 0], [0.46, 1], [1, 0]]); kick = rec; flash = kf(a, [[0.38, 0], [0.45, 1], [0.75, 0]]); }
+    g.all.position.set(0, Math.sin(rig.walkT * 34) * 0.006 * w, -rec * 0.05);
+    g.hull.rotation.x = -kick * 0.07 + Math.sin(t * 2) * 0.004;
+    g.turret.rotation.x = -kick * 0.06;
+    g.cannon.position.z = g.cannon.userData.pz0 === undefined ? (g.cannon.userData.pz0 = g.cannon.position.z) : g.cannon.userData.pz0 - rec * 0.14;
+    for (const k of ['wl0', 'wl1', 'wl2', 'wr0', 'wr1', 'wr2']) g[k].rotation.x = rig.walkT * 9;
+    g.pingu.position.y = g.pingu.userData.py + Math.sin(t * 2.4) * 0.008 + kick * 0.02 + (st.cheer > 0 ? Math.abs(Math.sin(t * 8)) * 0.07 : 0);
+    g.pingu.rotation.set(-kick * 0.15, Math.sin(t * 0.8) * 0.12, 0);
+    const m = rig.sp.muzzle; m.material.color.setHex(st.sup >= 0 ? 0x6fc8ff : 0xffb040);
+    m.material.opacity = Math.max(flash, charge * 0.8); m.scale.setScalar(0.3 + flash * 0.6 + charge * 0.35);
+  };
+  return b.bake();
+}
+
+/* =====================================================================
+   DENTÓN — tiburón en pecera con ruedas
+   ===================================================================== */
+function buildDenton() {
+  const b = new Blueprint(), BOX = (x, y, z) => new THREE.BoxGeometry(x, y, z);
+  b.group('all', 'root').group('body', 'all', [0, 0.55, 0]).group('head', 'body', [0, 0.92, 0])
+    .group('armL', 'body', [0.3, 0.82, 0.04]).group('armR', 'body', [-0.3, 0.82, 0.04]);
+  [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([sx, sz], i) => {
+    const n = 'wh' + i; b.group(n, 'all', [sx * 0.3, 0.125, sz * 0.22]);
+    b.add(n, 'tire', cyl(0.125, 0.1, 18), { local: true, r: [0, 0, PI / 2] });
+    b.add(n, 'metal', cyl(0.062, 0.112, 6), { local: true, r: [0, 0, PI / 2] });
+  });
+  b.add('all', 'metalDark', cyl(0.34, 0.06, 24), { p: [0, 0.21, 0] });
+  for (const [x, z, h] of [[0.2, 0.2, 0.2], [-0.16, 0.24, 0.16], [0.05, -0.25, 0.22], [-0.24, -0.1, 0.18]]) b.add('all', 'weed', new THREE.ConeGeometry(0.03, h, 6), { p: [x, 0.26 + h / 2, z] });
+  for (const [x, z] of [[0.08, 0.26], [-0.22, 0.12], [0.24, -0.05]]) b.add('all', 'pebble', SPH, { p: [x, 0.27, z], s: [0.05, 0.035, 0.05] });
+  b.add('all', 'water', SPH, { p: [0, 0.43, 0], s: [0.41, 0.25, 0.41] });
+  b.add('all', 'metal', torus(0.335, 0.042), { p: [0, 0.62, 0], r: [PI / 2, 0, 0] });
+  b.add('all', 'gold', BOX(0.21, 0.15, 0.04), { p: [0, 0.6, 0.355] });
+  b.add('all', 'badge', BOX(0.15, 0.1, 0.045), { p: [0, 0.6, 0.36] });
+  b.add('all', 'neonB', new THREE.ConeGeometry(0.035, 0.07, 3), { p: [0, 0.6, 0.385], s: [1, 1, 0.2] });
+  b.add('all', 'navy', sweep([[0, 0.5, -0.25], [0, 0.48, -0.42], [0, 0.5, -0.52]], [0.09, 0.06, 0.03], 10, 10));
+  b.add('all', 'navy', new THREE.ConeGeometry(0.13, 0.3, 4), { p: [0, 0.58, -0.56], r: [-0.9, 0, 0], s: [0.22, 1, 1] });
+  b.add('all', 'navy', new THREE.ConeGeometry(0.1, 0.22, 4), { p: [0, 0.42, -0.57], r: [-2.2, 0, 0], s: [0.22, 1, 1] });
+  // torso
+  b.add('body', 'navy', SPH, { p: [0, 0.78, 0], s: [0.27, 0.27, 0.24] });
+  b.add('body', 'cream', SPH, { p: [0, 0.77, 0.085], s: [0.19, 0.21, 0.18] });
+  for (const s of [1, -1]) {
+    const A = s > 0 ? 'armL' : 'armR';
+    b.add(A, 'navy', SPH, { local: true, p: [0, 0, 0], s: [0.135, 0.125, 0.135] });
+    b.add(A, 'navy', SPH, { local: true, p: [s * 0.06, -0.09, 0.12], s: [0.1, 0.1, 0.125] });
+    b.add(A, 'navy', SPH, { local: true, p: [s * 0.015, -0.04, 0.26], s: [0.108, 0.102, 0.108] });
+  }
+  // cabeza
+  const HC = [0, 1.1, 0.02], HR = [0.3, 0.25, 0.3];
+  b.add('head', 'navy', SPH, { p: HC, s: HR });
+  b.add('head', 'navy', SPH, { p: [0, 1.12, 0.2], s: [0.2, 0.13, 0.2] });
+  b.add('head', 'cream', SPH, { p: [0, 0.99, 0.11], s: [0.245, 0.13, 0.23] });
+  b.add('head', 'mouthR', SPH, { p: [0, 1.0, 0.185], s: [0.2, 0.075, 0.175] });
+  for (let i = -3; i <= 3; i++) {
+    const a = i * 0.3;
+    b.add('head', 'white', new THREE.ConeGeometry(0.03, 0.065, 4), { p: [Math.sin(a) * 0.195, 1.04, 0.185 + Math.cos(a) * 0.17], r: [PI, a, 0] });
+    if (Math.abs(i) < 3) b.add('head', 'white', new THREE.ConeGeometry(0.026, 0.055, 4), { p: [Math.sin(a + 0.15) * 0.18, 0.955, 0.18 + Math.cos(a + 0.15) * 0.155], r: [0, a, 0] });
+  }
+  for (const s of [1, -1]) {
+    b.add('head', 'eyeLine', eyeGeo(s, 1.05), onEllipsoid(HC, HR, s * 30, 14, 1.015));
+    b.add('head', 'eyeW', eyeGeo(s, 0.82), onEllipsoid(HC, HR, s * 30, 14, 1.035));
+    b.sprite('eye' + (s > 0 ? 'L' : 'R'), 'head', onEllipsoid(HC, HR, s * 30, 14, 1.12).p, 0xdfe8ff, 0.2, 0.15, 0.35);
+    b.add('head', 'navy', new THREE.ConeGeometry(0.06, 0.2, 6), { p: [s * 0.29, 1.17, -0.12], r: [-0.9, 0, s * -0.9] });
+    b.add('head', 'navy', new THREE.ConeGeometry(0.05, 0.16, 6), { p: [s * 0.27, 1.05, -0.17], r: [-1.2, 0, s * -1.0] });
+  }
+  b.add('head', 'navy', new THREE.ConeGeometry(0.11, 0.28, 4), { p: [0, 1.4, -0.04], r: [-0.35, 0, 0], s: [0.25, 1, 1] });
+  b.add('head', 'navy', new THREE.ConeGeometry(0.07, 0.18, 4), { p: [0, 1.27, -0.24], r: [-0.9, 0, 0], s: [0.25, 1, 1] });
+  b.mats = {
+    navy: std(0x3f5199, { roughness: 0.5 }), cream: std(0xf4dfcc, { roughness: 0.6 }), mouthR: std(0x7c1f33, { roughness: 0.7 }), white: std(0xffffff, { roughness: 0.4 }),
+    tire: std(0x24222f, { roughness: 0.8 }), metal: std(0xa3a8c2, { roughness: 0.35, metalness: 0.4 }), metalDark: std(0x55597a, { roughness: 0.5, metalness: 0.3 }),
+    weed: std(0x42b560), pebble: std(0x9a8f88), gold, badge: std(0x2c3a78), neonB: basic(0x7fefff),
+    water: () => new THREE.MeshStandardMaterial({ color: 0x3fb0ee, transparent: true, opacity: 0.5, roughness: 0.08, emissive: 0x0c4a80, depthWrite: false }),
+    eyeW: basic(0xffffff, { side: THREE.DoubleSide }), eyeLine: basic(0x1b2450, { side: THREE.DoubleSide }),
+  };
+  b.noShadow = ['water'];
+  b.height = 1.7; b.modelScale = 0.8; b.durations = { attack: 0.55, super: 0.8 };
+  b.animate = (rig, t, st) => {
+    const g = rig.g, w = st.walk;
+    let thr = 0, twist = 0, lean = w * 0.12, bite = 0, flex = Math.sin(t * 2) * 0.05;
+    if (st.atk >= 0) { const a = st.atk; thr = kf(a, [[0, 0], [0.22, 0.9], [0.4, -1.3], [0.65, -1.0], [1, 0]]); twist = kf(a, [[0, 0], [0.22, 0.4], [0.4, -0.45], [1, 0]]); lean += kf(a, [[0, 0], [0.4, 0.18], [1, 0]]); }
+    if (st.sup >= 0) { const a = st.sup; lean += kf(a, [[0, 0], [0.2, -0.25], [0.42, 0.7], [0.7, 0.55], [1, 0]]); bite = kf(a, [[0, 0], [0.2, 1], [0.4, 1], [0.48, -0.3], [1, 0]]); flex = -kf(a, [[0, 0], [0.42, 0.9], [1, 0]]); }
+    if (st.cheer > 0) flex = -1.6 + Math.sin(t * 12) * 0.2;
+    g.all.position.y = Math.sin(rig.walkT * 30) * 0.005 * w;
+    for (let i = 0; i < 4; i++) g['wh' + i].rotation.x = rig.walkT * 8;
+    const br = Math.sin(t * 2.2) * 0.015;
+    g.body.scale.set(1 + br, 1 - br, 1 + br);
+    g.body.rotation.set(lean, twist, Math.sin(t * 1.3) * 0.03);
+    g.head.rotation.set(-bite * 0.35 - lean * 0.3 + Math.sin(t * 1.7) * 0.03, -twist * 0.5, 0);
+    g.armR.rotation.set(thr + flex, 0, 0); g.armL.rotation.set(flex - thr * 0.2, 0, 0);
+    rig.sp.eyeL.material.opacity = rig.sp.eyeR.material.opacity = 0.3 + 0.1 * Math.sin(t * 3) + 0.5 * Math.max(0, bite);
+  };
+  return b.bake();
+}
+
 /* ---------------- creación de instancias ---------------- */
-const BUILDERS = { bushi: buildBushi, bolab: buildBolab, ogul: buildOgul, rogue: buildRogue }, BP = {};
+const BUILDERS = { bushi: buildBushi, bolab: buildBolab, ogul: buildOgul, rogue: buildRogue, osko: buildOsko, gloop: buildGloop, tanko: buildTanko, denton: buildDenton }, BP = {};
 export function createCharacter(type) {
   const bp = BP[type] || (BP[type] = BUILDERS[type]());
   const g = {}, mats = {}, sp = {};
@@ -574,6 +855,7 @@ export function createCharacter(type) {
     if (d.parent) { const pa = bp.groups[d.parent].abs; o.position.set(d.abs[0] - pa[0], d.abs[1] - pa[1], d.abs[2] - pa[2]); g[d.parent].add(o); }
     o.rotation.set(...d.rot); o.userData.py = o.position.y;
   }
+  if (bp.modelScale) g.root.scale.setScalar(1), g.all.scale.setScalar(bp.modelScale);
   for (const [k, f] of Object.entries(bp.mats)) {
     const m = mats[k] = f();
     if (m.emissive) { m.userData.e0 = m.emissive.clone().multiplyScalar(m.emissiveIntensity ?? 1); }
