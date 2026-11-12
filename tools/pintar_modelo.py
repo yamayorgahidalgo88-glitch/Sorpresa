@@ -28,31 +28,39 @@ for tri in F:
     W=np.stack([w0[ins],w1[ins],w2[ins]],1)
     P[ys[ins],xs[ins]]=W@V[tri]; NM[ys[ins],xs[ins]]=W@N[tri]; M[ys[ins],xs[ins]]=True
 pts=P[M]; nr=NM[M]; nr/=np.linalg.norm(nr,axis=1,keepdims=True)+1e-9
-acc=np.zeros((len(pts),3)); ws=np.zeros(len(pts))
+best=np.full(len(pts),-1.0); col=np.zeros((len(pts),3)); best2=np.full(len(pts),-1.0); col2=np.zeros((len(pts),3))
 def sample(img,px,py):
     H,W=img.shape[:2]; px=np.clip(px,0,W-1.001); py=np.clip(py,0,H-1.001); x0=px.astype(int); y0=py.astype(int); fx=(px-x0)[:,None]; fy=(py-y0)[:,None]
     return img[y0,x0]*(1-fx)*(1-fy)+img[y0,x0+1]*fx*(1-fy)+img[y0+1,x0]*(1-fx)*fy+img[y0+1,x0+1]*fx*fy
+# muestras densas (vértices + centros de cara) para un mapa de profundidad sin huecos
+DS=np.vstack([D,D[m.faces].mean(1),(D[m.faces[:,0]]+D[m.faces[:,1]])/2,(D[m.faces[:,1]]+D[m.faces[:,2]])/2])
 for sp in specs:
-    q=sp.split(':'); name=q[0]; img=q[1]; wgt=float(q[2]) if len(q)>2 else 1.0
+    q=sp.split(':'); name=q[0]; img=q[1]; wgt=float(q[2]) if len(q)>2 else 1.0; ymax=float(q[3]) if len(q)>3 else 9
     im=np.asarray(Image.open(A+f'{t}_{img}.webp').convert('RGBA')).astype(np.float32); al=im[...,3]>150
     ys_,xs_=np.where(al); bx0,bx1,by0,by1=xs_.min(),xs_.max(),ys_.min(),ys_.max()
-    core=ndimage.binary_erosion(al,iterations=2).astype(np.float32)
-    if name=='top': proj=lambda X:(X[:,0],X[:,2],X[:,1]); dr=np.array([0,1,0.])
-    else:
-        a=np.radians(float(name)); dr=np.array([np.sin(a),0,np.cos(a)]); rt=np.array([np.cos(a),0,-np.sin(a)])
-        proj=lambda X,rt=rt,dr=dr:(X@rt,-X[:,1],X@dr)
-    du,dv,dd=proj(D); u0,u1,v0,v1=du.min(),du.max(),dv.min(),dv.max()
-    R=420; gx=np.clip(((du-u0)/(u1-u0)*(R-1)).astype(int),0,R-1); gy=np.clip(((dv-v0)/(v1-v0)*(R-1)).astype(int),0,R-1)
+    core=ndimage.binary_erosion(al,iterations=3).astype(np.float32)
+    a=np.radians(float(name)); dr=np.array([np.sin(a),0,np.cos(a)]); rt=np.array([np.cos(a),0,-np.sin(a)])
+    proj=lambda X,rt=rt,dr=dr:(X@rt,-X[:,1],X@dr)
+    du,dv,dd=proj(DS); u0,u1,v0,v1=du.min(),du.max(),dv.min(),dv.max()
+    R=512; gx=np.clip(((du-u0)/(u1-u0)*(R-1)).astype(int),0,R-1); gy=np.clip(((dv-v0)/(v1-v0)*(R-1)).astype(int),0,R-1)
     dm=np.full((R,R),-9.); np.maximum.at(dm,(gy,gx),dd); dm=ndimage.maximum_filter(dm,size=3)
     u,vv,d=proj(pts)
-    vis=d>=dm[np.clip(((vv-v0)/(v1-v0)*(R-1)).astype(int),0,R-1),np.clip(((u-u0)/(u1-u0)*(R-1)).astype(int),0,R-1)]-0.02
-    px=bx0+(u-u0)/(u1-u0)*(bx1-bx0); py=by0+(vv-v0)/(v1-v0)*(by1-by0)
-    col=sample(im[...,:3],px,py); ok=sample(core[...,None],px,py)[:,0]>0.9
-    w=wgt*np.clip(nr@dr,0,1)**2*vis*ok; w=w**3
-    acc+=col*w[:,None]; ws+=w; print(sp,'cubre',round(float((w>1e-4).mean()),3))
-good=ws>1e-5; col=np.zeros_like(acc); col[good]=acc[good]/ws[good,None]
+    vis=d>=dm[np.clip(((vv-v0)/(v1-v0)*(R-1)).astype(int),0,R-1),np.clip(((u-u0)/(u1-u0)*(R-1)).astype(int),0,R-1)]-0.012
+    # encaje fila a fila: el contorno del modelo en cada altura se ajusta al contorno del dibujo
+    sil=dm>-8; rows=np.arange(R); cols=np.arange(R)
+    m0=np.where(sil.any(1),np.argmax(sil,1),0).astype(float); m1=np.where(sil.any(1),R-1-np.argmax(sil[:,::-1],1),R-1).astype(float)
+    ah=by1-by0+1; arow=al[by0:by1+1]; a0=np.argmax(arow,1).astype(float); a1=(arow.shape[1]-1-np.argmax(arow[:,::-1],1)).astype(float)
+    m0=ndimage.median_filter(m0,7); m1=ndimage.median_filter(m1,7); a0=ndimage.median_filter(a0,7); a1=ndimage.median_filter(a1,7)
+    vf=np.clip((vv-v0)/(v1-v0),0,1); ri=np.clip((vf*(R-1)).astype(int),0,R-1); ai=np.clip((vf*(ah-1)).astype(int),0,ah-1)
+    ug=(u-u0)/(u1-u0)*(R-1); wdt=np.maximum(m1[ri]-m0[ri],4); tt=np.clip((ug-m0[ri])/wdt,-0.05,1.05)
+    px=a0[ai]+tt*(a1[ai]-a0[ai]); py=by0+vf*(by1-by0)
+    c=sample(im[...,:3],px,py); ok=sample(core[...,None],px,py)[:,0]>0.95
+    ok=ok&(pts[:,1]<=ymax); f=nr@dr; sc=np.where(vis&ok&(f>0.35),f*wgt,-1); up=sc>best; best[up]=sc[up]; col[up]=c[up]
+    sc2=np.where(vis&ok&(f>0.03),f*wgt,-1); up=sc2>best2; best2[up]=sc2[up]; col2[up]=c[up]
+    print(sp,'gana',round(float(up.mean()),3))
+good=best>0; relax=(~good)&(best2>0); col[relax]=col2[relax]; good|=relax
 if (~good).any():
-    _,idx=cKDTree(pts[good]).query(pts[~good],k=4); col[~good]=col[good][idx].mean(1)
+    dist,idx=cKDTree(pts[good]).query(pts[~good],k=8); wq=1/(dist+1e-4); col[~good]=(col[good][idx]*wq[...,None]).sum(1)/wq.sum(1,keepdims=True)
 tex=np.zeros((T,T,3),np.float32); tex[M]=col
 _,ind=ndimage.distance_transform_edt(~M,return_indices=True); tex=tex[ind[0],ind[1]]   # relleno de bordes del atlas
 img=Image.fromarray(np.clip(tex,0,255).astype(np.uint8)).transpose(Image.FLIP_TOP_BOTTOM)
