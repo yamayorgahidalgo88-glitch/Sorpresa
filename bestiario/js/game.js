@@ -21,7 +21,7 @@ const CHARS = {
     atkName: 'Bumerán óseo', atkDesc: 'lanza uno de sus huesos, que impacta y regresa.',
     abilName: 'Espíritu del ciervo', desc: 'Invoca un ciervo fantasmal que embiste al enemigo, lo golpea con fuerza y regresa a su lado.',
     all: ['pose', 'front', 'back', 'left', 'right', 'iso', 'top', 'bottom'] },
-  gloop: { name: 'Gloop', cost: 4, role: 'Asesino', color: '#7fbf1f', hp: 620, atk: 70, range: 1, as: 1.0, ms: 0.65, abil: 'super', sheet: true,
+  gloop: { name: 'Aly', cost: 4, role: 'Asesino', color: '#7fbf1f', hp: 620, atk: 70, range: 1, as: 1.0, ms: 0.65, abil: 'super', sheet: true,
     atkName: 'Puñetazo radiactivo', atkDesc: 'golpea con su brazo derecho cargado de energía.',
     abilName: 'Puño dimensional', desc: 'Abre un portal, aparece junto al enemigo más débil y le descarga un doble puñetazo.',
     all: ['pose', 'front', 'back', 'left', 'right', 'iso', 'top', 'bottom'] },
