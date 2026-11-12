@@ -995,6 +995,7 @@ const GLB = {
   gloop: { h: 1.34, style: 'biped', dur: { attack: 0.48, super: 0.85 } },
   tanko: { h: 1.02, style: 'tank', dur: { attack: 0.55, super: 0.9 } },
   denton: { h: 1.32, style: 'cart', dur: { attack: 0.55, super: 0.8 } },
+  pomona: { h: 1.3, style: 'biped', dur: { attack: 0.5, super: 0.9 } },
 };
 const _glb = {}, _loader = new GLTFLoader();
 function loadGLB(type) {
