@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const V3 = THREE.Vector3, PI = Math.PI, D = PI / 180;
 const sstep = x => x * x * (3 - 2 * x);
@@ -986,7 +987,61 @@ function buildDenton() {
 
 /* ---------------- creación de instancias ---------------- */
 const BUILDERS = { bushi: buildBushi, bolab: buildBolab, ogul: buildOgul, rogue: buildRogue, osko: buildOsko, gloop: buildGloop, tanko: buildTanko, denton: buildDenton }, BP = {};
+/* ---------------- modelos escaneados de las láminas (.glb) ---------------- */
+// Malla generada a partir de las vistas del diseño y pintada con ellas. Son de una pieza:
+// se animan moviendo, inclinando y deformando el cuerpo entero.
+const GLB = {
+  rogue: { h: 1.28, style: 'biped', dur: { attack: 0.5, super: 0.85 } },
+  gloop: { h: 1.34, style: 'biped', dur: { attack: 0.48, super: 0.85 } },
+  tanko: { h: 1.02, style: 'tank', dur: { attack: 0.55, super: 0.9 } },
+  denton: { h: 1.32, style: 'cart', dur: { attack: 0.55, super: 0.8 } },
+};
+const _glb = {}, _loader = new GLTFLoader();
+function loadGLB(type) {
+  return _glb[type] || (_glb[type] = new Promise((res, rej) => _loader.load(`assets/models/${type}.glb`, g => {
+    let mesh = null; g.scene.traverse(o => { if (o.isMesh && !mesh) mesh = o; });
+    res({ geometry: mesh.geometry, map: mesh.material.map });
+  }, undefined, rej)));
+}
+function animStatic(rig, t, st, style) {
+  const a = rig.g.all, b = rig.g.body, w = st.walk, ph = rig.walkT;
+  let y = 0, z = 0, rx = 0, rz = 0, ry = 0, sq = Math.sin(t * 2.2) * 0.012;
+  if (style === 'biped') { rz = Math.sin(ph * 10) * 0.11 * w + Math.sin(t * 1.3) * 0.012; y = Math.abs(Math.sin(ph * 10)) * 0.05 * w; rx = 0.07 * w; }
+  else if (style === 'tank') { y = Math.sin(ph * 36) * 0.006 * w; rx = Math.sin(t * 2) * 0.004 - 0.02 * w; sq *= 0.3; }
+  else { y = Math.sin(ph * 30) * 0.006 * w + Math.sin(t * 2) * 0.006; rx = 0.1 * w; rz = Math.sin(t * 1.4) * 0.015; }
+  if (st.atk >= 0) {
+    const k = st.atk;
+    if (style === 'tank') { const r = kf(k, [[0, 0], [0.26, 0], [0.34, 1], [1, 0]]); z -= r * 0.1; rx -= r * 0.09; sq -= r * 0.03; }
+    else { rx += kf(k, [[0, 0], [0.22, -0.28], [0.4, 0.42], [0.6, 0.3], [1, 0]]); z += kf(k, [[0, 0], [0.22, -0.05], [0.4, 0.14], [1, 0]]); sq += kf(k, [[0, 0], [0.22, -0.07], [0.4, 0.08], [0.6, -0.03], [1, 0]]); ry = kf(k, [[0, 0], [0.22, 0.25], [0.4, -0.3], [1, 0]]); }
+  }
+  if (st.sup >= 0) {
+    const k = st.sup;
+    if (style === 'tank') { const r = kf(k, [[0, 0], [0.38, 0], [0.46, 1], [1, 0]]), c = kf(k, [[0, 0], [0.38, 1], [0.44, 0]]); z -= r * 0.14; rx -= r * 0.12; sq += c * 0.05 - r * 0.04; }
+    else { y += kf(k, [[0, 0], [0.3, 0.22], [0.5, 0], [1, 0]]); rx += kf(k, [[0, 0], [0.3, -0.35], [0.5, 0.6], [0.75, 0.4], [1, 0]]); z += kf(k, [[0, 0], [0.3, -0.06], [0.5, 0.2], [1, 0]]); sq += kf(k, [[0, 0], [0.3, 0.1], [0.5, -0.1], [0.7, 0.04], [1, 0]]); }
+  }
+  if (st.cheer > 0) { const c = Math.abs(Math.sin(t * 8)); y += c * 0.14; sq += c * 0.05 - 0.02; rz += Math.sin(t * 8) * 0.06; }
+  a.position.set(0, y, z); a.rotation.set(rx, ry, rz); b.scale.set(1 - sq * 0.6, 1 + sq, 1 - sq * 0.6);
+}
+function createStatic(type) {
+  const cfg = GLB[type], root = new THREE.Group(), all = new THREE.Group(), body = new THREE.Group(); root.add(all); all.add(body);
+  const mat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  loadGLB(type).then(({ geometry, map }) => { mat.map = map; mat.needsUpdate = true; const m = new THREE.Mesh(geometry, mat); m.scale.setScalar(cfg.h); m.castShadow = true; body.add(m); }).catch(e => console.error('modelo', type, e));
+  const rig = {
+    type, root, g: { root, all, body }, mats: { body: mat }, sp: {}, height: cfg.h * 1.02, t: Math.random() * 10, walkT: 0, walkW: 0, atkT: -1, supT: -1, cheer: 0, flashK: 0,
+    play(name) { if (name === 'attack') { this.atkT = 0; this.supT = -1; } else if (name === 'super') { this.supT = 0; this.atkT = -1; } },
+    flash(k) { if (k !== this.flashK) { this.flashK = k; mat.color.setScalar(1 + k * 1.6); } },
+    update(dt, o = {}) {
+      this.t += dt; this.walkW += ((o.moving ? 1 : 0) - this.walkW) * Math.min(1, dt * 10);
+      if (this.walkW > 0.02) this.walkT += dt; else this.walkT = 0;
+      if (this.atkT >= 0) { this.atkT += dt / cfg.dur.attack; if (this.atkT >= 1) this.atkT = -1; }
+      if (this.supT >= 0) { this.supT += dt / cfg.dur.super; if (this.supT >= 1) this.supT = -1; }
+      animStatic(this, this.t, { walk: this.walkW, atk: this.atkT, sup: this.supT, cheer: o.cheer ? 1 : 0 }, cfg.style);
+    },
+  };
+  rig.update(0); return rig;
+}
 export function createCharacter(type) {
+  if (GLB[type]) return createStatic(type);
   const bp = BP[type] || (BP[type] = BUILDERS[type]());
   const g = {}, mats = {}, sp = {};
   for (const [name, d] of Object.entries(bp.groups)) {
