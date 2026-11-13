@@ -3,4 +3,4 @@ Allow: /
 Disallow: /flores/
 Disallow: /api/
 
-Sitemap: https://ayoub-lahmany-barber-la-quinta-del-bnitre.vercel.app/sitemap.xml
+Sitemap: https://ayoub-lahmany-barber.vercel.app/sitemap.xml

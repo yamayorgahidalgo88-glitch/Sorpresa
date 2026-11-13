@@ -20,6 +20,12 @@ Objetivo: salir arriba en Google con «peluquería Alcorcón», «barbería Alco
   - La página antigua `/flores/` lleva `noindex`.
 - **Tono:** «precio justo con calidad demostrada». No dice «la más barata de Alcorcón», porque hay competencia a 9 € y no es comprobable.
 
+## Auditoría con claude-seo (13-11-2026)
+Detalle en `LOCAL-SEO-ANALYSIS.md`. Nota estimada de SEO local: 60/100.
+- **Una sola dirección oficial:** `https://ayoub-lahmany-barber.vercel.app/` en canonical, og, JSON-LD, `robots.txt` y `sitemap.xml`. La larga (`…-la-quinta-del-bnitre.vercel.app`) redirige a ella con un 308 (`vercel.json`).
+- **`llms.txt`** con los datos y precios, para buscadores con IA.
+- **Faltan:** teléfono, Bing Places y Apple Maps (además de lo de abajo).
+
 ## Lo que más pesa y no se hace en la web (para Ayoub)
 Según Google, el mapa (Local Pack) se ordena por **relevancia, distancia y prominencia**. Para «peluquería Alcorcón» manda el mapa, no la web.
 
@@ -42,7 +48,7 @@ Según Google, el mapa (Local Pack) se ordena por **relevancia, distancia y prom
    - Calendario abierto a 4 semanas.
    - Promociones en horas valle.
    - Boost solo cuando haya huecos libres.
-5. **Dominio propio:** la web está en un subdominio de vercel.app. Un dominio como `ayoublahmany.es` (unos 10 €/año) posiciona mejor y da confianza. Si se compra, hay que cambiar la URL en `index.html` (canonical, og y JSON-LD), `robots.txt` y `sitemap.xml`.
+5. **Dominio propio:** la web está en un subdominio de vercel.app. Un dominio como `ayoublahmany.es` (unos 10 €/año) posiciona mejor y da confianza. Si se compra, hay que cambiar la URL en `index.html` (canonical, og y JSON-LD), `robots.txt`, `sitemap.xml`, `llms.txt` y la redirección de `vercel.json`.
 6. **Google Search Console:**
    - Dar de alta la web y enviar `sitemap.xml`.
    - Comprobar los datos estructurados con la Prueba de resultados enriquecidos.

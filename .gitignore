@@ -8,3 +8,11 @@ node_modules/
 .DS_Store
 .playwright-mcp/
 scripts/.cache/
+
+# claude-seo: entorno de Python local (se crea con `claude-seo setup`)
+.claude/skills/seo/.venv/
+.claude/skills/seo/ms-playwright/
+.claude/skills/seo/runtime-state.json
+.claude/skills/seo/.setup.lock
+__pycache__/
+*.pyc

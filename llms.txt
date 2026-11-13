@@ -1,0 +1,27 @@
+# Ayoub Lahmany Barber Shop
+
+> Peluquería y barbería de hombre en Alcorcón (Madrid). Corte de caballero 11 €, corte de niño 9 €, arreglo de barba 5 €. Reserva online en Booksy. 5,0 en 135 reseñas de Booksy (noviembre de 2026).
+
+## Datos de la peluquería
+- Nombre: Ayoub Lahmany Barber Shop
+- Dirección: Calle Princesa Doña Sofía, posterior 1, local 9B, 28924 Alcorcón (Madrid), España
+- Horario: lunes a sábado de 10:00 a 14:00 y de 15:00 a 21:00. Domingo cerrado.
+- Reservas: https://booksy.com/es-es/86074_ayoub-lahmany-barber-shop_barberia_52935_alcorcon
+- Instagram: https://instagram.com/ayoub_lahmany03
+- Pago: efectivo o tarjeta
+
+## Precios
+- Corte caballero (20 min): 11 €
+- Corte niños hasta 12 años (20 min): 9 €
+- Corte jubilado (15 min): 7 €
+- Arreglo de barba (10 min): 5 €
+- Corte + barba (30 min): 16 €
+- Limpieza facial básica (25 min): 10 €
+- Limpieza facial profunda (40 min): 20 €
+- Corte + limpieza facial básica (45 min): 19 €
+- Corte + barba + limpieza básica (55 min): 23 €
+- Corte + limpieza facial profunda (1 h): 29 €
+- Corte + barba + higiene profunda (1 h 10 min): 34 €
+
+## Páginas
+- [Web de la peluquería](https://ayoub-lahmany-barber.vercel.app/): precios, fotos de cortes, cómo llegar y preguntas frecuentes
