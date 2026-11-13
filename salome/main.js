@@ -25,145 +25,183 @@
     });
   });
 
-  /* ---------- Manchas de témpera en el fondo ----------
-     Cada toque (o clic) deja una mancha de témpera; al deslizar el dedo o arrastrar
-     el ratón va dejando un reguero de manchas. Cada toque nuevo cambia de color.
-     Las manchas se desvanecen solas y nunca caen sobre textos, fotos, animaciones,
-     botones ni el formulario. El scroll funciona con normalidad. */
-  const bg = document.querySelector('[data-bg-paint]');
-  if (bg) {
-    const ctx = bg.getContext('2d');
-    const HOLD = 2400, LIFE = 3900, POP = 160, STEP = 30;
-    const COLORS = ['#e8694e', '#f2b13b', '#3f9a9c', '#94bb86', '#f2a7a0', '#5b8fd1'];
-    // Zonas protegidas: textos (línea a línea), fotos, animaciones y controles
-    const NO_PAINT = 'h1, h2, h3, p, li, label, blockquote, figcaption, img, .card, .polaroid, .hero__art, .band, .btn, .form, .easel, .nav, .mbar, input, textarea, button';
-    const BOXES = '.card, .polaroid, .hero__art, .band, .form, .easel, .nav, .mbar, blockquote';
+  /* ---------- Trazos de acuarela en el fondo ----------
+     Tocar, deslizar el dedo, hacer clic o arrastrar el ratón pinta trazos de acuarela.
+     Cada toque nuevo cambia de color y cada trazo se desvanece solo al cabo de unos segundos.
+     Nunca pinta sobre textos, fotos, animaciones, botones ni el formulario.
+     Cada trazo vive en su propio lienzo pegado a la página: al hacer scroll se mueve con
+     ella sin redibujarse, así todo va fluido. */
+  const layer = document.createElement('div');
+  layer.className = 'paint-layer';
+  layer.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(layer);
+  {
+    const COLORS = ['#e8694e', '#f2b13b', '#2f9a9c', '#7fb06f', '#ee8f88', '#4f86cf'];
+    const NO_PAINT = 'h1, h2, h3, p, li, label, blockquote, figcaption, img, .card, .polaroid, .hero__art, .band, .btn, .form, .easel, input, textarea, button';
+    const BOXES = '.card, .polaroid, .hero__art, .band, .form, .easel, blockquote';
     const TEXT = new Set(['H1', 'H2', 'H3', 'P', 'LI', 'LABEL', 'FIGCAPTION']);
+    const FIXED_UI = '.nav, .mbar';
+    const HOLD = 2000, MAX_STROKES = 14;
+    const DPR = Math.min(devicePixelRatio || 1, 1.5);
     const range = document.createRange();
-    let splats = [], raf = 0, w = 0, h = 0, lastColor = -1, color = COLORS[0], last = null, active = false;
-    let cache = { t: -1e9, list: [] };
+    let lastColor = -1, stroke = null, holeCache = { t: -1e9, list: [] };
 
-    const size = () => {
-      const dpr = Math.min(devicePixelRatio || 1, 2);
-      w = innerWidth; h = innerHeight;
-      bg.width = w * dpr; bg.height = h * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    };
-    size(); addEventListener('resize', size);
-
+    // Zonas protegidas en coordenadas de la página (no cambian al hacer scroll)
     const holes = () => {
       const now = performance.now();
-      if (now - cache.t < 80) return cache.list;
-      const m = w < 600 ? 10 : 14, out = [];
+      if (now - holeCache.t < 250) return holeCache.list;
+      const m = innerWidth < 600 ? 10 : 14, top = scrollY - innerHeight, bottom = scrollY + innerHeight * 2, out = [];
       const push = (r) => {
-        if (!r.width || r.bottom < -m || r.top > h + m) return;
-        out.push({ x: r.left - m, y: r.top - m, w: r.width + m * 2, h: r.height + m * 2 });
+        const y = r.top + scrollY;
+        if (!r.width || y + r.height < top || y > bottom) return;
+        out.push({ x: r.left - m, y: y - m, w: r.width + m * 2, h: r.height + m * 2 });
       };
       document.querySelectorAll(NO_PAINT).forEach((el) => {
-        if (el.parentElement && el.parentElement.closest(BOXES)) return; // ya cubierto por su caja
+        if (el.parentElement && el.parentElement.closest(BOXES)) return;
         const r = el.getBoundingClientRect();
-        if (!r.width || r.bottom < -m || r.top > h + m) return;
+        if (!r.width || r.bottom + scrollY < top || r.top + scrollY > bottom) return;
         if (TEXT.has(el.tagName)) {
-          range.selectNodeContents(el);
-          for (const lr of range.getClientRects()) push(lr);
+          const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+          for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+            if (!n.textContent.trim()) continue;
+            range.selectNodeContents(n);
+            for (const lr of range.getClientRects()) push(lr);
+          }
         } else push(r);
       });
-      cache = { t: now, list: out };
+      holeCache = { t: now, list: out };
       return out;
     };
-    const blocked = (x, y) => holes().some((r) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h);
+    const blocked = (target, x, y) => {
+      if (target && target.closest && target.closest(FIXED_UI + ', a, button, input, textarea, label, select')) return true;
+      const Y = y + scrollY;
+      return holes().some((r) => x >= r.x && x <= r.x + r.w && Y >= r.y && Y <= r.y + r.h);
+    };
 
+    // Pinceladas de acuarela pre-pintadas (bordes más oscuros, centro claro y grano de papel)
+    const sprites = new Map();
+    const sprite = (hex, v) => {
+      const key = hex + v;
+      if (sprites.has(key)) return sprites.get(key);
+      const S = 96, c = document.createElement('canvas'); c.width = c.height = S;
+      const g = c.getContext('2d');
+      const n = parseInt(hex.slice(1), 16), R = n >> 16, G = (n >> 8) & 255, B = n & 255;
+      const col = (a) => `rgba(${R}, ${G}, ${B}, ${a})`;
+      const rad = S * .42, pts = 20, path = new Path2D();
+      for (let i = 0; i <= pts; i++) {
+        const a = (i / pts) * Math.PI * 2, k = .8 + Math.random() * .22;
+        const x = S / 2 + Math.cos(a) * rad * k, y = S / 2 + Math.sin(a) * rad * k;
+        i ? path.lineTo(x, y) : path.moveTo(x, y);
+      }
+      const grad = g.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, rad);
+      grad.addColorStop(0, col(.065)); grad.addColorStop(.6, col(.085)); grad.addColorStop(.88, col(.13)); grad.addColorStop(1, col(0));
+      g.filter = 'blur(2px)';
+      g.fillStyle = grad; g.fill(path);
+      g.filter = 'none';
+      const img = g.getImageData(0, 0, S, S), d = img.data;
+      for (let i = 3; i < d.length; i += 4) d[i] *= .7 + Math.random() * .55;
+      g.putImageData(img, 0, 0);
+      sprites.set(key, c);
+      return c;
+    };
     const pickColor = () => {
       let i; do { i = Math.floor(Math.random() * COLORS.length); } while (i === lastColor);
       lastColor = i; return COLORS[i];
     };
-    const shade = (hex, k) => {
-      const n = parseInt(hex.slice(1), 16);
-      const f = (v) => Math.max(0, Math.min(255, Math.round(v * k)));
-      return `rgb(${f(n >> 16)}, ${f((n >> 8) & 255)}, ${f(n & 255)})`;
-    };
 
-    // Una mancha: contorno irregular suavizado + gotitas alrededor
-    const makeSplat = (x, y, c, big) => {
-      const r = (big ? 22 : 13) + Math.random() * (big ? 16 : 10);
-      const n = 12 + Math.floor(Math.random() * 6), pts = [];
-      for (let i = 0; i < n; i++) {
-        const a = (i / n) * Math.PI * 2, k = .72 + Math.random() * .45;
-        pts.push([Math.cos(a) * r * k, Math.sin(a) * r * k]);
+    // Lienzo para un tramo del trazo, del alto de la pantalla y en coordenadas de la página
+    const newSheet = (Y) => {
+      const cv = document.createElement('canvas');
+      const top = Math.max(0, Math.round(Y - innerHeight * .75)), h = Math.round(innerHeight * 1.5), w = document.documentElement.clientWidth;
+      cv.width = w * DPR; cv.height = h * DPR;
+      cv.style.top = top + 'px'; cv.style.width = w + 'px'; cv.style.height = h + 'px';
+      const ctx = cv.getContext('2d'); ctx.setTransform(DPR, 0, 0, DPR, 0, -top * DPR);
+      layer.appendChild(cv);
+      // Máscara suave de las zonas protegidas (a 1/4 de resolución y difuminada):
+      // la pintura se desvanece al acercarse a textos y fotos en vez de cortarse en seco
+      const MS = .25, mask = document.createElement('canvas');
+      mask.width = Math.ceil(w * MS); mask.height = Math.ceil(h * MS);
+      const mc = mask.getContext('2d');
+      mc.filter = 'blur(2px)'; mc.fillStyle = '#000';
+      mc.beginPath();
+      for (const r of holes()) {
+        if (r.y + r.h < top || r.y > top + h) continue;
+        const x = (r.x - 4) * MS, y = (r.y - top - 4) * MS, rw = (r.w + 8) * MS, rh = (r.h + 8) * MS;
+        if (mc.roundRect) mc.roundRect(x, y, rw, rh, 4); else mc.rect(x, y, rw, rh);
       }
-      const body = new Path2D();
-      const mid = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
-      let s0 = mid(pts[n - 1], pts[0]);
-      body.moveTo(s0[0], s0[1]);
-      for (let i = 0; i < n; i++) { const q = mid(pts[i], pts[(i + 1) % n]); body.quadraticCurveTo(pts[i][0], pts[i][1], q[0], q[1]); }
-      body.closePath();
-      const drops = new Path2D();
-      const nd = 2 + Math.floor(Math.random() * 4);
-      for (let i = 0; i < nd; i++) {
-        const a = Math.random() * Math.PI * 2, d = r * (1.15 + Math.random() * .7), dr = 1.5 + Math.random() * r * .16;
-        drops.moveTo(Math.cos(a) * d + dr, Math.sin(a) * d);
-        drops.arc(Math.cos(a) * d, Math.sin(a) * d, dr, 0, Math.PI * 2);
-      }
-      splats.push({ x, y: y + scrollY, c, rim: shade(c, .82), hi: shade(c, 1.25), r, body, drops, t: performance.now(), rot: Math.random() * Math.PI });
-      if (!raf) raf = requestAnimationFrame(frame);
+      mc.fill();
+      return { cv, ctx, top, bottom: top + h, mask, MS };
     };
-
-    const press = (x, y) => {
-      color = pickColor(); last = { x, y: y + scrollY }; active = true;
-      if (!blocked(x, y)) makeSplat(x, y, color, true);
-    };
-    const drag = (x, y) => {
-      if (!active) return;
-      const dy = y + scrollY, d = Math.hypot(x - last.x, dy - last.y);
-      if (d < STEP) return;
-      last = { x, y: dy };
-      if (!blocked(x, y)) makeSplat(x, y, color, Math.random() < .35);
-    };
-    const release = () => { active = false; last = null; };
-
-    function frame(now) {
-      raf = 0;
-      ctx.clearRect(0, 0, w, h);
-      splats = splats.filter((s) => now - s.t < LIFE);
-      if (!splats.length) return;
-      for (const s of splats) {
-        const age = now - s.t;
-        const y = s.y - scrollY;
-        if (y < -80 || y > h + 80) continue;
-        const pop = age < POP ? .55 + .45 * (1 - Math.pow(1 - age / POP, 3)) * 1.08 : 1;
-        ctx.save();
-        ctx.globalAlpha = age < HOLD ? 1 : 1 - (age - HOLD) / (LIFE - HOLD);
-        ctx.translate(s.x, y); ctx.rotate(s.rot); ctx.scale(pop, pop);
-        ctx.fillStyle = s.c; ctx.fill(s.body); ctx.fill(s.drops);
-        ctx.lineWidth = 2.5; ctx.strokeStyle = s.rim; ctx.stroke(s.body);        // borde algo más oscuro, como témpera espesa
-        ctx.globalAlpha *= .35; ctx.fillStyle = s.hi;                             // brillo de pintura fresca
-        ctx.beginPath(); ctx.ellipse(-s.r * .3, -s.r * .32, s.r * .32, s.r * .16, -.6, 0, Math.PI * 2); ctx.fill();
+    const stamp = (x, Y, size) => {
+      let sh = stroke.sheet;
+      if (Y < sh.top + size || Y > sh.bottom - size) { sh = stroke.sheet = newSheet(Y); stroke.sheets.push(sh); }
+      const { ctx } = sh, img = sprite(stroke.color, Math.floor(Math.random() * 4));
+      ctx.save();
+      ctx.translate(x, Y); ctx.rotate(Math.random() * Math.PI * 2);
+      ctx.drawImage(img, -size / 2, -size / 2, size, size);
+      ctx.restore();
+      // borrar (con borde suave) lo que caiga sobre zonas protegidas
+      const { mask, MS, top } = sh, half = size / 2 + 2;
+      const sx = Math.max(0, (x - half) * MS), sy = Math.max(0, (Y - half - top) * MS);
+      const sw = Math.min(mask.width - sx, size * MS + 1), sh2 = Math.min(mask.height - sy, size * MS + 1);
+      if (sw > 0 && sh2 > 0) {
+        ctx.save(); ctx.globalCompositeOperation = 'destination-out';
+        ctx.drawImage(mask, sx, sy, sw, sh2, sx / MS, sy / MS + top, sw / MS, sh2 / MS);
         ctx.restore();
       }
-      // Recortar todo lo que cae sobre zonas protegidas
-      ctx.save();
-      ctx.globalCompositeOperation = 'destination-out';
-      ctx.beginPath();
-      for (const r of holes()) { if (ctx.roundRect) ctx.roundRect(r.x, r.y, r.w, r.h, 12); else ctx.rect(r.x, r.y, r.w, r.h); }
-      ctx.fill();
-      ctx.restore();
-      raf = requestAnimationFrame(frame);
-    }
+    };
 
-    // Ratón: clic deja una mancha; arrastrar con el botón pulsado deja un reguero
+    const press = (target, x, y) => {
+      if (blocked(target, x, y)) return;
+      const Y = y + scrollY, sheet = newSheet(Y);
+      stroke = { color: pickColor(), sheet, sheets: [sheet], last: { x, Y, t: performance.now() }, size: 46 };
+      // un toque suelto deja una flor de acuarela
+      for (let i = 0; i < 14; i++) stamp(x + (Math.random() - .5) * 22, Y + (Math.random() - .5) * 22, 46 + Math.random() * 34);
+    };
+    const move = (x, y) => {
+      if (!stroke) return;
+      const Y = y + scrollY, t = performance.now(), L = stroke.last;
+      const d = Math.hypot(x - L.x, Y - L.Y);
+      const spacing = Math.max(2.5, stroke.size * .07);
+      if (d < spacing) return;
+      const speed = d / Math.max(8, t - L.t);
+      const target = Math.max(26, Math.min(64, 64 - speed * 18)) * (innerWidth < 600 ? .8 : 1);
+      const steps = Math.ceil(d / spacing);
+      for (let i = 1; i <= steps; i++) {
+        const k = i / steps, sx = L.x + (x - L.x) * k, sY = L.Y + (Y - L.Y) * k;
+        stroke.size += (target - stroke.size) * .15;
+        if (blocked(null, sx, sY - scrollY)) continue;
+        stamp(sx + (Math.random() - .5) * 2, sY + (Math.random() - .5) * 2, stroke.size * (.9 + Math.random() * .2));
+      }
+      stroke.last = { x, Y, t };
+    };
+    const release = () => {
+      if (!stroke) return;
+      const sheets = stroke.sheets;
+      stroke = null;
+      setTimeout(() => {
+        sheets.forEach((s) => { s.cv.style.opacity = '0'; });
+        setTimeout(() => sheets.forEach((s) => s.cv.remove()), 1700);
+      }, HOLD);
+      while (layer.children.length > MAX_STROKES * 2) layer.firstChild.remove();
+    };
+
+    // Ratón
     document.addEventListener('pointerdown', (e) => {
-      if (e.pointerType === 'touch' || e.button !== 0 || blocked(e.clientX, e.clientY)) return;
-      if (!e.target.closest('a, button, input, textarea, label, select')) e.preventDefault();
-      press(e.clientX, e.clientY);
+      if (e.pointerType === 'touch' || e.button !== 0) return;
+      press(e.target, e.clientX, e.clientY);
+      if (stroke) e.preventDefault();
     });
-    document.addEventListener('pointermove', (e) => { if (e.pointerType !== 'touch') drag(e.clientX, e.clientY); });
+    document.addEventListener('pointermove', (e) => { if (e.pointerType !== 'touch' && stroke) move(e.clientX, e.clientY); }, { passive: true });
     ['pointerup', 'pointercancel'].forEach((ev) => document.addEventListener(ev, (e) => { if (e.pointerType !== 'touch') release(); }));
 
-    // Dedo: tocar o deslizar deja manchas, sin bloquear el scroll
+    // Dedo: tocar o deslizar pinta sin bloquear el scroll
     document.addEventListener('touchstart', (e) => {
-      if (e.touches.length !== 1) { release(); return; }
-      const t = e.touches[0]; press(t.clientX, t.clientY);
+      release();
+      if (e.touches.length !== 1) return;
+      const t = e.touches[0]; press(e.target, t.clientX, t.clientY);
     }, { passive: true });
-    document.addEventListener('touchmove', (e) => { const t = e.touches[0]; if (t) drag(t.clientX, t.clientY); }, { passive: true });
+    document.addEventListener('touchmove', (e) => { const t = e.touches[0]; if (t) move(t.clientX, t.clientY); }, { passive: true });
     ['touchend', 'touchcancel'].forEach((ev) => document.addEventListener(ev, release, { passive: true }));
   }
 
@@ -320,6 +358,22 @@
       });
     });
 
+    // Scroll suave (solo ratón/trackpad; en el móvil el scroll nativo ya es suave)
+    if (!reduce && window.Lenis) {
+      const lenis = new Lenis({ lerp: .1, smoothWheel: true });
+      if (window.ScrollTrigger) lenis.on('scroll', ScrollTrigger.update);
+      gsap.ticker.add((time) => lenis.raf(time * 1000));
+      gsap.ticker.lagSmoothing(0);
+      document.querySelectorAll('a[href^="#"]').forEach((a) => a.addEventListener('click', (e) => {
+        const id = a.getAttribute('href');
+        const el = id.length > 1 && document.querySelector(id);
+        if (!el) return;
+        e.preventDefault();
+        lenis.scrollTo(el, { offset: id === '#inicio' ? 0 : -70, duration: 1.2 });
+        if (id === '#contenido') el.focus({ preventScroll: true });
+      }));
+    }
+
     if (reduce) return;
 
     // Entrada del hero (una vez, al cargar)
@@ -341,19 +395,25 @@
     gsap.to('[data-hero-art] .drop', { y: '+=14', duration: 2.4, yoyo: true, repeat: -1, ease: 'sine.inOut', stagger: .4, delay: 2 });
     gsap.to('.sparkles path', { scale: .7, transformOrigin: 'center', duration: .9, yoyo: true, repeat: -1, ease: 'sine.inOut', stagger: .3, delay: 2.4 });
 
-    // La foto y las manchas siguen un poco al ratón (paralaje suave)
+    // La foto y las bolitas se inclinan siempre hacia donde está el ratón (sin saltos al hacer scroll)
     const art = document.querySelector('[data-hero-art]');
     if (art && finePointer) {
-      const hero = document.querySelector('.hero');
-      const qx = [...art.querySelectorAll('.splash, .blob, .drop')].map((el, i) => ({
-        x: gsap.quickTo(el, 'x', { duration: .8, ease: 'power3.out' }),
-        y: gsap.quickTo(el, 'y', { duration: .8, ease: 'power3.out' }),
-        k: el.classList.contains('blob') ? 8 : 22 + i * 4,
+      const parts = [...art.querySelectorAll('.splash, .blob, .drop')].map((el, i) => ({
+        x: gsap.quickTo(el, 'x', { duration: .9, ease: 'power3.out' }),
+        y: gsap.quickTo(el, 'y', { duration: .9, ease: 'power3.out' }),
+        k: el.classList.contains('blob') ? 10 : 18 + i * 3,
       }));
-      hero.addEventListener('pointermove', (e) => {
-        const nx = e.clientX / innerWidth - .5, ny = e.clientY / innerHeight - .5;
-        qx.forEach((q) => { q.x(nx * q.k); q.y(ny * q.k); });
-      });
+      let mx = null, my = null;
+      const aim = () => {
+        if (mx === null) return;
+        const r = art.getBoundingClientRect();
+        if (r.bottom < -200 || r.top > innerHeight + 200) return;
+        const dx = mx - (r.left + r.width / 2), dy = my - (r.top + r.height / 2);
+        const len = Math.hypot(dx, dy) || 1, pull = Math.min(1, len / (r.width * .9));
+        parts.forEach((p) => { p.x((dx / len) * pull * p.k); p.y((dy / len) * pull * p.k); });
+      };
+      addEventListener('pointermove', (e) => { if (e.pointerType === 'mouse') { mx = e.clientX; my = e.clientY; aim(); } }, { passive: true });
+      addEventListener('scroll', aim, { passive: true });
     }
 
     if (!window.ScrollTrigger) return;

@@ -68,7 +68,6 @@
 </head>
 <body>
   <a class="skip" href="#contenido">Saltar al contenido</a>
-  <canvas class="bg-paint" data-bg-paint aria-hidden="true"></canvas>
 
   <!-- Filtros SVG compartidos: bordes de acuarela -->
   <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -129,7 +128,7 @@
               Escríbeme por WhatsApp
             </a>
           </div>
-          <p class="hero__hint" data-hero-in aria-hidden="true"><span class="hint--mouse">← haz clic o arrastra por el fondo: deja manchas de témpera</span><span class="hint--touch">toca o desliza el dedo por el fondo: ¡témpera! ✎</span></p>
+          <p class="hero__hint" data-hero-in><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.4 2.6a2 2 0 0 1 2.9 2.8l-8.6 8.7-2.9-2.9 8.6-8.6ZM8.6 12.4l3 3c-.3 2.6-2.4 4.6-5.1 4.6-1.4 0-2.7-.4-3.5-1.1 1.4-.6 2-1.6 2.2-3 .3-2 1.5-3.4 3.4-3.5Z"/></svg>Pulsa o desliza por el fondo de la web para pintar</p>
         </div>
 
         <div class="hero__art" data-hero-art>
@@ -137,7 +136,7 @@
           <svg class="splash splash--b" viewBox="0 0 200 200" aria-hidden="true"><circle cx="100" cy="100" r="70"/></svg>
           <svg class="splash splash--c" viewBox="0 0 200 200" aria-hidden="true"><circle cx="100" cy="100" r="70"/></svg>
           <div class="blob">
-            <img src="img/taller-hero.webp" srcset="img/taller-hero-sm.webp 800w, img/taller-hero.webp 1600w" sizes="(max-width: 860px) 90vw, 46vw" alt="Niños pintando juntos alrededor de una mesa en un taller de arte" width="1600" height="1600" fetchpriority="high">
+            <div class="blob__mask"><img src="img/taller-hero.webp" srcset="img/taller-hero-sm.webp 800w, img/taller-hero.webp 1600w" sizes="(max-width: 860px) 90vw, 46vw" alt="Niños pintando juntos alrededor de una mesa en un taller de arte" width="1600" height="1600" fetchpriority="high"></div>
           </div>
           <span class="drop drop--1" aria-hidden="true"></span>
           <span class="drop drop--2" aria-hidden="true"></span>
@@ -159,7 +158,6 @@
     <section class="section talleres" id="talleres" aria-labelledby="t-talleres">
       <div class="wrap">
         <header class="section__head">
-          <p class="hand hand--coral">elige tu aventura ↓</p>
           <h2 id="t-talleres" class="h2">Nuestras propuestas</h2>
           <p class="section__lead">Talleres de arte en Alcorcón para niños, adultos y familias. Y si lo prefieres, los llevamos a tu colegio, sala o evento.</p>
         </header>
@@ -215,22 +213,17 @@
         <figure class="polaroid" data-polaroid>
           <span class="tape" aria-hidden="true"></span>
           <img src="img/salome-recio.webp" alt="Salomé Recio en su estudio, rodeada de pinceles y cerámica" width="800" height="1067" loading="lazy">
-          <figcaption class="hand">¡hola! soy Salomé</figcaption>
+          <figcaption class="hand">¡Hola! Soy Salomé</figcaption>
         </figure>
         <div class="salome__text">
-          <p class="hand hand--teal">bienvenida a mi espacio</p>
+          <p class="hand hand--teal">Bienvenido/a a mi espacio</p>
           <h2 id="t-salome" class="h2">Salomé Recio</h2>
           <p class="salome__intro">Aquí comparto mi trabajo, mi forma de ver el mundo y todo aquello que me inspira. Me encanta crear con cariño, cuidar cada detalle y conectar con personas que valoran lo auténtico.</p>
           <p>Creo en el arte como un espacio de libertad, juego y descubrimiento. Un lugar donde experimentar, imaginar y expresarse sin miedo a equivocarse, donde cada persona pueda encontrar su propia manera de crear y disfrutar del proceso.</p>
           <p>A través del dibujo, la pintura y la arcilla, propongo experiencias creativas en las que la curiosidad abre caminos y la imaginación no tiene límites. Espacios para probar, jugar, compartir y descubrir, desde la libertad, la empatía y el respeto por los ritmos, las ideas y la expresión de cada persona.</p>
           <blockquote class="quote">
-            <p>Porque no se trata de hacerlo perfecto ni de llegar a un resultado determinado, sino de disfrutar creando, confiar en las propias posibilidades y dejarse sorprender por lo que sucede en el camino.</p>
+            <p><span class="q q--open" aria-hidden="true">“</span>Porque no se trata de hacerlo perfecto ni de llegar a un resultado determinado, sino de disfrutar creando, confiar en las propias posibilidades y dejarse sorprender por lo que sucede en el camino.<span class="q q--close" aria-hidden="true">”</span></p>
           </blockquote>
-          <ul class="chips" aria-label="Para quién">
-            <li style="--c: var(--coral)">niños</li>
-            <li style="--c: var(--teal)">adultos</li>
-            <li style="--c: var(--mustard-ink)">familias</li>
-          </ul>
         </div>
       </div>
     </section>
@@ -239,7 +232,7 @@
     <section class="section pinta" id="pinta" aria-labelledby="t-pinta">
       <div class="wrap">
         <header class="section__head">
-          <p class="hand hand--mustard">tu turno</p>
+          <p class="hand hand--mustard">Tu turno</p>
           <h2 id="t-pinta" class="h2">Un rincón para pintar</h2>
           <p class="section__lead">Coge un color y pinta lo que quieras. Aquí no hay forma de hacerlo mal.</p>
         </header>
@@ -275,7 +268,7 @@
     <section class="section contacto" id="contacto" aria-labelledby="t-contacto">
       <div class="wrap contacto__grid">
         <div class="contacto__text">
-          <p class="hand hand--coral">cuéntame tu idea</p>
+          <p class="hand hand--coral">Cuéntame tu idea</p>
           <h2 id="t-contacto" class="h2">Hablemos de creatividad</h2>
           <p class="section__lead">Llevamos nuestros talleres de arte a tu colegio, sala o evento en Alcorcón. Cuéntanos tu idea y prepararemos una experiencia llena de color, texturas y diversión para los más pequeños.</p>
           <ul class="direct">
@@ -337,6 +330,7 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
+  <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js" defer></script>
   <script src="main.js" defer></script>
 </body>
 </html>

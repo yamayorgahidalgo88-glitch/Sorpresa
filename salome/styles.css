@@ -26,7 +26,12 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; }
-html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; overflow-x: clip; }
+html { -webkit-text-size-adjust: 100%; overflow-x: clip; }
+html:not(.lenis) { scroll-behavior: smooth; }
+/* Lenis (scroll suave) */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-stopped { overflow: hidden; }
 body {
   margin: 0;
   background: var(--cream);
@@ -159,35 +164,38 @@ button { font: inherit; color: inherit; }
 }
 .hero__lead { max-width: 34ch; margin: 28px 0 0; font-size: clamp(1.08rem, 1.5vw, 1.3rem); color: var(--ink-2); }
 .hero__actions { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 30px; }
-.hero__hint { margin: 26px 0 0; font: 700 1.25rem var(--f-hand); color: var(--ink-2); transform: rotate(-2deg); }
-.hint--touch { display: none; }
-@media (hover: none) { .hint--mouse { display: none; } .hint--touch { display: inline; } }
+.hero__hint {
+  display: inline-flex; align-items: center; gap: 8px; margin: 26px 0 0;
+  padding: 7px 14px; border: 1px solid var(--line); border-radius: 999px;
+  background: rgb(255 253 248 / .7); color: var(--ink-2);
+  font: 600 .86rem/1.3 var(--f-body);
+}
+.hero__hint svg { width: 16px; height: 16px; fill: var(--coral); flex: none; }
 
-/* Manchas de témpera sobre el fondo de toda la página */
-.bg-paint { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 40; pointer-events: none; opacity: .85; }
+/* Trazos de acuarela: cada trazo es un lienzo pegado a la página, así se mueve con el scroll sin redibujarse */
+.paint-layer { position: absolute; top: 0; left: 0; width: 100%; height: 0; z-index: 40; pointer-events: none; }
+.paint-layer canvas { position: absolute; left: 0; pointer-events: none; transition: opacity 1.6s ease; }
 
 .hero__art { position: relative; aspect-ratio: 1; width: 100%; max-width: 600px; justify-self: end; }
-.blob {
-  position: absolute; inset: 7%;
+/* La foto: la máscara orgánica gira despacio y la foto gira al revés, así parece que la forma "respira".
+   Solo se animan transformaciones, que la tarjeta gráfica mueve sin repintar. */
+.blob { position: absolute; inset: 7%; will-change: transform; }
+.blob__mask {
+  position: absolute; inset: 0;
   border-radius: 58% 42% 38% 62% / 54% 38% 62% 46%;
   overflow: hidden;
   box-shadow: 0 30px 60px -30px rgb(47 34 27 / .45);
-  animation: morph 14s ease-in-out infinite alternate;
+  animation: spin 40s linear infinite;
+  will-change: transform;
 }
-.blob img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.06); transition: transform .8s var(--ease-out); }
-.hero__art:hover .blob img { transform: scale(1.1); }
-@keyframes morph {
-  0% { border-radius: 58% 42% 38% 62% / 54% 38% 62% 46%; }
-  33% { border-radius: 40% 60% 62% 38% / 42% 56% 44% 58%; }
-  66% { border-radius: 64% 36% 46% 54% / 60% 44% 56% 40%; }
-  100% { border-radius: 46% 54% 58% 42% / 38% 62% 38% 62%; }
-}
-.splash { position: absolute; filter: url(#acuarela); overflow: visible; }
+.blob__mask img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.32); animation: spin 40s linear infinite reverse; will-change: transform; }
+@keyframes spin { to { rotate: 360deg; } }
+.splash { position: absolute; filter: url(#acuarela); overflow: visible; will-change: transform; }
 .splash circle { opacity: .75; }
 .splash--a { width: 46%; left: -10%; top: -6%; fill: var(--mustard); }
 .splash--b { width: 38%; right: -8%; bottom: -4%; fill: var(--teal-soft); }
 .splash--c { width: 26%; right: 4%; top: -2%; fill: var(--pink); }
-.drop { position: absolute; border-radius: 50%; }
+.drop { position: absolute; border-radius: 50%; will-change: transform; }
 .drop--1 { width: 22px; height: 22px; background: var(--coral); left: 4%; bottom: 18%; }
 .drop--2 { width: 14px; height: 14px; background: var(--sage); left: 12%; bottom: 10%; }
 .drop--3 { width: 18px; height: 18px; background: var(--mustard); right: 2%; top: 30%; }
@@ -203,8 +211,6 @@ button { font: inherit; color: inherit; }
   background: var(--mustard); color: var(--ink);
   border-block: 2px solid var(--ink);
   overflow: hidden; padding-block: 16px;
-  transform: rotate(-1.2deg) scale(1.02);
-  margin-block: 10px 0;
   pointer-events: none;
 }
 .band__track { display: flex; width: max-content; align-items: center; will-change: transform; animation: marquee var(--marquee-dur, 30s) linear infinite; }
@@ -240,7 +246,7 @@ button { font: inherit; color: inherit; }
   clip-path: polygon(3% 0, 97% 4%, 100% 50%, 96% 100%, 2% 96%, 0 50%);
 }
 .card__splash { position: absolute; inset: -12%; z-index: -1; pointer-events: none; }
-.card__splash svg { width: 100%; height: 100%; fill: var(--c); filter: url(#acuarela); opacity: 0; transform: scale(.6); transition: opacity .5s var(--ease-out), transform .7s var(--ease-spring); }
+.card__splash svg { will-change: transform, opacity; width: 100%; height: 100%; fill: var(--c); filter: url(#acuarela); opacity: 0; transform: scale(.6); transition: opacity .5s var(--ease-out), transform .7s var(--ease-spring); }
 .card:hover .card__splash svg { opacity: .35; transform: scale(1); }
 .card__photo { border-radius: 14px; overflow: hidden; aspect-ratio: 1; border: 2px solid var(--ink); }
 .card__photo img { width: 100%; height: 100%; object-fit: cover; transition: transform .7s var(--ease-out); }
@@ -266,7 +272,7 @@ button { font: inherit; color: inherit; }
 
 /* ---------- Frase ---------- */
 .statement { position: relative; padding-block: clamp(40px, 6vw, 90px) clamp(90px, 12vw, 170px); overflow: hidden; }
-.statement__line { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: var(--pink); stroke-width: 14; stroke-linecap: round; opacity: .55; stroke-dasharray: 1; stroke-dashoffset: 1; filter: url(#lapiz); }
+.statement__line { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: var(--pink); stroke-width: 14; stroke-linecap: round; opacity: .55; stroke-dasharray: 1; stroke-dashoffset: 1; }
 .statement__text {
   position: relative; margin: 0; max-width: 18ch;
   font-family: var(--f-display); font-variation-settings: "SOFT" 100, "WONK" 1, "opsz" 144;
@@ -295,11 +301,10 @@ button { font: inherit; color: inherit; }
   position: relative; margin: 36px 0; padding: 26px 28px 26px 32px;
   background: #fff3d9; border-radius: var(--r); border: 2px solid var(--ink);
 }
-.quote::before { content: "“"; position: absolute; top: -34px; left: 18px; font: 700 6rem/1 var(--f-display); color: var(--coral); }
 .quote p { margin: 0; font: 700 clamp(1.45rem, 2.4vw, 1.9rem)/1.2 var(--f-hand); color: var(--ink) !important; }
-.chips { display: flex; flex-wrap: wrap; gap: 10px; list-style: none; padding: 0; margin: 0; }
-.chips li { padding: 6px 16px; border-radius: 999px; border: 2px solid var(--c); color: var(--c); font-weight: 800; transition: background-color .2s, color .2s, transform .3s var(--ease-spring); }
-.chips li:hover { background: var(--c); color: #fff; transform: rotate(-4deg) scale(1.06); }
+.q { font: 700 1.5em/0 var(--f-display); color: var(--coral); vertical-align: -.32em; }
+.q--open { margin-right: .08em; }
+.q--close { margin-left: .06em; }
 
 /* ---------- Pinta ---------- */
 .easel { border: 2px solid var(--ink); border-radius: var(--r); background: var(--paper); box-shadow: 8px 8px 0 var(--ink); overflow: hidden; }
