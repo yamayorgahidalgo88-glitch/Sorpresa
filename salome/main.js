@@ -25,21 +25,23 @@
     });
   });
 
-  /* ---------- Pintar el fondo de la página con el dedo o el ratón ----------
-     Ratón: pulsar y arrastrar. Dedo: mantenerlo quieto un instante y arrastrar
-     (si se desliza directamente, la página hace scroll como siempre).
-     Cada trazo nuevo cambia de color; la pintura se borra sola a los ~3,5 s
-     y nunca cae sobre textos, botones ni el formulario (sí sobre fotos y adornos). */
+  /* ---------- Manchas de témpera en el fondo ----------
+     Cada toque (o clic) deja una mancha de témpera; al deslizar el dedo o arrastrar
+     el ratón va dejando un reguero de manchas. Cada toque nuevo cambia de color.
+     Las manchas se desvanecen solas y nunca caen sobre textos, fotos, animaciones,
+     botones ni el formulario. El scroll funciona con normalidad. */
   const bg = document.querySelector('[data-bg-paint]');
   if (bg) {
     const ctx = bg.getContext('2d');
-    const HOLD = 2000, LIFE = 3600, MARGIN = 14, PRESS = 260;
+    const HOLD = 2400, LIFE = 3900, POP = 160, STEP = 30;
     const COLORS = ['#e8694e', '#f2b13b', '#3f9a9c', '#94bb86', '#f2a7a0', '#5b8fd1'];
-    const NO_PAINT = 'h1, h2, h3, p, li, label, blockquote, figcaption, .band span, .btn, .card__toggle, .form, .easel, .nav, .mbar, .hero__sticker, input, textarea, button';
-    const NO_START = 'a, button, input, textarea, label, canvas, .btn, .form, .easel, .nav, .mbar, .hero__sticker, blockquote';
+    // Zonas protegidas: textos (línea a línea), fotos, animaciones y controles
+    const NO_PAINT = 'h1, h2, h3, p, li, label, blockquote, figcaption, img, .card, .polaroid, .hero__art, .band, .btn, .form, .easel, .nav, .mbar, input, textarea, button';
+    const BOXES = '.card, .polaroid, .hero__art, .band, .form, .easel, .nav, .mbar, blockquote';
     const TEXT = new Set(['H1', 'H2', 'H3', 'P', 'LI', 'LABEL', 'FIGCAPTION']);
     const range = document.createRange();
-    let strokes = [], cur = null, lastColor = -1, raf = 0, w = 0, h = 0;
+    let splats = [], raf = 0, w = 0, h = 0, lastColor = -1, color = COLORS[0], last = null, active = false;
+    let cache = { t: -1e9, list: [] };
 
     const size = () => {
       const dpr = Math.min(devicePixelRatio || 1, 2);
@@ -48,124 +50,121 @@
     };
     size(); addEventListener('resize', size);
 
-    const pickColor = () => {
-      let i; do { i = Math.floor(Math.random() * COLORS.length); } while (i === lastColor);
-      lastColor = i; return COLORS[i];
-    };
-    // Los puntos se guardan en coordenadas de la página, así la pintura se mueve con el scroll
-    const add = (x, y) => {
-      const t = performance.now(), p = { x, y: y + scrollY, t, w: 22 };
-      const last = cur.pts[cur.pts.length - 1];
-      if (last) {
-        const d = Math.hypot(p.x - last.x, p.y - last.y);
-        if (d < 2) return;
-        const target = Math.max(8, 34 - (d / Math.max(1, t - last.t)) * 10);
-        p.w = last.w * .7 + target * .3;
-      }
-      cur.pts.push(p);
-    };
-    const begin = (x, y) => {
-      cur = { c: pickColor(), pts: [] };
-      strokes.push(cur); add(x, y);
-      document.body.classList.add('is-painting');
-      if (!raf) raf = requestAnimationFrame(frame);
-    };
-    const end = () => { cur = null; document.body.classList.remove('is-painting'); };
-
-    // Zonas protegidas (en coordenadas de pantalla), con margen alrededor.
-    // Los textos se miden línea a línea, así queda fondo libre al final de cada línea.
     const holes = () => {
-      const m = w < 600 ? 10 : MARGIN, out = [];
+      const now = performance.now();
+      if (now - cache.t < 80) return cache.list;
+      const m = w < 600 ? 10 : 14, out = [];
       const push = (r) => {
         if (!r.width || r.bottom < -m || r.top > h + m) return;
         out.push({ x: r.left - m, y: r.top - m, w: r.width + m * 2, h: r.height + m * 2 });
       };
       document.querySelectorAll(NO_PAINT).forEach((el) => {
+        if (el.parentElement && el.parentElement.closest(BOXES)) return; // ya cubierto por su caja
         const r = el.getBoundingClientRect();
         if (!r.width || r.bottom < -m || r.top > h + m) return;
-        if (TEXT.has(el.tagName) && !el.closest('.form, .easel')) {
+        if (TEXT.has(el.tagName)) {
           range.selectNodeContents(el);
           for (const lr of range.getClientRects()) push(lr);
         } else push(r);
       });
+      cache = { t: now, list: out };
       return out;
     };
-    const blocked = (target, x, y) =>
-      !!target.closest(NO_START) || holes().some((r) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h);
+    const blocked = (x, y) => holes().some((r) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h);
+
+    const pickColor = () => {
+      let i; do { i = Math.floor(Math.random() * COLORS.length); } while (i === lastColor);
+      lastColor = i; return COLORS[i];
+    };
+    const shade = (hex, k) => {
+      const n = parseInt(hex.slice(1), 16);
+      const f = (v) => Math.max(0, Math.min(255, Math.round(v * k)));
+      return `rgb(${f(n >> 16)}, ${f((n >> 8) & 255)}, ${f(n & 255)})`;
+    };
+
+    // Una mancha: contorno irregular suavizado + gotitas alrededor
+    const makeSplat = (x, y, c, big) => {
+      const r = (big ? 22 : 13) + Math.random() * (big ? 16 : 10);
+      const n = 12 + Math.floor(Math.random() * 6), pts = [];
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2, k = .72 + Math.random() * .45;
+        pts.push([Math.cos(a) * r * k, Math.sin(a) * r * k]);
+      }
+      const body = new Path2D();
+      const mid = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
+      let s0 = mid(pts[n - 1], pts[0]);
+      body.moveTo(s0[0], s0[1]);
+      for (let i = 0; i < n; i++) { const q = mid(pts[i], pts[(i + 1) % n]); body.quadraticCurveTo(pts[i][0], pts[i][1], q[0], q[1]); }
+      body.closePath();
+      const drops = new Path2D();
+      const nd = 2 + Math.floor(Math.random() * 4);
+      for (let i = 0; i < nd; i++) {
+        const a = Math.random() * Math.PI * 2, d = r * (1.15 + Math.random() * .7), dr = 1.5 + Math.random() * r * .16;
+        drops.moveTo(Math.cos(a) * d + dr, Math.sin(a) * d);
+        drops.arc(Math.cos(a) * d, Math.sin(a) * d, dr, 0, Math.PI * 2);
+      }
+      splats.push({ x, y: y + scrollY, c, rim: shade(c, .82), hi: shade(c, 1.25), r, body, drops, t: performance.now(), rot: Math.random() * Math.PI });
+      if (!raf) raf = requestAnimationFrame(frame);
+    };
+
+    const press = (x, y) => {
+      color = pickColor(); last = { x, y: y + scrollY }; active = true;
+      if (!blocked(x, y)) makeSplat(x, y, color, true);
+    };
+    const drag = (x, y) => {
+      if (!active) return;
+      const dy = y + scrollY, d = Math.hypot(x - last.x, dy - last.y);
+      if (d < STEP) return;
+      last = { x, y: dy };
+      if (!blocked(x, y)) makeSplat(x, y, color, Math.random() < .35);
+    };
+    const release = () => { active = false; last = null; };
 
     function frame(now) {
       raf = 0;
       ctx.clearRect(0, 0, w, h);
-      strokes = strokes.filter((s) => s === cur || now - s.pts[s.pts.length - 1].t < LIFE);
-      if (!strokes.length) return;
-
-      ctx.save();
-      ctx.translate(0, -scrollY);
-      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-      for (const s of strokes) {
-        const P = s.pts;
-        ctx.strokeStyle = s.c; ctx.fillStyle = s.c;
-        for (let i = 0; i < P.length; i++) {
-          const age = now - P[i].t;
-          if (age >= LIFE) continue;
-          ctx.globalAlpha = age < HOLD ? 1 : 1 - (age - HOLD) / (LIFE - HOLD);
-          if (i === 0) { ctx.beginPath(); ctx.arc(P[0].x, P[0].y, P[0].w / 2, 0, Math.PI * 2); ctx.fill(); continue; }
-          ctx.lineWidth = P[i].w;
-          ctx.beginPath(); ctx.moveTo(P[i - 1].x, P[i - 1].y); ctx.lineTo(P[i].x, P[i].y); ctx.stroke();
-        }
+      splats = splats.filter((s) => now - s.t < LIFE);
+      if (!splats.length) return;
+      for (const s of splats) {
+        const age = now - s.t;
+        const y = s.y - scrollY;
+        if (y < -80 || y > h + 80) continue;
+        const pop = age < POP ? .55 + .45 * (1 - Math.pow(1 - age / POP, 3)) * 1.08 : 1;
+        ctx.save();
+        ctx.globalAlpha = age < HOLD ? 1 : 1 - (age - HOLD) / (LIFE - HOLD);
+        ctx.translate(s.x, y); ctx.rotate(s.rot); ctx.scale(pop, pop);
+        ctx.fillStyle = s.c; ctx.fill(s.body); ctx.fill(s.drops);
+        ctx.lineWidth = 2.5; ctx.strokeStyle = s.rim; ctx.stroke(s.body);        // borde algo más oscuro, como témpera espesa
+        ctx.globalAlpha *= .35; ctx.fillStyle = s.hi;                             // brillo de pintura fresca
+        ctx.beginPath(); ctx.ellipse(-s.r * .3, -s.r * .32, s.r * .32, s.r * .16, -.6, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
       }
-      ctx.restore();
-
-      // Hueco limpio alrededor de textos, botones, fotos y tarjetas
+      // Recortar todo lo que cae sobre zonas protegidas
       ctx.save();
       ctx.globalCompositeOperation = 'destination-out';
-      ctx.globalAlpha = 1;
       ctx.beginPath();
-      for (const r of holes()) {
-        if (ctx.roundRect) ctx.roundRect(r.x, r.y, r.w, r.h, 12); else ctx.rect(r.x, r.y, r.w, r.h);
-      }
+      for (const r of holes()) { if (ctx.roundRect) ctx.roundRect(r.x, r.y, r.w, r.h, 12); else ctx.rect(r.x, r.y, r.w, r.h); }
       ctx.fill();
       ctx.restore();
-
       raf = requestAnimationFrame(frame);
     }
 
-    // Ratón y lápiz: pulsar y arrastrar
-    let mouseDown = false;
+    // Ratón: clic deja una mancha; arrastrar con el botón pulsado deja un reguero
     document.addEventListener('pointerdown', (e) => {
-      if (e.pointerType === 'touch' || e.button !== 0 || blocked(e.target, e.clientX, e.clientY)) return;
-      e.preventDefault(); mouseDown = true; begin(e.clientX, e.clientY);
+      if (e.pointerType === 'touch' || e.button !== 0 || blocked(e.clientX, e.clientY)) return;
+      if (!e.target.closest('a, button, input, textarea, label, select')) e.preventDefault();
+      press(e.clientX, e.clientY);
     });
-    document.addEventListener('pointermove', (e) => { if (mouseDown && cur) add(e.clientX, e.clientY); });
-    ['pointerup', 'pointercancel'].forEach((ev) => document.addEventListener(ev, (e) => {
-      if (e.pointerType !== 'touch' && mouseDown) { mouseDown = false; end(); }
-    }));
+    document.addEventListener('pointermove', (e) => { if (e.pointerType !== 'touch') drag(e.clientX, e.clientY); });
+    ['pointerup', 'pointercancel'].forEach((ev) => document.addEventListener(ev, (e) => { if (e.pointerType !== 'touch') release(); }));
 
-    // Dedo: mantener un instante para empezar a pintar; deslizar sin esperar = scroll normal
-    let timer = 0, start = null, touchPainting = false;
-    const cancelHold = () => { clearTimeout(timer); timer = 0; };
+    // Dedo: tocar o deslizar deja manchas, sin bloquear el scroll
     document.addEventListener('touchstart', (e) => {
-      cancelHold();
-      if (e.touches.length !== 1) return;
-      const t = e.touches[0];
-      if (blocked(e.target, t.clientX, t.clientY)) return;
-      start = { x: t.clientX, y: t.clientY };
-      timer = setTimeout(() => {
-        timer = 0; touchPainting = true;
-        if (navigator.vibrate) navigator.vibrate(8);
-        begin(start.x, start.y);
-      }, PRESS);
+      if (e.touches.length !== 1) { release(); return; }
+      const t = e.touches[0]; press(t.clientX, t.clientY);
     }, { passive: true });
-    document.addEventListener('touchmove', (e) => {
-      const t = e.touches[0];
-      if (touchPainting) { if (e.cancelable) e.preventDefault(); add(t.clientX, t.clientY); return; }
-      if (timer && Math.hypot(t.clientX - start.x, t.clientY - start.y) > 10) cancelHold();
-    }, { passive: false });
-    ['touchend', 'touchcancel'].forEach((ev) => document.addEventListener(ev, () => {
-      cancelHold();
-      if (touchPainting) { touchPainting = false; end(); }
-    }));
-    document.addEventListener('contextmenu', (e) => { if (touchPainting) e.preventDefault(); });
+    document.addEventListener('touchmove', (e) => { const t = e.touches[0]; if (t) drag(t.clientX, t.clientY); }, { passive: true });
+    ['touchend', 'touchcancel'].forEach((ev) => document.addEventListener(ev, release, { passive: true }));
   }
 
   /* ---------- Lienzo "Pinta aquí" ---------- */
@@ -289,6 +288,15 @@
     }
   }
 
+  /* ---------- Banda de materiales: siempre de derecha a izquierda, a ritmo fijo ---------- */
+  const track = document.querySelector('[data-marquee]');
+  if (track) {
+    const setSpeed = () => { track.style.setProperty('--marquee-dur', (track.scrollWidth / 2 / 70).toFixed(2) + 's'); };
+    setSpeed();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(setSpeed);
+    addEventListener('resize', setSpeed);
+  }
+
   /* ---------- Animaciones con GSAP ---------- */
   const start = () => {
     if (!window.gsap) return;
@@ -346,26 +354,6 @@
         const nx = e.clientX / innerWidth - .5, ny = e.clientY / innerHeight - .5;
         qx.forEach((q) => { q.x(nx * q.k); q.y(ny * q.k); });
       });
-    }
-
-    // Banda: desplazamiento infinito que acelera con el scroll
-    const track = document.querySelector('[data-marquee]');
-    if (track) {
-      track.innerHTML += track.innerHTML;
-      let x = 0, boost = 0, dir = -1;
-      const half = () => track.scrollWidth / 2;
-      gsap.ticker.add((t, dt) => {
-        x += dir * (0.06 + boost) * dt;
-        const h = half();
-        if (x <= -h) x += h; if (x > 0) x -= h;
-        track.style.transform = `translate3d(${x}px,0,0)`;
-        boost *= .92;
-      });
-      if (window.ScrollTrigger) {
-        ScrollTrigger.create({
-          onUpdate: (s) => { boost = Math.min(Math.abs(s.getVelocity()) / 2500, 1.2); dir = s.direction === 1 ? -1 : 1; },
-        });
-      }
     }
 
     if (!window.ScrollTrigger) return;
