@@ -24,7 +24,8 @@ Objetivo: salir arriba en Google con «peluquería Alcorcón», «barbería Alco
 Detalle en `LOCAL-SEO-ANALYSIS.md`. Nota estimada de SEO local: 60/100.
 - **Una sola dirección oficial:** `https://ayoub-lahmany-barber.vercel.app/` en canonical, og, JSON-LD, `robots.txt` y `sitemap.xml`. La larga (`…-la-quinta-del-bnitre.vercel.app`) sigue abriendo la web, pero su `canonical` apunta a la corta, así que Google se queda con la corta. Para que además redirija hay que configurarlo a mano en Vercel: *Settings → Domains*, en la larga elegir *Redirect to* la corta (308). Un `redirects` en `vercel.json` no funciona en estos dominios automáticos de Vercel: se probó el 13-11-2026.
 - **`llms.txt`** con los datos y precios, para buscadores con IA.
-- **Faltan:** teléfono, Bing Places y Apple Maps (además de lo de abajo).
+- **Teléfono** 613 10 02 13 añadido (13-11-2026) a la web (enlace `tel:`), al JSON-LD y a `llms.txt`.
+- **Faltan:** Bing Places y Apple Maps (además de lo de abajo).
 
 ## Lo que más pesa y no se hace en la web (para Ayoub)
 Según Google, el mapa (Local Pack) se ordena por **relevancia, distancia y prominencia**. Para «peluquería Alcorcón» manda el mapa, no la web.
@@ -40,7 +41,7 @@ Según Google, el mapa (Local Pack) se ordena por **relevancia, distancia y prom
    - Un QR en el espejo y en la caja, y pedírsela a cada cliente al terminar.
    - Responder a todas.
    - Objetivo: más de 100 en Google con nota de 4,8 o más.
-3. **NAP idéntico** (nombre, dirección y teléfono escritos igual) en Google, Booksy, la web, Apple Maps, Bing Places, Páginas Amarillas, Cylex, infoisinfo, lomejordelbarrio y solicitalo.net. **Falta el teléfono:** cuando lo tengamos, se añade a la web y al marcado.
+3. **NAP idéntico** (nombre, dirección y teléfono escritos igual) en Google, Booksy, la web, Apple Maps, Bing Places, Páginas Amarillas, Cylex, infoisinfo, lomejordelbarrio y solicitalo.net. El teléfono es 613 10 02 13: escríbelo igual en todas partes.
 4. **Booksy:**
    - Nombres de servicio estándar: «Corte caballero», «Corte para niño», «Arreglo de barba», «Corte fade».
    - Perfil completo al 100 %.

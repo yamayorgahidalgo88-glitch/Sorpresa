@@ -60,7 +60,7 @@ El usuario decidió quitar de la web el asesor de cortes con IA y todo lo suyo (
 - Títulos con palabra clave, `alt` locales en la galería, sección de preguntas frecuentes, JSON-LD `HairSalon` (NAP, 11 servicios con precio, Booksy) y `FAQPage` (sin `aggregateRating` de Booksy, a propósito).
 - `canonical`, Open Graph con `assets/img/og.jpg`, `robots.txt`, `sitemap.xml`, `noindex` en `/flores/`.
 - Si se compra dominio propio, cambiar la URL en `index.html` (canonical, og, JSON-LD), `robots.txt`, `sitemap.xml` y `llms.txt`.
-- Falta el **teléfono** de la barbería: cuando lo dé el usuario, añadirlo a la web y al JSON-LD.
+- **Teléfono:** 613 10 02 13 (13-11-2026). Está en el botón «llamar» de «¿Cómo llegar?», en el JSON-LD (`telephone`) y en `llms.txt`. Debe escribirse igual en Google, Booksy y los directorios.
 - Lo que más pesa (Perfil de Empresa de Google, reseñas, NAP, Booksy, Search Console) es trabajo fuera de la web: lista en `SEO.md`.
 
 ## Revisión general del 10-11-2026
@@ -91,7 +91,7 @@ El usuario decidió quitar de la web el asesor de cortes con IA y todo lo suyo (
 
 ## PENDIENTE (siguiente paso)
 1. El usuario irá pidiendo más ajustes de diseño.
-2. Teléfono de la barbería: añadirlo a la web y al JSON-LD cuando lo dé.
+2. Dominio `ayoublahmany.es`: el usuario lo compra el 13-11-2026. Cuando lo tenga, añadirlo al proyecto de Vercel y cambiar la URL oficial (ver `SEO.md`).
 3. Quizá dominio propio más adelante (ver `SEO.md`).
 4. Recuerda al usuario que confirme con Ayoub el uso de su logo y de las fotos de Booksy (en algunas se ven caras de clientes), el horario semanal (la web remite a Booksy) y los precios.
 5. Flujo de Impeccable sin cerrar: revisión final con `impeccable-finish-reviewer` y reescribir `DESIGN.md` y `.impeccable/design.json` con `impeccable-documenter` (describen el estilo cartel, obsoleto). Hazlo cuando el diseño esté estable.
