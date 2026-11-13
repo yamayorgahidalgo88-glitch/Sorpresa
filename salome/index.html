@@ -68,6 +68,7 @@
 </head>
 <body>
   <a class="skip" href="#contenido">Saltar al contenido</a>
+  <canvas class="bg-paint" data-bg-paint aria-hidden="true"></canvas>
 
   <!-- Filtros SVG compartidos: bordes de acuarela -->
   <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -103,7 +104,6 @@
   <main id="contenido">
     <!-- HERO -->
     <section class="hero" id="inicio">
-      <canvas class="hero__trail" data-trail aria-hidden="true"></canvas>
       <div class="wrap hero__grid">
         <div class="hero__text">
           <h1 class="hero__title">
@@ -129,7 +129,7 @@
               Escríbeme por WhatsApp
             </a>
           </div>
-          <p class="hero__hint" data-hero-in aria-hidden="true">← mueve el ratón: aquí todo se pinta</p>
+          <p class="hero__hint" data-hero-in aria-hidden="true"><span class="hint--mouse">← pulsa y arrastra por el fondo: aquí todo se pinta</span><span class="hint--touch">mantén el dedo en el fondo y dibuja ✎</span></p>
         </div>
 
         <div class="hero__art" data-hero-art>

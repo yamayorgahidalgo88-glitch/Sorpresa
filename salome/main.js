@@ -25,46 +25,147 @@
     });
   });
 
-  /* ---------- Rastro de pintura en el hero ---------- */
-  const trail = document.querySelector('[data-trail]');
-  if (trail && finePointer && !reduce) {
-    const ctx = trail.getContext('2d');
-    const hero = trail.parentElement;
-    let w, h, dpr, last = null, hue = 0, active = false;
+  /* ---------- Pintar el fondo de la página con el dedo o el ratón ----------
+     Ratón: pulsar y arrastrar. Dedo: mantenerlo quieto un instante y arrastrar
+     (si se desliza directamente, la página hace scroll como siempre).
+     Cada trazo nuevo cambia de color; la pintura se borra sola a los ~3,5 s
+     y nunca cae sobre textos, botones ni el formulario (sí sobre fotos y adornos). */
+  const bg = document.querySelector('[data-bg-paint]');
+  if (bg) {
+    const ctx = bg.getContext('2d');
+    const HOLD = 2000, LIFE = 3600, MARGIN = 14, PRESS = 260;
+    const COLORS = ['#e8694e', '#f2b13b', '#3f9a9c', '#94bb86', '#f2a7a0', '#5b8fd1'];
+    const NO_PAINT = 'h1, h2, h3, p, li, label, blockquote, figcaption, .band span, .btn, .card__toggle, .form, .easel, .nav, .mbar, .hero__sticker, input, textarea, button';
+    const NO_START = 'a, button, input, textarea, label, canvas, .btn, .form, .easel, .nav, .mbar, .hero__sticker, blockquote';
+    const TEXT = new Set(['H1', 'H2', 'H3', 'P', 'LI', 'LABEL', 'FIGCAPTION']);
+    const range = document.createRange();
+    let strokes = [], cur = null, lastColor = -1, raf = 0, w = 0, h = 0;
+
     const size = () => {
-      dpr = Math.min(devicePixelRatio || 1, 2);
-      w = hero.clientWidth; h = hero.clientHeight;
-      trail.width = w * dpr; trail.height = h * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const dpr = Math.min(devicePixelRatio || 1, 2);
+      w = innerWidth; h = innerHeight;
+      bg.width = w * dpr; bg.height = h * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
     size(); addEventListener('resize', size);
-    hero.addEventListener('pointermove', (e) => {
-      const r = hero.getBoundingClientRect();
-      const p = { x: e.clientX - r.left, y: e.clientY - r.top, t: performance.now() };
+
+    const pickColor = () => {
+      let i; do { i = Math.floor(Math.random() * COLORS.length); } while (i === lastColor);
+      lastColor = i; return COLORS[i];
+    };
+    // Los puntos se guardan en coordenadas de la página, así la pintura se mueve con el scroll
+    const add = (x, y) => {
+      const t = performance.now(), p = { x, y: y + scrollY, t, w: 22 };
+      const last = cur.pts[cur.pts.length - 1];
       if (last) {
-        const dist = Math.hypot(p.x - last.x, p.y - last.y);
-        const speed = dist / Math.max(1, p.t - last.t);
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.strokeStyle = PALETTE[Math.floor(hue) % PALETTE.length];
-        ctx.globalAlpha = .55;
-        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-        ctx.lineWidth = Math.max(6, 34 - speed * 9);
-        ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(p.x, p.y); ctx.stroke();
-        hue += dist / 140;
+        const d = Math.hypot(p.x - last.x, p.y - last.y);
+        if (d < 2) return;
+        const target = Math.max(8, 34 - (d / Math.max(1, t - last.t)) * 10);
+        p.w = last.w * .7 + target * .3;
       }
-      last = p;
-      if (!active) { active = true; requestAnimationFrame(fade); }
-    });
-    hero.addEventListener('pointerleave', () => { last = null; });
-    let idle = 0;
-    function fade() {
+      cur.pts.push(p);
+    };
+    const begin = (x, y) => {
+      cur = { c: pickColor(), pts: [] };
+      strokes.push(cur); add(x, y);
+      document.body.classList.add('is-painting');
+      if (!raf) raf = requestAnimationFrame(frame);
+    };
+    const end = () => { cur = null; document.body.classList.remove('is-painting'); };
+
+    // Zonas protegidas (en coordenadas de pantalla), con margen alrededor.
+    // Los textos se miden línea a línea, así queda fondo libre al final de cada línea.
+    const holes = () => {
+      const m = w < 600 ? 10 : MARGIN, out = [];
+      const push = (r) => {
+        if (!r.width || r.bottom < -m || r.top > h + m) return;
+        out.push({ x: r.left - m, y: r.top - m, w: r.width + m * 2, h: r.height + m * 2 });
+      };
+      document.querySelectorAll(NO_PAINT).forEach((el) => {
+        const r = el.getBoundingClientRect();
+        if (!r.width || r.bottom < -m || r.top > h + m) return;
+        if (TEXT.has(el.tagName) && !el.closest('.form, .easel')) {
+          range.selectNodeContents(el);
+          for (const lr of range.getClientRects()) push(lr);
+        } else push(r);
+      });
+      return out;
+    };
+    const blocked = (target, x, y) =>
+      !!target.closest(NO_START) || holes().some((r) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h);
+
+    function frame(now) {
+      raf = 0;
+      ctx.clearRect(0, 0, w, h);
+      strokes = strokes.filter((s) => s === cur || now - s.pts[s.pts.length - 1].t < LIFE);
+      if (!strokes.length) return;
+
+      ctx.save();
+      ctx.translate(0, -scrollY);
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      for (const s of strokes) {
+        const P = s.pts;
+        ctx.strokeStyle = s.c; ctx.fillStyle = s.c;
+        for (let i = 0; i < P.length; i++) {
+          const age = now - P[i].t;
+          if (age >= LIFE) continue;
+          ctx.globalAlpha = age < HOLD ? 1 : 1 - (age - HOLD) / (LIFE - HOLD);
+          if (i === 0) { ctx.beginPath(); ctx.arc(P[0].x, P[0].y, P[0].w / 2, 0, Math.PI * 2); ctx.fill(); continue; }
+          ctx.lineWidth = P[i].w;
+          ctx.beginPath(); ctx.moveTo(P[i - 1].x, P[i - 1].y); ctx.lineTo(P[i].x, P[i].y); ctx.stroke();
+        }
+      }
+      ctx.restore();
+
+      // Hueco limpio alrededor de textos, botones, fotos y tarjetas
+      ctx.save();
       ctx.globalCompositeOperation = 'destination-out';
-      ctx.globalAlpha = .035;
-      ctx.fillRect(0, 0, w, h);
-      idle++;
-      if (idle > 240) { ctx.clearRect(0, 0, w, h); active = false; idle = 0; return; }
-      requestAnimationFrame(fade);
+      ctx.globalAlpha = 1;
+      ctx.beginPath();
+      for (const r of holes()) {
+        if (ctx.roundRect) ctx.roundRect(r.x, r.y, r.w, r.h, 12); else ctx.rect(r.x, r.y, r.w, r.h);
+      }
+      ctx.fill();
+      ctx.restore();
+
+      raf = requestAnimationFrame(frame);
     }
-    hero.addEventListener('pointermove', () => { idle = 0; });
+
+    // Ratón y lápiz: pulsar y arrastrar
+    let mouseDown = false;
+    document.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'touch' || e.button !== 0 || blocked(e.target, e.clientX, e.clientY)) return;
+      e.preventDefault(); mouseDown = true; begin(e.clientX, e.clientY);
+    });
+    document.addEventListener('pointermove', (e) => { if (mouseDown && cur) add(e.clientX, e.clientY); });
+    ['pointerup', 'pointercancel'].forEach((ev) => document.addEventListener(ev, (e) => {
+      if (e.pointerType !== 'touch' && mouseDown) { mouseDown = false; end(); }
+    }));
+
+    // Dedo: mantener un instante para empezar a pintar; deslizar sin esperar = scroll normal
+    let timer = 0, start = null, touchPainting = false;
+    const cancelHold = () => { clearTimeout(timer); timer = 0; };
+    document.addEventListener('touchstart', (e) => {
+      cancelHold();
+      if (e.touches.length !== 1) return;
+      const t = e.touches[0];
+      if (blocked(e.target, t.clientX, t.clientY)) return;
+      start = { x: t.clientX, y: t.clientY };
+      timer = setTimeout(() => {
+        timer = 0; touchPainting = true;
+        if (navigator.vibrate) navigator.vibrate(8);
+        begin(start.x, start.y);
+      }, PRESS);
+    }, { passive: true });
+    document.addEventListener('touchmove', (e) => {
+      const t = e.touches[0];
+      if (touchPainting) { if (e.cancelable) e.preventDefault(); add(t.clientX, t.clientY); return; }
+      if (timer && Math.hypot(t.clientX - start.x, t.clientY - start.y) > 10) cancelHold();
+    }, { passive: false });
+    ['touchend', 'touchcancel'].forEach((ev) => document.addEventListener(ev, () => {
+      cancelHold();
+      if (touchPainting) { touchPainting = false; end(); }
+    }));
+    document.addEventListener('contextmenu', (e) => { if (touchPainting) e.preventDefault(); });
   }
 
   /* ---------- Lienzo "Pinta aquí" ---------- */

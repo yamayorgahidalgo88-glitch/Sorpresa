@@ -126,7 +126,6 @@ button { font: inherit; color: inherit; }
   overflow: hidden;
   isolation: isolate;
 }
-.hero__trail { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
 .hero__grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: clamp(24px, 4vw, 64px); align-items: center; }
 .hero__title {
   margin: 0;
@@ -161,7 +160,13 @@ button { font: inherit; color: inherit; }
 .hero__lead { max-width: 34ch; margin: 28px 0 0; font-size: clamp(1.08rem, 1.5vw, 1.3rem); color: var(--ink-2); }
 .hero__actions { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 30px; }
 .hero__hint { margin: 26px 0 0; font: 700 1.25rem var(--f-hand); color: var(--ink-2); transform: rotate(-2deg); }
-@media (hover: none) { .hero__hint { display: none; } }
+.hint--touch { display: none; }
+@media (hover: none) { .hint--mouse { display: none; } .hint--touch { display: inline; } }
+
+/* Pintura sobre el fondo de toda la página */
+.bg-paint { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 40; pointer-events: none; opacity: .85; }
+body.is-painting { -webkit-user-select: none; user-select: none; cursor: crosshair; }
+main, .footer { -webkit-touch-callout: none; }
 
 .hero__art { position: relative; aspect-ratio: 1; width: 100%; max-width: 600px; justify-self: end; }
 .blob {
