@@ -22,7 +22,7 @@ Objetivo: salir arriba en Google con «peluquería Alcorcón», «barbería Alco
 
 ## Auditoría con claude-seo (13-11-2026)
 Detalle en `LOCAL-SEO-ANALYSIS.md`. Nota estimada de SEO local: 60/100.
-- **Una sola dirección oficial:** `https://ayoub-lahmany-barber.vercel.app/` en canonical, og, JSON-LD, `robots.txt` y `sitemap.xml`. La larga (`…-la-quinta-del-bnitre.vercel.app`) redirige a ella con un 308 (`vercel.json`).
+- **Una sola dirección oficial:** `https://ayoub-lahmany-barber.vercel.app/` en canonical, og, JSON-LD, `robots.txt` y `sitemap.xml`. La larga (`…-la-quinta-del-bnitre.vercel.app`) sigue abriendo la web, pero su `canonical` apunta a la corta, así que Google se queda con la corta. Para que además redirija hay que configurarlo a mano en Vercel: *Settings → Domains*, en la larga elegir *Redirect to* la corta (308). Un `redirects` en `vercel.json` no funciona en estos dominios automáticos de Vercel: se probó el 13-11-2026.
 - **`llms.txt`** con los datos y precios, para buscadores con IA.
 - **Faltan:** teléfono, Bing Places y Apple Maps (además de lo de abajo).
 
@@ -48,7 +48,7 @@ Según Google, el mapa (Local Pack) se ordena por **relevancia, distancia y prom
    - Calendario abierto a 4 semanas.
    - Promociones en horas valle.
    - Boost solo cuando haya huecos libres.
-5. **Dominio propio:** la web está en un subdominio de vercel.app. Un dominio como `ayoublahmany.es` (unos 10 €/año) posiciona mejor y da confianza. Si se compra, hay que cambiar la URL en `index.html` (canonical, og y JSON-LD), `robots.txt`, `sitemap.xml`, `llms.txt` y la redirección de `vercel.json`.
+5. **Dominio propio:** la web está en un subdominio de vercel.app. Un dominio como `ayoublahmany.es` (unos 10 €/año) posiciona mejor y da confianza. Si se compra, hay que cambiar la URL en `index.html` (canonical, og y JSON-LD), `robots.txt`, `sitemap.xml` y `llms.txt`.
 6. **Google Search Console:**
    - Dar de alta la web y enviar `sitemap.xml`.
    - Comprobar los datos estructurados con la Prueba de resultados enriquecidos.

@@ -9,7 +9,7 @@ Web one-page de una barbería real: **Ayoub Lahmany Barber Shop**, C/ Princesa D
 
 ## Dónde está
 - Repo: `yamayorgahidalgo88-glitch/Sorpresa`, rama **`claude/barbershop-hairstyle-preview-irqt06`**. Todo está subido. No hay ningún PR abierto, y no hay que crearlo salvo que el usuario lo pida.
-- Web publicada: **https://ayoub-lahmany-barber.vercel.app** (dirección oficial desde el 13-11-2026; la larga `ayoub-lahmany-barber-la-quinta-del-bnitre.vercel.app` redirige aquí por `vercel.json`).
+- Web publicada: **https://ayoub-lahmany-barber.vercel.app** (dirección oficial desde el 13-11-2026). La larga `ayoub-lahmany-barber-la-quinta-del-bnitre.vercel.app` sigue funcionando con el `canonical` hacia la corta; su redirección solo se puede poner desde el panel de Vercel (ver `SEO.md`).
 - Vercel: equipo `team_AJTr7WqPBL2IVmRDgpky7Ac8` («la-quinta-del-bnitre»), proyecto `ayoub-lahmany-barber` (`prj_ub5vt9Rg3rh8zU38GpRsEyezOW6U`).
   - Vercel **no puede enlazar el repo**: la cuenta de GitHub de Vercel no tiene permiso de escritura. Para publicar, usa el MCP de Vercel `create_deployment` con `gitSource {type:"github", org:"yamayorgahidalgo88-glitch", repo:"Sorpresa", ref:"claude/barbershop-hairstyle-preview-irqt06"}`, `target:"production"`, `project:"ayoub-lahmany-barber"`, `teamId` el de arriba y `skipAutoDetectionConfirmation:"1"`.
   - La protección por SSO está solo en las previews; producción es pública.
@@ -59,7 +59,7 @@ El usuario decidió quitar de la web el asesor de cortes con IA y todo lo suyo (
 - Título «Peluquería en Alcorcón · Corte hombre 11 € · Ayoub Lahmany», meta descripción, H1 con texto oculto «peluquería y barbería en Alcorcón», línea visible bajo el logo: «Corte de caballero: 11 €» (con dos puntos, lo pidió el usuario).
 - Títulos con palabra clave, `alt` locales en la galería, sección de preguntas frecuentes, JSON-LD `HairSalon` (NAP, 11 servicios con precio, Booksy) y `FAQPage` (sin `aggregateRating` de Booksy, a propósito).
 - `canonical`, Open Graph con `assets/img/og.jpg`, `robots.txt`, `sitemap.xml`, `noindex` en `/flores/`.
-- Si se compra dominio propio, cambiar la URL en `index.html` (canonical, og, JSON-LD), `robots.txt`, `sitemap.xml`, `llms.txt` y la redirección de `vercel.json`.
+- Si se compra dominio propio, cambiar la URL en `index.html` (canonical, og, JSON-LD), `robots.txt`, `sitemap.xml` y `llms.txt`.
 - Falta el **teléfono** de la barbería: cuando lo dé el usuario, añadirlo a la web y al JSON-LD.
 - Lo que más pesa (Perfil de Empresa de Google, reseñas, NAP, Booksy, Search Console) es trabajo fuera de la web: lista en `SEO.md`.
 

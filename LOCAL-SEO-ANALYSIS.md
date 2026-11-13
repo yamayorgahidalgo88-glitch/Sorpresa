@@ -30,7 +30,7 @@ Objetivo (de `SEO.md`): salir arriba con «peluquería Alcorcón», «barbería 
 
 ## Cambios hechos en la web
 1. **Una sola dirección oficial:** `https://ayoub-lahmany-barber.vercel.app/` en `canonical`, Open Graph, JSON-LD, `robots.txt` y `sitemap.xml`.
-2. **Redirección permanente (308)** de la dirección larga a la corta, en `vercel.json`.
+2. **La dirección larga** sigue abriendo la web, pero con el `canonical` hacia la corta. Si además se quiere que redirija, hay que configurarlo en el panel de Vercel: *Settings → Domains*, en la larga elegir *Redirect to* la corta. En `vercel.json` no funciona con los dominios automáticos de Vercel.
 3. **`llms.txt`** con nombre, dirección, horario, precios y reserva. Así ChatGPT, Perplexity y otros buscadores con IA lo leen fácil. En búsquedas locales, la IA convierte mucho más que Google orgánico.
 4. **`sitemap.xml`:** fecha actualizada.
 
