@@ -127,3 +127,8 @@ img{-webkit-user-drag:none}
 #loading{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:#14173a;font-size:24px}
 
 .atkimg{display:block;width:100%;border-radius:12px;border:2px solid var(--ink);margin-top:8px}
+
+.ilv{margin:8px 2px 4px;display:flex;flex-direction:column;gap:4px}
+.ilv p{margin:0;font:600 12.5px/1.35 system-ui,sans-serif;padding:5px 8px;border-radius:9px;background:rgba(0,0,0,.06);opacity:.55}
+.ilv p.on{opacity:1;background:#fff3c4;border:1.5px solid #e0b93a}
+.ilv p b{color:#d99a00;margin-right:6px;font:400 13px 'Lilita One',system-ui;white-space:nowrap}

@@ -1042,6 +1042,7 @@ function createStatic(type) {
   rig.update(0); return rig;
 }
 export function createCharacter(type) {
+  if (type === 'reno') return { type, root: new THREE.Group(), g: {}, mats: {}, sp: {}, height: .95, atkT: -1, supT: -1, play() { }, flash() { }, update() { } };   // se dibuja en 2D (fantasma)
   if (GLB[type]) return createStatic(type);
   const bp = BP[type] || (BP[type] = BUILDERS[type]());
   const g = {}, mats = {}, sp = {};
