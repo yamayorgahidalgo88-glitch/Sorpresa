@@ -70,7 +70,7 @@
     <!-- PORTADA -->
     <section class="hero" id="inicio" aria-labelledby="hero-title">
       <div class="hero__frame" id="hero-frame">
-        <video class="hero__video" id="hero-video" muted loop playsinline preload="auto" poster="assets/video/hero.jpg" aria-hidden="true"
+        <video class="hero__video" id="hero-video" muted loop playsinline disablepictureinpicture preload="auto" poster="assets/video/hero.jpg" aria-hidden="true"
           data-src-wide="assets/video/hero.mp4" data-src-tall="assets/video/hero-movil.mp4" data-poster-tall="assets/video/hero-movil.jpg"></video>
         <div class="hero__shade" aria-hidden="true"></div>
       </div>
@@ -92,8 +92,10 @@
     <!-- INTERLUDIO: las herramientas -->
     <section class="interlude" id="oficio" aria-label="Presentación">
       <div class="interlude__frame" id="interlude-frame">
-        <video class="interlude__video" muted loop playsinline preload="none" poster="assets/video/herramientas.jpg" aria-hidden="true"><source src="assets/video/herramientas.mp4" type="video/mp4"></video>
-        <div class="interlude__shade" aria-hidden="true"></div>
+        <div class="interlude__media" id="interlude-media" aria-hidden="true">
+          <video class="interlude__video" muted loop playsinline disablepictureinpicture preload="none" poster="assets/video/herramientas.jpg"><source src="assets/video/herramientas.mp4" type="video/mp4"></video>
+          <div class="interlude__shade"></div>
+        </div>
         <p class="statement__text" id="statement">Cortes a tu medida. Degradados limpios, barba perfilada y una cara cuidada. Ayoub Lahmany, en Alcorcón.</p>
       </div>
     </section>
@@ -204,8 +206,10 @@
     <!-- CIERRE -->
     <section class="close" aria-labelledby="close-title">
       <div class="close__frame" id="close-frame">
-        <video class="close__video" muted loop playsinline preload="none" poster="assets/video/hero.jpg" aria-hidden="true"><source src="assets/video/hero.mp4" type="video/mp4"></video>
-        <div class="close__shade" aria-hidden="true"></div>
+        <div class="close__media" id="close-media" aria-hidden="true">
+          <video class="close__video" muted loop playsinline disablepictureinpicture preload="none" poster="assets/video/hero.jpg"><source src="assets/video/hero.mp4" type="video/mp4"></video>
+          <div class="close__shade"></div>
+        </div>
         <div class="close__text">
           <h2 class="title title--xl" id="close-title" data-split>Tu silla te espera</h2>
           <a class="btn btn--gold btn--lg btn--glint" href="https://booksy.com/es-es/86074_ayoub-lahmany-barber-shop_barberia_52935_alcorcon" target="_blank" rel="noopener" data-fade>Reservar en Booksy <svg aria-hidden="true"><use href="#i-arrow"/></svg></a>

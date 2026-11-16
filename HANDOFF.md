@@ -115,3 +115,4 @@ El usuario decidió quitar de la web el asesor de cortes con IA y todo lo suyo (
 - Quitada la animación de entrada (bandas, logo que se revela, textos que suben): la portada se ve completa de golpe.
 - GSAP, ScrollTrigger y Lenis ahora son locales (`assets/js/vendor/`), sin pedirlos a CDN externas.
 - En móvil: scroll nativo (sin Lenis), sin efecto de la portada que se encoge, sin desenfoque de fondo en cabecera y barra inferior, y el brillo del botón solo en ordenador.
+- Vídeos (16-11-2026): el marco de los vídeos del interludio y del cierre se abre con `transform: scale` (antes era `clip-path`, que repintaba cada fotograma) y los vídeos solo se reproducen cuando se ven (antes el de la portada y el del interludio sonaban a la vez al cargar).

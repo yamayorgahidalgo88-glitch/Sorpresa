@@ -51,7 +51,6 @@ export function initMotion({ reduce }) {
   if (fine) {
     gsap.to('#hero-frame', {
       scale: 0.95,
-      borderRadius: 14,
       ease: 'none',
       scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true },
     });
@@ -80,13 +79,13 @@ export function initMotion({ reduce }) {
     });
   }
 
-  const inter = document.getElementById('interlude-frame');
+  // El marco de vídeo se abre solo con transform (la GPU lo mueve sin repintar)
+  const inter = document.getElementById('interlude-media');
   if (inter) {
-    gsap.fromTo(inter, { '--inset-x': '7%', '--inset-r': '18px' }, {
-      '--inset-x': '0%',
-      '--inset-r': '0px',
+    gsap.fromTo(inter, { scale: 0.88 }, {
+      scale: 1,
       ease: 'none',
-      scrollTrigger: { trigger: inter, start: 'top 95%', end: 'top 20%', scrub: true },
+      scrollTrigger: { trigger: '#interlude-frame', start: 'top 95%', end: 'top 20%', scrub: true },
     });
   }
 
@@ -141,13 +140,12 @@ export function initMotion({ reduce }) {
   });
 
   // ---------- Cierre: el marco se abre a pantalla completa ----------
-  const frame = document.getElementById('close-frame');
-  if (frame) {
-    gsap.fromTo(frame, { '--inset-x': '8%', '--inset-r': '18px' }, {
-      '--inset-x': '0%',
-      '--inset-r': '0px',
+  const closeMedia = document.getElementById('close-media');
+  if (closeMedia) {
+    gsap.fromTo(closeMedia, { scale: 0.88 }, {
+      scale: 1,
       ease: 'none',
-      scrollTrigger: { trigger: frame, start: 'top 90%', end: 'top 15%', scrub: true },
+      scrollTrigger: { trigger: '#close-frame', start: 'top 90%', end: 'top 15%', scrub: true },
     });
   }
 
@@ -176,12 +174,15 @@ function setupHeroVideo(reduce) {
 function setupLoopVideo(sel) {
   const v = document.querySelector(sel);
   if (!v || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  // Se descarga con antelación, pero solo se reproduce cuando de verdad se ve:
+  // así nunca hay dos vídeos decodificándose a la vez.
+  new IntersectionObserver(([e], io) => {
+    if (e.isIntersecting) { v.preload = 'auto'; v.load(); io.disconnect(); }
+  }, { rootMargin: '700px 0px' }).observe(v);
   new IntersectionObserver(([e]) => {
-    if (e.isIntersecting) {
-      if (v.preload !== 'auto') { v.preload = 'auto'; v.load(); }
-      v.play().catch(() => {});
-    } else v.pause();
-  }, { rootMargin: '200px 0px' }).observe(v);
+    if (e.isIntersecting) v.play().catch(() => {});
+    else v.pause();
+  }).observe(v);
 }
 
 function onScrollHeader(header) {
