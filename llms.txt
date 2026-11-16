@@ -25,4 +25,4 @@
 - Corte + barba + higiene profunda (1 h 10 min): 34 €
 
 ## Páginas
-- [Web de la peluquería](https://ayoub-lahmany-barber.vercel.app/): precios, fotos de cortes, cómo llegar y preguntas frecuentes
+- [Web de la peluquería](https://ayoublahmany.es/): precios, fotos de cortes, cómo llegar y preguntas frecuentes

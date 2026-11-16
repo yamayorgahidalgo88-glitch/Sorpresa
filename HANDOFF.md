@@ -9,7 +9,7 @@ Web one-page de una barbería real: **Ayoub Lahmany Barber Shop**, C/ Princesa D
 
 ## Dónde está
 - Repo: `yamayorgahidalgo88-glitch/Sorpresa`, rama **`claude/barbershop-hairstyle-preview-irqt06`**. Todo está subido. No hay ningún PR abierto, y no hay que crearlo salvo que el usuario lo pida.
-- Web publicada: **https://ayoub-lahmany-barber.vercel.app** (dirección oficial desde el 13-11-2026). La larga `ayoub-lahmany-barber-la-quinta-del-bnitre.vercel.app` sigue funcionando con el `canonical` hacia la corta; su redirección solo se puede poner desde el panel de Vercel (ver `SEO.md`).
+- Web publicada: **https://ayoublahmany.es** (dirección oficial desde el 16-11-2026; `www` redirige a ella). Las direcciones `*.vercel.app` siguen abriendo la web con el `canonical` hacia el dominio; su redirección solo se puede poner desde el panel de Vercel (ver `SEO.md`).
 - Vercel: equipo `team_AJTr7WqPBL2IVmRDgpky7Ac8` («la-quinta-del-bnitre»), proyecto `ayoub-lahmany-barber` (`prj_ub5vt9Rg3rh8zU38GpRsEyezOW6U`).
   - Vercel **no puede enlazar el repo**: la cuenta de GitHub de Vercel no tiene permiso de escritura. Para publicar, usa el MCP de Vercel `create_deployment` con `gitSource {type:"github", org:"yamayorgahidalgo88-glitch", repo:"Sorpresa", ref:"claude/barbershop-hairstyle-preview-irqt06"}`, `target:"production"`, `project:"ayoub-lahmany-barber"`, `teamId` el de arriba y `skipAutoDetectionConfirmation:"1"`.
   - La protección por SSO está solo en las previews; producción es pública.
@@ -102,7 +102,7 @@ El usuario decidió quitar de la web el asesor de cortes con IA y todo lo suyo (
 - **MCP de Playwright** para capturas. También vale Playwright por script; Chromium ya está instalado.
 - **claude-seo** (AgriciDaniel, v2.6.0), en `.claude/skills/seo*` y `.claude/agents/seo-*.md`. Habilidades `seo`, `seo-local`, `seo-audit`, `seo-schema`, `seo-geo`, etc. Las rutas ya apuntan a `.claude/skills/` (lánzalo desde la raíz del repo).
   - En cada sesión nueva, prepara su Python con `.claude/skills/seo/scripts/claude-seo setup` (el entorno se guarda fuera del repo).
-  - Los scripts que descargan por su cuenta fallan por el proxy del entorno (`Refusing configured HTTP proxy`). Descarga la página con `curl` y usa `--file`, por ejemplo `.claude/skills/seo/scripts/claude-seo run page_checks.py --file index.html --base-url https://ayoub-lahmany-barber.vercel.app/`.
+  - Los scripts que descargan por su cuenta fallan por el proxy del entorno (`Refusing configured HTTP proxy`). Descarga la página con `curl` y usa `--file`, por ejemplo `.claude/skills/seo/scripts/claude-seo run page_checks.py --file index.html --base-url https://ayoublahmany.es/`.
   - Última auditoría: `LOCAL-SEO-ANALYSIS.md`.
 - **Plugin de Figma**: necesita autorización y no se ha usado.
 

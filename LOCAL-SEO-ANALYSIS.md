@@ -1,6 +1,6 @@
 # Auditoría de SEO local con claude-seo (13-11-2026)
 
-Web: https://ayoub-lahmany-barber.vercel.app/
+Web: https://ayoublahmany.es/
 Herramienta: [claude-seo](https://github.com/AgriciDaniel/claude-seo) v2.6.0, habilidad `seo-local` y comprobaciones automáticas `page_checks`, `parse_html`, `content_quality` y `gbp_deprecation_lint`.
 Objetivo (de `SEO.md`): salir arriba con «peluquería Alcorcón», «barbería Alcorcón» y «peluquería barata Alcorcón».
 
@@ -29,7 +29,7 @@ Objetivo (de `SEO.md`): salir arriba con «peluquería Alcorcón», «barbería 
 - **Perfil de Empresa:** sin enlaces a funciones de Google ya retiradas (chat, business.site).
 
 ## Cambios hechos en la web
-1. **Una sola dirección oficial:** `https://ayoub-lahmany-barber.vercel.app/` en `canonical`, Open Graph, JSON-LD, `robots.txt` y `sitemap.xml`.
+1. **Una sola dirección oficial:** `https://ayoublahmany.es/` en `canonical`, Open Graph, JSON-LD, `robots.txt` y `sitemap.xml`.
 2. **La dirección larga** sigue abriendo la web, pero con el `canonical` hacia la corta. Si además se quiere que redirija, hay que configurarlo en el panel de Vercel: *Settings → Domains*, en la larga elegir *Redirect to* la corta. En `vercel.json` no funciona con los dominios automáticos de Vercel.
 3. **`llms.txt`** con nombre, dirección, horario, precios y reserva. Así ChatGPT, Perplexity y otros buscadores con IA lo leen fácil. En búsquedas locales, la IA convierte mucho más que Google orgánico.
 4. **`sitemap.xml`:** fecha actualizada.
