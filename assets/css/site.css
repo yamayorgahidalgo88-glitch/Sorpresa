@@ -315,7 +315,7 @@ svg { fill: currentColor; }
   position: absolute;
   inset: 0;
   overflow: hidden;
-  background: #000 url("../video/hero.jpg") center / cover no-repeat;
+  background: var(--bg);
   transform-origin: 50% 0;
 }
 .hero__video {
@@ -327,8 +327,10 @@ svg { fill: currentColor; }
 }
 .hero__shade {
   position: absolute;
-  inset: 0;
+  /* se pasa 2 px por abajo para que el borde del vídeo nunca asome */
+  inset: 0 0 -2px 0;
   background:
+    linear-gradient(180deg, transparent 0%, transparent 94%, var(--bg) 99%),
     radial-gradient(70% 60% at 50% 45%, rgba(11, 10, 8, 0.2), rgba(11, 10, 8, 0.7) 100%),
     linear-gradient(180deg, rgba(11, 10, 8, 0.55) 0%, rgba(11, 10, 8, 0.1) 30%, rgba(11, 10, 8, 0.2) 65%, var(--bg) 100%);
 }
