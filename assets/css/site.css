@@ -750,6 +750,7 @@ svg { fill: currentColor; }
   letter-spacing: 0.02em;
 }
 .foot img { width: 160px; height: auto; }
+.foot__links { display: flex; flex-wrap: wrap; gap: 4px 24px; }
 .foot__credits {
   padding: 8px 0;
   border: 0;
