@@ -37,3 +37,12 @@ Copia aparte del juego; la de Vercel (`cifra/`) no se toca.
 - Textos de la interfaz: `cifra-crazygames/i18n.js`. Idioma: el del SDK de CrazyGames (español si empieza por `es`, si no inglés).
   Para probar: `?lang=es` o `?lang=en`.
 - SDK: `cifra-crazygames/cg.js` (gameplay, anuncio al acabar cada partida, usuario, invitaciones y estado de la sala).
+
+## Web propia con AdSense (`cifra-web/`)
+
+- Páginas de contenido y legales: `cifra-web/*/index.html` (los huecos marcados con [CORCHETES] hay que rellenarlos).
+- El juego (`cifra-web/jugar/`) se genera desde la versión de CrazyGames:
+  `python3 cifra-src/tools/build-cg.py && python3 cifra-src/tools/build-web.py`.
+  Las salas online de la web son independientes (`app:'web'`). El enlace de invitación es `/jugar/?sala=CODIGO`.
+- Dominio y AdSense: `python3 cifra-src/tools/web-config.py tudominio.com ca-pub-XXXXXXXXXXXXXXXX`
+  (actualiza sitemap, robots, ads.txt, la etiqueta de verificación y `anuncios-config.js`).
