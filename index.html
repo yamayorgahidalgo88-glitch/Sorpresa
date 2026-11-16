@@ -30,12 +30,10 @@
   <link rel="preload" href="assets/img/logo-ayoub-lahmany.webp" as="image">
   <link rel="preload" href="assets/video/hero.jpg" as="image" media="(min-aspect-ratio: 4/5)">
   <link rel="preload" href="assets/video/hero-movil.jpg" as="image" media="(max-aspect-ratio: 4/5)">
-  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="stylesheet" href="assets/css/site.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.13/dist/lenis.min.js" defer></script>
+  <script src="assets/js/vendor/gsap.min.js" defer></script>
+  <script src="assets/js/vendor/ScrollTrigger.min.js" defer></script>
+  <script src="assets/js/vendor/lenis.min.js" defer></script>
   <script type="module" src="assets/js/main.js"></script>
 </head>
 <body>
@@ -72,17 +70,16 @@
         <video class="hero__video" id="hero-video" muted loop playsinline preload="auto" poster="assets/video/hero.jpg" aria-hidden="true"
           data-src-wide="assets/video/hero.mp4" data-src-tall="assets/video/hero-movil.mp4" data-poster-tall="assets/video/hero-movil.jpg"></video>
         <div class="hero__shade" aria-hidden="true"></div>
-        <div class="hero__bars" aria-hidden="true"><span></span><span></span></div>
       </div>
       <div class="hero__content">
         <h1 id="hero-title" class="hero__logo">
           <img src="assets/img/logo-ayoub-lahmany.webp" alt="" width="1400" height="690" fetchpriority="high"><span class="sr-only">Ayoub Lahmany Barber Shop: peluquería y barbería en Alcorcón</span>
         </h1>
-        <p class="hero__line" data-hero>Peluquería y barbería en Alcorcón.<br>Corte de caballero: 11&nbsp;€</p>
-        <div class="hero__actions" data-hero>
+        <p class="hero__line">Peluquería y barbería en Alcorcón.<br>Corte de caballero: 11&nbsp;€</p>
+        <div class="hero__actions">
           <a class="btn btn--gold btn--glint" href="https://booksy.com/es-es/86074_ayoub-lahmany-barber-shop_barberia_52935_alcorcon" target="_blank" rel="noopener">Reservar en Booksy <svg aria-hidden="true"><use href="#i-arrow"/></svg></a>
         </div>
-        <p class="hero__rating" data-hero>
+        <p class="hero__rating">
           <span class="stars" aria-hidden="true"><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg></span>
           5,0 en Booksy · 135 reseñas
         </p>

@@ -110,3 +110,8 @@ El usuario decidió quitar de la web el asesor de cortes con IA y todo lo suyo (
 - Commits con las líneas de atribución que indique el system reminder. Sube siempre a la rama de arriba con `git push -u origin <rama>`.
 - El usuario escribe en español, informal. Prefiere resultados visuales y que se los enseñes publicados en Vercel.
 - Antes de proponer reescrituras grandes, pregunta el enfoque: ha rechazado varias direcciones.
+
+## Rendimiento (16-11-2026)
+- Quitada la animación de entrada (bandas, logo que se revela, textos que suben): la portada se ve completa de golpe.
+- GSAP, ScrollTrigger y Lenis ahora son locales (`assets/js/vendor/`), sin pedirlos a CDN externas.
+- En móvil: scroll nativo (sin Lenis), sin efecto de la portada que se encoge, sin desenfoque de fondo en cabecera y barra inferior, y el brillo del botón solo en ordenador.

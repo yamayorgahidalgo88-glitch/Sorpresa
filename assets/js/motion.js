@@ -1,4 +1,4 @@
-// Coreografía de la página: el vídeo de portada se abre como en el cine, el
+// Coreografía de la página: la portada se ve de golpe, el
 // interludio de las herramientas se abre y su texto se enciende al leerlo, y el
 // cierre se abre a pantalla completa.
 
@@ -24,12 +24,12 @@ export function initMotion({ reduce }) {
   document.documentElement.classList.add('motion');
   gsap.registerPlugin(ST);
 
-  // ---------- Scroll suave ----------
-  if (window.Lenis) {
+  // ---------- Scroll suave (solo ratón: en el móvil se usa el scroll nativo) ----------
+  const fine = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  if (window.Lenis && fine) {
     const lenis = new window.Lenis({ duration: 1.15, smoothWheel: true, wheelMultiplier: 0.95 });
     lenis.on('scroll', ST.update);
     gsap.ticker.add((time) => lenis.raf(time * 1000));
-    gsap.ticker.lagSmoothing(0);
     document.querySelectorAll('a[href^="#"]').forEach((a) => {
       a.addEventListener('click', (e) => {
         const id = a.getAttribute('href');
@@ -43,30 +43,25 @@ export function initMotion({ reduce }) {
     });
   }
 
-  // ---------- Entrada: se abren las bandas, aparece el logo ----------
-  const logoImg = document.querySelector('.hero__logo img');
-  const logoWrap = document.querySelector('.hero__logo');
-  const tl = gsap.timeline({ delay: 0.2, defaults: { ease: EASE_OUT } });
-  tl.to('.hero__bars span', { scaleY: 0, duration: 1.4, ease: 'expo.inOut' })
-    .fromTo(logoImg, { '--reveal': '0%' }, { '--reveal': '120%', duration: 1.8, ease: 'power3.inOut' }, '-=0.7')
-    .fromTo(logoWrap, { '--shine': '160%' }, { '--shine': '-60%', duration: 1.5, ease: 'power2.inOut' }, '-=0.7')
-    .to('[data-hero]', { opacity: 1, y: 0, duration: 1, stagger: 0.12 }, '-=1.3')
-    .add(() => header.classList.add('is-in'), '-=1');
-  gsap.fromTo(logoWrap, { '--shine': '160%' }, { '--shine': '-60%', duration: 1.6, ease: 'power2.inOut', repeat: -1, repeatDelay: 7, delay: 6 });
+  // Sin animación de entrada: la portada se ve completa desde el primer momento.
+  header?.classList.add('is-in');
 
-  // Al bajar, la portada se recoge como una pantalla que se aleja
-  gsap.to('#hero-frame', {
-    scale: 0.95,
-    borderRadius: 14,
-    ease: 'none',
-    scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true },
-  });
-  gsap.to('.hero__content', {
-    yPercent: -25,
-    opacity: 0,
-    ease: 'none',
-    scrollTrigger: { trigger: '.hero', start: 'top top', end: '70% top', scrub: true },
-  });
+  // Al bajar, la portada se recoge como una pantalla que se aleja (solo en
+  // ordenador: en el móvil cuesta fluidez y no aporta)
+  if (fine) {
+    gsap.to('#hero-frame', {
+      scale: 0.95,
+      borderRadius: 14,
+      ease: 'none',
+      scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true },
+    });
+    gsap.to('.hero__content', {
+      yPercent: -25,
+      opacity: 0,
+      ease: 'none',
+      scrollTrigger: { trigger: '.hero', start: 'top top', end: '70% top', scrub: true },
+    });
+  }
 
   onScrollHeader(header);
 

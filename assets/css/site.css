@@ -184,7 +184,7 @@ svg { fill: currentColor; }
   .btn--gold:hover::before { inset: -3px; border-color: rgba(240, 207, 134, 0.75); }
 }
 /* El botón de reservar de la portada brilla solo de vez en cuando */
-@media (prefers-reduced-motion: no-preference) {
+@media (prefers-reduced-motion: no-preference) and (hover: hover) {
   .btn--glint { animation: glint 6.5s var(--ease-in-out) 2.5s infinite; }
 }
 @keyframes glint {
@@ -317,7 +317,6 @@ svg { fill: currentColor; }
   overflow: hidden;
   background: #000 url("../video/hero.jpg") center / cover no-repeat;
   transform-origin: 50% 0;
-  will-change: transform, border-radius;
 }
 .hero__video {
   position: absolute;
@@ -333,17 +332,6 @@ svg { fill: currentColor; }
     radial-gradient(70% 60% at 50% 45%, rgba(11, 10, 8, 0.2), rgba(11, 10, 8, 0.7) 100%),
     linear-gradient(180deg, rgba(11, 10, 8, 0.55) 0%, rgba(11, 10, 8, 0.1) 30%, rgba(11, 10, 8, 0.2) 65%, var(--bg) 100%);
 }
-/* Bandas de cine que se abren al cargar */
-.hero__bars span {
-  position: absolute;
-  left: 0; right: 0;
-  height: 50%;
-  background: var(--bg);
-  transform-origin: top;
-}
-.hero__bars span:first-child { top: 0; }
-.hero__bars span:last-child { bottom: 0; transform-origin: bottom; }
-.hero__bars span { transform: scaleY(0); }
 .hero__content {
   position: relative;
   z-index: 2;
@@ -362,20 +350,6 @@ svg { fill: currentColor; }
   width: 100%;
   height: auto;
   filter: drop-shadow(0 12px 50px rgba(0, 0, 0, 0.9));
-  -webkit-mask-image: linear-gradient(105deg, #000 calc(var(--reveal, 120%) - 18%), rgba(0,0,0,0) var(--reveal, 120%));
-  mask-image: linear-gradient(105deg, #000 calc(var(--reveal, 120%) - 18%), rgba(0,0,0,0) var(--reveal, 120%));
-}
-.hero__logo::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(105deg, transparent 40%, rgba(255, 240, 200, 0.75) 50%, transparent 60%);
-  background-size: 260% 100%;
-  background-position: var(--shine, 160%) 0;
-  -webkit-mask: url("../img/logo-ayoub-lahmany.webp") center / contain no-repeat;
-  mask: url("../img/logo-ayoub-lahmany.webp") center / contain no-repeat;
-  mix-blend-mode: screen;
-  pointer-events: none;
 }
 .hero__line {
   margin: 0;
@@ -848,17 +822,6 @@ svg { fill: currentColor; }
 
 .dock { display: none; }
 
-/* ---------- Estados de entrada (solo con JS y movimiento) ---------- */
-
-@media (prefers-reduced-motion: no-preference) {
-  .motion .hero__logo img { --reveal: 0%; }
-  .motion .hero__bars span { transform: scaleY(1); }
-  .motion [data-hero] { opacity: 0; transform: translateY(16px); }
-  .motion .header:not(.is-in) { transform: translateY(-100%); }
-}
-@media (prefers-reduced-motion: reduce) {
-
-}
 
 /* ---------- Responsive ---------- */
 
@@ -895,15 +858,14 @@ svg { fill: currentColor; }
   .close__frame { height: 80vh; }
   .close .btn { width: 100%; }
 
+  .header.is-scrolled { backdrop-filter: none; -webkit-backdrop-filter: none; background: rgba(11, 10, 8, 0.96); }
   .dock {
     display: grid;
     grid-template-columns: 1fr 1fr 1.3fr;
     position: fixed;
     left: 0; right: 0; bottom: 0;
     z-index: 70;
-    background: rgba(11, 10, 8, 0.94);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: rgba(11, 10, 8, 0.97);
     border-top: 1px solid var(--line);
     padding-bottom: env(safe-area-inset-bottom);
   }
