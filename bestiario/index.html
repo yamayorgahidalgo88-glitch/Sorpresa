@@ -39,13 +39,65 @@
 
 <!-- MENÚ PRINCIPAL -->
 <div id="home" class="page hide">
+  <div class="hbg"><div class="hb-rays"></div><div class="hb-glow"></div><div class="hb-claw l"></div><div class="hb-claw r"></div><div class="hb-embers" id="embers"></div></div>
   <div class="wallet o"><img src="assets/moneda.svg" alt=""><span id="coinNum">0</span></div>
   <div class="wrap">
+    <div class="crest">
+      <svg viewBox="0 0 200 220" aria-hidden="true">
+        <defs>
+          <linearGradient id="cr-sh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a5cf0"/><stop offset="1" stop-color="#3b1f86"/></linearGradient>
+          <linearGradient id="cr-rim" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe98a"/><stop offset=".5" stop-color="#ffc83a"/><stop offset="1" stop-color="#e08a12"/></linearGradient>
+          <filter id="cr-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter>
+        </defs>
+        <path d="M100 8 L184 36 C184 120 156 178 100 212 C44 178 16 120 16 36 Z" fill="url(#cr-rim)" stroke="#16142e" stroke-width="7" stroke-linejoin="round"/>
+        <path d="M100 28 L166 50 C165 118 142 164 100 192 C58 164 35 118 34 50 Z" fill="url(#cr-sh)" stroke="#16142e" stroke-width="5" stroke-linejoin="round"/>
+        <g filter="url(#cr-glow)" stroke="#c8ff2e" stroke-width="14" stroke-linecap="round" fill="none" opacity=".75">
+          <path d="M70 62 Q86 110 74 160"/><path d="M100 54 Q114 108 100 170"/><path d="M130 62 Q142 110 126 160"/>
+        </g>
+        <g fill="#1c0628" stroke="#e8ffb0" stroke-width="2" stroke-linejoin="round">
+          <path d="M66 60 Q90 108 72 162 Q80 108 66 60Z"/><path d="M96 52 Q118 108 98 172 Q108 108 96 52Z"/><path d="M126 60 Q146 110 124 162 Q134 110 126 60Z"/>
+        </g>
+        <g stroke="#fff" stroke-width="3" stroke-linecap="round" fill="none"><path d="M70 76 Q80 110 73 148"/><path d="M100 70 Q109 110 99 158"/><path d="M130 76 Q138 110 126 148"/></g>
+        <path d="M44 46 Q70 36 96 34" stroke="#fff" stroke-width="5" stroke-linecap="round" fill="none" opacity=".5"/>
+      </svg>
+    </div>
     <h1 class="logo o">BATALLA DE<br>BESTIAS<small>(nombre provisional)</small></h1>
-    <div id="homeStage"></div>
+    <div class="hdeck" id="homeDeck"></div>
     <div class="menu">
-      <button class="btn green" id="goBattle">⚔️ Batalla<small>Duelo contra la máquina</small></button>
-      <button class="btn purple" id="goBestiary">📖 Bestiario<small>Tus criaturas</small></button>
+      <button class="btn green hbig" id="goBattle">⚔️ ¡Batalla!<small>Duelo contra la máquina</small></button>
+      <div class="mrow">
+        <button class="btn blue" id="goDecks">🃏 Mazos</button>
+        <button class="btn purple" id="goBestiary">📖 Bestiario</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAZOS -->
+<div id="decks" class="page hide">
+  <div class="wrap">
+    <div class="bar"><button class="btn gray" id="dkBack">←</button><h2 class="o">Mazos</h2><span class="count" id="dkCount"></span></div>
+    <div class="dtabs" id="dtabs"></div>
+    <div class="deckbox">
+      <div class="dslots" id="dslots"></div>
+      <div class="dkfoot"><span id="dkInfo"></span><button class="btn green" id="dkSelect">Seleccionar</button></div>
+    </div>
+    <p class="note">Toca una bestia de tu colección para añadirla al mazo. Toca una del mazo para quitarla. Máximo 6.</p>
+    <h3 class="sub o">Tu colección</h3>
+    <div class="dcoll" id="dcoll"></div>
+  </div>
+</div>
+
+<!-- ANTES DE LA BATALLA -->
+<div id="prebattle" class="page hide">
+  <div class="wrap pbwrap">
+    <div class="bar"><button class="btn gray" data-back="home">←</button><h2 class="o">¿Listo?</h2><span class="count" id="pbName"></span></div>
+    <h3 class="sub o pbtitle">Lucharás con este mazo</h3>
+    <div class="deckbox"><div class="dslots" id="pbSlots"></div></div>
+    <p class="note" id="pbNote"></p>
+    <div class="pbtns">
+      <button class="btn blue" id="pbDecks">🃏 Mazos<small>Cambiar de mazo</small></button>
+      <button class="btn green" id="pbGo">✔ Confirmar<small>¡A la batalla!</small></button>
     </div>
   </div>
 </div>

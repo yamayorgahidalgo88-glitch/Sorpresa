@@ -296,17 +296,21 @@ function stageRender(dt) {
    ========================================================= */
 function show(screen) {
   G.screen = screen;
-  for (const id of ['home', 'bestiary', 'detail']) $('#' + id).classList.toggle('hide', id !== screen);
+  for (const id of ['home', 'bestiary', 'detail', 'decks', 'prebattle']) $('#' + id).classList.toggle('hide', id !== screen);
   const battle = screen === 'battle';
   $('#battleHud').classList.toggle('hide', !battle);
   $('#scene').style.visibility = labelsEl.style.visibility = battle ? 'visible' : 'hidden';
   if (screen !== 'detail') VW = null;
-  if (screen === 'home' || screen === 'detail') stageMount(screen);
+  if (screen === 'detail') stageMount(screen);
   if (battle) layout();
-  if (screen === 'home') { renderWallet(); setTimeout(openPendingPacks, 350); }
+  if (screen === 'home') { renderWallet(); renderHomeDeck(); setTimeout(openPendingPacks, 350); }
 }
 document.querySelectorAll('[data-back]').forEach(b => b.onclick = () => { sfx.click(); show(b.dataset.back); });
-$('#goBattle').onclick = () => { initAudio(); sfx.click(); show('battle'); newMatch(); };
+$('#goBattle').onclick = () => { initAudio(); sfx.click(); openPrebattle(); };
+$('#goDecks').onclick = () => { initAudio(); sfx.click(); openDecks('home'); };
+$('#pbDecks').onclick = () => { sfx.click(); openDecks('prebattle'); };
+$('#pbGo').onclick = () => { if (!deckTypes().length) return sfx.no(); sfx.click(); show('battle'); newMatch(); };
+$('#dkBack').onclick = () => { sfx.click(); decksReturn === 'prebattle' ? openPrebattle() : show('home'); };
 $('#goBestiary').onclick = () => { initAudio(); sfx.click(); renderBestiary(); show('bestiary'); };
 $('#exit').onclick = () => { sfx.click(); stopMatch(); show('home'); };
 $('#endMenu').onclick = () => { $('#end').classList.add('hide'); stopMatch(); show('home'); };
@@ -337,6 +341,12 @@ const PROG = (() => {
 })();
 for (const k in PROG.chars) if (!CHARS[k]) delete PROG.chars[k];
 const COLLECTION = PROG.chars;
+// MAZOS: 5 mazos de hasta 6 bestias; el seleccionado es el que se usa en batalla
+const DECK_COUNT = 5, DECK_MAX = 6;
+if (!Array.isArray(PROG.decks)) PROG.decks = [Object.keys(PROG.chars).slice(0, DECK_MAX)];
+while (PROG.decks.length < DECK_COUNT) PROG.decks.push([]);
+PROG.decks = PROG.decks.slice(0, DECK_COUNT).map(d => [...new Set(d)].filter(t => PROG.chars[t]).slice(0, DECK_MAX));
+if (!(PROG.deck >= 0 && PROG.deck < DECK_COUNT)) PROG.deck = 0;
 const owns = t => !!COLLECTION[t];
 function saveProg() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(PROG)); } catch (e) { } renderWallet(); }
 const randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
@@ -398,6 +408,73 @@ function showReward(res) {
     el.querySelector('#rwOk').onclick = () => { sfx.click(); el.classList.add('out'); setTimeout(() => el.remove(), 350); done(); };
   });
 }
+/* =========================================================
+   MAZOS Y PANTALLA PREVIA A LA BATALLA
+   ========================================================= */
+const deckTypes = () => PROG.decks[PROG.deck].filter(owns);
+let editDeck = 0, decksReturn = 'home';
+function miniCard(t, extra = '') {
+  const ch = CHARS[t], c = COLLECTION[t];
+  return `<div class="dcard" data-t="${t}" style="--fam:${ch.color}"><img src="${src(t, 'pose')}" alt=""><div class="dcost">${ch.cost}</div><div class="dlv">Nv.${c ? c.level : 1}</div><div class="band"><div class="nm">${ch.name}</div></div>${extra}</div>`;
+}
+function slotsHtml(deck) {
+  return Array.from({ length: DECK_MAX }, (_, i) => deck[i] ? miniCard(deck[i]) : '<div class="dslot"><span>+</span></div>').join('');
+}
+function deckInfo(deck) {
+  if (!deck.length) return 'Mazo vacío';
+  const avg = deck.reduce((a, t) => a + CHARS[t].cost, 0) / deck.length;
+  return `${deck.length}/${DECK_MAX} · Coste medio <b>${avg.toFixed(1).replace('.', ',')}</b>`;
+}
+function openDecks(from) {
+  decksReturn = from; editDeck = PROG.deck; renderDecks(); show('decks'); $('#decks').scrollTop = 0;
+}
+function renderDecks() {
+  const deck = PROG.decks[editDeck];
+  $('#dkCount').textContent = `Mazo ${PROG.deck + 1} en uso`;
+  $('#dtabs').innerHTML = PROG.decks.map((d, i) => `<button class="dtab${i === editDeck ? ' on' : ''}${i === PROG.deck ? ' sel' : ''}" data-i="${i}">${i + 1}${i === PROG.deck ? '<i>✓</i>' : ''}</button>`).join('');
+  $('#dslots').innerHTML = slotsHtml(deck);
+  $('#dkInfo').innerHTML = deckInfo(deck);
+  const sb = $('#dkSelect'), isSel = editDeck === PROG.deck;
+  sb.textContent = isSel ? '✓ Seleccionado' : 'Seleccionar'; sb.disabled = isSel || !deck.length;
+  sb.className = 'btn ' + (isSel ? 'gold' : 'green');
+  $('#dcoll').innerHTML = TYPES.filter(owns).map(t => miniCard(t, deck.includes(t) ? '<div class="inDeck o">✓</div>' : '')).join('');
+  document.querySelectorAll('#dcoll .dcard').forEach(el => { if (deck.includes(el.dataset.t)) el.classList.add('used'); });
+  document.querySelectorAll('.dtab').forEach(b => b.onclick = () => { sfx.click(); editDeck = +b.dataset.i; renderDecks(); });
+  document.querySelectorAll('#dslots .dcard').forEach(el => el.onclick = () => {
+    sfx.click(); deck.splice(deck.indexOf(el.dataset.t), 1); saveProg(); renderDecks();
+  });
+  document.querySelectorAll('#dcoll .dcard').forEach(el => el.onclick = () => {
+    const tp = el.dataset.t;
+    if (deck.includes(tp)) { deck.splice(deck.indexOf(tp), 1); sfx.click(); }
+    else if (deck.length >= DECK_MAX) { sfx.no(); $('#dkInfo').innerHTML = '<span class="warn">¡Mazo lleno! Quita una bestia primero</span>'; return; }
+    else { deck.push(tp); sfx.place(); }
+    saveProg(); renderDecks();
+  });
+}
+$('#dkSelect').onclick = () => {
+  if (!PROG.decks[editDeck].length) return sfx.no();
+  PROG.deck = editDeck; saveProg(); sfx.merge(); renderDecks();
+};
+function openPrebattle() {
+  const deck = PROG.decks[PROG.deck];
+  $('#pbName').textContent = `Mazo ${PROG.deck + 1}`;
+  $('#pbSlots').innerHTML = slotsHtml(deck);
+  $('#pbNote').innerHTML = deck.length ? deckInfo(deck) : '<span class="warn">Tu mazo está vacío: añade bestias en Mazos</span>';
+  $('#pbGo').disabled = !deck.length;
+  show('prebattle');
+}
+(function embers() {
+  const box = $('#embers'); if (!box) return;
+  box.innerHTML = Array.from({ length: 18 }, () => {
+    const s = 3 + Math.random() * 6;
+    return `<i style="left:${Math.random() * 100}%;width:${s}px;height:${s}px;animation-duration:${7 + Math.random() * 7}s;animation-delay:${-Math.random() * 14}s;--dx:${(Math.random() - .5) * 80}px"></i>`;
+  }).join('');
+})();
+function renderHomeDeck() {
+  const n = PROG.decks[PROG.deck].length;
+  $('#homeDeck').innerHTML = `<span>🃏 Mazo ${PROG.deck + 1}</span><b>${n}/${DECK_MAX} bestias</b>`;
+}
+
 function renderBestiary() {
   $('#bcount').textContent = `${TYPES.filter(owns).length}/${TYPES.length}`;
   $('#bgrid').innerHTML = TYPES.map(t => {
@@ -468,8 +545,8 @@ const cards = [...document.querySelectorAll('.card')];
 const bestUpgrade = (tm, type) => team(tm).filter(u => u.type === type && u.level < 3).sort((a, b) => b.level - a.level)[0];
 // subir de ★2 a ★3 cuesta 1 de elíxir más
 const priceFor = (type, target) => CHARS[type].cost + (target && target.level === 2 ? 1 : 0);
-// El jugador solo recibe en la tienda criaturas que tiene; la máquina puede usar todas.
-const drawShop = (tm = 'p') => { const pool = tm === 'p' ? TYPES.filter(owns) : TYPES; return [0, 1, 2].map(() => pick(pool.length ? pool : TYPES)); };
+// El jugador solo recibe en la tienda las bestias de su mazo seleccionado; la máquina puede usar todas.
+const drawShop = (tm = 'p') => { const pool = tm === 'p' ? deckTypes() : TYPES; return [0, 1, 2].map(() => pick(pool.length ? pool : TYPES)); };
 function renderShop(fresh = false) {
   cards.forEach((el, i) => {
     const t = G.shop[i];
@@ -1286,7 +1363,7 @@ function loop(now) {
     fx.setTransform(dpr, 0, 0, dpr, 0, 0); fx.clearRect(0, 0, W, Hs);
     drawZones(time); drawDomes(time, dt); drawSummons(time); drawBeams(dt); drawShields(time); drawStatus(time); drawVfx(dt, time); drawFrozen(); drawProjectiles(); drawParts();
     updateLabels();
-  } else if (G.screen === 'home' || G.screen === 'detail') { viewerTick(); stageRender(rdt); }
+  } else if (G.screen === 'detail') { viewerTick(); stageRender(rdt); }
   requestAnimationFrame(loop);
 }
 addEventListener('resize', () => { if (G.screen === 'battle') layout(); });
