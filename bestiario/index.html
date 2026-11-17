@@ -39,6 +39,7 @@
 
 <!-- MENÚ PRINCIPAL -->
 <div id="home" class="page hide">
+  <div class="wallet o"><img src="assets/moneda.svg" alt=""><span id="coinNum">0</span></div>
   <div class="wrap">
     <h1 class="logo o">BATALLA DE<br>BESTIAS<small>(nombre provisional)</small></h1>
     <div id="homeStage"></div>
@@ -74,11 +75,11 @@
   <div class="box">
     <h1 class="o" id="endTitle">¡VICTORIA!</h1>
     <div class="score o" id="endScore">3 - 1</div>
+    <div class="endpack hide" id="endPack"><img src="assets/sobre.png" alt=""><span>¡Has ganado un sobre!<small>Se abrirá al volver al menú</small></span></div>
     <div class="btns"><button class="btn gray" id="endMenu">Menú</button><button class="btn green" id="again">Revancha</button></div>
   </div>
 </div>
 <div id="loading" class="o">Cargando…</div>
 <script type="module" src="js/game.js"></script>
-<script type="module" src="js/sobre.js"></script><!-- sobre de recompensas: aún sin enlazar -->
 </body>
 </html>

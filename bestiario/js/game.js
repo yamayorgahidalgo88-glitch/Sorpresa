@@ -1,4 +1,5 @@
 import { createCharacter, setupScene, THREE } from './models.js';
+import { abrirSobre, cerrarSobre, precargarSobre } from './sobre.js';
 
 /* =========================================================
    DATOS
@@ -302,6 +303,7 @@ function show(screen) {
   if (screen !== 'detail') VW = null;
   if (screen === 'home' || screen === 'detail') stageMount(screen);
   if (battle) layout();
+  if (screen === 'home') { renderWallet(); setTimeout(openPendingPacks, 350); }
 }
 document.querySelectorAll('[data-back]').forEach(b => b.onclick = () => { sfx.click(); show(b.dataset.back); });
 $('#goBattle').onclick = () => { initAudio(); sfx.click(); show('battle'); newMatch(); };
@@ -314,15 +316,111 @@ $('#mute').onclick = () => { muted = !muted; $('#mute').textContent = muted ? '�
 /* =========================================================
    BESTIARIO
    ========================================================= */
-// Progreso del jugador (de momento: las tres criaturas desbloqueadas a nivel 1)
-const COLLECTION = Object.fromEntries(Object.keys(CHARS).map(t => [t, { level: 1 }]));
+/* =========================================================
+   PROGRESO DEL JUGADOR (se guarda en el móvil con localStorage)
+   ========================================================= */
+// Criaturas con las que se empieza. El resto se consiguen en sobres.
+const STARTER = ['bolab', 'bushi', 'rogue', 'ogul'];
+// Coste PROVISIONAL para subir de nivel en el bestiario: [nivel destino] = { cartas, monedas }
+const LEVEL_COST = { 2: { cards: 10, coins: 100 }, 3: { cards: 25, coins: 300 } };
+const MAX_LEVEL = 3;
+// Contenido de los sobres. PROBABILIDADES PROVISIONALES (pendientes de definir).
+const PACK = {
+  odds: { nuevo: 20, cartas: 45, monedas: 35 },   // en %, se normalizan
+  cards: [3, 8],                                  // cartas de un personaje que ya tienes (mín, máx)
+  coins: [40, 120],                               // monedas (mín, máx)
+};
+const SAVE_KEY = 'bdb_progreso_v1';
+const PROG = (() => {
+  try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && s.chars) return s; } catch (e) { }
+  return { coins: 0, packs: 0, chars: Object.fromEntries(STARTER.map(t => [t, { level: 1, cards: 0 }])) };
+})();
+for (const k in PROG.chars) if (!CHARS[k]) delete PROG.chars[k];
+const COLLECTION = PROG.chars;
+const owns = t => !!COLLECTION[t];
+function saveProg() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(PROG)); } catch (e) { } renderWallet(); }
+const randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+function renderWallet() { const w = $('#coinNum'); if (w) w.textContent = PROG.coins; }
+
+function rollPack() {
+  const locked = TYPES.filter(t => !owns(t)), owned = TYPES.filter(owns);
+  const odds = { ...PACK.odds }; if (!locked.length) odds.nuevo = 0;
+  let r = Math.random() * Object.values(odds).reduce((a, b) => a + b, 0), kind = 'monedas';
+  for (const [k, v] of Object.entries(odds)) { if ((r -= v) < 0) { kind = k; break; } }
+  let res;
+  if (kind === 'nuevo') { const t = pick(locked); COLLECTION[t] = { level: 1, cards: 0 }; res = { kind, t }; }
+  else if (kind === 'cartas') { const t = pick(owned), n = randInt(...PACK.cards); COLLECTION[t].cards += n; res = { kind, t, n }; }
+  else { const n = randInt(...PACK.coins); PROG.coins += n; res = { kind, n }; }
+  PROG.packs = Math.max(0, PROG.packs - 1);
+  saveProg();
+  return res;
+}
+function cardBar(t) {
+  const c = COLLECTION[t], next = LEVEL_COST[c.level + 1];
+  if (!next) return `<div class="cbar max"><i style="width:100%"></i><span>Nivel máx.</span></div>`;
+  const ok = c.cards >= next.cards;
+  return `<div class="cbar${ok ? ' ok' : ''}"><i style="width:${Math.min(100, c.cards / next.cards * 100)}%"></i><span>${c.cards}/${next.cards}</span></div>`;
+}
+
+/* ---------- Sobres pendientes: se abren al volver al inicio ---------- */
+let packBusy = false;
+async function openPendingPacks() {
+  if (packBusy || !PROG.packs || G.screen !== 'home') return;
+  packBusy = true;
+  try {
+    while (PROG.packs > 0 && G.screen === 'home') {
+      await abrirSobre();
+      const res = rollPack();
+      await showReward(res);
+      cerrarSobre();
+      await new Promise(r => setTimeout(r, 500));
+    }
+  } finally { packBusy = false; }
+}
+function showReward(res) {
+  return new Promise(done => {
+    const el = document.createElement('div');
+    el.id = 'reward';
+    let art, title, sub, extra = '';
+    if (res.kind === 'monedas') {
+      art = `<div class="rw-coin"><img src="assets/moneda.svg" alt=""></div>`;
+      title = `+${res.n} monedas`; sub = `Ahora tienes ${PROG.coins}`;
+    } else {
+      const ch = CHARS[res.t];
+      art = `<div class="bcard rw-card" style="--fam:${ch.color}"><img src="${src(res.t, 'pose')}" alt=""><div class="band"><div class="nm">${ch.name}</div></div>${res.kind === 'cartas' ? `<div class="rw-x o">x${res.n}</div>` : ''}</div>`;
+      if (res.kind === 'nuevo') { title = '¡Nuevo personaje!'; sub = `${ch.name} se une a tu bestiario`; }
+      else { title = `+${res.n} cartas`; sub = `de ${ch.name}`; extra = cardBar(res.t); }
+    }
+    el.innerHTML = `<div class="rw-rays"></div><div class="rw-in">${res.kind === 'nuevo' ? '<div class="rw-tag o">NUEVO</div>' : ''}${art}
+      <h2 class="o">${title}</h2><p>${sub}</p>${extra}<button class="btn green" id="rwOk">¡Genial!</button></div>`;
+    document.body.appendChild(el);
+    sfx.merge();
+    el.querySelector('#rwOk').onclick = () => { sfx.click(); el.classList.add('out'); setTimeout(() => el.remove(), 350); done(); };
+  });
+}
 function renderBestiary() {
-  $('#bcount').textContent = `${Object.keys(COLLECTION).length}/${TYPES.length}`;
+  $('#bcount').textContent = `${TYPES.filter(owns).length}/${TYPES.length}`;
   $('#bgrid').innerHTML = TYPES.map(t => {
     const ch = CHARS[t], own = COLLECTION[t];
-    return `<div class="bcard" data-t="${t}" style="--fam:${ch.color}"><img src="${src(t, 'pose')}" alt="">${own ? `<div class="lv">Nv. ${own.level}</div>` : ''}<div class="band"><div class="nm">${ch.name}</div></div></div>`;
+    return `<div class="bcard${own ? '' : ' locked'}" data-t="${t}" style="--fam:${own ? ch.color : '#55536e'}"><img src="${src(t, 'pose')}" alt="">${own ? `<div class="lv">Nv. ${own.level}</div>${cardBar(t)}` : '<div class="lock o">🔒</div>'}<div class="band"><div class="nm">${own ? ch.name : '???'}</div></div></div>`;
   }).join('');
-  document.querySelectorAll('.bcard').forEach(el => el.onclick = () => { sfx.click(); openDetail(el.dataset.t); });
+  document.querySelectorAll('.bcard').forEach(el => el.onclick = () => {
+    if (!owns(el.dataset.t)) { sfx.no(); return; }
+    sfx.click(); openDetail(el.dataset.t);
+  });
+}
+function levelPanel(t) {
+  const c = COLLECTION[t], next = LEVEL_COST[c.level + 1];
+  if (!next) return `<div class="lvup"><div class="lvrow"><b>Nivel máximo</b></div>${cardBar(t)}</div>`;
+  const okC = c.cards >= next.cards, okM = PROG.coins >= next.coins;
+  return `<div class="lvup"><div class="lvrow"><b>Subir a nivel ${c.level + 1}</b><span class="lvcoins${okM ? '' : ' no'}"><img src="assets/moneda.svg" alt="">${next.coins} <small>(tienes ${PROG.coins})</small></span></div>
+    ${cardBar(t)}<button class="btn gold" id="lvBtn"${okC && okM ? '' : ' disabled'}>${okC ? (okM ? '⬆ Subir de nivel' : 'Faltan monedas') : `Faltan ${next.cards - c.cards} cartas`}</button></div>`;
+}
+function levelUp(t) {
+  const c = COLLECTION[t], next = LEVEL_COST[c.level + 1];
+  if (!next || c.cards < next.cards || PROG.coins < next.coins) return sfx.no();
+  c.cards -= next.cards; PROG.coins -= next.coins; c.level++;
+  saveProg(); sfx.merge(); openDetail(t);
 }
 function setAnim(a) {
   if (!VW) return; VW.anim = a; VW.loop = 0;
@@ -335,12 +433,13 @@ function openDetail(t) {
   const anims = [['idle', 'Reposo'], ['walk', 'Andar'], ['attack', 'Atacar']]; if (ch.abil === 'super') anims.push(['super', 'Truco']);
   $('#anims').innerHTML = anims.map(([a, n]) => `<button class="btn blue" data-a="${a}">${n}</button>`).join('');
   $('#views').innerHTML = ch.all.map(v => `<button data-v="${v}" title="${VIEW_NAMES[v]}"><img src="${src(t, v)}" alt="${VIEW_NAMES[v]}"></button>`).join('');
-  $('#dInfo').innerHTML = `
+  $('#dInfo').innerHTML = levelPanel(t) + `
     <div class="itags"><span style="background:${ch.color};color:#fff">${ch.role}</span><span>${ch.cost} de elíxir</span><span>${ch.range === 1 ? 'Cuerpo a cuerpo' : 'A distancia'}</span></div>
     <div class="istats"><div>Vida<b>${Math.round(ch.hp * m)}</b></div><div>Ataque<b>${Math.round(ch.atk * m)}</b></div><div>Alcance<b>${ch.range === 1 ? 'Melé' : ch.range}</b></div><div>Ritmo<b>${ch.as}s</b></div></div>
     <p class="idesc"><b>${ch.abilName}</b> · ${ch.desc}<br><em>Estadísticas provisionales.</em></p>${ch.lv ? `<div class="ilv">${ch.lv.map((x, i) => `<p class="${i < lvl ? 'on' : ''}"><b>${'★'.repeat(i + 1)}</b>${x}</p>`).join('')}</div>` : ''}${ch.atkName ? `<p class="idesc"><b>Ataque básico: ${ch.atkName}</b> · ${ch.atkDesc}</p>` : ''}${ch.sheet ? `<img class="atkimg" src="assets/${t}_ataques.webp" alt="Ataques">` : ''}`;
   VW = { t, yaw: -20, pitch: 8, auto: true, vel: 0, goal: null, dragging: false, anim: 'idle', loop: 0 };
   show('detail'); setAnim('idle'); $('#detail').scrollTop = 0;
+  const lb = $('#lvBtn'); if (lb) lb.onclick = () => levelUp(t);
   document.querySelectorAll('#anims .btn').forEach(b => b.onclick = () => { sfx.click(); setAnim(b.dataset.a); });
   document.querySelectorAll('#views button').forEach(b => b.onclick = () => { const [y, p] = VIEW_ANGLES[b.dataset.v] || [0, 6]; VW.auto = false; VW.vel = 0; VW.goal = { yaw: y, pitch: p }; $('#detail').scrollTo({ top: 0, behavior: 'smooth' }); });
 }
@@ -369,7 +468,8 @@ const cards = [...document.querySelectorAll('.card')];
 const bestUpgrade = (tm, type) => team(tm).filter(u => u.type === type && u.level < 3).sort((a, b) => b.level - a.level)[0];
 // subir de ★2 a ★3 cuesta 1 de elíxir más
 const priceFor = (type, target) => CHARS[type].cost + (target && target.level === 2 ? 1 : 0);
-const drawShop = () => [0, 1, 2].map(() => pick(TYPES));
+// El jugador solo recibe en la tienda criaturas que tiene; la máquina puede usar todas.
+const drawShop = (tm = 'p') => { const pool = tm === 'p' ? TYPES.filter(owns) : TYPES; return [0, 1, 2].map(() => pick(pool.length ? pool : TYPES)); };
 function renderShop(fresh = false) {
   cards.forEach((el, i) => {
     const t = G.shop[i];
@@ -517,7 +617,7 @@ $('#ready').onclick = () => {
    IA DEL RIVAL
    ========================================================= */
 function aiPlan() {
-  let shop = drawShop(), free = 1;
+  let shop = drawShop('e'), free = 1;
   for (let guard = 0; guard < 14; guard++) {
     const opts = [];
     shop.forEach((t, i) => {
@@ -526,8 +626,8 @@ function aiPlan() {
       else if (team('e').length < MAX_UNITS && autoTile('e', t)) opts.push({ i, kind: 'new', type: t, cost: d.cost, score: 2.4 + Math.random() * 1.2 });
     });
     if (!opts.length) {
-      if (free && G.elixir.e >= 2) { free = 0; shop = drawShop(); continue; }
-      if (G.elixir.e >= 4 && Math.random() < .5) { G.elixir.e -= 1; shop = drawShop(); continue; }
+      if (free && G.elixir.e >= 2) { free = 0; shop = drawShop('e'); continue; }
+      if (G.elixir.e >= 4 && Math.random() < .5) { G.elixir.e -= 1; shop = drawShop('e'); continue; }
       break;
     }
     opts.sort((a, b) => b.score - a.score);
@@ -1049,6 +1149,8 @@ function endMatch(w) {
   G.state = 'end';
   $('#endTitle').textContent = w === 'p' ? '¡VICTORIA!' : 'DERROTA'; $('#endTitle').style.color = w === 'p' ? '#ffd84a' : '#ff9a9a';
   $('#endScore').textContent = `${G.score.p} - ${G.score.e}`; $('#end').classList.remove('hide');
+  if (w === 'p') { PROG.packs++; saveProg(); precargarSobre(); }
+  $('#endPack').classList.toggle('hide', w !== 'p');
 }
 function stopMatch() {
   timers.forEach(clearTimeout); timers = [];
