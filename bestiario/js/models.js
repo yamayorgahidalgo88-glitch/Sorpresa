@@ -996,6 +996,8 @@ const GLB = {
   tanko: { h: 1.02, style: 'tank', dur: { attack: 0.55, super: 0.9 } },
   denton: { h: 1.32, style: 'cart', dur: { attack: 0.55, super: 0.8 } },
   pomona: { h: 1.3, style: 'biped', dur: { attack: 0.5, super: 0.9 } },
+  jess: { h: 1.26, style: 'biped', dur: { attack: 0.5, super: 0.85 } },
+  sevora: { h: 1.3, style: 'biped', dur: { attack: 0.55, super: 0.85 } },
 };
 const _glb = {}, _loader = new GLTFLoader();
 function loadGLB(type) {
@@ -1030,7 +1032,9 @@ function createStatic(type) {
   const rig = {
     type, root, g: { root, all, body }, mats: { body: mat }, sp: {}, height: cfg.h * 1.02, t: Math.random() * 10, walkT: 0, walkW: 0, atkT: -1, supT: -1, cheer: 0, flashK: 0,
     play(name) { if (name === 'attack') { this.atkT = 0; this.supT = -1; } else if (name === 'super') { this.supT = 0; this.atkT = -1; } },
-    flash(k) { if (k !== this.flashK) { this.flashK = k; mat.color.setScalar(1 + k * 1.6); } },
+    tintC: new THREE.Color(1, 1, 1),
+    tint(r, g, b) { this.tintC.setRGB(r, g, b); this.flashK = -1; this.flash(0); },
+    flash(k) { if (k !== this.flashK) { this.flashK = k; mat.color.copy(this.tintC).multiplyScalar(1 + k * 1.6); } },
     update(dt, o = {}) {
       this.t += dt; this.walkW += ((o.moving ? 1 : 0) - this.walkW) * Math.min(1, dt * 10);
       if (this.walkW > 0.02) this.walkT += dt; else this.walkT = 0;
