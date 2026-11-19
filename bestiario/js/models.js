@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js';
 
 const V3 = THREE.Vector3, PI = Math.PI, D = PI / 180;
 const sstep = x => x * x * (3 - 2 * x);
@@ -1045,7 +1046,49 @@ function createStatic(type) {
   };
   rig.update(0); return rig;
 }
+/* ---------------- modelos con esqueleto y animaciones (Meshy + Blender) ---------------- */
+// Cada .glb trae los clips: idle, walk, attack, super y cheer.
+const SKIN = { bushi: { file: 'bushi_anim', h: 1.2 } };
+const _skin = {};
+const loadSkin = type => _skin[type] || (_skin[type] = new Promise((res, rej) => _loader.load(`assets/models/${SKIN[type].file}.glb`, res, undefined, rej)));
+function createSkinned(type) {
+  const cfg = SKIN[type], root = new THREE.Group(), all = new THREE.Group(); root.add(all);
+  const mats = [], acts = {}, tintC = new THREE.Color(1, 1, 1); let mixer = null;
+  const rig = {
+    type, root, g: { root, all }, mats: {}, sp: {}, height: cfg.h * 1.02, atkT: -1, supT: -1, flashK: 0, walkW: 0, cheerW: 0, baseW: 1, one: null,
+    play(name) {
+      const a = acts[name]; if (!a) return;
+      if (this.one && this.one !== a) this.one.stop();
+      a.reset(); a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = false; a.setEffectiveWeight(1); a.play(); this.one = a;
+    },
+    tint(r, g, b) { tintC.setRGB(r, g, b); this.flashK = -1; this.flash(0); },
+    flash(k) { if (k !== this.flashK) { this.flashK = k; mats.forEach(m => m.color.copy(tintC).multiplyScalar(1 + k * 1.6)); } },
+    update(dt, o = {}) {
+      if (!mixer) return;
+      const busy = this.one && this.one.isRunning(), f = Math.min(1, dt * 10);
+      this.walkW += ((o.moving ? 1 : 0) - this.walkW) * f;
+      this.cheerW += ((o.cheer ? 1 : 0) - this.cheerW) * f;
+      this.baseW += ((busy ? 0 : 1) - this.baseW) * Math.min(1, dt * 18);
+      acts.idle.setEffectiveWeight(this.baseW * (1 - this.walkW) * (1 - this.cheerW));
+      acts.walk.setEffectiveWeight(this.baseW * this.walkW * (1 - this.cheerW));
+      if (acts.cheer) acts.cheer.setEffectiveWeight(this.baseW * this.cheerW);
+      mixer.update(dt);
+    },
+  };
+  loadSkin(type).then(g => {
+    const sc = cloneSkinned(g.scene);
+    sc.traverse(ob => { if (ob.isMesh) { ob.material = new THREE.MeshBasicMaterial({ map: ob.material.map }); mats.push(ob.material); ob.castShadow = true; ob.frustumCulled = false; } });
+    sc.scale.setScalar(cfg.h); all.add(sc);
+    mixer = new THREE.AnimationMixer(sc);
+    for (const c of g.animations) acts[c.name] = mixer.clipAction(c);
+    for (const n of ['idle', 'walk', 'cheer']) if (acts[n]) { acts[n].play(); acts[n].setEffectiveWeight(n === 'idle' ? 1 : 0); }
+    acts.idle.time = Math.random() * acts.idle.getClip().duration;
+    rig.flashK = -1; rig.flash(0);
+  }).catch(e => console.error('modelo animado', type, e));
+  return rig;
+}
 export function createCharacter(type) {
+  if (SKIN[type]) return createSkinned(type);
   if (type === 'reno') return { type, root: new THREE.Group(), g: {}, mats: {}, sp: {}, height: .95, atkT: -1, supT: -1, play() { }, flash() { }, update() { } };   // se dibuja en 2D (fantasma)
   if (GLB[type]) return createStatic(type);
   const bp = BP[type] || (BP[type] = BUILDERS[type]());

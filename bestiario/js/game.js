@@ -929,6 +929,31 @@ function drawVfx(dt, time) {
       fx.strokeStyle = `rgba(255,255,255,${.85 * open})`; fx.lineWidth = Math.max(1.5, tw * .035);
       for (let i = 0; i < 3; i++) { fx.beginPath(); const a0 = time * 7 + i * 2.094; for (let j = 0; j <= 14; j++) { const a = a0 + j * .2, rr = R * (1 - j / 16); j ? fx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr) : fx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr); } fx.stroke(); }
       fx.strokeStyle = C(open); fx.lineWidth = Math.max(2, tw * .07); fx.beginPath(); fx.arc(0, 0, R * .96, 0, Math.PI * 2); fx.stroke();
+    } else if (e.kind === 'storm') {   // torbellino de jade del Giro de Bushi
+      const grow = Math.min(1, k / .2), fade = Math.min(1, (1 - k) / .25), R0 = tw * 1.45;
+      fx.save(); fx.translate(x, y); fx.scale(1, .62);
+      const g = fx.createRadialGradient(0, 0, 0, 0, 0, R0 * grow); g.addColorStop(0, C(.35 * fade)); g.addColorStop(.7, C(.18 * fade)); g.addColorStop(1, C(0));
+      fx.fillStyle = g; fx.beginPath(); fx.arc(0, 0, R0 * grow, 0, Math.PI * 2); fx.fill();
+      fx.strokeStyle = C(.9 * fade); fx.lineWidth = tw * .05; fx.beginPath(); fx.arc(0, 0, R0 * grow, 0, Math.PI * 2); fx.stroke();
+      for (let i = 0; i < 12; i++) { const an = i * .5236 + k * 3; fx.beginPath(); fx.moveTo(Math.cos(an) * R0 * .3 * grow, Math.sin(an) * R0 * .3 * grow); fx.lineTo(Math.cos(an + .08) * R0 * .95 * grow, Math.sin(an + .08) * R0 * .95 * grow); fx.lineWidth = tw * .015; fx.strokeStyle = C(.5 * fade); fx.stroke(); }
+      fx.restore();
+      // tres cintas en espiral que suben girando
+      for (let i = 0; i < 3; i++) for (const [w, a] of [[.13, .35], [.06, .8], [.022, 1]]) {
+        fx.strokeStyle = w < .03 ? `rgba(230,255,240,${a * fade})` : C(a * fade); fx.lineWidth = tw * w; fx.beginPath();
+        for (let j = 0; j <= 26; j++) {
+          const q = j / 26, h = q * tw * 1.9 * grow, R = tw * (.75 - .25 * q) * grow, an = -time * 13 + i * 2.094 + q * 5.2;
+          const px = x + Math.cos(an) * R, py = y - h + Math.sin(an) * R * .38;
+          j ? fx.lineTo(px, py) : fx.moveTo(px, py);
+        }
+        fx.stroke();
+      }
+      if (Math.random() < .9 * fade) { const an = Math.random() * 6.283; burstAt(gx + Math.cos(an) * .5, gy + Math.sin(an) * .5, rand(.1, 1.2), pick(['#5dffb0', '#b6ffd8', '#2fe08a', '#ffffff']), 2, { spd: 2.6, up: 1.2, g: 1, life: .55, size: .07, glow: true }); }
+      if (k > .7 && !e.boom) { e.boom = 1; fxs.push({ gx, gy, r: 1.9, color: '#5dffb0', t: 0, dur: .5 }); burstAt(gx, gy, .2, '#5dffb0', 26, { spd: 4, up: 1.2, glow: true, size: .08 }); }
+    } else if (e.kind === 'slash') {   // estela del tajo
+      const tg = e.tgt, [x1, y1] = gridToScreen(tg.gx, tg.gy), mx = (x + x1) / 2, my = (y + y1) / 2 - tw * .45, a0 = Math.atan2(y1 - y, x1 - x);
+      const R = tw * .55, fade = 1 - k, sweep = Math.min(1, k / .45) * 2.4;
+      fx.translate(mx, my); fx.rotate(a0 - Math.PI / 2);
+      for (const [w, a] of [[.2, .35], [.1, .8], [.035, 1]]) { fx.strokeStyle = w < .05 ? `rgba(240,255,245,${fade})` : C(a * fade); fx.lineWidth = tw * w; fx.beginPath(); fx.arc(0, 0, R, -1.9 + sweep - 1.1, -1.9 + sweep); fx.stroke(); }
     } else if (e.kind === 'vine') {
       const tg = e.tgt, ext = k < .42 ? 1 - Math.pow(1 - k / .42, 3) : k < .58 ? 1 : 1 - (k - .58) / .42;
       const [x1, y1] = gridToScreen(tg.gx, tg.gy), t1 = tileW(tg.gy), sx = x, sy = y - tw * .5, ex = sx + (x1 - sx) * ext, ey = sy + (y1 - t1 * .5 - sy) * ext;
@@ -1194,7 +1219,7 @@ function attack(u, t) {
   if (u.type === 'osko') return bone(u, t);
   if (u.range <= 1 || u.def.melee) {
     u.lunge = .42; u.lungeAmp = 0;
-    if (u.type === 'bushi') sfx.slash();
+    if (u.type === 'bushi') { sfx.slash(); schedule(.15, () => u.alive && vfx({ kind: 'slash', u, tgt: t, color: '93,255,176', dur: .24 })); }
     if (u.type === 'bolab' && u.level >= 2) schedule(.1, () => u.alive && sim.beams.push({ ax: u.gx, ay: u.gy, bx: t.gx, by: t.gy, h: .42, color: '255,110,150', w: .16, t: 0, dur: .2 }));
     schedule(.19, () => { if (u.alive) { damage(t, basicDmg(u), u); charge(u); sfx.hit(); burstAt(t.gx, t.gy, .5, HIT_COLOR[u.type] || '#ffffff', 6, { glow: true, spd: 1.2 }); } });
   } else schedule(.17, () => {
@@ -1220,7 +1245,7 @@ function doSuper(u, t, cp = null) {
   if (T === 'tanko') return iceCube(u, { L, A });
   if (T === 'denton') return windShark(u, { L, A });
   if (T === 'bushi') {
-    vfx({ kind: 'spin', u, r: 1.5, color: '93,255,176', dur: .55 });
+    vfx({ kind: 'spin', u, r: 1.5, color: '93,255,176', dur: .55 }); vfx({ kind: 'storm', u, color: '93,255,176', dur: .85 });
     schedule(.28, () => {
       if (!u.alive) return;
       aoe(u, u.c, u.r, 1, A * 1.36); burstAt(u.gx, u.gy, .4, '#5dffb0', 24, { spd: 3, up: .8, glow: true }); sfx.slash();
