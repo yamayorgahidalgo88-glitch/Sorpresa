@@ -927,6 +927,19 @@ function drawVfx(dt, time) {
       fx.strokeStyle = `rgba(255,255,255,${.85 * open})`; fx.lineWidth = Math.max(1.5, tw * .035);
       for (let i = 0; i < 3; i++) { fx.beginPath(); const a0 = time * 7 + i * 2.094; for (let j = 0; j <= 14; j++) { const a = a0 + j * .2, rr = R * (1 - j / 16); j ? fx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr) : fx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr); } fx.stroke(); }
       fx.strokeStyle = C(open); fx.lineWidth = Math.max(2, tw * .07); fx.beginPath(); fx.arc(0, 0, R * .96, 0, Math.PI * 2); fx.stroke();
+    } else if (e.kind === 'healwave') {   // onda sanadora de Pomona
+      const tGrow = e.dur - .45, g0 = Math.min(1, e.t / tGrow), Rt = e.r * (1 - Math.pow(1 - g0, 1.6)), fade = e.t < tGrow ? 1 : Math.max(0, 1 - (e.t - tGrow) / .45);
+      const rx = Math.abs(gridToScreen(gx + Rt, gy)[0] - x), ry = rx * .66;
+      if (rx > 1) {
+        fx.translate(x, y); fx.scale(1, ry / rx);
+        const g = fx.createRadialGradient(0, 0, 0, 0, 0, rx); g.addColorStop(0, `rgba(255,240,190,${.05 * fade})`); g.addColorStop(.72, C(.14 * fade)); g.addColorStop(.93, C(.5 * fade)); g.addColorStop(1, C(0));
+        fx.fillStyle = g; fx.beginPath(); fx.arc(0, 0, rx, 0, Math.PI * 2); fx.fill();
+        for (const [w, a] of [[.22, .3], [.09, .75], [.03, 1]]) { fx.strokeStyle = w < .05 ? `rgba(255,252,225,${a * fade})` : C(a * fade); fx.lineWidth = tw * w; fx.beginPath(); fx.arc(0, 0, rx * .98, 0, Math.PI * 2); fx.stroke(); }
+        // segunda onda más suave detrás
+        const r2 = rx * .62; fx.strokeStyle = C(.45 * fade); fx.lineWidth = tw * .05; fx.beginPath(); fx.arc(0, 0, r2, 0, Math.PI * 2); fx.stroke();
+        fx.setTransform(dpr, 0, 0, dpr, 0, 0); fx.globalCompositeOperation = 'lighter';
+        if (e.t < tGrow) for (let i = 0; i < 3; i++) { const an = Math.random() * 6.283; burstAt(gx + Math.cos(an) * Rt, gy + Math.sin(an) * Rt, .05, pick(['#ffd36a', '#fff3c0', '#ffe9a8']), 1, { spd: .3, up: 1.6, g: -1, life: .6, size: .06, glow: true }); }
+      }
     } else if (e.kind === 'storm') {   // torbellino de jade del Giro de Bushi
       const grow = Math.min(1, k / .2), fade = Math.min(1, (1 - k) / .25), R0 = tw * 1.45;
       fx.save(); fx.translate(x, y); fx.scale(1, .62);
@@ -1234,7 +1247,7 @@ function aoe(source, c, r, rad, dmg) {
 function doSuper(u, t, cp = null) {
   const T = cp ? cp.type : u.type, L = cp ? cp.level : u.level, P = cp ? cp.pow : 1, A = (cp ? cp.atk : u.atk) * P, D = CHARS[T];
   floatText(u, (cp ? '¡Copia: ' : '¡') + D.abilName + '!', 'sup'); sfx.super(); shake = Math.max(shake, 4); u.rig.play('super');
-  vfx({ kind: 'pillar', u, color: hexRgb(D.color), dur: .7 });
+  if (T !== 'pomona') vfx({ kind: 'pillar', u, color: hexRgb(D.color), dur: .7 });
   if (T === 'sevora') {   // Mordida radiante: brilla hasta el siguiente mordisco
     u.glow = true; u.rig.tint && u.rig.tint(.75, 1.55, .6); u.cd = Math.min(u.cd, .6);
     burstAt(u.gx, u.gy, .5, '#b6ff2e', 22, { spd: 2, up: 2, glow: true }); return;
@@ -1279,13 +1292,14 @@ function doSuper(u, t, cp = null) {
     u.faceT = tgt; u.lunge = .7; u.lungeAmp = .25;
     schedule(.42, () => { if (!u.alive) return; damage(tgt, A * 1.36, u, 'big'); vfx({ kind: 'star', gx: tgt.gx, gy: tgt.gy, h: .55, color: '182,255,46', r: 1.3, dur: .4 }); burstAt(tgt.gx, tgt.gy, .5, '#b6ff2e', 22, { spd: 3, up: 1.8, glow: true }); sfx.boom(); shake = Math.max(shake, 7); });
   } else if (T === 'pomona') {
+    // onda sanadora dorada que sale de ella; cada aliado dentro del radio recibe el escudo cuando la onda le llega
     schedule(.22, () => {
       if (!u.alive) return;
       const who = units.filter(v => v.alive && v.team === u.team && (v === u || L >= 3 || (L >= 2 && cheb(u, v) <= 1)));
-      for (const v of who) { v.inv = P; burstAt(v.gx, v.gy, .5, '#ffe9a8', 10, { spd: 1.2, up: 1.6, glow: true }); }
+      const ox = u.gx, oy = u.gy, SPD = 5.5, reach = Math.max(.75, ...who.map(v => Math.hypot(v.gx - ox, v.gy - oy) + .55));
+      vfx({ kind: 'healwave', gx: ox, gy: oy, r: reach, color: '255,205,90', dur: reach / SPD + .45 });
       u.root = 1; sfx.boom();
-      vfx({ kind: 'dome', u, r: L >= 3 ? 4.5 : L >= 2 ? 1.6 : .8, color: '255,205,90', dur: 1 });
-      fxs.push({ gx: u.gx, gy: u.gy, r: L >= 3 ? 4 : L >= 2 ? 1.8 : 1, color: '#ffd36a', t: 0, dur: .6 });
+      for (const v of who) schedule(Math.hypot(v.gx - ox, v.gy - oy) / SPD, () => { if (!v.alive) return; v.inv = P; burstAt(v.gx, v.gy, .5, '#ffe9a8', 12, { spd: 1.2, up: 1.8, glow: true }); });
     });
   } else if (T === 'rogue') {
     const dr0 = t.r - u.r, dy = dr0 ? Math.sign(dr0) : 0, dx = dy ? 0 : Math.sign(t.c - u.c), tiles = [-1, 0, 1].map(k => ({ c: u.c + dx + (dy ? k : 0), r: u.r + dy + (dx ? k : 0) }));
