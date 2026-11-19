@@ -1049,12 +1049,12 @@ function createStatic(type) {
 }
 /* ---------------- modelos con esqueleto y animaciones (Meshy + Blender) ---------------- */
 // Cada .glb trae los clips: idle, walk, attack, super y cheer.
-const SKIN = { bushi: { file: 'bushi_anim', h: 1.2 }, pomona: { file: 'pomona_anim', h: 1.25 }, osko: { file: 'wyrex_anim', h: 1.25 }, sevora: { file: 'sevora_anim', h: 1.25, plant: { file: 'sevora_planta', size: .3, bone: 'handR' } } };
+const SKIN = { bushi: { file: 'bushi_anim', h: 1.2 }, pomona: { file: 'pomona_anim', h: 1.25 }, osko: { file: 'wyrex_anim', h: 1.25 }, bolab: { file: 'bolab_anim', h: 1.15, tongue: { file: 'bolab_lengua', origin: [0, .42, .3], width: .8 } }, sevora: { file: 'sevora_anim', h: 1.25, plant: { file: 'sevora_planta', size: .3, bone: 'handR' } } };
 const _skin = {};
 const loadSkin = type => _skin[type] || (_skin[type] = new Promise((res, rej) => _loader.load(`assets/models/${SKIN[type].file}.glb`, res, undefined, rej)));
 function createSkinned(type) {
   const cfg = SKIN[type], root = new THREE.Group(), all = new THREE.Group(); root.add(all);
-  const mats = [], acts = {}, tintC = new THREE.Color(1, 1, 1); let mixer = null, plant = null;
+  const mats = [], acts = {}, tintC = new THREE.Color(1, 1, 1); let mixer = null, plant = null, tongue = null;
   const rig = {
     type, root, g: { root, all }, mats: {}, sp: {}, height: cfg.h * 1.02, atkT: -1, supT: -1, flashK: 0, walkW: 0, cheerW: 0, baseW: 1, one: null,
     play(name) {
@@ -1065,6 +1065,8 @@ function createSkinned(type) {
     },
     // la planta del brazo se estira hasta el objetivo (función que da su posición en el mundo)
     vineTo(fn) { if (plant) plant.target = fn; },
+    // lengua de Bolab: sale de la boca hasta el objetivo (fn da su posición en el mundo; null = hacia delante)
+    tongueTo(fn) { if (tongue) { tongue.t = 0; tongue.target = fn; } },
     tint(r, g, b) { tintC.setRGB(r, g, b); this.flashK = -1; this.flash(0); },
     flash(k) {
       if (k === this.flashK) return; this.flashK = k;
@@ -1074,6 +1076,7 @@ function createSkinned(type) {
     update(dt, o = {}) {
       if (!mixer) return;
       if (plant) updatePlant(dt);
+      if (tongue) updateTongue(dt);
       const busy = this.one && this.one.isRunning(), f = Math.min(1, dt * 10);
       this.walkW += ((o.moving ? 1 : 0) - this.walkW) * f;
       this.cheerW += ((o.cheer ? 1 : 0) - this.cheerW) * f;
@@ -1088,6 +1091,10 @@ function createSkinned(type) {
     const sc = cloneSkinned(g.scene);
     sc.traverse(ob => { if (ob.isMesh) { ob.material = new THREE.MeshBasicMaterial({ map: ob.material.map }); mats.push(ob.material); ob.castShadow = true; ob.frustumCulled = false; } });
     sc.scale.setScalar(cfg.h); all.add(sc);
+    if (cfg.tongue) {
+      const g = new THREE.Group(), inner = createProp(cfg.tongue.file, 1, false); inner.scale.set(1, cfg.tongue.width, cfg.tongue.width); g.add(inner); g.visible = false; all.add(g);
+      tongue = { g, t: -1, target: null, dur: .55, o: new THREE.Vector3(...cfg.tongue.origin).multiplyScalar(cfg.h) };
+    }
     if (cfg.plant) {
       const head = createProp(cfg.plant.file, cfg.plant.size), stemMat = new THREE.MeshBasicMaterial({ color: 0x4f8f26 });
       const stem = new THREE.Mesh(new THREE.BufferGeometry(), stemMat); stem.frustumCulled = false;
@@ -1102,6 +1109,15 @@ function createSkinned(type) {
     rig.flashK = -1; rig.flash(0);
   }).catch(e => console.error('modelo animado', type, e));
   const _h = new THREE.Vector3(), _t = new THREE.Vector3(), _d = new THREE.Vector3(), _q = new THREE.Quaternion(), X1 = new THREE.Vector3(1, 0, 0);
+  function updateTongue(dt) {
+    const T = tongue; if (T.t < 0) return;
+    T.t += dt / T.dur; const k = Math.min(1, T.t);
+    const ext = k < .4 ? 1 - Math.pow(1 - k / .4, 2) : k < .55 ? 1 : 1 - (k - .55) / .45;
+    if (T.target) { _t.copy(T.target()); all.worldToLocal(_t); } else _t.set(T.o.x, T.o.y - .1, T.o.z + 1.4);
+    _d.subVectors(_t, T.o); const L = Math.max(.1, _d.length() - .1); _d.normalize();
+    T.g.position.copy(T.o); T.g.quaternion.setFromUnitVectors(X1, _d); T.g.scale.set(Math.max(.02, L * ext), 1, 1); T.g.visible = ext > .02;
+    if (T.t >= 1) { T.t = -1; T.g.visible = false; }
+  }
   function updatePlant(dt) {
     const P = plant; if (!P.bone) return;
     P.bone.getWorldPosition(_h); all.worldToLocal(_h); _h.y += .02; _h.z += .07;
@@ -1196,10 +1212,10 @@ export function setupScene(renderer, scene, { shadows = true } = {}) {
 }
 // objetos sueltos en 3D (p. ej. el hueso bumerán de Wyrex)
 const _prop = {};
-export function createProp(file, size) {
+export function createProp(file, size, center = true) {
   const g = new THREE.Group(), mat = new THREE.MeshBasicMaterial({ color: 0xffffff });
   (_prop[file] || (_prop[file] = new Promise((res, rej) => _loader.load(`assets/models/${file}.glb`, r => { let me = null; r.scene.traverse(o => { if (o.isMesh && !me) me = o; }); res(me); }, undefined, rej))))
-    .then(me => { mat.map = me.material.map; mat.needsUpdate = true; const mesh = new THREE.Mesh(me.geometry, mat); me.geometry.computeBoundingBox(); const c = me.geometry.boundingBox.getCenter(new THREE.Vector3()); mesh.position.copy(c).multiplyScalar(-size); mesh.scale.setScalar(size); g.add(mesh); })
+    .then(me => { mat.map = me.material.map; mat.needsUpdate = true; const mesh = new THREE.Mesh(me.geometry, mat); me.geometry.computeBoundingBox(); const c = me.geometry.boundingBox.getCenter(new THREE.Vector3()); if (center) mesh.position.copy(c).multiplyScalar(-size); mesh.scale.setScalar(size); g.add(mesh); })
     .catch(e => console.error('objeto', file, e));
   g.userData.dispose = () => mat.dispose();
   return g;

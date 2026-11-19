@@ -298,7 +298,7 @@ function stageRender(dt) {
     const r = rigs[VW.t]; if (!r) return; const p = VW.pitch * Math.PI / 180, dist = 4.7;
     camera.position.set(0, 0.68 + Math.sin(p) * dist, Math.cos(p) * dist); camera.lookAt(0, 0.68, 0);
     r.pv.rotation.set(0, VW.yaw * Math.PI / 180, 0);
-    if (VW.anim === 'attack' || VW.anim === 'super') { VW.loop -= dt; if (VW.loop <= 0) { r.rig.play(VW.anim); VW.loop = 1.35; } }
+    if (VW.anim === 'attack' || VW.anim === 'super') { VW.loop -= dt; if (VW.loop <= 0) { r.rig.play(VW.anim); if (VW.anim === 'attack' && r.rig.tongueTo) setTimeout(() => r.rig.tongueTo(null), 60); VW.loop = 1.35; } }
     r.rig.update(dt, { moving: VW.anim === 'walk' });
   }
   camera.updateProjectionMatrix();
@@ -1237,7 +1237,7 @@ function attack(u, t) {
   if (u.range <= 1 || u.def.melee) {
     u.lunge = .42; u.lungeAmp = 0;
     if (u.type === 'bushi') { sfx.slash(); schedule(.15, () => u.alive && vfx({ kind: 'slash', u, tgt: t, color: '93,255,176', dur: .24 })); }
-    if (u.type === 'bolab' && u.level >= 2) schedule(.1, () => u.alive && sim.beams.push({ ax: u.gx, ay: u.gy, bx: t.gx, by: t.gy, h: .42, color: '255,110,150', w: .16, t: 0, dur: .2 }));
+    if (u.type === 'bolab' && u.level >= 2) { if (u.rig.tongueTo) schedule(.06, () => u.alive && u.rig.tongueTo(() => { const r = t.rig.root.position; return new THREE.Vector3(r.x, r.y + .25, r.z); })); else schedule(.1, () => u.alive && sim.beams.push({ ax: u.gx, ay: u.gy, bx: t.gx, by: t.gy, h: .42, color: '255,110,150', w: .16, t: 0, dur: .2 })); }
     schedule(.19, () => { if (u.alive) { damage(t, basicDmg(u), u); charge(u); sfx.hit(); burstAt(t.gx, t.gy, .5, HIT_COLOR[u.type] || '#ffffff', 6, { glow: true, spd: 1.2 }); } });
   } else schedule(.17, () => {
     if (!u.alive) return;

@@ -32,6 +32,6 @@ d, idx = tree.query(X[M], k=4); w = 1/(d+1e-6)**2; col = (C[idx]*w[..., None]).s
 tex = np.zeros((T, T, 3), np.float32); tex[M] = col; _, ind = ndimage.distance_transform_edt(~M, return_indices=True); tex = tex[ind[0], ind[1]]
 img = Image.fromarray(np.clip(tex, 0, 255).astype(np.uint8)).transpose(Image.FLIP_TOP_BOTTOM); buf = io.BytesIO(); img.save(buf, 'JPEG', quality=92); jimg = Image.open(io.BytesIO(buf.getvalue()))
 a = np.radians(yaw); R = np.array([[np.cos(a), 0, np.sin(a)], [0, 1, 0], [-np.sin(a), 0, np.cos(a)]]); V = V @ R.T; N = N @ R.T
-V -= [(V[:, 0].min()+V[:, 0].max())/2, V[:, 1].min(), (V[:, 2].min()+V[:, 2].max())/2]; V /= np.ptp(V[:, 1])
+if not os.environ.get('NONORM'): V -= [(V[:, 0].min()+V[:, 0].max())/2, V[:, 1].min(), (V[:, 2].min()+V[:, 2].max())/2]; V /= np.ptp(V[:, 1])   # NONORM=1: deja la pieza como está
 out = trimesh.Trimesh(V, F, vertex_normals=N, visual=trimesh.visual.TextureVisuals(uv=UV, material=trimesh.visual.material.PBRMaterial(baseColorTexture=jimg, metallicFactor=0, roughnessFactor=1)), process=False)
 out.export(dst); print(len(V), len(F), os.path.getsize(dst)//1024, 'KB', out.bounds.round(2).tolist())
