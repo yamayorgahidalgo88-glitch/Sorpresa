@@ -56,6 +56,11 @@ const CHARS = {
     abilName: 'Furia fantasma', desc: 'No tiene súper. Cada vez que cae un aliado, entra en furia y el daño de su básico sube un 10%. La furia se reinicia en cada ronda.',
     lv: ['Furia fantasma: +10% de daño del básico por cada aliado derrotado en la ronda.', 'El disparo llega a 2 casillas de fondo.', 'La furia sube un 15% por cada aliado derrotado.'],
     all: ['pose', 'front', 'back', 'left', 'right', 'iso', 'top', 'bottom'] },
+  peipo: { name: 'Peipo', cost: 3, role: 'Luchador', color: '#e8452e', hp: 650, atk: 40, range: 1, as: 0.5, ms: 0.7, abil: 'super', charge: 8,
+    atkName: 'Cuchilladas cruzadas', atkDesc: 'golpea muy rápido con su cuchillo de carnicero en golpes cruzados al enemigo de al lado. Daño bajo-medio.',
+    abilName: 'Postre estrella', desc: 'Súper (se carga con 8 básicos): lanza el postre explosivo de su otra mano. Explota en cruz (la casilla donde cae y las 4 de alrededor) con daño medio y deja un charco pringoso 1,5 segundos: los enemigos atrapados no pueden moverse ni atacar.',
+    lv: ['Desbloquea el súper: Postre estrella, explosión en cruz y charco pringoso.', 'El básico se recarga en 0,4 segundos.', 'El charco pringoso hace daño bajo cada 0,75 segundos a quien esté dentro.'],
+    all: ['pose', 'front', 'back', 'left', 'right', 'iso', 'top', 'bottom'] },
   sevora: { name: 'Sevora', cost: 5, role: 'Imitadora', color: '#8fd23a', hp: 560, atk: 55, range: 2, as: 0.9, ms: 0.75, abil: 'super', charge: 6, sheet: true,
     atkName: 'Mordida de raíz', atkDesc: 'la planta carnívora de su brazo se estira con su raíz y muerde a 2 casillas. Daño medio.',
     abilName: 'Mordida radiante', desc: 'Súper (se carga con 6 básicos): sus raíces brillan en verde hasta su siguiente mordisco. Al rival que muerda le copia el súper, un 5% más fuerte, y lo lanza en cuanto vuelve la planta.',
@@ -254,7 +259,7 @@ function removeUnit(u) {
 function stats(u) {
   const m = LVL_MULT[u.level];
   u.maxHp = Math.round(u.def.hp * m); u.atk = Math.round(u.def.atk * m);
-  u.range = rangeOf(u.type, u.level); u.as = u.def.as * PACE; u.ms = u.def.ms * MOVE_PACE;
+  u.range = rangeOf(u.type, u.level); u.as = (u.type === 'peipo' && u.level >= 2 ? .4 : u.def.as) * PACE; u.ms = u.def.ms * MOVE_PACE;
   if (G.state !== 'fight') u.hp = u.maxHp;
 }
 
@@ -808,6 +813,7 @@ function updateUnit(u, dt) {
   if (u.inv > 0) u.inv -= dt;
   if (u.root > 0) u.root -= dt;
   if (u.stun > 0) { u.stun -= dt; return; }
+  if (u.goo > 0) { u.goo -= dt; return; }   // pegado en el charco de Peipo: ni se mueve ni ataca
   if (u.slow > 0) { u.slow -= dt; dt *= .5; }
   if (u.hold > 0) { u.hold -= dt; return; }
   if (u.bone) return;
@@ -905,6 +911,7 @@ function drawBeams(dt) {
 }
 function drawZones(time) {
   for (const z of sim.zones) {
+    if (z.kind === 'goo') continue;   // el charco se dibuja en el suelo (drawGoo)
     const [x, y] = gridToScreen(z.gx, z.gy), rx = Math.abs(gridToScreen(z.gx + z.rad, z.gy)[0] - x), ry = Math.abs(gridToScreen(z.gx, z.gy + z.rad)[1] - y);
     const a = Math.min(1, z.t / .25, (z.dur - z.t) / .4) * (.8 + Math.sin(time * 9) * .12);
     fx.save(); fx.globalCompositeOperation = 'lighter'; fx.translate(x, y); fx.scale(1, ry / rx);
@@ -966,7 +973,7 @@ function drawVfx(dt, time) {
     } else if (e.kind === 'slash') {   // estela del tajo
       const tg = e.tgt, [x1, y1] = gridToScreen(tg.gx, tg.gy), mx = (x + x1) / 2, my = (y + y1) / 2 - tw * .45, a0 = Math.atan2(y1 - y, x1 - x);
       const R = tw * .55, fade = 1 - k, sweep = Math.min(1, k / .45) * 2.4;
-      fx.translate(mx, my); fx.rotate(a0 - Math.PI / 2);
+      fx.translate(mx, my); fx.rotate(a0 - Math.PI / 2); if (e.flip) fx.scale(-1, 1);
       for (const [w, a] of [[.2, .35], [.1, .8], [.035, 1]]) { fx.strokeStyle = w < .05 ? `rgba(240,255,245,${fade})` : C(a * fade); fx.lineWidth = tw * w; fx.beginPath(); fx.arc(0, 0, R, -1.9 + sweep - 1.1, -1.9 + sweep); fx.stroke(); }
     } else if (e.kind === 'vine') {
       const tg = e.tgt, ext = k < .42 ? 1 - Math.pow(1 - k / .42, 3) : k < .58 ? 1 : 1 - (k - .58) / .42;
@@ -1236,6 +1243,7 @@ function attack(u, t) {
   if (u.type === 'osko') return bone(u, t);
   if (u.range <= 1 || u.def.melee) {
     u.lunge = .42; u.lungeAmp = 0;
+    if (u.type === 'peipo') { sfx.slash(); schedule(.08, () => u.alive && vfx({ kind: 'slash', u, tgt: t, color: '255,235,225', dur: .14 })); schedule(.16, () => u.alive && vfx({ kind: 'slash', u, tgt: t, color: '255,120,100', dur: .14, flip: 1 })); }
     if (u.type === 'bushi') { sfx.slash(); schedule(.15, () => u.alive && vfx({ kind: 'slash', u, tgt: t, color: '93,255,176', dur: .24 })); }
     if (u.type === 'bolab' && u.level >= 2) { if (u.rig.tongueTo) schedule(.06, () => u.alive && u.rig.tongueTo(() => { const r = t.rig.root.position; return new THREE.Vector3(r.x, r.y + .25, r.z); })); else schedule(.1, () => u.alive && sim.beams.push({ ax: u.gx, ay: u.gy, bx: t.gx, by: t.gy, h: .42, color: '255,110,150', w: .16, t: 0, dur: .2 })); }
     schedule(.19, () => { if (u.alive) { damage(t, basicDmg(u), u); charge(u); sfx.hit(); burstAt(t.gx, t.gy, .5, HIT_COLOR[u.type] || '#ffffff', 6, { glow: true, spd: 1.2 }); } });
@@ -1317,6 +1325,28 @@ function doSuper(u, t, cp = null) {
       for (const v of enemiesOf(u)) if (tiles.some(q => q.c === v.c && q.r === v.r)) { damage(v, A * 1.36, u, 'big'); burstAt(v.gx, v.gy, .5, '#45f5cf', 14, { spd: 2.5, up: 1.6, glow: true }); }
       sfx.boom(); shake = Math.max(shake, 6);
     });
+  } else if (T === 'peipo') {
+    // postre estrella: bomba 3D en bombeo hasta la casilla del objetivo; explota en cruz y deja un charco pringoso
+    const tc = t.c, tr = t.r, ox = u.gx, oy = u.gy, tx = tc + .5, ty = tr + .5, flight = .55 + Math.hypot(tx - ox, ty - oy) * .06;
+    u.rig.hideProp && u.rig.hideProp(.3, flight + .9);
+    schedule(.3, () => {
+      if (!u.alive) return; sfx.shoot();
+      const mesh = createProp('peipo_bomba', .38); B3.scene.add(mesh);
+      sim.proj.push({ free: true, kind: 'bomb', mesh, color: '#ffb347', size: .1, gx: ox, gy: oy, tgx: tx, tgy: ty, x: ox, y: oy, h: .7, p: 0,
+        upd(p, dt) {
+          p.p += dt / flight; const k = Math.min(1, p.p); p.x = ox + (tx - ox) * k; p.y = oy + (ty - oy) * k; p.h = .7 + Math.sin(Math.PI * k) * 1.4 - k * .55;
+          mesh.position.set(p.x - 2.5, p.h, 4 - p.y); mesh.rotation.set(k * 9, k * 4, 0);
+          if (p.p >= 1) {
+            p.done = true; dropMesh(p);
+            const tiles = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]].map(([a, b]) => ({ c: tc + a, r: tr + b })).filter(q => q.c >= 0 && q.c < COLS && q.r >= 0 && q.r < ROWS);
+            for (const v of enemiesOf(u)) if (tiles.some(q => q.c === v.c && q.r === v.r)) damage(v, A * 1.375, u, 'big');
+            vfx({ kind: 'flash', gx: tx, gy: ty, r: 1.8, color: '255,170,70', dur: .45 }); fxs.push({ gx: tx, gy: ty, r: 1.6, color: '#ffb347', t: 0, dur: .5 });
+            burstAt(tx, ty, .3, '#ff9a3c', 26, { spd: 3.5, up: 2.4, glow: true }); burstAt(tx, ty, .3, '#7a3a14', 14, { spd: 2.6, up: 2, size: .09 }); burstAt(tx, ty, .3, '#ff6fa8', 10, { spd: 3, up: 2.6, size: .06 });
+            sfx.boom(); shake = Math.max(shake, 7);
+            sim.zones.push({ kind: 'goo', tiles, team: u.team, src: u, t: 0, dur: 1.5 * P, tick: .75, dmg: L >= 3 ? A * .75 : 0, seed: Math.random() * 1000 });
+          }
+        } });
+    });
   } else if (T === 'ogul') {
     schedule(.26, () => u.alive && shoot(u, t, { color: '#ff4a6a', size: .2, speed: 4.5, arc: .9, onHit: p => {
       for (const v of enemiesOf(u)) if (Math.hypot(v.gx - p.tgx, v.gy - p.tgy) <= 2.05) damage(v, A, u, 'big');
@@ -1352,6 +1382,12 @@ function combatStep(dt) {
   for (const u of units) if (u.alive) updateUnit(u, dt);
   updateProjectiles(dt);
   for (const z of sim.zones) {
+    if (z.kind === 'goo') {
+      z.t += dt;
+      for (const v of units) if (v.alive && v.team !== z.team && z.tiles.some(q => q.c === v.c && q.r === v.r)) v.goo = .06;
+      if (z.dmg) { z.tick -= dt; if (z.tick <= 0) { z.tick += .75; for (const v of units) if (v.alive && v.team !== z.team && z.tiles.some(q => q.c === v.c && q.r === v.r)) damage(v, z.dmg, z.src); } }
+      continue;
+    }
     z.t += dt; z.tick -= dt;
     if (z.tick <= 0) { z.tick += .5; for (const v of units) if (v.alive && v.team !== z.team && Math.hypot(v.gx - z.gx, v.gy - z.gy) <= z.rad + .05) damage(v, z.dmg, z.src); }
   }
@@ -1408,6 +1444,39 @@ function quad(c0, r0, c1, r1) {
   const p = [gridToScreen(c0, r0), gridToScreen(c1, r0), gridToScreen(c1, r1), gridToScreen(c0, r1)];
   ctx.beginPath(); ctx.moveTo(...p[0]); for (let i = 1; i < 4; i++) ctx.lineTo(...p[i]); ctx.closePath();
 }
+// charco de caramelo pringoso de Peipo (estilo de la imagen: brillante, naranja, con gotas)
+function drawGoo() {
+  for (const z of sim.zones) {
+    if (z.kind !== 'goo') continue;
+    const grow = Math.min(1, z.t / .18), a = Math.min(1, (z.dur - z.t) / .35), sp = 1 - Math.pow(1 - grow, 3);
+    let rnd = z.seed; const R = () => (rnd = (rnd * 9301 + 49297) % 233280) / 233280;
+    const blobs = z.tiles.map(q => ({ q, pts: Array.from({ length: 10 }, () => .42 + R() * .2) }));
+    const drops = Array.from({ length: 9 }, () => { const q = z.tiles[Math.floor(R() * z.tiles.length)], an = R() * 6.283; return { gx: q.c + .5 + Math.cos(an) * (.55 + R() * .25), gy: q.r + .5 + Math.sin(an) * (.55 + R() * .25), s: .05 + R() * .07 }; });
+    const path = b => { ctx.beginPath(); for (let i = 0; i <= 10; i++) { const an = (i % 10) / 10 * 6.283, rr = b.pts[i % 10] * sp, [px, py] = gridToScreen(b.q.c + .5 + Math.cos(an) * rr, b.q.r + .5 + Math.sin(an) * rr); i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); } ctx.closePath(); };
+    ctx.save(); ctx.globalAlpha = a; ctx.lineJoin = 'round';
+    // sombra/borde oscuro
+    ctx.fillStyle = 'rgba(120,40,8,.55)'; for (const b of blobs) { ctx.save(); ctx.translate(0, 3); path(b); ctx.fill(); ctx.restore(); }
+    // cuerpo del caramelo
+    const [cx, cy] = gridToScreen(z.tiles[0].c + .5, z.tiles[0].r + .5), tw = tileW(z.tiles[0].r + .5);
+    const g = ctx.createRadialGradient(cx - tw * .3, cy - tw * .4, tw * .1, cx, cy, tw * 1.8); g.addColorStop(0, '#ffc77a'); g.addColorStop(.45, '#ff9235'); g.addColorStop(1, '#d4561a');
+    ctx.fillStyle = g; for (const b of blobs) { path(b); ctx.fill(); }
+    // brillos
+    ctx.strokeStyle = 'rgba(255,245,225,.75)'; ctx.lineWidth = Math.max(2, tw * .05); ctx.lineCap = 'round';
+    for (const b of blobs) { const [hx, hy] = gridToScreen(b.q.c + .38, b.q.r + .4); ctx.beginPath(); ctx.ellipse(hx, hy, tw * .2 * sp, tw * .07 * sp, -.35, Math.PI * 1.05, Math.PI * 1.75); ctx.stroke(); }
+    ctx.fillStyle = 'rgba(255,250,235,.8)'; for (const b of blobs) { const [hx, hy] = gridToScreen(b.q.c + .66, b.q.r + .62); ctx.beginPath(); ctx.ellipse(hx, hy, tw * .045 * sp, tw * .025 * sp, -.3, 0, 6.283); ctx.fill(); }
+    // gotas sueltas alrededor
+    for (const d of drops) {
+      const [dx, dy] = gridToScreen(d.gx, d.gy), r = tileW(d.gy) * d.s * sp;
+      ctx.fillStyle = 'rgba(120,40,8,.5)'; ctx.beginPath(); ctx.ellipse(dx, dy + 2, r, r * .7, 0, 0, 6.283); ctx.fill();
+      const gd = ctx.createRadialGradient(dx - r * .35, dy - r * .35, r * .1, dx, dy, r); gd.addColorStop(0, '#ffcf8a'); gd.addColorStop(1, '#d9601e');
+      ctx.fillStyle = gd; ctx.beginPath(); ctx.ellipse(dx, dy, r, r * .7, 0, 0, 6.283); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.beginPath(); ctx.arc(dx - r * .35, dy - r * .25, r * .22, 0, 6.283); ctx.fill();
+    }
+    // burbuja que sube y estalla de vez en cuando
+    if (Math.random() < .15) { const q = pick(z.tiles); burstAt(q.c + .5 + rand(-.3, .3), q.r + .5 + rand(-.3, .3), .02, '#ffb055', 1, { spd: .1, up: .5, g: 1, life: .4, size: .05 }); }
+    ctx.restore();
+  }
+}
 function drawBoard() {
   const g = ctx.createLinearGradient(0, 0, 0, Hs); g.addColorStop(0, '#0b2350'); g.addColorStop(1, '#393766');
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, Hs);
@@ -1424,6 +1493,7 @@ function drawBoard() {
     ctx.fillStyle = hv ? (ok ? 'rgba(255,255,180,.5)' : 'rgba(255,60,60,.45)') : 'rgba(255,255,255,.14)';
     quad(c + .04, r + .04, c + .96, r + .96); ctx.fill();
   }
+  drawGoo();
   // marca de equipo en el suelo, discreta (el color fuerte va en la barra de vida)
   for (const u of units) {
     if (u.dying > 0 || u.summon) continue;

@@ -1049,7 +1049,7 @@ function createStatic(type) {
 }
 /* ---------------- modelos con esqueleto y animaciones (Meshy + Blender) ---------------- */
 // Cada .glb trae los clips: idle, walk, attack, super y cheer.
-const SKIN = { bushi: { file: 'bushi_anim', h: 1.2 }, pomona: { file: 'pomona_anim', h: 1.25 }, osko: { file: 'wyrex_anim', h: 1.25 }, bolab: { file: 'bolab_anim', h: 1.15, tongue: { file: 'bolab_lengua', origin: [0, .3, .4], width: .8 }, alt: { file: 'bolab_boca_anim', scale: .88 } }, sevora: { file: 'sevora_anim', h: 1.25, plant: { bone: 'plant' } } };
+const SKIN = { bushi: { file: 'bushi_anim', h: 1.2 }, pomona: { file: 'pomona_anim', h: 1.25 }, osko: { file: 'wyrex_anim', h: 1.25 }, bolab: { file: 'bolab_anim', h: 1.15, tongue: { file: 'bolab_lengua', origin: [0, .3, .4], width: .8 }, alt: { file: 'bolab_boca_anim', scale: .88 } }, peipo: { file: 'peipo_anim', h: 1.25, prop: 'bomb' }, sevora: { file: 'sevora_anim', h: 1.25, plant: { bone: 'plant' } } };
 const _skin = {};
 const loadSkin = type => _skin[type] || (_skin[type] = new Promise((res, rej) => _loader.load(`assets/models/${SKIN[type].file}.glb`, res, undefined, rej)));
 function createSkinned(type) {
@@ -1066,6 +1066,8 @@ function createSkinned(type) {
     },
     // la planta del brazo se estira hasta el objetivo (función que da su posición en el mundo)
     vineTo(fn) { if (plant) plant.target = fn; },
+    // esconde un objeto de la mano (p. ej. la bomba de Peipo) mientras vuela, y lo vuelve a mostrar
+    hideProp(delay, dur) { this.propT = { at: delay, until: delay + dur, t: 0 }; },
     // lengua de Bolab: sale de la boca hasta el objetivo (fn da su posición en el mundo; null = hacia delante)
     tongueTo(fn) { if (tongue) { tongue.t = 0; tongue.target = fn; } },
     tint(r, g, b) { tintC.setRGB(r, g, b); this.flashK = -1; this.flash(0); },
@@ -1085,6 +1087,8 @@ function createSkinned(type) {
       acts.walk.setEffectiveWeight(this.baseW * this.walkW * (1 - this.cheerW));
       if (acts.cheer) acts.cheer.setEffectiveWeight(this.baseW * this.cheerW);
       mixer.update(dt);
+      if (this.propT && this.propBone) { const P = this.propT; P.t += dt; const hid = P.t >= P.at && P.t < P.until; const g = P.t >= P.until ? Math.min(1, (P.t - P.until) / .25) : 1;
+        this.propBone.scale.setScalar(hid ? 1e-3 : g); if (P.t > P.until + .3) { this.propT = null; this.propBone.scale.setScalar(1); } }
       if (plant) updatePlant(dt);
       if (alt && alt.mixer) {
         for (const n of ['idle', 'walk', 'cheer']) if (alt.acts[n] && acts[n]) alt.acts[n].setEffectiveWeight(acts[n].getEffectiveWeight());
@@ -1096,7 +1100,7 @@ function createSkinned(type) {
   loadSkin(type).then(g => {
     const sc = cloneSkinned(g.scene);
     sc.traverse(ob => { if (ob.isMesh) { ob.material = new THREE.MeshBasicMaterial({ map: ob.material.map }); mats.push(ob.material); ob.castShadow = true; ob.frustumCulled = false; } });
-    sc.scale.setScalar(cfg.h); all.add(sc); rig.mainSc = sc;
+    sc.scale.setScalar(cfg.h); all.add(sc); rig.mainSc = sc; if (cfg.prop) rig.propBone = sc.getObjectByName(cfg.prop);
     if (cfg.alt) _loader.load(`assets/models/${cfg.alt.file}.glb`, ga => {
       const s2 = cloneSkinned(ga.scene); s2.traverse(ob => { if (ob.isMesh) { ob.material = new THREE.MeshBasicMaterial({ map: ob.material.map }); mats.push(ob.material); ob.frustumCulled = false; } });
       s2.scale.setScalar(cfg.h * cfg.alt.scale); s2.visible = false; all.add(s2);
