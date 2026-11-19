@@ -15,14 +15,15 @@
   --gold:#f2c230;
 }
 *{box-sizing:border-box}
-html,body{margin:0;height:100%;background:var(--bg2);overflow:hidden}
+html,body{margin:0;height:100%;background:#070c22;overflow:hidden}
 body{
   font-family:"Press Start 2P",monospace;color:var(--ink);
-  background:radial-gradient(ellipse at 50% 40%,var(--bg) 0%,var(--bg2) 75%);
 }
-#snow{position:fixed;inset:0;width:100%;height:100%;image-rendering:pixelated;pointer-events:none;z-index:0}
+#bg,#snow{position:fixed;inset:0;width:100%;height:100%;image-rendering:pixelated;pointer-events:none}
+#bg{z-index:0}
+#snow{z-index:5}
 header{
-  position:fixed;top:0;left:0;right:0;z-index:2;text-align:center;
+  position:fixed;top:0;left:0;right:0;z-index:6;text-align:center;
   padding:max(14px,env(safe-area-inset-top)) 16px 0;pointer-events:none
 }
 header h1{
@@ -37,7 +38,7 @@ header h1{
   -webkit-tap-highlight-color:transparent;outline:none
 }
 .env canvas{display:block;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges}
-.env:hover,.env:focus-visible{transform:rotate(0deg) scale(1.08);z-index:50}
+.env:hover,.env:focus-visible{transform:rotate(0deg) scale(1.08);z-index:50!important}
 .env:focus-visible{filter:drop-shadow(0 0 0 #fff) drop-shadow(0 4px 0 rgba(0,0,0,.35))}
 .env.wiggle{animation:wig .4s steps(4)}
 @keyframes wig{
@@ -48,6 +49,7 @@ header h1{
 </style>
 </head>
 <body>
+<canvas id="bg"></canvas>
 <canvas id="snow"></canvas>
 <header><h1>Calendario de Adviento</h1></header>
 <main id="board" aria-label="Calendario de adviento"></main>
@@ -485,46 +487,45 @@ function drawEnvelope(day){
   return cv;
 }
 
-/* ---------- sizes & order (seeded) ---------- */
+/* ---------- star formation ---------- */
+const AR=EH/EW;
 const rand=mulberry32(SEED);
-const items=[];
-for(let d=1;d<=24;d++){
-  const s=d===24?2.05:0.62+rand()*0.6;          // 24 is always clearly the biggest
-  items.push({day:d,s,rot:d===24?(rand()*4-2):(rand()*12-6),jit:rand()});
-}
-// place the big one first, the rest in a shuffled order
-const order=[items[23],...items.slice(0,23)];
-for(let i=order.length-1;i>1;i--){const j=1+Math.floor(rand()*i);[order[i],order[j]]=[order[j],order[i]]}
+// arm-local slots: [distance along the arm, sideways offset, base size]
+const ARM_LONG =[[1.75,-.55,1.25],[1.75,.55,1.25],[2.75,0,1.25],[3.65,0,1.0],[4.4,0,.78]];
+const ARM_SHORT=[[1.75,-.55,1.25],[1.75,.55,1.25],[2.8,0,1.25],[3.85,0,1.0]];
+// up, right-up, right-down, left-down, left-up  (mirror-symmetric: 5+4+5+5+4 = 23)
+const ARMS=[[-90,ARM_LONG],[-18,ARM_SHORT],[54,ARM_LONG],[126,ARM_LONG],[198,ARM_SHORT]];
 
-/* ---------- packing: grow a tight cluster around the centre ---------- */
-function pack(aspect){
-  const placed=[],GAP=.06,AR=EH/EW;
-  const overlaps=(a)=>placed.some(b=>a.x<b.x+b.w+GAP&&a.x+a.w+GAP>b.x&&a.y<b.y+b.h+GAP&&a.y+a.h+GAP>b.y);
-  for(const it of order){
-    const w=it.s,h=it.s*AR;
-    if(!placed.length){placed.push({it,x:-w/2,y:-h/2,w,h});continue}
-    let best=null,bestScore=1e9;
-    for(const b of placed){
-      const fr=[0,.2,.4,.5,.6,.8,1];
-      const cands=[];
-      for(const f of fr){
-        cands.push([b.x+b.w+GAP, b.y+f*(b.h)-f*h]);    // right
-        cands.push([b.x-w-GAP,   b.y+f*(b.h)-f*h]);    // left
-        cands.push([b.x+f*(b.w)-f*w, b.y+b.h+GAP]);    // below
-        cands.push([b.x+f*(b.w)-f*w, b.y-h-GAP]);      // above
-      }
-      for(const [x,y] of cands){
-        const r={x,y,w,h};
-        if(overlaps(r))continue;
-        const mx=x+w/2,my=y+h/2;
-        // ellipse matching the screen shape keeps the bundle compact
-        const score=(mx*mx)/(aspect)+(my*my)*aspect + it.jit*.08;
-        if(score<bestScore){bestScore=score;best=r}
-      }
-    }
-    best.it=it;placed.push(best);
+// days 1..23 shuffled across the star (seeded, so it's always the same)
+const days=Array.from({length:23},(_,i)=>i+1);
+for(let i=days.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[days[i],days[j]]=[days[j],days[i]]}
+
+const items=[{day:24,tx:0,ty:0,s:2.8,rot:rand()*3-1.5,fixed:true}];
+let di=0;
+for(const [deg,slots] of ARMS){
+  const a=deg*Math.PI/180,ca=Math.cos(a),sa=Math.sin(a);
+  for(const [u,v,s] of slots){
+    items.push({day:days[di++],tx:u*ca-v*sa,ty:u*sa+v*ca,s:s*(.85+rand()*.3),rot:rand()*8-4});
   }
-  return placed;
+}
+
+function starLayout(stretchX,stretchY){
+  const P=items.map(it=>({it,x:it.tx*stretchX,y:it.ty*stretchY,w:it.s,h:it.s*AR}));
+  const GAP=.05;
+  for(let n=0;n<220;n++){
+    // gentle pull back to the star slot so arms stay tight
+    for(const p of P)if(!p.it.fixed){p.x+=(p.it.tx*stretchX-p.x)*.04;p.y+=(p.it.ty*stretchY-p.y)*.04}
+    for(let i=0;i<P.length;i++)for(let j=i+1;j<P.length;j++){
+      const A=P[i],B=P[j];
+      const dx=B.x-A.x,dy=B.y-A.y;
+      const ox=(A.w+B.w)/2+GAP-Math.abs(dx),oy=(A.h+B.h)/2+GAP-Math.abs(dy);
+      if(ox<=0||oy<=0)continue;
+      const wa=A.it.fixed?0:(B.it.fixed?1:.5),wb=1-wa;
+      if(ox<oy){const m=ox*(dx<0?-1:1);A.x-=m*wa;B.x+=m*wb}
+      else{const m=oy*(dy<0?-1:1);A.y-=m*wa;B.y+=m*wb}
+    }
+  }
+  return P;
 }
 
 /* ---------- build DOM ---------- */
@@ -539,48 +540,132 @@ for(const it of items){
   board.appendChild(b);els[it.day]=b;
 }
 
+function bounds(P){let a=1e9,b=1e9,c=-1e9,d=-1e9;for(const p of P){a=Math.min(a,p.x-p.w/2);b=Math.min(b,p.y-p.h/2);c=Math.max(c,p.x+p.w/2);d=Math.max(d,p.y+p.h/2)}return{minX:a,minY:b,maxX:c,maxY:d}}
 function layout(){
-  const head=document.querySelector('header').getBoundingClientRect().bottom+8;
+  const head=document.querySelector('header').getBoundingClientRect().bottom+6;
   board.style.top=head+'px';
   const W=board.clientWidth,H=board.clientHeight;
-  const placed=pack(W/H);
-  let minX=1e9,minY=1e9,maxX=-1e9,maxY=-1e9;
-  for(const p of placed){minX=Math.min(minX,p.x);minY=Math.min(minY,p.y);maxX=Math.max(maxX,p.x+p.w);maxY=Math.max(maxY,p.y+p.h)}
-  const pad=Math.max(16,Math.min(W,H)*.04);
-  const k=Math.min((W-pad*2)/(maxX-minX),(H-pad*2)/(maxY-minY));
-  const offX=(W-(maxX-minX)*k)/2,offY=(H-(maxY-minY)*k)/2;
-  for(const p of placed){
+  // on tall/wide screens stretch the star a little to use the space
+  let B=bounds(starLayout(1,1));
+  const shapeAR=(B.maxY-B.minY)/(B.maxX-B.minX),screenAR=H/W;
+  const sy=screenAR>shapeAR?Math.min(1.35,screenAR/shapeAR):1;
+  const sx=screenAR<shapeAR?Math.min(1.15,shapeAR/screenAR):1;
+  const P=starLayout(sx,sy);B=bounds(P);
+  const pad=Math.max(12,Math.min(W,H)*.035);
+  const k=Math.min((W-pad*2)/(B.maxX-B.minX),(H-pad*2)/(B.maxY-B.minY));
+  const offX=W/2-(B.minX+B.maxX)/2*k,offY=H/2-(B.minY+B.maxY)/2*k;
+  for(const p of P){
     const el=els[p.it.day];
-    el.style.left=(offX+(p.x-minX)*k)+'px';
-    el.style.top=(offY+(p.y-minY)*k)+'px';
+    el.style.left=(offX+(p.x-p.w/2)*k)+'px';
+    el.style.top=(offY+(p.y-p.h/2)*k)+'px';
     el.style.width=(p.w*k)+'px';
     el.style.height=(p.h*k)+'px';
-    el.style.zIndex=p.it.day===24?2:1;
+    el.style.zIndex=p.it.day===24?3:2;
   }
 }
 layout();
 addEventListener('resize',layout);
 if(document.fonts)document.fonts.ready.then(layout);
 
-/* ---------- pixel snow ---------- */
-(function(){
-  const c=document.getElementById('snow'),g=c.getContext('2d');
-  const S=4;let W,H,flakes=[];
-  function size(){W=Math.ceil(innerWidth/S);H=Math.ceil(innerHeight/S);c.width=W;c.height=H;
-    flakes=Array.from({length:Math.round(W*H/260)},()=>({x:Math.random()*W,y:Math.random()*H,v:.08+Math.random()*.22,p:Math.random()*6}))}
-  size();addEventListener('resize',size);
-  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
-  function tick(t){
-    g.clearRect(0,0,W,H);
-    for(const f of flakes){
-      if(!reduce){f.y+=f.v;f.x+=Math.sin(t/1400+f.p)*.08;if(f.y>H){f.y=-1;f.x=Math.random()*W}}
-      g.fillStyle=f.v>.22?'rgba(255,255,255,.75)':'rgba(255,255,255,.35)';
-      g.fillRect(f.x|0,f.y|0,1,1);
+/* ---------- pixel-art winter landscape ---------- */
+const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const bgC=document.getElementById('bg'),bg=bgC.getContext('2d');
+const fxC=document.getElementById('snow'),fx=fxC.getContext('2d');
+let PS,LW,LH,flakes=[],twinkles=[],smoke=null;
+const BAYER=[[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];
+function hex(h){return[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]}
+
+function drawLandscape(){
+  PS=Math.max(3,Math.round(Math.min(innerWidth,innerHeight)/230));
+  LW=Math.ceil(innerWidth/PS);LH=Math.ceil(innerHeight/PS);
+  bgC.width=fxC.width=LW;bgC.height=fxC.height=LH;
+  const R=mulberry32(SEED+7);
+  const img=bg.createImageData(LW,LH),D=img.data;
+  const put=(x,y,c)=>{x|=0;y|=0;if(x<0||y<0||x>=LW||y>=LH)return;const i=(y*LW+x)*4;D[i]=c[0];D[i+1]=c[1];D[i+2]=c[2];D[i+3]=255};
+
+  // sky: dithered night gradient
+  const stops=['#070c22','#0e1838','#1a2a58','#2f4479','#4d6299'].map(hex);
+  for(let y=0;y<LH;y++){
+    const v=Math.min(1,y/(LH*.78))*(stops.length-1),i=Math.floor(v),f=v-i;
+    for(let x=0;x<LW;x++){
+      const c=f*16>BAYER[y&3][x&3]+.5?stops[Math.min(i+1,stops.length-1)]:stops[i];
+      put(x,y,c);
     }
-    if(!reduce)requestAnimationFrame(tick);
   }
-  requestAnimationFrame(tick);
-})();
+  // stars
+  twinkles=[];
+  for(let n=0;n<LW*LH/70;n++){
+    const x=R()*LW|0,y=R()*LH*.62|0,b=R();
+    put(x,y,b>.85?hex('#fff7d6'):b>.5?hex('#9fb0dc'):hex('#5d6fa6'));
+    if(b>.93)twinkles.push({x,y,p:R()*6});
+  }
+  // moon with dithered halo
+  const mx=LW*.8|0,my=LH*.13|0,mr=Math.max(5,Math.round(Math.min(LW,LH)*.045));
+  for(let y=-mr*3;y<=mr*3;y++)for(let x=-mr*3;x<=mr*3;x++){
+    const d=Math.hypot(x,y);
+    if(d<=mr)put(mx+x,my+y,(x+y>mr*.6||(Math.hypot(x+mr*.35,y-mr*.2)<mr*.22)||(Math.hypot(x-mr*.3,y+mr*.35)<mr*.15))?hex('#e9dcae'):hex('#fff4cf'));
+    else if(d<mr*2.2&&((x+y)&1)===0&&BAYER[(y+99)&3][(x+99)&3]<(1-(d-mr)/(mr*1.2))*10)put(mx+x,my+y,hex('#3f5590'));
+  }
+
+  // ridge helper
+  const ridge=(base,amp,fr)=>{const ph=[R()*9,R()*9,R()*9];return x=>base+amp*(Math.sin(x*fr+ph[0])*.55+Math.sin(x*fr*2.3+ph[1])*.3+Math.sin(x*fr*5.1+ph[2])*.15)};
+  // far mountains
+  const far=ridge(LH*.6,LH*.07,.045);
+  for(let x=0;x<LW;x++){const t=far(x)|0;for(let y=t;y<LH;y++)put(x,y,y<t+3&&t<LH*.6?hex('#c3cfee'):(y<t+5&&t<LH*.57?hex('#8fa0cf'):hex('#2c3b6c')))}
+  // middle snowy hills
+  const mid=ridge(LH*.72,LH*.035,.03);
+  for(let x=0;x<LW;x++){const t=mid(x)|0;for(let y=t;y<LH;y++)put(x,y,y===t?hex('#eef3ff'):(((x+y)&1)&&y<t+3?hex('#c9d6f0'):hex('#a8b9de')))}
+
+  // pine tree
+  const pine=(x0,yb,h,dark)=>{
+    const g=dark?hex('#12302a'):hex('#1d4a3c'),g2=dark?hex('#0c231e'):hex('#163a30'),sn=hex('#eef4ff');
+    for(let y=0;y<h;y++){
+      const tier=(y%Math.max(3,h/4|0))/Math.max(3,h/4|0);
+      const half=Math.max(0,Math.round((y/h)*h*.33*(.55+tier*.6)));
+      for(let x=-half;x<=half;x++)put(x0+x,yb-h+y,x<0?g:g2);
+      if(tier===0&&y>0){for(let x=-half;x<=half-1;x++)put(x0+x,yb-h+y,sn)}
+    }
+    put(x0,yb-h-1,sn);
+    for(let y=0;y<Math.max(1,h/8|0);y++)put(x0,yb+y,hex('#4a2d1c'));
+  };
+  for(let n=0;n<LW/9;n++){const x=R()*LW|0;pine(x,mid(x)|0+1,6+R()*8|0,true)}
+
+  // little cabin with warm windows
+  const cx=LW*.2|0,cb=mid(cx)|0+2,cw=Math.max(12,LW*.07|0),ch=Math.round(cw*.6);
+  for(let y=0;y<ch;y++)for(let x=0;x<cw;x++)put(cx+x,cb-ch+y,((y%3)===0)?hex('#4e2a17'):hex('#6e3d22'));
+  for(let y=0;y<Math.ceil(cw/2)+1;y++)for(let x=-1-y+Math.ceil(cw/2);x<=cw-Math.ceil(cw/2)+y;x++)put(cx+x,cb-ch-Math.ceil(cw/2)-1+y,y>=Math.ceil(cw/2)-1?hex('#ffffff'):hex('#e8eefc'));
+  const win=(wx,wy)=>{for(let y=0;y<3;y++)for(let x=0;x<3;x++)put(wx+x,wy+y,(x===1||y===1)?hex('#f39c22'):hex('#ffd66b'))};
+  win(cx+2,cb-ch+2);win(cx+cw-5,cb-ch+2);
+  for(let y=0;y<ch-3;y++)for(let x=0;x<3;x++)put(cx+(cw/2|0)-1+x,cb-ch+3+y,hex('#3a1d10'));
+  const chx=cx+cw-4,chy=cb-ch-Math.ceil(cw/2)+1;
+  for(let y=0;y<4;y++)for(let x=0;x<2;x++)put(chx+x,chy+y,hex('#5a5f78'));
+  smoke={x:chx,y:chy-1};
+
+  // foreground snow and big pines
+  const fg=ridge(LH*.88,LH*.025,.02);
+  for(let x=0;x<LW;x++){const t=fg(x)|0;for(let y=t;y<LH;y++)put(x,y,y<t+1?hex('#ffffff'):(BAYER[y&3][x&3]<4?hex('#d3def4'):hex('#eef3ff')))}
+  const big=[[.04,.2],[.12,.13],[.9,.19],[.97,.15],[.83,.11],[.2,.09]];
+  for(const [fx_,fh] of big){const x=LW*fx_|0;pine(x,fg(x)|0+2,Math.round(LH*fh),false)}
+
+  bg.putImageData(img,0,0);
+
+  flakes=Array.from({length:Math.round(LW*LH/120)},()=>{const big=Math.random()<.18;return{x:Math.random()*LW,y:Math.random()*LH,v:big?.3+Math.random()*.2:.1+Math.random()*.15,big,p:Math.random()*6}});
+}
+drawLandscape();
+let rT;addEventListener('resize',()=>{clearTimeout(rT);rT=setTimeout(drawLandscape,120)});
+
+function tick(t){
+  fx.clearRect(0,0,LW,LH);
+  for(const s of twinkles){const a=.35+.65*Math.abs(Math.sin(t/700+s.p));fx.fillStyle=`rgba(255,247,214,${a})`;fx.fillRect(s.x,s.y,1,1);if(a>.9){fx.fillStyle='rgba(255,247,214,.45)';fx.fillRect(s.x-1,s.y,3,1);fx.fillRect(s.x,s.y-1,1,3)}}
+  if(smoke){for(let i=0;i<5;i++){const k=((t/900+i/5)%1);fx.fillStyle=`rgba(200,210,235,${.5*(1-k)})`;fx.fillRect(smoke.x+Math.sin(k*5+i)*2*k|0,smoke.y-k*14|0,1+(k>.5),1+(k>.5))}}
+  for(const f of flakes){
+    if(!reduceMotion){f.y+=f.v;f.x+=Math.sin(t/1300+f.p)*.1;if(f.y>LH){f.y=-2;f.x=Math.random()*LW}}
+    fx.fillStyle=f.big?'rgba(255,255,255,.9)':'rgba(255,255,255,.55)';
+    fx.fillRect(f.x|0,f.y|0,f.big?2:1,f.big?2:1);
+  }
+  if(!reduceMotion)requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
 </script>
 </body>
 </html>
