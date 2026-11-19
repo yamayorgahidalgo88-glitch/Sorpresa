@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Calendario de Adviento</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#12291c;
+  --bg2:#0b1d13;
+  --ink:#fff3d6;
+  --gold:#f2c230;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg2);overflow:hidden}
+body{
+  font-family:"Press Start 2P",monospace;color:var(--ink);
+  background:radial-gradient(ellipse at 50% 40%,var(--bg) 0%,var(--bg2) 75%);
+}
+#snow{position:fixed;inset:0;width:100%;height:100%;image-rendering:pixelated;pointer-events:none;z-index:0}
+header{
+  position:fixed;top:0;left:0;right:0;z-index:2;text-align:center;
+  padding:max(14px,env(safe-area-inset-top)) 16px 0;pointer-events:none
+}
+header h1{
+  margin:0;font-size:clamp(12px,2.6vw,22px);font-weight:400;letter-spacing:2px;line-height:1.5;
+  color:var(--ink);text-shadow:3px 3px 0 #7a1a1f
+}
+#board{position:fixed;left:0;right:0;bottom:0;z-index:1}
+.env{
+  position:absolute;padding:0;border:0;background:none;cursor:pointer;
+  transform:rotate(var(--rot));transition:transform .18s steps(3);
+  filter:drop-shadow(0 4px 0 rgba(0,0,0,.35));
+  -webkit-tap-highlight-color:transparent;outline:none
+}
+.env canvas{display:block;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges}
+.env:hover,.env:focus-visible{transform:rotate(0deg) scale(1.08);z-index:50}
+.env:focus-visible{filter:drop-shadow(0 0 0 #fff) drop-shadow(0 4px 0 rgba(0,0,0,.35))}
+.env.wiggle{animation:wig .4s steps(4)}
+@keyframes wig{
+  0%,100%{transform:rotate(var(--rot)) scale(1.08)}
+  25%{transform:rotate(calc(var(--rot) - 6deg)) scale(1.08)}
+  75%{transform:rotate(calc(var(--rot) + 6deg)) scale(1.08)}
+}
+</style>
+</head>
+<body>
+<canvas id="snow"></canvas>
+<header><h1>Calendario de Adviento</h1></header>
+<main id="board" aria-label="Calendario de adviento"></main>
+
+<script>
+/* ---------- seeded random (layout stays the same on every visit) ---------- */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const SEED=20261201;
+
+/* ---------- palette for the pixel-art seals ---------- */
+const PAL={
+  k:'#3a1d17', // outline
+  r:'#c8202a', R:'#ef5350', d:'#86121a',
+  g:'#2f8f3c', G:'#62c45a', D:'#1b5a2a',
+  y:'#f2c230', Y:'#fff08a', o:'#b9790f',
+  w:'#ffffff', b:'#cdeaff', B:'#6fb3e6', n:'#2b5f9e',
+  c:'#c8823a', C:'#e6ad62', e:'#7e4519',
+  p:'#f59ac0', P:'#d9578f',
+  s:'#c9cbd8', S:'#8d90a6',
+  m:'#7a4a25', M:'#a8693a',
+  f:'#ff9b2f'
+};
+
+/* ---------- 24 christmas seals, 13x13 each ---------- */
+const SEALS={
+bola:[
+'.....kkk.....',
+'....kyYyk....',
+'....koook....',
+'...kkkkkkk...',
+'..kRRrrrrrk..',
+'.kRwRrrrrrdk.',
+'.kRRrrrrrrdk.',
+'.kyYyyyyyyok.',
+'.krrrrrrrrdk.',
+'.krrrrrrrddk.',
+'..krrrrrddk..',
+'...kdddddk...',
+'....kkkkk....'],
+copo:[
+'......n......',
+'.n...nBn...n.',
+'..n...B...n..',
+'...B..B..B...',
+'....B.B.B....',
+'.n...BbB...n.',
+'nBBBBbwbBBBBn',
+'.n...BbB...n.',
+'....B.B.B....',
+'...B..B..B...',
+'..n...B...n..',
+'.n...nBn...n.',
+'......n......'],
+arbol:[
+'......Y......',
+'.....yYy.....',
+'......y......',
+'.....DgD.....',
+'....DgGgD....',
+'...DgrgGgD...',
+'....DgggD....',
+'...DgGgyGD...',
+'..DgggGgggD..',
+'.DgyggggGrgD.',
+'.DDDDDDDDDDD.',
+'.....kmk.....',
+'.....kmk.....'],
+jengibre:[
+'....eeeee....',
+'...eCCCCCe...',
+'...eCkCkCe...',
+'...eCCCCCe...',
+'...eCwwwCe...',
+'.eeeeCCCeeee.',
+'eCwCCCrCCCwCe',
+'.eeeCCCCCeee.',
+'....eCrCe....',
+'...eCCCCCe...',
+'..eCCCeCCCe..',
+'..eCwe.eCwe..',
+'...ee...ee...'],
+galletaEstrella:[
+'......e......',
+'.....eCe.....',
+'.....eCe.....',
+'....eCwCe....',
+'eeeeCCCCCeeee',
+'.eCCwCCCwCCe.',
+'..eCCCyCCCe..',
+'...eCCCCCe...',
+'...eCwCwCe...',
+'..eCCCeCCCe..',
+'..eCCe.eCCe..',
+'.eCe.....eCe.',
+'.ee.......ee.'],
+baston:[
+'....kkkkk....',
+'...kwrrwwk...',
+'..kwrkkkrrk..',
+'..krk...kwk..',
+'..kwk...krk..',
+'...k....kwk..',
+'........krk..',
+'........kwk..',
+'........krk..',
+'........kwk..',
+'........krk..',
+'........kwk..',
+'.........k...'],
+campana:[
+'..rr.....rr..',
+'.rRrr...rRrr.',
+'..rrrrdrrrr..',
+'....dr.rd....',
+'.....kyk.....',
+'....kyYyk....',
+'...kyYyyok...',
+'...kyYyyok...',
+'..kyYyyyyok..',
+'..kyyyyyyok..',
+'.kyyyyyyyyok.',
+'.kkkkkkkkkkk.',
+'......ko.....'],
+regalo:[
+'...yy...yy...',
+'..y..y.y..y..',
+'...yy.y.yy...',
+'.kkkkkykkkkk.',
+'.kRRRRyRRRRk.',
+'.kkkkkykkkkk.',
+'.krrrryrrrrk.',
+'.kryrryrryrk.',
+'.yyyyyyyyyyy.',
+'.krrrryrrrrk.',
+'.kryrryrryrk.',
+'.kdddrydddrk.',
+'.kkkkkkkkkkk.'],
+calcetin:[
+'...kkkkkkk...',
+'...kwwwwwk...',
+'...kwbwbwk...',
+'...kkkkkkk...',
+'....krrrk....',
+'....kRrrk....',
+'....krwrk....',
+'....krrrk....',
+'...krrwrrk...',
+'..krrrrrrrk..',
+'.krwrrrrrwk..',
+'.kwwwkkkkk...',
+'..kkk........'],
+gorro:[
+'..........kk.',
+'.........kwwk',
+'........kkwwk',
+'.......krrkk.',
+'......krRrk..',
+'.....krRrrk..',
+'....krRrrrk..',
+'...krRrrrrdk.',
+'..krRrrrrrdk.',
+'..krrrrrrrdk.',
+'.kwwwwwwwwwwk',
+'.kwbwwbwwbwwk',
+'..kkkkkkkkkk.'],
+muneco:[
+'....kkkkk....',
+'....kkkkk....',
+'...krrrrrk...',
+'....kwwwk....',
+'...kwkwkwk...',
+'...kwwfwwk...',
+'..rrrrrrrrr..',
+'..kwwrwwwwk..',
+'.kwwwwkwwwwk.',
+'.kwwwwwwwwbk.',
+'.kwwwwkwwwbk.',
+'..kwwwwwwbk..',
+'...kkkkkkk...'],
+vela:[
+'......y......',
+'.....yYy.....',
+'.....yfy.....',
+'......k......',
+'....kkkkk....',
+'....kwwrk....',
+'....kwrrk....',
+'....krrdk....',
+'....kwrrk....',
+'....krrdk....',
+'..DgkwrrkgD..',
+'.DgGgrkrkGgD.',
+'..DDDDDDDDD..'],
+acebo:[
+'.............',
+'.D.......D...',
+'.DgD...DgD...',
+'.DgGgD.DgGD..',
+'..DgGgDgGgD..',
+'..DgggDggD...',
+'...DDrrDD....',
+'....rRrrr....',
+'...rRrrRrd...',
+'...rrdrRrd...',
+'....dd.rrd...',
+'........d....',
+'.............'],
+estrella:[
+'......k......',
+'.....kyk.....',
+'.....kYk.....',
+'....kyYyk....',
+'kkkkkyYyykkkk',
+'.kyYYYyyyyok.',
+'..kyYyyyyok..',
+'...kyyyyok...',
+'...kyyoyyk...',
+'..kyyokoyyk..',
+'..kyok.koyk..',
+'.kyok...kook.',
+'.kkk.....kkk.'],
+corona:[
+'.....DDD.....',
+'...DDgGgDD...',
+'..DgGrgGgrD..',
+'.DgGg...gGgD.',
+'.Dgr.....gGD.',
+'DgG.......gD.',
+'DgG.......grD',
+'DrgG.....gGD.',
+'.DgGg...gGgD.',
+'.DgGrgr.ggD..',
+'..DDgg.r.DD..',
+'....DD.rr....',
+'.......rr....'],
+reno:[
+'.m.m.....m.m.',
+'.mmm.....mmm.',
+'..mM.....Mm..',
+'...mMMMMMm...',
+'....kMMMk....',
+'...kMMMMMk...',
+'...MkMMMkM...',
+'...MMMMMMM...',
+'....MCCCM....',
+'....CCCCC....',
+'....CCrRC....',
+'.....CrrC....',
+'......CC.....'],
+pinguino:[
+'....kkkkk....',
+'...kkkkkkk...',
+'..kkwwkwwkk..',
+'..kkwkwkwkk..',
+'..kkwwfwwkk..',
+'..rrrrrrrrr..',
+'..kkrwwwwkk..',
+'.kkkrwwwwwkk.',
+'.kk.wwwwwwkk.',
+'.k..wwwwww.k.',
+'....kwwwwk...',
+'...ff....ff..',
+'.............'],
+taza:[
+'....w..w.....',
+'.....w..w....',
+'....w..w.....',
+'.kkkkkkkkk...',
+'.kmMmmMmmk...',
+'.kwwwwwwwkkk.',
+'.kwrrwrrwk.k.',
+'.kwrrrrrwk.k.',
+'.kwwrrrwwk.k.',
+'.kwwwrwwwkkk.',
+'.kwwwwwwwk...',
+'..kkkkkkk....',
+'.kkkkkkkkkk..'],
+corazonGalleta:[
+'.............',
+'..eee...eee..',
+'.eCCCe.eCCCe.',
+'eCpppCeCpppCe',
+'eCpPppCppppCe',
+'eCpppppppppCe',
+'eCpppwpppppCe',
+'.eCpppppppCe.',
+'..eCpppppCe..',
+'...eCpppCe...',
+'....eCpCe....',
+'.....eCe.....',
+'......e......'],
+manopla:[
+'.............',
+'....kkkkk....',
+'...kRrrrrk...',
+'.kkkrrwrrk...',
+'krrkrwwwrk...',
+'krRkrrwrrk...',
+'krrrrrrrrk...',
+'.krrrrrrrk...',
+'..krrrrrrk...',
+'..kkkkkkkk...',
+'..kwwwwwwk...',
+'..kwbwbwbk...',
+'..kkkkkkkk...'],
+casita:[
+'......k......',
+'.....kwk.....',
+'....kwwwk....',
+'...kwwwwwk...',
+'..kwwwwwwwk..',
+'.kwwkkkkkwwk.',
+'..kCCCCCCCk..',
+'..kCyyCyyCk..',
+'..kCyyCyyCk..',
+'..kCCkmkCCk..',
+'..kCrkmkCrk..',
+'..kwwkmkwwk..',
+'..kkkkkkkkk..'],
+caramelo:[
+'.............',
+'.............',
+'.k.........k.',
+'.kRk.....kRk.',
+'.kRrkkkkkrRk.',
+'.krrkRwRrkrk.',
+'.kRrkwRwRkRk.',
+'.krrkRwRrkrk.',
+'.kRrkkkkkrRk.',
+'.kRk.....kRk.',
+'.k.........k.',
+'.............',
+'.............'],
+lazo:[
+'.............',
+'.kkk.....kkk.',
+'kRRrk...kRRrk',
+'kRrrrk.krrrrk',
+'kRrrrrkrrrrdk',
+'krrrrkkkrrrdk',
+'krrrrkRkrrrdk',
+'.kdddkkkdddk.',
+'..kk.krk.kk..',
+'....krrrk....',
+'...krrkrrk...',
+'..krdk.kdrk..',
+'..kk.....kk..'],
+corazon24:[
+'.D.........G.',
+'DgD.kkk.kkkGg',
+'.Dkrrrkkrrrkg',
+'.kRwRrrrrrrdk',
+'krRRrrrrrrrdk',
+'krrrrrrrrrrdk',
+'krrrrrrrrrrdk',
+'.krrrrrrrrdk.',
+'..krrrrrrdk..',
+'...krrrrdk...',
+'....krrdk....',
+'.....kdk.....',
+'......k......']
+};
+
+/* which seal goes on which day (24 = the big heart) */
+const DAY_SEAL={
+ 1:'copo',2:'bola',3:'jengibre',4:'arbol',5:'baston',6:'campana',7:'regalo',8:'galletaEstrella',
+ 9:'calcetin',10:'muneco',11:'acebo',12:'gorro',13:'vela',14:'estrella',15:'reno',16:'taza',
+ 17:'corona',18:'pinguino',19:'corazonGalleta',20:'manopla',21:'casita',22:'caramelo',23:'lazo',24:'corazon24'
+};
+
+/* ---------- pixel digits 4x6 ---------- */
+const DIG={
+'0':['.##.','#..#','#..#','#..#','#..#','.##.'],
+'1':['.#..','##..','.#..','.#..','.#..','###.'],
+'2':['.##.','#..#','...#','..#.','.#..','####'],
+'3':['###.','...#','.##.','...#','...#','###.'],
+'4':['#..#','#..#','#..#','####','...#','...#'],
+'5':['####','#...','###.','...#','...#','###.'],
+'6':['.##.','#...','###.','#..#','#..#','.##.'],
+'7':['####','...#','..#.','.#..','.#..','.#..'],
+'8':['.##.','#..#','.##.','#..#','#..#','.##.'],
+'9':['.##.','#..#','#..#','.###','...#','.##.']
+};
+
+/* ---------- envelope drawing (40x30 pixel grid) ---------- */
+const EW=40,EH=30;
+function line(px,x0,y0,x1,y1,col){
+  const dx=Math.abs(x1-x0),sx=x0<x1?1:-1,dy=-Math.abs(y1-y0),sy=y0<y1?1:-1;let err=dx+dy;
+  for(;;){px(x0,y0,col);if(x0===x1&&y0===y1)break;const e2=2*err;if(e2>=dy){err+=dy;x0+=sx}if(e2<=dx){err+=dx;y0+=sy}}
+}
+function drawEnvelope(day){
+  const cv=document.createElement('canvas');cv.width=EW;cv.height=EH;
+  const ctx=cv.getContext('2d');
+  const px=(x,y,c)=>{ctx.fillStyle=c;ctx.fillRect(x,y,1,1)};
+  const rnd=mulberry32(SEED+day*977);
+  const cx=20,cy=14;
+
+  // paper with soft pixel noise
+  const tones=['#f6e7c6','#f9eed6','#efdcb4','#f3e2bd','#fbf3e0'];
+  for(let y=1;y<EH-1;y++)for(let x=1;x<EW-1;x++){
+    // flaps: top lighter, sides a bit warmer, bottom mid
+    const topFlap=y< cy-Math.abs(x-cx)*cy/(cx-1);
+    const botFlap=y> cy+Math.abs(x-cx)*(EH-2-cy)/(cx-1);
+    let t=tones[(rnd()*tones.length)|0];
+    if(rnd()<.55) t=topFlap?'#f9edd2':botFlap?'#f4e4c0':'#efdcb3';
+    px(x,y,t);
+  }
+  // fold lines (X towards the seal) with a light highlight
+  const fold='#b8946a',hi='#fff6e2';
+  line(px,2,2,cx-1,cy-1,fold);line(px,EW-3,2,cx,cy-1,fold);
+  line(px,2,EH-3,cx-1,cy+1,fold);line(px,EW-3,EH-3,cx,cy+1,fold);
+  line(px,3,2,cx,cy-2,hi);line(px,EW-4,2,cx-1,cy-2,hi);
+
+  // border with notched corners
+  const br='#a58257',sh='#8c6b45';
+  for(let x=2;x<EW-2;x++){px(x,0,br);px(x,EH-1,sh)}
+  for(let y=2;y<EH-2;y++){px(0,y,br);px(EW-1,y,sh)}
+  px(1,1,br);px(EW-2,1,br);px(1,EH-2,sh);px(EW-2,EH-2,sh);
+  // bottom inner shadow line
+  for(let x=2;x<EW-2;x++)px(x,EH-2,'#e2cc9f');
+
+  // seal
+  const sp=SEALS[DAY_SEAL[day]];
+  const ox=cx-6,oy=cy-7;
+  sp.forEach((row,y)=>{[...row].forEach((ch,x)=>{if(ch!=='.'&&PAL[ch])px(ox+x,oy+y,PAL[ch])})});
+
+  // number (bottom flap)
+  const s=String(day),w=s.length*5-1,nx=cx-Math.floor(w/2),ny=22;
+  [...s].forEach((d,i)=>DIG[d].forEach((row,y)=>[...row].forEach((ch,x)=>{
+    if(ch==='#'){px(nx+i*5+x,ny+y+1,'#e2c79a');}
+  })));
+  [...s].forEach((d,i)=>DIG[d].forEach((row,y)=>[...row].forEach((ch,x)=>{
+    if(ch==='#')px(nx+i*5+x,ny+y,'#7a2b1a');
+  })));
+  return cv;
+}
+
+/* ---------- sizes & order (seeded) ---------- */
+const rand=mulberry32(SEED);
+const items=[];
+for(let d=1;d<=24;d++){
+  const s=d===24?2.05:0.62+rand()*0.6;          // 24 is always clearly the biggest
+  items.push({day:d,s,rot:d===24?(rand()*4-2):(rand()*12-6),jit:rand()});
+}
+// place the big one first, the rest in a shuffled order
+const order=[items[23],...items.slice(0,23)];
+for(let i=order.length-1;i>1;i--){const j=1+Math.floor(rand()*i);[order[i],order[j]]=[order[j],order[i]]}
+
+/* ---------- packing: grow a tight cluster around the centre ---------- */
+function pack(aspect){
+  const placed=[],GAP=.06,AR=EH/EW;
+  const overlaps=(a)=>placed.some(b=>a.x<b.x+b.w+GAP&&a.x+a.w+GAP>b.x&&a.y<b.y+b.h+GAP&&a.y+a.h+GAP>b.y);
+  for(const it of order){
+    const w=it.s,h=it.s*AR;
+    if(!placed.length){placed.push({it,x:-w/2,y:-h/2,w,h});continue}
+    let best=null,bestScore=1e9;
+    for(const b of placed){
+      const fr=[0,.2,.4,.5,.6,.8,1];
+      const cands=[];
+      for(const f of fr){
+        cands.push([b.x+b.w+GAP, b.y+f*(b.h)-f*h]);    // right
+        cands.push([b.x-w-GAP,   b.y+f*(b.h)-f*h]);    // left
+        cands.push([b.x+f*(b.w)-f*w, b.y+b.h+GAP]);    // below
+        cands.push([b.x+f*(b.w)-f*w, b.y-h-GAP]);      // above
+      }
+      for(const [x,y] of cands){
+        const r={x,y,w,h};
+        if(overlaps(r))continue;
+        const mx=x+w/2,my=y+h/2;
+        // ellipse matching the screen shape keeps the bundle compact
+        const score=(mx*mx)/(aspect)+(my*my)*aspect + it.jit*.08;
+        if(score<bestScore){bestScore=score;best=r}
+      }
+    }
+    best.it=it;placed.push(best);
+  }
+  return placed;
+}
+
+/* ---------- build DOM ---------- */
+const board=document.getElementById('board');
+const els={};
+for(const it of items){
+  const b=document.createElement('button');
+  b.className='env';b.style.setProperty('--rot',it.rot.toFixed(2)+'deg');
+  b.setAttribute('aria-label','Sobre '+it.day);
+  b.appendChild(drawEnvelope(it.day));
+  b.addEventListener('click',()=>{b.classList.remove('wiggle');void b.offsetWidth;b.classList.add('wiggle')});
+  board.appendChild(b);els[it.day]=b;
+}
+
+function layout(){
+  const head=document.querySelector('header').getBoundingClientRect().bottom+8;
+  board.style.top=head+'px';
+  const W=board.clientWidth,H=board.clientHeight;
+  const placed=pack(W/H);
+  let minX=1e9,minY=1e9,maxX=-1e9,maxY=-1e9;
+  for(const p of placed){minX=Math.min(minX,p.x);minY=Math.min(minY,p.y);maxX=Math.max(maxX,p.x+p.w);maxY=Math.max(maxY,p.y+p.h)}
+  const pad=Math.max(16,Math.min(W,H)*.04);
+  const k=Math.min((W-pad*2)/(maxX-minX),(H-pad*2)/(maxY-minY));
+  const offX=(W-(maxX-minX)*k)/2,offY=(H-(maxY-minY)*k)/2;
+  for(const p of placed){
+    const el=els[p.it.day];
+    el.style.left=(offX+(p.x-minX)*k)+'px';
+    el.style.top=(offY+(p.y-minY)*k)+'px';
+    el.style.width=(p.w*k)+'px';
+    el.style.height=(p.h*k)+'px';
+    el.style.zIndex=p.it.day===24?2:1;
+  }
+}
+layout();
+addEventListener('resize',layout);
+if(document.fonts)document.fonts.ready.then(layout);
+
+/* ---------- pixel snow ---------- */
+(function(){
+  const c=document.getElementById('snow'),g=c.getContext('2d');
+  const S=4;let W,H,flakes=[];
+  function size(){W=Math.ceil(innerWidth/S);H=Math.ceil(innerHeight/S);c.width=W;c.height=H;
+    flakes=Array.from({length:Math.round(W*H/260)},()=>({x:Math.random()*W,y:Math.random()*H,v:.08+Math.random()*.22,p:Math.random()*6}))}
+  size();addEventListener('resize',size);
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function tick(t){
+    g.clearRect(0,0,W,H);
+    for(const f of flakes){
+      if(!reduce){f.y+=f.v;f.x+=Math.sin(t/1400+f.p)*.08;if(f.y>H){f.y=-1;f.x=Math.random()*W}}
+      g.fillStyle=f.v>.22?'rgba(255,255,255,.75)':'rgba(255,255,255,.35)';
+      g.fillRect(f.x|0,f.y|0,1,1);
+    }
+    if(!reduce)requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
