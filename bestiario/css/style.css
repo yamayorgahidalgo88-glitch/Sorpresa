@@ -9,16 +9,17 @@ img{-webkit-user-drag:none}
 #gl,#fx{pointer-events:none}
 #labels{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:2}
 .lbl{position:absolute;left:0;top:0;display:flex;flex-direction:column;align-items:center;gap:1px;will-change:transform}
-.lbl .st{font-size:11px;line-height:11px;color:var(--gold);-webkit-text-stroke:3px var(--ink);paint-order:stroke fill;letter-spacing:-1px;height:11px}
-.lbl .hp{position:relative;width:42px;height:7px;background:#3a2330;border:2px solid var(--ink);border-radius:5px;overflow:hidden}
-.lbl .hp i{position:absolute;left:0;top:0;bottom:0;background:#5be06a;transition:width .12s}
-.lbl.e .hp i{background:#ff5470}
+.lbl .row{display:flex;align-items:center;gap:1px}
+.lbl .st{font-size:8px;line-height:8px;color:#ffd84a;-webkit-text-stroke:2px #1d1530;paint-order:stroke fill;letter-spacing:-1.5px;margin-right:1px}
+.lbl .hp{position:relative;width:32px;height:5px;background:rgba(20,16,40,.75);border:1.5px solid #1d1530;border-radius:3px;overflow:hidden}
+.lbl .hp i{position:absolute;left:0;top:0;bottom:0;background:#3fa2ff;transition:width .12s}
+.lbl.e .hp i{background:#ff4d5e}
 .lbl .hp b{position:absolute;left:0;top:0;bottom:0;background:#ffcf8a;z-index:1;opacity:.95}
-.lbl .en{width:32px;height:4px;background:rgba(22,20,46,.6);border-radius:3px;overflow:hidden;border:1px solid var(--ink)}
+.lbl .en{width:26px;height:3px;background:rgba(22,20,46,.6);border-radius:2px;overflow:hidden;margin-left:9px}
 .lbl .en i{display:block;height:100%;background:var(--gold);width:0}
 .lbl.full .en i{background:#fff;box-shadow:0 0 6px #fff}
-.ft{position:absolute;transform:translate(-50%,-50%);font-size:16px;color:#fff;-webkit-text-stroke:4px var(--ink);paint-order:stroke fill;animation:ft .8s ease-out forwards;pointer-events:none}
-.ft.e{color:#ffe1e1}.ft.big{font-size:22px;color:var(--gold)}.ft.sup{font-size:18px;color:#fff3a0}
+.ft{position:absolute;transform:translate(-50%,-50%);font-size:13px;color:#fff;-webkit-text-stroke:4px var(--ink);paint-order:stroke fill;animation:ft .8s ease-out forwards;pointer-events:none}
+.ft.e{color:#ffe1e1}.ft.big{font-size:17px;color:var(--gold)}.ft.sup{font-size:14px;color:#fff3a0}
 @keyframes ft{0%{opacity:0;margin-top:6px;scale:.6}15%{opacity:1;scale:1.15}100%{opacity:0;margin-top:-38px;scale:1}}
 
 /* ---------- HUD batalla ---------- */
@@ -247,3 +248,11 @@ img{-webkit-user-drag:none}
 .pbtns{display:flex;gap:12px;margin-top:6px}
 .pbtns .btn{flex:1;font-size:24px;padding:14px 6px}
 .dkfoot .btn.gold:disabled{filter:none}
+
+/* vender arrastrando una criatura a la tienda */
+#panel{position:relative}
+#sellDrop{position:absolute;inset:-3px;z-index:3;border-radius:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:rgba(70,20,110,.86);border:3px dashed #e8a8ff;opacity:0;transform:scale(.97);transition:opacity .12s,transform .12s;pointer-events:none}
+#sellDrop.on{opacity:1;transform:scale(1)}
+#sellDrop .drop{background:radial-gradient(circle at 35% 30%,#f6b8ff,#c04dff 55%,#7a1fb0);border:3px solid #1d1530;border-radius:50% 50% 50% 50% / 60% 60% 40% 40%;display:grid;place-items:center;color:#fff;box-shadow:0 0 22px #e08aff;width:66px;height:72px;font-size:26px;animation:sellPulse .7s ease-in-out infinite alternate}
+#sellDrop span{color:#fff;font-size:15px}
+@keyframes sellPulse{to{transform:scale(1.12) rotate(-6deg)}}

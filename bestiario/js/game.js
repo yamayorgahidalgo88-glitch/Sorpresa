@@ -78,7 +78,7 @@ const TYPES = Object.keys(CHARS);
 const COLS = 5, ROWS = 8, MAX_UNITS = 7, WIN_ROUNDS = 3, ROUND_CAP = 60, ELIXIR_CAP = 20;
 // ritmo de combate: todas las recargas x1,5 y los pasos x1,35 (mismas proporciones entre personajes)
 const PACE = 1.5, MOVE_PACE = 1.35;
-const LVL_MULT = [0, 1, 1.3, 1.6], LVL_SCALE = [0, 0.84, 0.95, 1.07];
+const LVL_MULT = [0, 1, 1.3, 1.6], LVL_SCALE = [0, 0.66, 0.71, 0.77];
 const FRONT_ROLES = ['Tanque', 'Luchador', 'Defensor', 'Asesino', 'Pistolera'];
 const rangeOf = (type, L) => { const d = CHARS[type] || SUMMONS[type]; return d.range + (L >= 2 && (type === 'bolab' || type === 'jess') ? 1 : 0) + (L >= 2 && type === 'sevora' ? 2 : 0); };
 const rangeTxt = (d, r) => d.cone ? `3×${r}` : r === 1 ? 'Melé' : r;
@@ -233,7 +233,7 @@ const isZone = (tm, r) => tm === 'p' ? r <= 3 : r >= 4;
 
 function makeLabel(u) {
   const d = document.createElement('div'); d.className = 'lbl ' + u.team;
-  d.innerHTML = '<div class="st"></div><div class="hp"><b></b><i></i></div><div class="en"><i></i></div>';
+  d.innerHTML = '<div class="row"><div class="st"></div><div class="hp"><b></b><i></i></div></div><div class="en"><i></i></div>';
   labelsEl.appendChild(d);
   const en = d.querySelector('.en'); if (u.def.abil !== 'super') en.style.visibility = 'hidden';
   return { el: d, st: d.querySelector('.st'), hp: d.querySelector('.hp i'), sh: d.querySelector('.hp b'), en: en.firstChild };
@@ -630,8 +630,16 @@ function reroll() {
   if (!G.freeRoll) { if (G.elixir.p < 1) return; G.elixir.p -= 1; } else G.freeRoll = 0;
   G.shop = drawShop(); sfx.click(); renderHud(); renderShop(true);
 }
+const sellValue = u => Math.max(1, u.def.cost * u.level - 1);
+// zona de venta: la tienda de abajo
+const overShop = y => { const r = $('#panel').getBoundingClientRect(); return y > r.top - 6; };
+function showSell(u) {
+  const el = $('#sellDrop');
+  if (!u) { el.classList.remove('on'); return; }
+  el.querySelector('b').textContent = '+' + sellValue(u); el.classList.add('on');
+}
 function sell(u) {
-  G.elixir.p = Math.min(ELIXIR_CAP, G.elixir.p + Math.max(1, u.def.cost * u.level - 1));
+  G.elixir.p = Math.min(ELIXIR_CAP, G.elixir.p + sellValue(u));
   burstAt(u.gx, u.gy, .3, '#c04dff', 14, { spd: 1.5, up: 2, glow: true });
   removeUnit(u); sfx.click(); bumpElixir(); closeInfo(); renderHud();
 }
@@ -643,7 +651,7 @@ function openInfo(type, u = null) {
     <div class="istars">${'★'.repeat(lvl)}${'☆'.repeat(3 - lvl)}</div></div></div>
     <div class="istats"><div>Vida<b>${u ? u.maxHp : Math.round(d.hp * m)}</b></div><div>Ataque<b>${u ? u.atk : Math.round(d.atk * m)}</b></div><div>Alcance<b>${rangeTxt(d, rangeOf(type, lvl))}</b></div><div>Ritmo<b>${paceTxt(d)}</b></div></div>
     <p class="idesc"><b>${d.abilName}</b> · ${d.desc}</p>${d.lv ? `<div class="ilv">${d.lv.map((x, i) => `<p class="${i < lvl ? 'on' : ''}"><b>${'★'.repeat(i + 1)}</b>${x}</p>`).join('')}</div>` : ''}<div class="ibtns">`;
-  if (u && u.team === 'p' && G.state === 'plan') html += `<button class="btn red" id="iSell">Vender +${Math.max(1, d.cost * u.level - 1)}</button>`;
+  if (u && u.team === 'p' && G.state === 'plan') html += `<button class="btn red" id="iSell">Vender +${sellValue(u)}</button>`;
   html += '<button class="btn gray" id="iClose">Cerrar</button></div>';
   $('#sheet').innerHTML = html; $('#info').classList.remove('hide');
   $('#iClose').onclick = closeInfo; if ($('#iSell')) $('#iSell').onclick = () => sell(u);
@@ -686,6 +694,8 @@ addEventListener('pointermove', e => {
     $('#ghost').style.transform = `translate(${e.clientX - 45}px,${e.clientY - 80}px)`;
     hl = { fn: cardValid(G.shop[drag.i]), t: tileAt(e.clientX, e.clientY + 10) };
   } else {
+    const sel = overShop(e.clientY); showSell(sel ? drag.u : null);
+    if (sel) { hl = null; return; }
     drag.u.dragG = screenToGrid(e.clientX, e.clientY + 26);
     hl = { fn: (c, r) => isZone('p', r), t: tileAt(e.clientX, e.clientY + 26) };
   }
@@ -694,15 +704,16 @@ addEventListener('pointerup', e => {
   if (!drag) return;
   const d = drag; drag = null; hl = null; $('#ghost').style.display = 'none';
   if (d.kind === 'card') { if (!d.moved) buy(d.i); else { const t = tileAt(e.clientX, e.clientY + 10); if (t) buy(d.i, t); } return; }
-  d.u.dragging = false;
+  d.u.dragging = false; showSell(null);
   if (!d.moved) { openInfo(d.u.type, d.u); return; }
+  if (overShop(e.clientY) && G.state === 'plan') { sell(d.u); return; }
   const t = tileAt(e.clientX, e.clientY + 26);
   if (!t || !isZone('p', t.r)) return;
   const o = unitAtHome(t.c, t.r); if (o === d.u) return;
   if (o) { o.hc = d.u.hc; o.hr = d.u.hr; o.c = o.hc; o.r = o.hr; }
   d.u.hc = d.u.c = t.c; d.u.hr = d.u.r = t.r; sfx.place();
 });
-addEventListener('pointercancel', () => { if (drag && drag.u) drag.u.dragging = false; drag = null; hl = null; $('#ghost').style.display = 'none'; });
+addEventListener('pointercancel', () => { showSell(null); if (drag && drag.u) drag.u.dragging = false; drag = null; hl = null; $('#ghost').style.display = 'none'; });
 $('#reroll').onclick = reroll;
 $('#ready').onclick = () => {
   if (G.state === 'plan') startFight();
@@ -1370,14 +1381,12 @@ function drawBoard() {
     ctx.fillStyle = hv ? (ok ? 'rgba(255,255,180,.5)' : 'rgba(255,60,60,.45)') : 'rgba(255,255,255,.14)';
     quad(c + .04, r + .04, c + .96, r + .96); ctx.fill();
   }
-  // aros de equipo bajo cada criatura
+  // marca de equipo en el suelo, discreta (el color fuerte va en la barra de vida)
   for (const u of units) {
-    if (u.dying > 0) continue;
+    if (u.dying > 0 || u.summon) continue;
     const [x, y] = gridToScreen(u.gx, u.gy), tw = tileW(u.gy);
-    ctx.save(); ctx.strokeStyle = u.team === 'p' ? '#4aa0ff' : '#ff4d5e'; ctx.lineWidth = Math.max(2, tw * .06);
-    ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 10; ctx.globalAlpha = .95;
-    ctx.beginPath(); ctx.ellipse(x, y, tw * .42, tw * .29, 0, 0, Math.PI * 2); ctx.stroke();
-    ctx.globalAlpha = .18; ctx.fillStyle = ctx.strokeStyle; ctx.fill(); ctx.restore();
+    ctx.save(); ctx.fillStyle = u.team === 'p' ? 'rgba(74,160,255,.22)' : 'rgba(255,77,94,.22)';
+    ctx.beginPath(); ctx.ellipse(x, y, tw * .3, tw * .2, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
   }
 }
 function updateUnitVisual(u, dt) {
