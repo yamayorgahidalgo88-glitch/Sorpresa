@@ -1120,7 +1120,8 @@ function createSkinned(type) {
   }
   function updatePlant(dt) {
     const P = plant; if (!P.bone) return;
-    P.bone.getWorldPosition(_h); all.worldToLocal(_h); _h.y += .02; _h.z += .07;
+    P.bone.getWorldPosition(_h); all.worldToLocal(_h); _h.z += .05;
+    const fist = _h.clone(); _h.y += .15;   // la cabeza descansa encima del puño
     let ext = 0;
     if (P.t >= 0) {
       P.t += dt / P.dur; const k = Math.min(1, P.t);
@@ -1138,6 +1139,7 @@ function createSkinned(type) {
     P.head.scale.set(1 + bite * .15, 1 - bite * .3, 1);
     if (reach > .03) {
       const side = new THREE.Vector3(-_d.z, 0, _d.x).normalize(), pts = [];
+      pts.push(fist.clone());
       for (let i = 0; i <= 6; i++) { const q = i / 6, w = Math.sin(q * Math.PI) * Math.sin(q * 9 + P.t * 30) * .07 * Math.min(1, reach * 2); pts.push(new THREE.Vector3().copy(_h).addScaledVector(_d, reach * q).addScaledVector(side, w).add(new THREE.Vector3(0, Math.sin(q * Math.PI) * .06, 0))); }
       P.stem.geometry.dispose(); P.stem.geometry = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 18, .035, 6, false); P.stem.visible = true;
     } else P.stem.visible = false;
