@@ -270,7 +270,6 @@ function initStage() {
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(10, 10), new THREE.ShadowMaterial({ opacity: 0.32 }));
   floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
   const camera = new THREE.PerspectiveCamera(26, 1, 0.1, 50), rigs = {};
-  for (const t of TYPES) { const pv = new THREE.Group(), rig = createCharacter(t); pv.add(rig.root); scene.add(pv); rigs[t] = { rig, pv, next: rand(1.5, 4) }; }
   Object.assign(ST, { renderer, scene, camera, rigs, w: 0, h: 0, mode: null });
 }
 const HOME_POS = { tanko: [-2.0, -1.2, 0.35], ogul: [-1.2, -1.2, 0.2], jess: [-0.4, -1.2, 0.07], denton: [0.4, -1.2, -0.07], sevora: [1.2, -1.2, -0.2], osko: [2.0, -1.2, -0.35], bolab: [-1.75, 0.35, 0.35], bushi: [-0.95, 0.5, 0.15], pomona: [0, 0.75, 0], rogue: [0.95, 0.5, -0.15], gloop: [1.75, 0.35, -0.35] };
@@ -278,11 +277,10 @@ function stageMount(mode) {
   const box = mode === 'home' ? $('#homeStage') : $('#viewer');
   if (ST.renderer.domElement.parentNode !== box) box.insertBefore(ST.renderer.domElement, box.querySelector('.tip'));
   ST.mode = mode; ST.w = 0;
-  for (const t of TYPES) {
-    const { pv, rig } = ST.rigs[t]; rig.atkT = rig.supT = -1;
-    if (mode === 'home') { pv.visible = true; pv.position.set(HOME_POS[t][0], 0, HOME_POS[t][1]); pv.rotation.set(0, HOME_POS[t][2], 0); }
-    else { pv.visible = !!VW && VW.t === t; pv.position.set(0, 0, 0); }
-  }
+  // solo se carga el modelo de la criatura que se está viendo (ahorra memoria en el móvil)
+  for (const t of Object.keys(ST.rigs)) if (!VW || t !== VW.t) { ST.scene.remove(ST.rigs[t].pv); for (const m of Object.values(ST.rigs[t].rig.mats)) m.dispose && m.dispose(); delete ST.rigs[t]; }
+  if (VW && !ST.rigs[VW.t]) { const pv = new THREE.Group(), rig = createCharacter(VW.t); pv.add(rig.root); ST.scene.add(pv); ST.rigs[VW.t] = { rig, pv, next: 2 }; }
+  if (VW) { const { pv, rig } = ST.rigs[VW.t]; rig.atkT = rig.supT = -1; pv.visible = true; pv.position.set(0, 0, 0); }
 }
 function stageRender(dt) {
   const { renderer, scene, camera, rigs } = ST, box = renderer.domElement.parentNode; if (!box) return;
@@ -291,13 +289,13 @@ function stageRender(dt) {
   if (ST.mode === 'home') {
     const d = Math.max(5.6, 4.9 / (0.4618 * camera.aspect));
     camera.position.set(0, 3.9, d * 0.92); camera.lookAt(0, 0.55, -0.35);
-    for (const t of TYPES) {
+    for (const t of Object.keys(rigs)) {
       const r = rigs[t]; r.next -= dt;
       if (r.next <= 0) { r.rig.play(t === 'ogul' && Math.random() < .4 ? 'super' : 'attack'); r.next = rand(2.5, 5.5); }
       r.rig.update(dt);
     }
   } else if (VW) {
-    const r = rigs[VW.t], p = VW.pitch * Math.PI / 180, dist = 4.7;
+    const r = rigs[VW.t]; if (!r) return; const p = VW.pitch * Math.PI / 180, dist = 4.7;
     camera.position.set(0, 0.68 + Math.sin(p) * dist, Math.cos(p) * dist); camera.lookAt(0, 0.68, 0);
     r.pv.rotation.set(0, VW.yaw * Math.PI / 180, 0);
     if (VW.anim === 'attack' || VW.anim === 'super') { VW.loop -= dt; if (VW.loop <= 0) { r.rig.play(VW.anim); VW.loop = 1.35; } }
