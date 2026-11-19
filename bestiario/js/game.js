@@ -28,7 +28,7 @@ const CHARS = {
     all: ['pose', 'front', 'side', 'bq', 'back', 'top', 'bottom'] },
   osko: { name: 'Wyrex', cost: 3, role: 'Invocador', color: '#2fc592', hp: 480, atk: 30, range: 2, ortho: true, as: 0.9, ms: 0.7, abil: 'super', charge: 4, charge2: 3, sheet: true,
     atkName: 'Bumerán óseo', atkDesc: 'lanza un hueso en línea recta (nunca en diagonal) que atraviesa a los rivales, llega a 2 casillas y vuelve. Daño bajo. No vuelve a lanzar hasta que el hueso regresa.',
-    abilName: 'Reno fantasma', desc: 'Súper (se carga con 4 impactos del hueso): invoca un reno fantasma que pelea a cabezazos. El reno tiene muy poca vida, pero golpea cada 0,4 segundos.',
+    abilName: 'Reno fantasma', desc: 'Súper (se carga con 4 impactos del hueso): invoca un reno fantasma que pelea a cabezazos. El reno cae de un solo golpe, pero golpea cada 0,4 segundos.',
     lv: ['Desbloquea el súper: invoca un reno fantasma. Se carga con 4 impactos.', 'El súper se carga con 3 impactos.', 'El súper invoca 2 renos.'],
     all: ['pose', 'front', 'back', 'left', 'right', 'iso', 'top', 'bottom'] },
   gloop: { name: 'Aly', cost: 4, role: 'Asesino', color: '#7fbf1f', hp: 650, atk: 55, range: 1, as: 1.0, ms: 0.65, abil: 'super', charge: 5, sheet: true,
@@ -68,7 +68,7 @@ const CHARS = {
     all: ['pose', 'front', 'back', 'left', 'right', 'iso', 'top', 'bottom'] },
 };
 const SUMMONS = {
-  reno: { name: 'Reno fantasma', cost: 0, role: 'Invocación', color: '#5dffb8', hp: 120, atk: 45, range: 1, as: 0.4, ms: 0.42, abil: 'none' },
+  reno: { name: 'Reno fantasma', cost: 0, role: 'Invocación', color: '#5dffb8', hp: 1, fixedHp: true, atk: 45, range: 1, as: 0.4, ms: 0.42, abil: 'none' },
 };
 const PROJ = {
   osko: { kind: 'bone', color: '#5dffb8', size: .1, arc: .25, speed: 6, back: true },
@@ -258,7 +258,7 @@ function removeUnit(u) {
 }
 function stats(u) {
   const m = LVL_MULT[u.level];
-  u.maxHp = Math.round(u.def.hp * m); u.atk = Math.round(u.def.atk * m);
+  u.maxHp = u.def.fixedHp ? u.def.hp : Math.round(u.def.hp * m); u.atk = Math.round(u.def.atk * m);   // los ciervos de Wyrex caen de un golpe
   u.range = rangeOf(u.type, u.level); u.as = (u.type === 'peipo' && u.level >= 2 ? .4 : u.def.as) * PACE; u.ms = u.def.ms * MOVE_PACE;
   if (G.state !== 'fight') u.hp = u.maxHp;
 }

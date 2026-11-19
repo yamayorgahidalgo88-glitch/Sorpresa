@@ -3,7 +3,7 @@
    ---------------------------------------------------------
    Uso:
      import { abrirSobre, cerrarSobre } from './sobre.js';
-     await abrirSobre();      // muestra el sobre; el jugador toca; zarpazos;
+     await abrirSobre();      // muestra el sobre; el jugador lo araña 3 veces (en cualquier dirección);
                               // se resuelve cuando la luz blanca cubre la pantalla
      // ...aquí mostrar las recompensas...
      cerrarSobre();           // quita la pantalla blanca con un fundido
@@ -19,15 +19,12 @@ export const SOBRE_CONFIG = {
   slashDuration: 140,        // ms que tarda en dibujarse cada zarpazo
   splitDuration: 650,        // ms que tardan las mitades en separarse
   flashDuration: 550,        // ms que tarda la luz en cubrir la pantalla
-  textoToca: 'TOCA PARA ABRIR',
+  textoToca: '¡ARAÑA EL SOBRE!',
+  minLen: 230, maxLen: 520,  // largo del zarpazo (en píxeles de la imagen 556x640)
 };
 
-/* Zarpazos en coordenadas de la imagen (556x640). reverse = se dibuja del final al principio */
-const SCRATCHES = [
-  { cx: 300, cy: 300, angle: -58, len: 360, curve: 26,  reverse: true },  // 1º diagonal
-  { cx: 265, cy: 430, angle:  52, len: 330, curve: -26, reverse: false }, // 2º diagonal contraria
-  { cx: 278, cy: 330, angle: -12, len: 470, curve: 22,  reverse: false }, // 3º cruza todo → rompe
-];
+/* Los zarpazos los hace el jugador deslizando el dedo: cada uno se crea con la dirección y el largo de su gesto
+   (coordenadas de la imagen 556x640). Al tercero el sobre se rompe a lo largo de ese zarpazo. */
 const CLAW_SPACING = 36;
 /* 4 marcas: [desplazamiento lateral, longitud relativa, desfase a lo largo, grosor] */
 const CLAWS = [
@@ -175,7 +172,8 @@ export async function abrirSobre(opts = {}) {
   const pw = Math.round(stage.offsetWidth * DPR), ph = Math.round(stage.offsetHeight * DPR);
   const k = pw / W;
   root.querySelectorAll('.sb-cuts').forEach(c => { c.width = pw; c.height = ph; });
-  const cache = SCRATCHES.map(s => {
+  const scratches = [], cache = [], clipShapes = [];
+  const prepare = s => {
     const c = makeCanvas(pw, ph), x = c.getContext('2d');
     x.scale(k, k);
     const leak = clawShapes(s, 1.3, true), dark = clawShapes(s, 1, false), inner = clawShapes(s, 0.16, true);
@@ -184,9 +182,8 @@ export async function abrirSobre(opts = {}) {
     x.strokeStyle = 'rgba(243,217,192,.8)'; x.lineWidth = 1.6; x.lineJoin = 'bevel'; x.stroke();
     glowFill(x, inner, '#fff', 5, k);
     x.fillStyle = '#fff'; x.beginPath(); inner.forEach(c => polyPath(x, c)); x.fill();
-    return c;
-  });
-  const clipShapes = SCRATCHES.map(s => clawShapes(s, 2.2, true));
+    scratches.push(s); cache.push(c); clipShapes.push(clawShapes(s, 2.2, true));
+  };
 
   glow.width = Math.round(pw * 1.4); glow.height = Math.round(ph * 1.4);
   const gx = glow.getContext('2d');
@@ -234,7 +231,7 @@ export async function abrirSobre(opts = {}) {
   /* ---------- Partículas ---------- */
   const cvs = q('.sb-fx'), ctx = cvs.getContext('2d');
   cvs.width = innerWidth * DPR; cvs.height = innerHeight * DPR;
-  let parts = [], looping = false;
+  let parts = [], looping = false, trail = [], drag = null;
   const spark = makeCanvas(32, 32);
   { const x = spark.getContext('2d'), g = x.createRadialGradient(16, 16, 0, 16, 16, 16);
     g.addColorStop(0, '#fff'); g.addColorStop(.35, 'rgba(255,255,255,.9)'); g.addColorStop(1, 'rgba(255,255,255,0)');
@@ -269,7 +266,10 @@ export async function abrirSobre(opts = {}) {
       }
     }
     ctx.globalAlpha = 1;
-    if (parts.length && root.isConnected) requestAnimationFrame(loop);
+    const now = performance.now(); while (trail.length && now - trail[0].t > 160) trail.shift();
+    if (trail.length > 1) { ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      for (const [w, col] of [[14, 'rgba(200,255,46,.25)'], [5, 'rgba(255,255,255,.85)']]) { ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath(); trail.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)); ctx.stroke(); } }
+    if ((parts.length || trail.length || drag) && root.isConnected) requestAnimationFrame(loop);
     else { looping = false; ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cvs.width, cvs.height); }
   }
 
@@ -282,51 +282,71 @@ export async function abrirSobre(opts = {}) {
       { transform: 'translate(0,0) rotate(0) scale(1)' },
     ], { duration: 280, easing: 'ease-out' });
   }
-  function splitClips() {
-    const s = SCRATCHES[2], slope = Math.tan(s.angle * Math.PI / 180), pts = [];
-    for (let i = 0; i <= 14; i++) {
-      const x = i / 14 * W, y = s.cy + (x - s.cx) * slope + (i % 2 ? 1 : -1) * 14;
-      pts.push(`${(x / W * 100).toFixed(2)}% ${(y / H * 100).toFixed(2)}%`);
-    }
-    topHalf.style.clipPath = `polygon(0% -10%, 100% -10%, ${[...pts].reverse().join(',')})`;
-    botHalf.style.clipPath = `polygon(${pts.join(',')}, 100% 110%, 0% 110%)`;
+  function splitClips(s) {
+    const a = s.angle * Math.PI / 180, dx = Math.cos(a), dy = Math.sin(a), nx = -dy, ny = dx, pts = [], R = 900;
+    for (let i = 0; i <= 14; i++) { const t = (i / 14 - .5) * 2 * R, j = (i % 2 ? 1 : -1) * 14; pts.push([s.cx + dx * t + nx * j, s.cy + dy * t + ny * j]); }
+    const P = p => `${(p[0] / W * 100).toFixed(2)}% ${(p[1] / H * 100).toFixed(2)}%`;
+    const far = (p, k) => [p[0] + nx * R * k, p[1] + ny * R * k];
+    const sideA = [...pts, far(pts[14], -1), far(pts[0], -1)], sideB = [...pts, far(pts[14], 1), far(pts[0], 1)];
+    topHalf.style.clipPath = `polygon(${sideA.map(P).join(',')})`;
+    botHalf.style.clipPath = `polygon(${sideB.map(P).join(',')})`;
+    return { nx, ny };
   }
 
   current = { root };
 
-  /* ---------- Esperar el toque ---------- */
-  await new Promise(res => root.addEventListener('pointerdown', res, { once: true }));
-  if (!root.isConnected) return;
-
-  stage.classList.add('sb-opening');
-  hint.style.visibility = 'hidden';
-  stage.animate([{ transform: 'scale(1)' }, { transform: 'scale(.92,1.06)' }, { transform: 'scale(1)' }], { duration: 220, easing: 'ease-out' });
-  await wait(C.firstScratchDelay);
-
-  for (let i = 0; i < 3; i++) {
-    const s = SCRATCHES[i], drawing = slash(i);
-    setTimeout(() => {
-      shake(8 + i * 5); vibrate(30 + i * 25); burst(s, 22 + i * 14);
-      rays.style.opacity = [0.35, 0.65, 1][i];
-      halo.style.opacity = [0.25, 0.5, 0.9][i];
-    }, C.slashDuration * .6);
-    await drawing;
-    if (i < 2) await wait(C.timeBetweenScratches - C.slashDuration);
+  /* ---------- El jugador araña 3 veces ---------- */
+  const toImg = (x, y) => { const r = stage.getBoundingClientRect(); return [(x - r.left) / r.width * W, (y - r.top) / r.height * H]; };
+  let first = true, busy = Promise.resolve();   // drag y trail: estela del dedo mientras arrastra
+  function scratchFrom(a, b) {
+    let [x0, y0] = toImg(a.x, a.y), [x1, y1] = toImg(b.x, b.y);
+    let L = Math.hypot(x1 - x0, y1 - y0), ang;
+    if (L < 40) { ang = (Math.random() * 2 - 1) * 80; } else ang = Math.atan2(y1 - y0, x1 - x0) * 180 / Math.PI;   // un toque: zarpazo en dirección al azar
+    L = Math.min(C.maxLen, Math.max(C.minLen, L * 1.15));
+    const cx = Math.min(W - 90, Math.max(90, (x0 + x1) / 2)), cy = Math.min(H - 90, Math.max(90, (y0 + y1) / 2));
+    return { cx, cy, angle: ang, len: L, curve: (Math.random() < .5 ? -1 : 1) * (18 + Math.random() * 10), reverse: false };
   }
+  const opened = new Promise(resolveOpen => {
+    const down = e => { if (!root.isConnected || scratches.length >= 3) return; drag = { x: e.clientX, y: e.clientY, id: e.pointerId }; trail.length = 0; trail.push({ x: e.clientX, y: e.clientY, t: performance.now() }); };
+    const move = e => { if (drag && e.pointerId === drag.id) { trail.push({ x: e.clientX, y: e.clientY, t: performance.now() }); if (!looping) { looping = true; requestAnimationFrame(loop); } } };
+    const up = e => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const a = drag, b = { x: e.clientX, y: e.clientY }; drag = null;
+      if (scratches.length >= 3) return;
+      const s = scratchFrom(a, b); prepare(s); const i = scratches.length - 1;
+      busy = busy.then(async () => {
+        if (first) { first = false; stage.classList.add('sb-opening'); hint.style.visibility = 'hidden'; }
+        const drawing = slash(i);
+        setTimeout(() => {
+          shake(8 + i * 5); vibrate(30 + i * 25); burst(s, 22 + i * 14);
+          rays.style.opacity = [0.35, 0.65, 1][i];
+          halo.style.opacity = [0.25, 0.5, 0.9][i];
+        }, C.slashDuration * .6);
+        await drawing;
+        if (i === 2) { root.removeEventListener('pointerdown', down); removeEventListener('pointermove', move); removeEventListener('pointerup', up); resolveOpen(); }
+      });
+    };
+    root.addEventListener('pointerdown', down); addEventListener('pointermove', move); addEventListener('pointerup', up);
+  });
+  current = { root };
+  await opened;
+  if (!root.isConnected) return;
+  const last = scratches[2];
 
   /* ---------- Rotura ---------- */
   await wait(120);
   [topHalf, botHalf].forEach(h => { h.querySelector('.sb-cuts').getContext('2d').drawImage(cuts, 0, 0); h.style.display = 'block'; });
-  splitClips();
+  const { nx, ny } = splitClips(last);
   pack.style.display = 'none'; glow.style.opacity = 0;
-  burst(SCRATCHES[2], 70);
+  burst(last, 70);
   vibrate([60, 30, 120]);
   const o = { duration: C.splitDuration, easing: 'cubic-bezier(.15,.7,.3,1)', fill: 'forwards' };
-  topHalf.animate([{ transform: 'translate(0,0) rotate(0)', opacity: 1 }, { transform: 'translate(-18%,-55%) rotate(-24deg)', opacity: .2 }], o);
-  botHalf.animate([{ transform: 'translate(0,0) rotate(0)', opacity: 1 }, { transform: 'translate(16%,45%) rotate(18deg)', opacity: .2 }], o);
+  // cada mitad sale despedida hacia su lado del corte
+  topHalf.animate([{ transform: 'translate(0,0) rotate(0)', opacity: 1 }, { transform: `translate(${-nx * 50}%,${-ny * 55}%) rotate(${-22 * Math.sign(nx || 1)}deg)`, opacity: .2 }], o);
+  botHalf.animate([{ transform: 'translate(0,0) rotate(0)', opacity: 1 }, { transform: `translate(${nx * 45}%,${ny * 50}%) rotate(${18 * Math.sign(nx || 1)}deg)`, opacity: .2 }], o);
 
   /* ---------- Luz blanca ---------- */
-  const c = toScreen(SCRATCHES[2].cx, SCRATCHES[2].cy);
+  const c = toScreen(last.cx, last.cy);
   flash.style.left = c.x + 'px'; flash.style.top = c.y + 'px';
   const cover = Math.hypot(innerWidth, innerHeight) * 2 / 200 * 1.6;
   flash.animate([
