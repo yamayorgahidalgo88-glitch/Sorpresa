@@ -340,7 +340,9 @@ $('#mute').onclick = () => { muted = !muted; $('#mute').textContent = muted ? '�
    PROGRESO DEL JUGADOR (se guarda en el móvil con localStorage)
    ========================================================= */
 // Criaturas con las que se empieza. El resto se consiguen en sobres.
-const STARTER = ['bolab', 'bushi', 'rogue', 'ogul'];
+const STARTER = ['bolab', 'bushi', 'rogue', 'ogul', 'jess', 'sevora'];
+// desbloqueados para todos, también en partidas guardadas de antes
+const ALWAYS_UNLOCKED = ['jess', 'sevora'];
 // Coste PROVISIONAL para subir de nivel en el bestiario: [nivel destino] = { cartas, monedas }
 const LEVEL_COST = { 2: { cards: 10, coins: 100 }, 3: { cards: 25, coins: 300 } };
 const MAX_LEVEL = 3;
@@ -356,6 +358,7 @@ const PROG = (() => {
   return { coins: 0, packs: 0, chars: Object.fromEntries(STARTER.map(t => [t, { level: 1, cards: 0 }])) };
 })();
 for (const k in PROG.chars) if (!CHARS[k]) delete PROG.chars[k];
+for (const t of ALWAYS_UNLOCKED) if (!PROG.chars[t]) PROG.chars[t] = { level: 1, cards: 0 };
 const COLLECTION = PROG.chars;
 // MAZOS: 5 mazos de hasta 6 bestias; el seleccionado es el que se usa en batalla
 const DECK_COUNT = 5, DECK_MAX = 6;
