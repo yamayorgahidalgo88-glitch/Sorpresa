@@ -9,9 +9,32 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet">
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<link rel="preload" as="image" href="assets/carga.webp">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+<div id="loading">
+  <img id="limg" src="assets/carga.webp" alt="" fetchpriority="high">
+  <div class="lbar">
+    <div class="ltxt o">Cargando…</div>
+    <div class="ltrack"><i id="lfill"></i><b id="lpct" class="o">0%</b></div>
+  </div>
+</div>
+<script>
+// barra de carga: avanza sola hasta ~90% y llega al 100% cuando el juego está listo
+window.__load = { p: 0, done: false, finish: null };
+function __lstart() {
+  if (window.__lgo) return; window.__lgo = 1;
+(function tick() {
+  var L = window.__load, f = document.getElementById('lfill'), t = document.getElementById('lpct');
+  L.p = L.done ? Math.min(100, L.p + 3) : Math.min(90, L.p + (92 - L.p) * 0.025 + 0.15);
+  f.style.width = L.p + '%'; t.textContent = Math.floor(L.p) + '%';
+  if (L.p < 100) requestAnimationFrame(tick); else if (L.finish) L.finish();
+})();
+}
+var __li = document.getElementById('limg');
+if (__li.complete) __lstart(); else { __li.onload = __li.onerror = __lstart; setTimeout(__lstart, 4000); }
+</script>
 <div id="scene"><canvas id="c"></canvas><canvas id="gl"></canvas><canvas id="fx"></canvas></div>
 <div id="labels"></div>
 
@@ -132,7 +155,7 @@
     <div class="btns"><button class="btn gray" id="endMenu">Menú</button><button class="btn green" id="again">Revancha</button></div>
   </div>
 </div>
-<div id="loading" class="o">Cargando…</div>
+
 <script type="module" src="js/game.js"></script>
 </body>
 </html>

@@ -1528,8 +1528,10 @@ addEventListener('resize', () => { if (G.screen === 'battle') layout(); });
 
 load(BOARD.src).then(i => {
   IMG.board = i; initBattle3D(); initStage();
-  $('#loading').classList.add('hide'); show('home'); requestAnimationFrame(loop);
-}).catch(e => { $('#loading').textContent = 'Error al cargar: ' + e; console.error(e); });
+  show('home'); requestAnimationFrame(loop);
+  const L = window.__load || {}; L.finish = () => { const el = $('#loading'); el.classList.add('fade'); setTimeout(() => el.classList.add('hide'), 500); }; L.done = true;
+  if (!window.__load) L.finish();
+}).catch(e => { $('#loading .ltxt').textContent = 'Error al cargar: ' + e; console.error(e); });
 
 // gancho para pruebas automáticas
 window.__game = { G, B3, createProp, units: () => units, createUnit, upgrade, sim: () => sim, buy, reroll, startFight, setSpeed: s => { G.speed = s; }, openDetail, setAnim };
