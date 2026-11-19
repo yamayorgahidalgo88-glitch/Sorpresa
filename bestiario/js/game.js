@@ -1210,7 +1210,8 @@ const COPY_START = { bolab: 1, tanko: 1, denton: 1 };
 const copyable = v => !v.summon && v.type !== 'sevora' && (v.def.abil === 'super' || COPY_START[v.type]);
 function vineBite(u, t) {
   const glow = u.glow;
-  vfx({ kind: 'vine', u, tgt: t, glow, dur: .55 });
+  if (u.rig.vineTo) u.rig.vineTo(() => { const r = t.rig.root.position; return new THREE.Vector3(r.x, r.y + .32, r.z); });
+  else vfx({ kind: 'vine', u, tgt: t, glow, dur: .55 });
   schedule(.24, () => {
     if (!u.alive) return;
     if (t.alive) { damage(t, u.atk, u, glow ? 'big' : ''); burstAt(t.gx, t.gy, .55, glow ? '#c8ff4a' : '#9ccf4a', glow ? 16 : 7, { glow: true, spd: 1.6 }); sfx.hit(); }

@@ -1049,23 +1049,31 @@ function createStatic(type) {
 }
 /* ---------------- modelos con esqueleto y animaciones (Meshy + Blender) ---------------- */
 // Cada .glb trae los clips: idle, walk, attack, super y cheer.
-const SKIN = { bushi: { file: 'bushi_anim', h: 1.2 }, pomona: { file: 'pomona_anim', h: 1.25 }, osko: { file: 'wyrex_anim', h: 1.25 } };
+const SKIN = { bushi: { file: 'bushi_anim', h: 1.2 }, pomona: { file: 'pomona_anim', h: 1.25 }, osko: { file: 'wyrex_anim', h: 1.25 }, sevora: { file: 'sevora_anim', h: 1.25, plant: { file: 'sevora_planta', size: .3, bone: 'handR' } } };
 const _skin = {};
 const loadSkin = type => _skin[type] || (_skin[type] = new Promise((res, rej) => _loader.load(`assets/models/${SKIN[type].file}.glb`, res, undefined, rej)));
 function createSkinned(type) {
   const cfg = SKIN[type], root = new THREE.Group(), all = new THREE.Group(); root.add(all);
-  const mats = [], acts = {}, tintC = new THREE.Color(1, 1, 1); let mixer = null;
+  const mats = [], acts = {}, tintC = new THREE.Color(1, 1, 1); let mixer = null, plant = null;
   const rig = {
     type, root, g: { root, all }, mats: {}, sp: {}, height: cfg.h * 1.02, atkT: -1, supT: -1, flashK: 0, walkW: 0, cheerW: 0, baseW: 1, one: null,
     play(name) {
+      if (name === 'attack' && plant) { plant.t = 0; plant.target = null; }
       const a = acts[name]; if (!a) return;
       if (this.one && this.one !== a) this.one.stop();
       a.reset(); a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = false; a.setEffectiveWeight(1); a.play(); this.one = a;
     },
+    // la planta del brazo se estira hasta el objetivo (función que da su posición en el mundo)
+    vineTo(fn) { if (plant) plant.target = fn; },
     tint(r, g, b) { tintC.setRGB(r, g, b); this.flashK = -1; this.flash(0); },
-    flash(k) { if (k !== this.flashK) { this.flashK = k; mats.forEach(m => m.color.copy(tintC).multiplyScalar(1 + k * 1.6)); } },
+    flash(k) {
+      if (k === this.flashK) return; this.flashK = k;
+      mats.forEach(m => m.color.copy(tintC).multiplyScalar(1 + k * 1.6));
+      if (plant) { const glow = tintC.g > 1.2; plant.head.traverse(o => { if (o.isMesh) o.material.color.copy(tintC).multiplyScalar(1 + k * 1.6); }); plant.stemMat.color.set(glow ? 0xb6ff2e : 0x4f8f26); plant.glow.visible = glow; }
+    },
     update(dt, o = {}) {
       if (!mixer) return;
+      if (plant) updatePlant(dt);
       const busy = this.one && this.one.isRunning(), f = Math.min(1, dt * 10);
       this.walkW += ((o.moving ? 1 : 0) - this.walkW) * f;
       this.cheerW += ((o.cheer ? 1 : 0) - this.cheerW) * f;
@@ -1080,12 +1088,44 @@ function createSkinned(type) {
     const sc = cloneSkinned(g.scene);
     sc.traverse(ob => { if (ob.isMesh) { ob.material = new THREE.MeshBasicMaterial({ map: ob.material.map }); mats.push(ob.material); ob.castShadow = true; ob.frustumCulled = false; } });
     sc.scale.setScalar(cfg.h); all.add(sc);
+    if (cfg.plant) {
+      const head = createProp(cfg.plant.file, cfg.plant.size), stemMat = new THREE.MeshBasicMaterial({ color: 0x4f8f26 });
+      const stem = new THREE.Mesh(new THREE.BufferGeometry(), stemMat); stem.frustumCulled = false;
+      const glow = new THREE.Mesh(new THREE.SphereGeometry(cfg.plant.size * .75, 12, 10), new THREE.MeshBasicMaterial({ color: 0xb6ff2e, transparent: true, opacity: .28, depthWrite: false })); glow.visible = false; head.add(glow);
+      all.add(head, stem);
+      plant = { head, stem, stemMat, glow, bone: sc.getObjectByName(cfg.plant.bone), t: -1, target: null, dur: .6 };
+    }
     mixer = new THREE.AnimationMixer(sc);
     for (const c of g.animations) acts[c.name] = mixer.clipAction(c);
     for (const n of ['idle', 'walk', 'cheer']) if (acts[n]) { acts[n].play(); acts[n].setEffectiveWeight(n === 'idle' ? 1 : 0); }
     acts.idle.time = Math.random() * acts.idle.getClip().duration;
     rig.flashK = -1; rig.flash(0);
   }).catch(e => console.error('modelo animado', type, e));
+  const _h = new THREE.Vector3(), _t = new THREE.Vector3(), _d = new THREE.Vector3(), _q = new THREE.Quaternion(), X1 = new THREE.Vector3(1, 0, 0);
+  function updatePlant(dt) {
+    const P = plant; if (!P.bone) return;
+    P.bone.getWorldPosition(_h); all.worldToLocal(_h); _h.y += .02; _h.z += .07;
+    let ext = 0;
+    if (P.t >= 0) {
+      P.t += dt / P.dur; const k = Math.min(1, P.t);
+      ext = k < .38 ? 1 - Math.pow(1 - k / .38, 3) : k < .55 ? 1 : 1 - Math.pow((k - .55) / .45, 2);
+      if (P.t >= 1) { P.t = -1; ext = 0; }
+    }
+    if (P.target) { _t.copy(P.target()); all.worldToLocal(_t); } else _t.set(_h.x, _h.y, _h.z + 1.5);
+    _d.subVectors(_t, _h); const L = _d.length() || 1; _d.divideScalar(L);
+    const reach = Math.max(0, L - .18) * ext;
+    P.head.position.copy(_h).addScaledVector(_d, reach);
+    // la boca apunta al objetivo; muerde (se aplasta) al llegar
+    const dir = ext > .02 ? _d : new THREE.Vector3(0, 0, 1);
+    _q.setFromUnitVectors(X1, dir); P.head.quaternion.copy(_q);
+    const bite = P.t > .36 && P.t < .58 ? Math.abs(Math.sin((P.t - .36) * 42)) : 0;
+    P.head.scale.set(1 + bite * .15, 1 - bite * .3, 1);
+    if (reach > .03) {
+      const side = new THREE.Vector3(-_d.z, 0, _d.x).normalize(), pts = [];
+      for (let i = 0; i <= 6; i++) { const q = i / 6, w = Math.sin(q * Math.PI) * Math.sin(q * 9 + P.t * 30) * .07 * Math.min(1, reach * 2); pts.push(new THREE.Vector3().copy(_h).addScaledVector(_d, reach * q).addScaledVector(side, w).add(new THREE.Vector3(0, Math.sin(q * Math.PI) * .06, 0))); }
+      P.stem.geometry.dispose(); P.stem.geometry = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 18, .035, 6, false); P.stem.visible = true;
+    } else P.stem.visible = false;
+  }
   return rig;
 }
 export function createCharacter(type) {
