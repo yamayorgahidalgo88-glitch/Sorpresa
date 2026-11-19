@@ -1049,7 +1049,7 @@ function createStatic(type) {
 }
 /* ---------------- modelos con esqueleto y animaciones (Meshy + Blender) ---------------- */
 // Cada .glb trae los clips: idle, walk, attack, super y cheer.
-const SKIN = { bushi: { file: 'bushi_anim', h: 1.2 }, pomona: { file: 'pomona_anim', h: 1.25 }, osko: { file: 'wyrex_anim', h: 1.25 }, bolab: { file: 'bolab_anim', h: 1.15, tongue: { file: 'bolab_lengua', origin: [0, .3, .4], width: .8 }, alt: { file: 'bolab_boca_anim', scale: .88 } }, sevora: { file: 'sevora_anim', h: 1.25, plant: { head: 'sevora_planta', base: 'sevora_planta_base', size: .6, off: [.227, .541, -.01], bone: 'handR' } } };
+const SKIN = { bushi: { file: 'bushi_anim', h: 1.2 }, pomona: { file: 'pomona_anim', h: 1.25 }, osko: { file: 'wyrex_anim', h: 1.25 }, bolab: { file: 'bolab_anim', h: 1.15, tongue: { file: 'bolab_lengua', origin: [0, .3, .4], width: .8 }, alt: { file: 'bolab_boca_anim', scale: .88 } }, sevora: { file: 'sevora_anim', h: 1.25, plant: { head: 'sevora_planta', base: 'sevora_planta_base', size: .36, out: [-.07, .02, .03], off: [.227, .541, -.01], bone: 'handR' } } };
 const _skin = {};
 const loadSkin = type => _skin[type] || (_skin[type] = new Promise((res, rej) => _loader.load(`assets/models/${SKIN[type].file}.glb`, res, undefined, rej)));
 function createSkinned(type) {
@@ -1116,7 +1116,7 @@ function createSkinned(type) {
       const glow = new THREE.Mesh(new THREE.SphereGeometry(S * .38, 12, 10), new THREE.MeshBasicMaterial({ color: 0xb6ff2e, transparent: true, opacity: .25, depthWrite: false })); glow.visible = false; head.add(glow);
       all.add(base, head, stem);
       const o = cfg.plant.off, off = new THREE.Vector3(-o[2], o[1], o[0]).multiplyScalar(S);   // giro de -90° (la boca mira hacia delante)
-      plant = { base, head, stem, stemMat, glow, off, bone: sc.getObjectByName(cfg.plant.bone), t: -1, target: null, dur: .6 };
+      plant = { base, head, stem, stemMat, glow, off, out: cfg.plant.out && new THREE.Vector3(...cfg.plant.out), bone: sc.getObjectByName(cfg.plant.bone), t: -1, target: null, dur: .6 };
     }
     mixer = new THREE.AnimationMixer(sc);
     for (const c of g.animations) acts[c.name] = mixer.clipAction(c);
@@ -1137,6 +1137,7 @@ function createSkinned(type) {
   function updatePlant(dt) {
     const P = plant; if (!P.bone) return;
     P.bone.getWorldPosition(_h); all.worldToLocal(_h);
+    if (P.out) _h.add(P.out);   // un poco hacia fuera para no meterse en el cuerpo
     P.base.position.copy(_h);
     const rest = _h.clone().add(P.off); _h.copy(rest);
     let ext = 0;
