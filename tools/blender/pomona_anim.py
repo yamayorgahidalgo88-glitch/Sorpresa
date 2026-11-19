@@ -14,12 +14,12 @@ CLIPS = {
    (0.45, {'hips': [(Z, 0)], 'chest': [(Z, 0)], 'arm.R': [(X, 0)], 'loc': (0, 0.03, 0)}),
    (0.6,  {'hips': [(Z, 7)], 'chest': [(Z, -3)], 'head': [(Z, -2)], 'arm.R': [(X, 14)], 'hand.L': [(X, -6)], 'loc': (0, 0, 0)}),
  ],
- # lanza la manzana: lleva la mano atrás y la suelta hacia delante (~0,17 s)
+ # lanza la manzana: gesto corto, con el brazo separado de la cara (suelta hacia delante ~0,17 s)
  'attack': [
    (0.0,  {}),
-   (0.1,  {'arm.L': [(X, 10)], 'hand.L': [(X, -45)], 'chest': [(Y, -18), (X, -4)], 'head': [(Y, 6)], 'loc': (0, 0, -0.02)}),
-   (0.18, {'arm.L': [(X, -50)], 'hand.L': [(X, 30)], 'chest': [(Y, 20), (X, 7)], 'head': [(Y, -6)], 'loc': (0, -0.01, 0.04)}),
-   (0.28, {'arm.L': [(X, -45)], 'hand.L': [(X, 25)], 'chest': [(Y, 15), (X, 5)], 'loc': (0, -0.01, 0.03)}),
+   (0.1,  {'arm.L': [(Z, -12), (X, 6)], 'hand.L': [(X, -18)], 'chest': [(Y, -10), (X, -3)], 'head': [(Y, 4), (Z, 4)], 'loc': (0, 0, -0.015)}),
+   (0.18, {'arm.L': [(Z, -10), (X, -28)], 'hand.L': [(X, 22)], 'chest': [(Y, 12), (X, 5)], 'head': [(Y, -4)], 'loc': (0, -0.008, 0.03)}),
+   (0.28, {'arm.L': [(Z, -10), (X, -24)], 'hand.L': [(X, 18)], 'chest': [(Y, 9), (X, 4)], 'loc': (0, -0.006, 0.02)}),
    (0.5,  {}),
  ],
  # escudo del jardín: alza la manzana hacia el cielo, mira arriba y se eleva un poco
