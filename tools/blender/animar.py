@@ -54,9 +54,29 @@ for name, (h, t, par) in R.BONES.items():
     ad.edit_bones[name].parent = ad.edit_bones[par or 'root']
 bpy.ops.object.mode_set(mode='OBJECT')
 # pesos
+# pieza que debe separarse limpia (p. ej. la plantita de Sevora): se corta de la malla para que al moverla no arrastre la piel
+SPLIT = None
+if hasattr(R, 'split_faces'):
+    import bmesh
+    bm = bmesh.new(); bm.from_mesh(ob.data); bm.faces.ensure_lookup_table()
+    cen = np.array([[f.calc_center_median()[0], f.calc_center_median()[2], -f.calc_center_median()[1]] for f in bm.faces])
+    mask = R.split_faces(cen); sel = [f for f, m_ in zip(bm.faces, mask) if m_]
+    bmesh.ops.split(bm, geom=sel + list({e for f in sel for e in f.edges}) + list({v for f in sel for v in f.verts}))
+    bm.to_mesh(ob.data); bm.free(); ob.data.update()
+    bm = bmesh.new(); bm.from_mesh(ob.data); bm.faces.ensure_lookup_table()
+    cen = np.array([[f.calc_center_median()[0], f.calc_center_median()[2], -f.calc_center_median()[1]] for f in bm.faces])
+    mask = R.split_faces(cen); SPLIT = np.zeros(len(ob.data.vertices), bool); other = np.zeros(len(ob.data.vertices), bool)
+    for f, m_ in zip(bm.faces, mask):
+        for v in f.verts: (SPLIT if m_ else other)[v.index] = True
+    bm.free(); print('pieza separada: vertices', int(SPLIT.sum()), 'compartidos', int((SPLIT & other).sum()))
 co = np.zeros(len(ob.data.vertices) * 3); ob.data.vertices.foreach_get('co', co); co = co.reshape(-1, 3)
 G = np.stack([co[:, 0], co[:, 2], -co[:, 1]], 1)
 names, W = R.weights(G)
+if SPLIT is not None:
+    j = names.index(R.SPLIT_BONE)
+    W[SPLIT] = 0; W[SPLIT, j] = 1
+    W[~SPLIT, j] = 0; z = W[~SPLIT].sum(1) < 1e-6; idx = np.where(~SPLIT)[0][z]; W[idx, names.index(R.SPLIT_PARENT)] = 1
+    W /= W.sum(1, keepdims=True)
 for j, n in enumerate(names):
     vg = ob.vertex_groups.new(name=n); idx = np.where(W[:, j] > 0.01)[0]
     for i in idx: vg.add([int(i)], float(W[i, j]), 'REPLACE')

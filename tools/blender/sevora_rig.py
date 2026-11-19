@@ -1,5 +1,5 @@
-# Esqueleto de Sevora (glTF: y arriba, frente +z, altura 1). La planta carnívora sale de la mano derecha (x negativa);
-# la planta es un objeto aparte que el juego estira desde esa mano.
+# Esqueleto de Sevora (glTF: y arriba, frente +z, altura 1). La plantita carnívora de su diseño, en la mano derecha
+# (x negativa), lleva su propio hueso 'plant': el juego lo estira hacia el enemigo para que muerda.
 import numpy as np
 ROOT = (0.0, 0.0, 0.0)
 BONES = {
@@ -12,6 +12,7 @@ BONES = {
  'hand.L': ((0.24, 0.30, 0.02), (0.27, 0.23, 0.04), 'arm.L'),
  'leg.R':  ((-0.07, 0.14, 0.0), (-0.09, 0.0, 0.02), 'hips'),
  'leg.L':  ((0.08, 0.14, 0.0), (0.10, 0.0, 0.02), 'hips'),
+ 'plant':  ((-0.24, 0.44, 0.2), (-0.24, 0.62, 0.22), 'hand.R'),
 }
 def seg_dist(P, a, b):
     a = np.array(a); b = np.array(b); d = b - a; t = np.clip(((P - a) @ d) / (d @ d), 0, 1); return np.linalg.norm(P - (a + t[:, None] * d), axis=1)
@@ -27,5 +28,12 @@ def weights(P):
         if not n.startswith('leg') and n != 'hips': W[legs, I(n)] *= 0.05
     W[legs & (x > 0), I('leg.R')] = 0; W[legs & (x <= 0), I('leg.L')] = 0
     W[head] = 0; W[head, I('head')] = 1
+    W[:, I('plant')] = 0
     W /= W.sum(1, keepdims=True)
     return names, W
+
+# la plantita se corta de la malla: caras con el centro dentro de esta zona
+SPLIT_BONE, SPLIT_PARENT = 'plant', 'hand.R'
+def split_faces(C):
+    x, y, z = C[:, 0], C[:, 1], C[:, 2]
+    return (x < -0.14) & (y > 0.40) & (y < 0.645) & (z > 0.1)
