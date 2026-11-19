@@ -322,7 +322,7 @@ function show(screen) {
   if (screen !== 'detail') VW = null;
   if (screen === 'detail') stageMount(screen);
   if (battle) layout();
-  if (screen === 'home') { renderWallet(); renderHomeDeck(); setTimeout(openPendingPacks, 350); }
+  if (screen === 'home') { renderWallet(); renderHomeDeck(); syncHomeDeck(); setTimeout(openPendingPacks, 350); }
 }
 document.querySelectorAll('[data-back]').forEach(b => b.onclick = () => { sfx.click(); show(b.dataset.back); });
 $('#goBattle').onclick = () => { initAudio(); sfx.click(); openPrebattle(); };
@@ -493,6 +493,97 @@ function openPrebattle() {
     return `<i style="left:${Math.random() * 100}%;width:${s}px;height:${s}px;animation-duration:${7 + Math.random() * 7}s;animation-delay:${-Math.random() * 14}s;--dx:${(Math.random() - .5) * 80}px"></i>`;
   }).join('');
 })();
+/* ---------- Pantalla de inicio: imagen animada con el mazo sobre las rocas ---------- */
+// Coordenadas sobre la imagen inicio.webp (941x1672). La primera roca (la de arriba) es para la primera bestia del mazo.
+const HIMG = { w: 941, h: 1672 };
+const HROCKS = [[480, 372], [470, 692], [200, 812], [760, 862], [210, 1148], [735, 1162]];
+const HFALLS = [   // cascadas: [arriba-izq, arriba-dcha, abajo-dcha, abajo-izq]
+  [[592, 332], [822, 332], [802, 565], [600, 565]],
+  [[664, 596], [812, 596], [802, 812], [668, 812]],
+  [[522, 852], [654, 852], [612, 1140], [487, 1140]],
+];
+const HGLOW = [[207, 440, '120,230,255', 150], [867, 800, '120,230,255', 110], [333, 1093, '120,230,255', 70],
+  [93, 547, '220,140,255', 70], [120, 1027, '220,140,255', 95], [887, 987, '220,140,255', 95], [887, 1267, '220,140,255', 85], [117, 1280, '220,140,255', 45],
+  [710, 450, '120,255,200', 210], [735, 700, '120,255,220', 160], [560, 1000, '120,255,200', 170], [500, 1185, '100,230,255', 140]];
+const HS = { ready: false, rigs: {}, types: [], t: 0 };
+function initHome() {
+  const gl = $('#hGL'), renderer = new THREE.WebGLRenderer({ canvas: gl, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+  const scene = new THREE.Scene(); setupScene(renderer, scene, { shadows: false });
+  const camera = new THREE.OrthographicCamera(0, 1, 0, -1, -2000, 2000); camera.position.z = 1000;
+  const flies = Array.from({ length: 26 }, () => ({ x: Math.random() * HIMG.w, y: 180 + Math.random() * 1150, p: Math.random() * 7, s: .4 + Math.random() * .8, r: 2 + Math.random() * 2.5 }));
+  const stars = Array.from({ length: 30 }, () => ({ x: 330 + Math.random() * 450, y: 5 + Math.random() * 210, p: Math.random() * 7, s: .6 + Math.random() * 1.6, r: .8 + Math.random() * 1.4 }));
+  const streaks = HFALLS.map(() => Array.from({ length: 22 }, () => ({ u: Math.random(), v: Math.random(), w: .02 + Math.random() * .05, l: .12 + Math.random() * .25, sp: .55 + Math.random() * .5 })));
+  Object.assign(HS, { renderer, scene, camera, flies, stars, streaks, bk: $('#hFxB').getContext('2d'), fr: $('#hFxF').getContext('2d'), ready: true, w: 0, h: 0 });
+}
+function homeMap() {   // misma colocación que object-fit:cover centrado
+  const W = innerWidth, H = innerHeight, s = Math.max(W / HIMG.w, H / HIMG.h);
+  return { s, ox: (W - HIMG.w * s) / 2, oy: (H - HIMG.h * s) / 2, W, H };
+}
+function syncHomeDeck() {
+  if (!HS.ready) initHome();
+  const types = deckTypes().slice(0, HROCKS.length);
+  for (const k of Object.keys(HS.rigs)) if (!types.includes(HS.rigs[k].type) || types.indexOf(HS.rigs[k].type) !== +k) { HS.scene.remove(HS.rigs[k].rig.root); delete HS.rigs[k]; }
+  types.forEach((t, i) => { if (!HS.rigs[i]) { const rig = createCharacter(t); HS.scene.add(rig.root); HS.rigs[i] = { type: t, rig, yaw: (Math.random() - .5) * .5, next: 3 + Math.random() * 6, cheer: 0 }; } });
+}
+function homeTick(dt) {
+  if (!HS.ready) return;
+  HS.t += dt; const T = HS.t, M = homeMap(), { s, ox, oy, W, H } = M, P = (x, y) => [ox + x * s, oy + y * s];
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  if (W !== HS.w || H !== HS.h) {
+    HS.w = W; HS.h = H; HS.renderer.setSize(W, H, false);
+    for (const c of [$('#hFxB'), $('#hFxF')]) { c.width = W * dpr; c.height = H * dpr; }
+    Object.assign(HS.camera, { left: 0, right: W, top: 0, bottom: -H }); HS.camera.updateProjectionMatrix();
+  }
+  // ---- fondo: agua de las cascadas, brillos de cristales y setas, sombras
+  const b = HS.bk; b.setTransform(dpr, 0, 0, dpr, 0, 0); b.clearRect(0, 0, W, H);
+  b.globalCompositeOperation = 'lighter';
+  for (const [x, y, col, r] of HGLOW) { const a = .18 + .14 * Math.sin(T * 1.6 + x * .01 + y * .003), [px, py] = P(x, y), R = r * s;
+    const g = b.createRadialGradient(px, py, 0, px, py, R); g.addColorStop(0, `rgba(${col},${a})`); g.addColorStop(1, `rgba(${col},0)`); b.fillStyle = g; b.fillRect(px - R, py - R, R * 2, R * 2); }
+  HFALLS.forEach((q, fi) => {
+    const pt = (u, v) => { const tx = q[0][0] + (q[1][0] - q[0][0]) * u, ty = q[0][1] + (q[1][1] - q[0][1]) * u, bx = q[3][0] + (q[2][0] - q[3][0]) * u, by = q[3][1] + (q[2][1] - q[3][1]) * u; return P(tx + (bx - tx) * v, ty + (by - ty) * v); };
+    b.save(); b.beginPath(); q.forEach(([x, y], i) => { const [px, py] = P(x, y); i ? b.lineTo(px, py) : b.moveTo(px, py); }); b.closePath(); b.clip();
+    for (const st of HS.streaks[fi]) {
+      st.v += dt * st.sp; if (st.v > 1 + st.l) { st.v = -st.l; st.u = Math.random(); }
+      const [x0, y0] = pt(st.u, st.v - st.l), [x1, y1] = pt(st.u, st.v), wpx = st.w * Math.abs(q[1][0] - q[0][0]) * s;
+      const g = b.createLinearGradient(x0, y0, x1, y1); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(.7, 'rgba(235,255,255,.5)'); g.addColorStop(1, 'rgba(255,255,255,.05)');
+      b.strokeStyle = g; b.lineWidth = Math.max(1.5, wpx); b.lineCap = 'round'; b.beginPath(); b.moveTo(x0, y0); b.lineTo(x1, y1); b.stroke();
+    }
+    b.restore();
+    // espuma al pie de cada cascada
+    const [fx0, fy0] = P(q[3][0], q[3][1]), [fx1] = P(q[2][0], q[2][1]);
+    for (let i = 0; i < 7; i++) { const k = (i + .5) / 7, ph = T * 3 + i * 1.7, px = fx0 + (fx1 - fx0) * k, r = s * (14 + 8 * Math.sin(ph));
+      const g = b.createRadialGradient(px, fy0, 0, px, fy0, r); g.addColorStop(0, 'rgba(240,255,255,.45)'); g.addColorStop(1, 'rgba(200,255,255,0)'); b.fillStyle = g; b.beginPath(); b.arc(px, fy0 - r * .2, r, 0, 6.283); b.fill(); }
+  });
+  // ondas en la poza
+  b.strokeStyle = 'rgba(220,255,255,.35)'; b.lineWidth = 1.5;
+  for (let i = 0; i < 4; i++) { const k = ((T * .35 + i / 4) % 1), [px, py] = P(510, 1175); b.globalAlpha = 1 - k; b.beginPath(); b.ellipse(px, py, (20 + 90 * k) * s, (6 + 24 * k) * s, 0, 0, 6.283); b.stroke(); }
+  b.globalAlpha = 1; b.globalCompositeOperation = 'source-over';
+  // sombras bajo las bestias
+  for (const k of Object.keys(HS.rigs)) { const [x, y] = HROCKS[k], [px, py] = P(x, y); b.fillStyle = 'rgba(10,30,10,.35)'; b.beginPath(); b.ellipse(px, py + 4 * s, 62 * s, 16 * s, 0, 0, 6.283); b.fill(); }
+  // ---- bestias en sus rocas (3D)
+  for (const k of Object.keys(HS.rigs)) {
+    const R = HS.rigs[k], [x, y] = HROCKS[k], [px, py] = P(x, y), size = 165 * s * (0.92 + y / HIMG.h * .16);
+    R.next -= dt; if (R.next <= 0) { R.cheer = 1.4; R.next = 7 + Math.random() * 9; }
+    if (R.cheer > 0) R.cheer -= dt;
+    R.rig.root.position.set(px, -py, y * .1); R.rig.root.scale.setScalar(size); R.rig.root.rotation.set(.32, R.yaw + Math.sin(T * .4 + +k) * .12, 0);
+    R.rig.update(dt, { cheer: R.cheer > 0 });
+  }
+  HS.renderer.render(HS.scene, HS.camera);
+  // ---- delante: luciérnagas y estrellas que se encienden y apagan
+  const f = HS.fr; f.setTransform(dpr, 0, 0, dpr, 0, 0); f.clearRect(0, 0, W, H); f.globalCompositeOperation = 'lighter';
+  for (const st of HS.stars) { const a = Math.max(0, Math.sin(T * st.s + st.p)) ** 3, [px, py] = P(st.x, st.y); if (a < .02) continue;
+    f.fillStyle = `rgba(255,255,240,${a})`; f.beginPath(); f.arc(px, py, st.r * Math.max(s, .5), 0, 6.283); f.fill();
+    f.strokeStyle = `rgba(255,255,240,${a * .6})`; f.lineWidth = 1; const L = st.r * 4 * a * Math.max(s, .5); f.beginPath(); f.moveTo(px - L, py); f.lineTo(px + L, py); f.moveTo(px, py - L); f.lineTo(px, py + L); f.stroke(); }
+  for (const fl of HS.flies) {
+    fl.x += Math.sin(T * .7 * fl.s + fl.p) * 18 * dt; fl.y += Math.cos(T * .5 * fl.s + fl.p * 1.3) * 14 * dt - 4 * dt;
+    if (fl.y < 150) fl.y = 1330; if (fl.x < -10) fl.x = HIMG.w + 10; if (fl.x > HIMG.w + 10) fl.x = -10;
+    const a = .25 + .75 * Math.max(0, Math.sin(T * 1.8 * fl.s + fl.p)) ** 2, [px, py] = P(fl.x, fl.y), r = fl.r * Math.max(s, .55);
+    const g = f.createRadialGradient(px, py, 0, px, py, r * 5); g.addColorStop(0, `rgba(255,240,140,${a})`); g.addColorStop(.25, `rgba(255,220,90,${a * .55})`); g.addColorStop(1, 'rgba(255,200,60,0)');
+    f.fillStyle = g; f.beginPath(); f.arc(px, py, r * 5, 0, 6.283); f.fill();
+  }
+  f.globalCompositeOperation = 'source-over';
+}
 function renderHomeDeck() {
   const n = PROG.decks[PROG.deck].length;
   $('#homeDeck').innerHTML = `<span>🃏 Mazo ${PROG.deck + 1}</span><b>${n}/${DECK_MAX} bestias</b>`;
@@ -1593,6 +1684,7 @@ function loop(now) {
     drawZones(time); drawDomes(time, dt); drawSummons(time); drawBeams(dt); drawShields(time); drawStatus(time); drawVfx(dt, time); drawFrozen(); drawProjectiles(); drawParts();
     updateLabels();
   } else if (G.screen === 'detail') { viewerTick(); stageRender(rdt); }
+  else if (G.screen === 'home') homeTick(rdt);
   requestAnimationFrame(loop);
 }
 addEventListener('resize', () => { if (G.screen === 'battle') layout(); });

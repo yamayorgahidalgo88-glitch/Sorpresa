@@ -63,30 +63,11 @@ if (__li.complete) __lstart(); else { __li.onload = __li.onerror = __lstart; set
 
 <!-- MENÚ PRINCIPAL -->
 <div id="home" class="page hide">
-  <div class="hbg"><div class="hb-rays"></div><div class="hb-glow"></div><div class="hb-claw l"></div><div class="hb-claw r"></div><div class="hb-embers" id="embers"></div></div>
+  <div class="hbg"><img class="hb-img" src="assets/inicio.webp" alt=""><canvas id="hFxB"></canvas><canvas id="hGL"></canvas><canvas id="hFxF"></canvas></div>
   <div class="wallet o"><img src="assets/moneda.svg" alt=""><span id="coinNum">0</span></div>
   <div class="wrap">
-    <div class="crest">
-      <svg viewBox="0 0 200 220" aria-hidden="true">
-        <defs>
-          <linearGradient id="cr-sh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a5cf0"/><stop offset="1" stop-color="#3b1f86"/></linearGradient>
-          <linearGradient id="cr-rim" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe98a"/><stop offset=".5" stop-color="#ffc83a"/><stop offset="1" stop-color="#e08a12"/></linearGradient>
-          <filter id="cr-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter>
-        </defs>
-        <path d="M100 8 L184 36 C184 120 156 178 100 212 C44 178 16 120 16 36 Z" fill="url(#cr-rim)" stroke="#16142e" stroke-width="7" stroke-linejoin="round"/>
-        <path d="M100 28 L166 50 C165 118 142 164 100 192 C58 164 35 118 34 50 Z" fill="url(#cr-sh)" stroke="#16142e" stroke-width="5" stroke-linejoin="round"/>
-        <g filter="url(#cr-glow)" stroke="#c8ff2e" stroke-width="14" stroke-linecap="round" fill="none" opacity=".75">
-          <path d="M70 62 Q86 110 74 160"/><path d="M100 54 Q114 108 100 170"/><path d="M130 62 Q142 110 126 160"/>
-        </g>
-        <g fill="#1c0628" stroke="#e8ffb0" stroke-width="2" stroke-linejoin="round">
-          <path d="M66 60 Q90 108 72 162 Q80 108 66 60Z"/><path d="M96 52 Q118 108 98 172 Q108 108 96 52Z"/><path d="M126 60 Q146 110 124 162 Q134 110 126 60Z"/>
-        </g>
-        <g stroke="#fff" stroke-width="3" stroke-linecap="round" fill="none"><path d="M70 76 Q80 110 73 148"/><path d="M100 70 Q109 110 99 158"/><path d="M130 76 Q138 110 126 148"/></g>
-        <path d="M44 46 Q70 36 96 34" stroke="#fff" stroke-width="5" stroke-linecap="round" fill="none" opacity=".5"/>
-      </svg>
-    </div>
-    <h1 class="logo o">BATALLA DE<br>BESTIAS<small>(nombre provisional)</small></h1>
-    <div class="hdeck" id="homeDeck"></div>
+    <div class="htop"><h1 class="logo o">BATALLA DE<br>BESTIAS</h1><div class="hdeck" id="homeDeck"></div></div>
+    <div class="hspace"></div>
     <div class="menu">
       <button class="btn green hbig" id="goBattle">⚔️ ¡Batalla!<small>Duelo contra la máquina</small></button>
       <div class="mrow">
