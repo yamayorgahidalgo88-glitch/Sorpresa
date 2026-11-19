@@ -340,7 +340,8 @@ $('#mute').onclick = () => { muted = !muted; $('#mute').textContent = muted ? '�
 // Criaturas con las que se empieza. El resto se consiguen en sobres.
 const STARTER = ['bolab', 'bushi', 'rogue', 'ogul', 'jess', 'sevora'];
 // desbloqueados para todos, también en partidas guardadas de antes
-const ALWAYS_UNLOCKED = ['jess', 'sevora'];
+// PRUEBAS: de momento todos desbloqueados (para volver a bloquearlos, deja aquí solo los que quieras)
+const ALWAYS_UNLOCKED = Object.keys(CHARS);
 // Coste PROVISIONAL para subir de nivel en el bestiario: [nivel destino] = { cartas, monedas }
 const LEVEL_COST = { 2: { cards: 10, coins: 100 }, 3: { cards: 25, coins: 300 } };
 const MAX_LEVEL = 3;
