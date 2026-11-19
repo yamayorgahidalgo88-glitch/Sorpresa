@@ -1,4 +1,4 @@
-import { createCharacter, setupScene, THREE } from './models.js';
+import { createCharacter, createProp, setupScene, THREE } from './models.js';
 import { abrirSobre, cerrarSobre, precargarSobre } from './sobre.js';
 
 /* =========================================================
@@ -760,7 +760,7 @@ function startFight() {
   later(1000, beginCombat);
 }
 function beginCombat() {
-  occ.clear(); sim = newSim(); for (const u of units.filter(u => u.summon)) removeUnit(u);
+  occ.clear(); dropAllMeshes(); sim = newSim(); for (const u of units.filter(u => u.summon)) removeUnit(u);
   for (const u of units) { Object.assign(u, { c: u.hc, r: u.hr, alive: true, hp: u.maxHp, energy: 0, shield: 0, domeT: 0, domeAmt: 0, stun: 0, stunKind: null, slow: 0, inv: 0, root: 0, anyDir: false, hold: 0, bone: false, dash: null, rage: 0, glow: false, lungeAmp: 0, move: null, faceT: null, cd: rand(.3, .8), occKey: null }); u.rig.tint && u.rig.tint(1, 1, 1); setOcc(u, u.c, u.r); }
   for (const u of units) {
     const L = u.level;
@@ -824,10 +824,12 @@ function updateUnit(u, dt) {
     const en = enemiesOf(u); if (en.length) u.faceT = en.reduce((a, b) => cheb(u, a) <= cheb(u, b) ? a : b);
   }
 }
+function dropMesh(p) { if (p.mesh) { B3.scene.remove(p.mesh); p.mesh.userData.dispose && p.mesh.userData.dispose(); p.mesh = null; } }
+const dropAllMeshes = () => sim.proj.forEach(dropMesh);
 function shoot(u, t, o) { sim.proj.push({ gx: u.gx, gy: u.gy, t, tgx: t.gx, tgy: t.gy, p: 0, dur: Math.max(.2, Math.hypot(t.gx - u.gx, t.gy - u.gy) / (o.speed || 6)), ...o }); }
 function updateProjectiles(dt) {
   for (const p of sim.proj) {
-    if (p.free) { p.upd(p, dt); if (Math.random() < .7) burstAt(p.x, p.y, p.h, p.color, 1, { spd: .15, up: .1, life: .35, size: p.size * .7, g: 0, glow: true }); continue; }
+    if (p.free) { p.upd(p, dt); if (Math.random() < (p.mesh ? .25 : .7)) burstAt(p.x, p.y, p.h, p.color, 1, { spd: .15, up: .1, life: .35, size: p.size * .7, g: 0, glow: true }); continue; }
     p.p += dt / p.dur; if (p.t.alive) { p.tgx = p.t.gx; p.tgy = p.t.gy; }
     const k = Math.min(1, p.p); p.x = p.gx + (p.tgx - p.gx) * k; p.y = p.gy + (p.tgy - p.gy) * k; p.h = .75 + Math.sin(Math.PI * k) * (p.arc ?? .6);
     if (Math.random() < .7) burstAt(p.x, p.y, p.h, p.color, 1, { spd: .15, up: .1, life: .35, size: p.size * .7, g: 0, glow: true });
@@ -837,7 +839,7 @@ function updateProjectiles(dt) {
 }
 function drawProjectiles() {
   for (const p of sim.proj) {
-    if (p.x == null) continue;
+    if (p.x == null || p.mesh) continue;
     const [x, y0] = gridToScreen(p.x, p.y), tw = tileW(p.y), y = y0 - p.h * tw * .72, r = p.size * tw;
     const [tx] = gridToScreen(p.tgx, p.tgy), [sx0] = gridToScreen(p.gx, p.gy), dir = tx >= sx0 ? 1 : -1;
     fx.save(); fx.translate(x, y);
@@ -887,7 +889,7 @@ function drawSummons(time) {
     const dir = u.faceT ? (gridToScreen(u.faceT.gx, u.faceT.gy)[0] >= x ? 1 : -1) : 1;
     fx.save(); fx.translate(x, y - tw * .3 + Math.sin(time * 5 + u.id) * tw * .03); fx.globalAlpha = u.dying > 0 ? 1 - u.dying : (u.flash > 0 ? 1 : .92);
     fx.globalCompositeOperation = 'lighter'; const g = fx.createRadialGradient(0, 0, 0, 0, 0, r * 2.6); g.addColorStop(0, 'rgba(60,255,170,.45)'); g.addColorStop(1, 'rgba(0,0,0,0)'); fx.fillStyle = g; fx.beginPath(); fx.arc(0, 0, r * 2.6, 0, Math.PI * 2); fx.fill();
-    fx.scale(dir, 1); drawDeer(r, u.move ? Math.sin(time * 22) * .5 : Math.sin(time * 3) * .08); fx.restore();
+    fx.restore();
   }
   fx.globalAlpha = 1; fx.globalCompositeOperation = 'source-over';
 }
@@ -1111,13 +1113,15 @@ function bone(u, t) {
     if (!u.alive) { u.bone = false; return; }
     sfx.shoot();
     const ox = u.gx, oy = u.gy, hit = [new Set(), new Set()];
-    sim.proj.push({ free: true, kind: 'bone', color: '#5dffb8', size: .1, gx: ox, gy: oy, tgx: ox + dc * 2, tgy: oy + dr * 2, p: 0, x: ox, y: oy, h: .6,
+    const mesh = createProp('wyrex_hueso', .5); B3.scene.add(mesh);
+    sim.proj.push({ free: true, kind: 'bone', mesh, color: '#5dffb8', size: .1, gx: ox, gy: oy, tgx: ox + dc * 2, tgy: oy + dr * 2, p: 0, x: ox, y: oy, h: .6,
       upd(p, dt) {
+        mesh.position.set(p.x - 2.5, .5, 4 - p.y); mesh.rotation.set(-1.0, 0, (p.spin = (p.spin || 0) + dt * 16));
         p.p += dt / 1.05; const leg = p.p < .5 ? 0 : 1, k = Math.max(0, leg ? 2 - p.p * 2 : p.p * 2); p.x = ox + dc * 2 * k; p.y = oy + dr * 2 * k;
         for (const v of units) if (v.alive && v.team !== u.team && !hit[leg].has(v) && Math.hypot(v.gx - p.x, v.gy - p.y) < .5) {
           hit[leg].add(v); damage(v, u.atk, u); charge(u); sfx.hit(); burstAt(v.gx, v.gy, .5, '#5dffb8', 6, { glow: true, spd: 1.2 });
         }
-        if (p.p >= 1) { p.done = true; u.bone = false; u.cd = .3; }
+        if (p.p >= 1) { p.done = true; u.bone = false; u.cd = .3; dropMesh(p); }
       } });
   });
 }
@@ -1359,7 +1363,7 @@ function combatStep(dt) {
   }
 }
 function endRound(w) {
-  G.state = 'result'; G.score[w]++; G.lastLoser = w === 'p' ? 'e' : 'p'; sim.proj = []; sim.domes = []; sim.beams = []; sim.zones = []; sim.vfx = []; sim.vfx = []; sim.events = [];
+  G.state = 'result'; G.score[w]++; G.lastLoser = w === 'p' ? 'e' : 'p'; dropAllMeshes(); sim.proj = []; sim.domes = []; sim.beams = []; sim.zones = []; sim.vfx = []; sim.vfx = []; sim.events = [];
   banner(w === 'p' ? '¡Ronda ganada!' : 'Ronda perdida', w === 'p' ? 'win' : 'lose'); (w === 'p' ? sfx.win : sfx.lose)();
   for (const u of units) { u.move = null; if (u.alive && u.team === w) u.cheer = 2; }
   hint(w === 'p' ? '¡Bien hecho! El perdedor recibe más elíxir: ¡prepárate!' : 'Recibes 9 de elíxir para remontar');
@@ -1388,7 +1392,7 @@ function endMatch(w) {
 function stopMatch() {
   timers.forEach(clearTimeout); timers = [];
   for (const u of [...units]) removeUnit(u);
-  G.state = 'idle'; parts = []; fxs = []; sim.proj = []; sim.domes = []; sim.beams = []; sim.zones = []; closeInfo();
+  G.state = 'idle'; parts = []; fxs = []; dropAllMeshes(); sim.proj = []; sim.domes = []; sim.beams = []; sim.zones = []; closeInfo();
 }
 function newMatch() {
   stopMatch();
@@ -1528,4 +1532,4 @@ load(BOARD.src).then(i => {
 }).catch(e => { $('#loading').textContent = 'Error al cargar: ' + e; console.error(e); });
 
 // gancho para pruebas automáticas
-window.__game = { G, units: () => units, createUnit, upgrade, sim: () => sim, buy, reroll, startFight, setSpeed: s => { G.speed = s; }, openDetail, setAnim };
+window.__game = { G, B3, createProp, units: () => units, createUnit, upgrade, sim: () => sim, buy, reroll, startFight, setSpeed: s => { G.speed = s; }, openDetail, setAnim };

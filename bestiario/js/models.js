@@ -999,10 +999,11 @@ const GLB = {
   pomona: { h: 1.3, style: 'biped', dur: { attack: 0.5, super: 0.9 } },
   jess: { h: 1.26, style: 'biped', dur: { attack: 0.5, super: 0.85 } },
   sevora: { h: 1.3, style: 'biped', dur: { attack: 0.55, super: 0.85 } },
+  reno: { h: 0.95, style: 'cart', ghost: true, file: 'wyrex_ciervo', dur: { attack: 0.3, super: 0.5 } },
 };
 const _glb = {}, _loader = new GLTFLoader();
 function loadGLB(type) {
-  return _glb[type] || (_glb[type] = new Promise((res, rej) => _loader.load(`assets/models/${type}.glb`, g => {
+  return _glb[type] || (_glb[type] = new Promise((res, rej) => _loader.load(`assets/models/${(GLB[type] && GLB[type].file) || type}.glb`, g => {
     let mesh = null; g.scene.traverse(o => { if (o.isMesh && !mesh) mesh = o; });
     res({ geometry: mesh.geometry, map: mesh.material.map });
   }, undefined, rej)));
@@ -1028,7 +1029,7 @@ function animStatic(rig, t, st, style) {
 }
 function createStatic(type) {
   const cfg = GLB[type], root = new THREE.Group(), all = new THREE.Group(), body = new THREE.Group(); root.add(all); all.add(body);
-  const mat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: !!cfg.ghost, opacity: cfg.ghost ? 0.82 : 1 });
   loadGLB(type).then(({ geometry, map }) => { mat.map = map; mat.needsUpdate = true; const m = new THREE.Mesh(geometry, mat); m.scale.setScalar(cfg.h); m.castShadow = true; body.add(m); }).catch(e => console.error('modelo', type, e));
   const rig = {
     type, root, g: { root, all, body }, mats: { body: mat }, sp: {}, height: cfg.h * 1.02, t: Math.random() * 10, walkT: 0, walkW: 0, atkT: -1, supT: -1, cheer: 0, flashK: 0,
@@ -1048,7 +1049,7 @@ function createStatic(type) {
 }
 /* ---------------- modelos con esqueleto y animaciones (Meshy + Blender) ---------------- */
 // Cada .glb trae los clips: idle, walk, attack, super y cheer.
-const SKIN = { bushi: { file: 'bushi_anim', h: 1.2 }, pomona: { file: 'pomona_anim', h: 1.25 } };
+const SKIN = { bushi: { file: 'bushi_anim', h: 1.2 }, pomona: { file: 'pomona_anim', h: 1.25 }, osko: { file: 'wyrex_anim', h: 1.25 } };
 const _skin = {};
 const loadSkin = type => _skin[type] || (_skin[type] = new Promise((res, rej) => _loader.load(`assets/models/${SKIN[type].file}.glb`, res, undefined, rej)));
 function createSkinned(type) {
@@ -1089,7 +1090,6 @@ function createSkinned(type) {
 }
 export function createCharacter(type) {
   if (SKIN[type]) return createSkinned(type);
-  if (type === 'reno') return { type, root: new THREE.Group(), g: {}, mats: {}, sp: {}, height: .95, atkT: -1, supT: -1, play() { }, flash() { }, update() { } };   // se dibuja en 2D (fantasma)
   if (GLB[type]) return createStatic(type);
   const bp = BP[type] || (BP[type] = BUILDERS[type]());
   const g = {}, mats = {}, sp = {};
@@ -1153,5 +1153,15 @@ export function setupScene(renderer, scene, { shadows = true } = {}) {
   scene.add(sun);
   const rim = new THREE.DirectionalLight(0x9fb4ff, 0.9); rim.position.set(3, 4, -6); scene.add(rim);
   return sun;
+}
+// objetos sueltos en 3D (p. ej. el hueso bumerán de Wyrex)
+const _prop = {};
+export function createProp(file, size) {
+  const g = new THREE.Group(), mat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  (_prop[file] || (_prop[file] = new Promise((res, rej) => _loader.load(`assets/models/${file}.glb`, r => { let me = null; r.scene.traverse(o => { if (o.isMesh && !me) me = o; }); res(me); }, undefined, rej))))
+    .then(me => { mat.map = me.material.map; mat.needsUpdate = true; const mesh = new THREE.Mesh(me.geometry, mat); me.geometry.computeBoundingBox(); const c = me.geometry.boundingBox.getCenter(new THREE.Vector3()); mesh.position.copy(c).multiplyScalar(-size); mesh.scale.setScalar(size); g.add(mesh); })
+    .catch(e => console.error('objeto', file, e));
+  g.userData.dispose = () => mat.dispose();
+  return g;
 }
 export { THREE };
