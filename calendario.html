@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f6efe7">
+<title>Feliz Navidad cariño 💚</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Poppins:wght@800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#f6efe7;
+  --pink:#f4919d;
+  --teal:#7cc8b4;
+  --green:#2e5c48;
+}
+*{box-sizing:border-box}
+html{background:var(--cream)}
+body{margin:0;min-height:100vh;background:var(--cream);color:var(--green);
+  font-family:"Poppins",system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
+main{max-width:520px;margin:0 auto;padding:max(28px,env(safe-area-inset-top)) 16px max(32px,env(safe-area-inset-bottom))}
+header{text-align:center;margin:10px 0 30px}
+header .script{font-family:"Great Vibes",cursive;font-size:clamp(40px,12vw,58px);line-height:1;display:block}
+header h1{margin:2px 0 0;font-weight:900;font-size:clamp(44px,14vw,70px);line-height:1;letter-spacing:.5px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(10px,3vw,16px)}
+.tile{position:relative;aspect-ratio:1;border:0;padding:0;margin:0;cursor:pointer;overflow:hidden;
+  font:inherit;color:inherit;transition:transform .18s ease}
+.tile:active{transform:scale(.95)}
+.tile:focus-visible{outline:3px solid var(--green);outline-offset:3px}
+.tile.wide{grid-column:span 2;aspect-ratio:auto}
+.tile.big{grid-column:1/-1;aspect-ratio:1/1.05;margin-top:clamp(6px,2vw,10px)}
+.tile svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.num{position:absolute;left:9%;top:6%;z-index:2;font-weight:900;line-height:1;
+  font-size:clamp(28px,9.5vw,46px);letter-spacing:-1px}
+.big .num{font-size:clamp(70px,26vw,130px);left:6%;top:4%}
+.big .label{position:absolute;right:6%;top:7%;z-index:2;font-family:"Great Vibes",cursive;font-size:clamp(30px,10vw,52px);color:var(--cream);line-height:1;text-align:right}
+.bg-pink{background:var(--pink)} .bg-teal{background:var(--teal)} .bg-green{background:var(--green)}
+.bg-pink .num,.bg-teal .num{color:var(--green)}
+.bg-green .num{color:var(--cream)}
+footer{text-align:center;font-family:"Great Vibes",cursive;font-size:30px;margin-top:26px}
+@media (prefers-reduced-motion:reduce){.tile{transition:none}}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <span class="script">Calendario de</span>
+    <h1>ADVIENTO</h1>
+  </header>
+  <section class="grid" id="grid" aria-label="Días del calendario"></section>
+  <footer>Feliz Navidad cariño 💚</footer>
+</main>
+
+<script>
+const P='#f4919d',T='#7cc8b4',G='#2e5c48',C='#f6efe7';
+// Each icon is drawn in a 100x100 box and keeps the top-left corner free for the number.
+const ICON={
+gift:(f,a)=>`<g stroke="${f}" stroke-width="2.6" fill="none"><path d="M0 62H100M58 14V100"/>
+  <ellipse cx="46" cy="52" rx="13" ry="7" transform="rotate(-35 46 52)"/><ellipse cx="70" cy="52" rx="13" ry="7" transform="rotate(35 70 52)"/>
+  <ellipse cx="46" cy="72" rx="13" ry="7" transform="rotate(35 46 72)"/><ellipse cx="70" cy="72" rx="13" ry="7" transform="rotate(-35 70 72)"/></g>`,
+star4:(f)=>`<path fill="${f}" d="M60 26C63 48 68 54 88 58C68 62 63 68 60 90C57 68 52 62 32 58C52 54 57 48 60 26Z"/>`,
+snowman:(f,a)=>`<circle cx="58" cy="78" r="21" fill="${C}"/><circle cx="58" cy="46" r="15" fill="${C}"/>
+  <rect x="44" y="20" width="28" height="6" fill="${G}" stroke="${C}" stroke-width="1.5"/><rect x="49" y="6" width="18" height="16" fill="${G}" stroke="${C}" stroke-width="1.5"/>
+  <circle cx="53" cy="43" r="2" fill="${G}"/><circle cx="63" cy="43" r="2" fill="${G}"/><path d="M58 47L70 50L58 51Z" fill="#f2a65a"/>
+  <path d="M42 58Q58 66 74 58L74 64Q58 72 42 64Z" fill="${P}"/><rect x="66" y="60" width="7" height="18" fill="${P}"/>
+  <circle cx="58" cy="74" r="2.2" fill="${G}"/><circle cx="58" cy="84" r="2.2" fill="${G}"/>`,
+tree:(f)=>`<path fill="${f}" d="M60 10L86 100H34Z"/>`,
+mitten:(f)=>`<path fill="${f}" d="M48 40Q48 26 62 26Q76 26 76 42V74H46V62Q34 58 36 50Q38 44 46 50Z"/>
+  <rect x="44" y="74" width="34" height="14" rx="2" fill="${f}"/>
+  <g fill="${C}"><circle cx="50" cy="80" r="1.6"/><circle cx="56" cy="80" r="1.6"/><circle cx="62" cy="80" r="1.6"/><circle cx="68" cy="80" r="1.6"/><circle cx="74" cy="80" r="1.6"/></g>
+  <g stroke="${C}" stroke-width="2"><path d="M62 42V60M54 51H70M56 45L68 57M68 45L56 57"/></g>`,
+bauble:(f)=>`<path d="M62 0V30" stroke="${C}" stroke-width="2"/><rect x="55" y="28" width="14" height="9" rx="2" fill="${T}"/>
+  <circle cx="62" cy="62" r="26" fill="${P}"/><path d="M37 56H87M37 68H87" stroke="${C}" stroke-width="3"/>
+  <path d="M42 62l4-4 4 4-4 4zM58 62l4-4 4 4-4 4zM74 62l4-4 4 4-4 4z" fill="${C}"/>`,
+cane:(f)=>`<path d="M44 96V40Q44 18 62 18Q80 18 80 38" fill="none" stroke="${C}" stroke-width="12" stroke-linecap="round"/>
+  <path d="M44 96V40Q44 18 62 18Q80 18 80 38" fill="none" stroke="${G}" stroke-width="12" stroke-dasharray="7 9" stroke-linecap="butt"/>`,
+flake:(f)=>`<g stroke="${f}" stroke-width="4" stroke-linecap="round" fill="none" transform="translate(60 62)">
+  ${[0,60,120].map(r=>`<g transform="rotate(${r})"><path d="M0 -30V30M-8 -22L0 -14L8 -22M-8 22L0 14L8 22"/></g>`).join('')}</g>`,
+stocking:(f)=>`<path fill="${P}" d="M48 32H74V68Q74 90 52 90H40Q30 90 30 81Q30 72 42 70L48 69Z"/>
+  <rect x="44" y="22" width="34" height="14" rx="3" fill="${C}"/><circle cx="60" cy="58" r="3" fill="${C}"/><circle cx="50" cy="80" r="3" fill="${C}"/>`,
+ginger:(f)=>`<g fill="${G}"><circle cx="60" cy="34" r="13"/><path d="M47 48H73L88 58L84 66L73 60V74L82 94H71L60 80L49 94H38L47 74V60L36 66L32 58Z"/></g>
+  <g fill="${C}"><circle cx="55" cy="32" r="2"/><circle cx="65" cy="32" r="2"/><circle cx="60" cy="56" r="2"/><circle cx="60" cy="66" r="2"/></g>
+  <path d="M54 38Q60 43 66 38" stroke="${C}" stroke-width="2" fill="none"/>
+  <path d="M38 60l4 2m36-2l-4 2M44 86l4-4m24 4l-4-4" stroke="${C}" stroke-width="2"/>`,
+bell:(f)=>`<path fill="${G}" d="M60 22Q80 22 80 52V72L88 80H32L40 72V52Q40 22 60 22Z"/><circle cx="60" cy="86" r="7" fill="${G}"/>
+  <rect x="56" y="14" width="8" height="10" rx="3" fill="${G}"/><path d="M46 62H74" stroke="${C}" stroke-width="3"/>
+  <path d="M60 14Q54 4 46 8M60 14Q66 4 74 8" stroke="${P}" stroke-width="4" fill="none" stroke-linecap="round" transform="translate(12 0)"/>`,
+moon:(f)=>`<path fill="${C}" d="M66 24A32 32 0 1 0 90 74A26 26 0 1 1 66 24Z"/>
+  <path fill="${T}" d="M86 30l2 6 6 2-6 2-2 6-2-6-6-2 6-2zM40 84l1.5 4 4 1.5-4 1.5-1.5 4-1.5-4-4-1.5 4-1.5z"/><circle cx="84" cy="56" r="2.5" fill="${P}"/>`,
+landscape:(f)=>`<path d="M0 78Q50 62 100 76T200 70V100H0Z" fill="${T}"/>
+  <path fill="${G}" d="M120 20L134 66H106ZM146 34L158 70H134ZM170 26L186 72H154Z"/>
+  <rect x="62" y="44" width="32" height="26" fill="${G}"/><path d="M58 46L78 28L98 46Z" fill="${C}"/><rect x="74" y="54" width="8" height="16" fill="${P}"/>
+  <rect x="64" y="50" width="7" height="7" fill="${T}"/><rect x="86" y="50" width="6" height="7" fill="${T}"/>
+  <g fill="${C}"><circle cx="110" cy="12" r="2"/><circle cx="160" cy="8" r="2"/><circle cx="190" cy="16" r="2"/><circle cx="140" cy="6" r="1.5"/></g>`,
+cocoa:(f)=>`<g transform="translate(10 8) scale(.9)"><path d="M36 46H76V80Q76 92 64 92H48Q36 92 36 80Z" fill="${G}"/><path d="M76 54Q90 54 90 66Q90 78 76 78" fill="none" stroke="${G}" stroke-width="6"/>
+  <path d="M42 62H70" stroke="${P}" stroke-width="5"/><path d="M48 38Q42 30 48 22Q54 14 48 6M62 38Q56 30 62 22Q68 14 62 6" stroke="${C}" stroke-width="3.5" fill="none" stroke-linecap="round"/></g>`,
+wreath:(f)=>`<circle cx="60" cy="58" r="26" fill="none" stroke="${T}" stroke-width="14"/>
+  <g fill="${P}"><circle cx="40" cy="42" r="3.5"/><circle cx="82" cy="50" r="3.5"/><circle cx="76" cy="78" r="3.5"/><circle cx="44" cy="76" r="3.5"/></g>
+  <path fill="${P}" d="M60 84L44 76L46 92ZM60 84L76 76L74 92Z"/><circle cx="60" cy="84" r="5" fill="${P}"/>`,
+penguin:(f)=>`<ellipse cx="60" cy="62" rx="24" ry="32" fill="${G}"/><ellipse cx="60" cy="68" rx="15" ry="22" fill="${C}"/>
+  <circle cx="54" cy="44" r="2.5" fill="${C}"/><circle cx="66" cy="44" r="2.5" fill="${C}"/><path d="M56 50H64L60 56Z" fill="#f2a65a"/>
+  <path d="M48 92H58M62 92H72" stroke="#f2a65a" stroke-width="5" stroke-linecap="round"/>
+  <path d="M38 24Q60 6 82 24V30H38Z" fill="${T}"/><circle cx="60" cy="10" r="5" fill="${C}"/>`,
+holly:(f)=>`<path fill="${G}" d="M60 58Q44 38 26 46Q32 52 30 58Q38 58 40 66Q48 60 60 58Z"/>
+  <path fill="${G}" d="M60 58Q76 38 94 46Q88 52 90 58Q82 58 80 66Q72 60 60 58Z"/>
+  <path fill="${G}" d="M60 60Q66 80 56 96Q52 88 46 88Q48 80 42 76Q54 74 60 60Z"/>
+  <g fill="${P}"><circle cx="56" cy="58" r="6"/><circle cx="66" cy="56" r="6"/><circle cx="62" cy="66" r="6"/></g>`,
+candle:(f)=>`<rect x="48" y="44" width="24" height="46" fill="${C}"/><path d="M48 52Q54 56 54 64V52M72 50Q68 54 66 60V50" fill="${T}"/>
+  <path d="M60 14Q72 30 60 40Q48 30 60 14Z" fill="${P}"/><path d="M60 26Q64 32 60 36Q56 32 60 26Z" fill="${C}"/>
+  <rect x="38" y="88" width="44" height="6" rx="3" fill="${T}"/>`,
+house:(f)=>`<rect x="36" y="50" width="48" height="40" fill="${G}"/><path d="M28 54L60 24L92 54Z" fill="${G}"/>
+  <path d="M28 54L60 24L92 54L86 54L60 32L34 54Z" fill="${C}"/><rect x="54" y="66" width="12" height="24" fill="${P}"/>
+  <rect x="40" y="60" width="10" height="10" fill="${T}"/><rect x="70" y="60" width="10" height="10" fill="${T}"/>
+  <rect x="72" y="30" width="8" height="14" fill="${G}"/><path d="M36 50h48" stroke="${C}" stroke-width="3" stroke-dasharray="4 4"/>`,
+box:(f)=>`<g transform="translate(8 8) scale(.88)"><rect x="32" y="48" width="56" height="44" fill="${P}"/><rect x="28" y="40" width="64" height="12" fill="${P}" stroke="${T}" stroke-width="0"/>
+  <rect x="55" y="40" width="10" height="52" fill="${G}"/><rect x="28" y="44" width="64" height="5" fill="${G}"/>
+  <path d="M60 40Q44 20 40 32Q38 40 60 40Q82 40 80 32Q76 20 60 40Z" fill="${G}"/></g>`,
+diamonds:(f)=>`<g fill="${T}">${[0,1,2,3,4].map(i=>`<path d="M${i*24} 74L${i*24+12} 62L${i*24+24} 74L${i*24+12} 86Z"/>`).join('')}</g>
+  <path fill="${P}" d="M70 26l3 8 8 3-8 3-3 8-3-8-8-3 8-3z"/><circle cx="88" cy="44" r="3" fill="${C}"/>`,
+twotrees:(f)=>`<path fill="${G}" d="M18 100L34 30L50 100ZM66 100L84 18L100 100Z"/>`,
+bow:(f)=>`<path fill="${P}" d="M60 56Q34 30 26 44Q20 58 34 66Q48 72 60 56ZM60 56Q86 30 94 44Q100 58 86 66Q72 72 60 56Z"/>
+  <path fill="${P}" d="M56 60L44 94L52 90L58 96L60 62ZM64 60L76 94L68 90L62 96L60 62Z"/><circle cx="60" cy="57" r="8" fill="${G}"/>`,
+};
+const DAYS=[
+ [1,'pink','gift',G],[2,'teal','star4',G],[3,'green','snowman'],
+ [4,'pink','tree',G],[5,'teal','mitten',G],[6,'green','bauble'],
+ [7,'pink','cane'],[8,'teal','flake',G],[9,'green','stocking'],
+ [10,'pink','ginger'],[11,'teal','bell'],[12,'green','moon'],
+ [13,'pink','landscape',null,'wide'],[14,'teal','cocoa'],
+ [15,'green','wreath'],[16,'pink','penguin'],[17,'teal','holly'],
+ [18,'green','candle'],[19,'pink','house'],[20,'teal','box'],
+ [21,'green','diamonds'],[22,'pink','twotrees'],[23,'teal','bow'],
+];
+const grid=document.getElementById('grid');
+for(const [n,bg,icon,col,kind] of DAYS){
+  const b=document.createElement('button');
+  b.className=`tile bg-${bg}`+(kind?' '+kind:'');b.setAttribute('aria-label','Día '+n);
+  const vb=kind==='wide'?'0 0 200 100':'0 0 100 100';
+  b.innerHTML=`<svg viewBox="${vb}" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${ICON[icon](col||G)}</svg><span class="num">${n}</span>`;
+  grid.appendChild(b);
+}
+// day 24: the big one at the end
+const big=document.createElement('button');
+big.className='tile big bg-green';big.setAttribute('aria-label','Día 24, Nochebuena');
+big.innerHTML=`<svg viewBox="0 0 100 105" aria-hidden="true">
+  <g fill="${C}"><circle cx="12" cy="40" r="1"/><circle cx="30" cy="58" r=".8"/><circle cx="88" cy="40" r="1"/><circle cx="72" cy="30" r=".8"/><circle cx="92" cy="62" r=".8"/><circle cx="8" cy="70" r=".8"/></g>
+  <path fill="${T}" d="M50 30L66 58H58L72 80H62L78 100H22L38 80H28L42 58H34Z"/>
+  <path fill="${P}" d="M50 18l2.4 6.4 6.6.4-5.1 4.2 1.7 6.5-5.6-3.7-5.6 3.7 1.7-6.5-5.1-4.2 6.6-.4z"/>
+  <g fill="${P}"><circle cx="46" cy="52" r="2"/><circle cx="56" cy="66" r="2"/><circle cx="40" cy="74" r="2"/><circle cx="60" cy="86" r="2"/><circle cx="36" cy="92" r="2"/></g>
+  <g fill="${C}"><circle cx="54" cy="50" r="1.3"/><circle cx="44" cy="64" r="1.3"/><circle cx="64" cy="76" r="1.3"/><circle cx="48" cy="84" r="1.3"/></g>
+  <rect x="0" y="99" width="100" height="6" fill="${C}"/>
+  <rect x="10" y="88" width="14" height="11" fill="${P}"/><rect x="16" y="88" width="2.5" height="11" fill="${C}"/><rect x="10" y="92" width="14" height="2.5" fill="${C}"/>
+  <rect x="76" y="84" width="16" height="15" fill="${C}"/><rect x="82.5" y="84" width="3" height="15" fill="${P}"/><rect x="76" y="89" width="16" height="3" fill="${P}"/>
+  <rect x="64" y="92" width="11" height="7" fill="${T}" stroke="${C}" stroke-width=".8"/>
+</svg><span class="num" style="color:${C}">24</span><span class="label">Noche<br>buena</span>`;
+grid.appendChild(big);
+</script>
+</body>
+</html>
