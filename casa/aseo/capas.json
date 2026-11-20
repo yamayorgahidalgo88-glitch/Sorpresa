@@ -1,0 +1,146 @@
+{
+ "cuadro": {
+  "x": 804,
+  "y": 14,
+  "w": 155,
+  "h": 187,
+  "hits": [
+   [
+    812,
+    22,
+    138,
+    100
+   ]
+  ],
+  "group": "cuadro",
+  "label": "cuadro"
+ },
+ "botes": {
+  "x": 1303,
+  "y": 273,
+  "w": 99,
+  "h": 103,
+  "hits": [
+   [
+    1300,
+    270,
+    100,
+    100
+   ]
+  ],
+  "group": "botes",
+  "label": "botes de la ducha"
+ },
+ "toalla": {
+  "x": 192,
+  "y": 361,
+  "w": 115,
+  "h": 278,
+  "hits": [
+   [
+    200,
+    372,
+    98,
+    258
+   ]
+  ],
+  "group": "toalla",
+  "label": "toalla"
+ },
+ "mueble": {
+  "x": 291,
+  "y": 588,
+  "w": 414,
+  "h": 230,
+  "hits": [
+   [
+    346,
+    595,
+    304,
+    213
+   ]
+  ],
+  "group": "mueble",
+  "label": "mueble del lavabo"
+ },
+ "tapa": {
+  "x": 792,
+  "y": 501,
+  "w": 233,
+  "h": 216,
+  "hits": [
+   [
+    800,
+    625,
+    215,
+    85
+   ]
+  ],
+  "group": "tapa",
+  "label": "tapa del v\u00e1ter"
+ },
+ "papelera": {
+  "x": 1024,
+  "y": 625,
+  "w": 97,
+  "h": 107,
+  "hits": [
+   [
+    1028,
+    696,
+    88,
+    132
+   ]
+  ],
+  "group": "papelera",
+  "label": "papelera"
+ },
+ "flor_lavabo": {
+  "x": 320,
+  "y": 292,
+  "w": 171,
+  "h": 228,
+  "hits": [
+   [
+    318,
+    298,
+    168,
+    216
+   ]
+  ],
+  "group": "flor",
+  "label": "flor"
+ },
+ "flor_suelo": {
+  "x": 223,
+  "y": 647,
+  "w": 165,
+  "h": 240,
+  "hits": [
+   [
+    230,
+    660,
+    150,
+    210
+   ]
+  ],
+  "group": "flor",
+  "label": "flor"
+ },
+ "planta": {
+  "x": 855,
+  "y": 0,
+  "w": 267,
+  "h": 380,
+  "hits": [
+   [
+    945,
+    40,
+    175,
+    360
+   ]
+  ],
+  "group": "planta",
+  "label": "planta"
+ }
+}
