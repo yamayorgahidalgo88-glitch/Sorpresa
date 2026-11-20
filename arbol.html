@@ -27,6 +27,22 @@ header h1{margin:0;font-weight:700;font-size:clamp(26px,7.5vw,42px);letter-spaci
   background:var(--cream);color:var(--green);font-weight:700;font-size:20px;padding:12px 22px;border-radius:14px;
   box-shadow:0 8px 30px rgba(0,0,0,.35);opacity:0;transition:opacity .35s,transform .35s;pointer-events:none}
 #day.show{opacity:1;transform:translate(-50%,0)}
+.modal{position:fixed;inset:0;z-index:10;display:grid;place-items:center;padding:20px;background:rgba(8,20,15,.55);
+  backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .3s}
+.modal.open{opacity:1;pointer-events:auto}
+.card{position:relative;width:min(100%,360px);background:var(--cream);color:var(--green);border-radius:22px;padding:26px 18px 20px;text-align:center;
+  box-shadow:0 18px 50px rgba(0,0,0,.45);border:3px solid #fff;outline:3px dashed rgba(179,38,45,.55);outline-offset:-10px;
+  transform:translateY(16px) scale(.96);transition:transform .35s cubic-bezier(.2,1.3,.4,1)}
+.modal.open .card{transform:none}
+.card .lock{font-size:34px;line-height:1}
+.card h2{margin:6px 0 2px;font-size:24px}
+.card p{margin:0 0 16px;font-size:15px;opacity:.8}
+.count{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.count div{background:var(--green);color:var(--cream);border-radius:12px;padding:10px 0 8px}
+.count b{display:block;font-size:28px;line-height:1;font-variant-numeric:tabular-nums}
+.count span{display:block;font-size:11px;margin-top:4px;letter-spacing:.5px;text-transform:uppercase;opacity:.85}
+.card .close{margin-top:18px;border:0;background:var(--red);color:#fff;font:700 15px Fredoka,sans-serif;padding:10px 26px;border-radius:999px;cursor:pointer}
+.card .x{position:absolute;top:10px;right:12px;border:0;background:none;font-size:24px;color:var(--green);cursor:pointer;line-height:1;padding:6px}
 #loading{position:fixed;inset:0;z-index:5;display:grid;place-items:center;background:var(--green);font-size:18px;transition:opacity .8s}
 #loading.out{opacity:0;pointer-events:none}
 </style>
@@ -36,6 +52,19 @@ header h1{margin:0;font-weight:700;font-size:clamp(26px,7.5vw,42px);letter-spaci
 <header><span class="script">Calendario de</span><h1>ADVIENTO</h1></header>
 <div id="hint">Desliza para girar el árbol</div>
 <div id="day"></div>
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+  <div class="card">
+    <button class="x" id="mX" aria-label="Cerrar">×</button>
+    <div class="lock" id="mIcon">🔒</div>
+    <h2 id="mTitle"></h2>
+    <p id="mText"></p>
+    <div class="count" id="mCount">
+      <div><b id="cD">0</b><span>días</span></div><div><b id="cH">00</b><span>horas</span></div>
+      <div><b id="cM">00</b><span>min</span></div><div><b id="cS">00</b><span>seg</span></div>
+    </div>
+    <button class="close" id="mClose">Cerrar</button>
+  </div>
+</div>
 <div id="loading">Preparando las casitas…</div>
 
 <script type="importmap">
@@ -241,9 +270,36 @@ renderer.domElement.addEventListener('pointerup',e=>{
   const hit=ray.intersectObjects(houses,true)[0];if(!hit)return;
   let o=hit.object;while(!o.userData.day)o=o.parent;
   hop={h:o,t:0,y:o.position.y};
-  dayEl.textContent=o.userData.day===24?'Día 24 · Nochebuena':`Día ${o.userData.day}`;dayEl.classList.add('show');
-  clearTimeout(dayT);dayT=setTimeout(()=>dayEl.classList.remove('show'),2200);
+  openDay(o.userData.day);
 });
+
+/* ---------- locks: house N opens on N December at 00:00:01 ---------- */
+// ?ahora=2026-12-05T10:00 simulates another date (for testing)
+const fake=new URLSearchParams(location.search).get('ahora');
+const skew=fake&&!isNaN(new Date(fake))?new Date(fake)-Date.now():0;
+const now=()=>new Date(Date.now()+skew);
+function unlockTime(n){
+  const d=now();const y=d.getMonth()===0?d.getFullYear()-1:d.getFullYear();   // in January it still counts last December
+  return new Date(y,11,n,0,0,1);
+}
+const modal=document.getElementById('modal'),$=id=>document.getElementById(id);
+let openN=null,tick=null;
+function render(){
+  const n=openN,left=unlockTime(n)-now();
+  if(left<=0){
+    $('mIcon').textContent='🎁';$('mTitle').textContent=n===24?'¡Casita 24 abierta!':`¡Casita ${n} abierta!`;
+    $('mText').textContent='Ya puedes abrirla';$('mCount').hidden=true;clearInterval(tick);return;
+  }
+  const s=Math.ceil(left/1000),d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60),ss=s%60;
+  $('mIcon').textContent='🔒';$('mTitle').textContent=n===24?'Casita 24 · Nochebuena':`Casita ${n}`;
+  $('mText').textContent=`Se abre el ${n} de diciembre. Faltan:`;$('mCount').hidden=false;
+  $('cD').textContent=d;$('cH').textContent=String(h).padStart(2,'0');$('cM').textContent=String(m).padStart(2,'0');$('cS').textContent=String(ss).padStart(2,'0');
+}
+function openDay(n){openN=n;render();clearInterval(tick);tick=setInterval(render,250);modal.classList.add('open')}
+function closeDay(){modal.classList.remove('open');clearInterval(tick)}
+$('mClose').onclick=$('mX').onclick=closeDay;
+modal.addEventListener('click',e=>{if(e.target===modal)closeDay()});
+addEventListener('keydown',e=>{if(e.key==='Escape')closeDay()});
 
 /* ---------- loop ---------- */
 const clock=new THREE.Clock();
