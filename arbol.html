@@ -211,11 +211,16 @@ const cbox=new THREE.Box3().setFromObject(CABIN);
 const probe=new THREE.Raycaster(new THREE.Vector3(0,-.2,5),new THREE.Vector3(0,0,-1));
 const frontZ=(probe.intersectObject(CABIN,true)[0]?.point.z)??cbox.max.z;
 const numGeo=new THREE.PlaneGeometry(.74,.74);
+const hitMat=new THREE.MeshBasicMaterial({visible:false}),hitboxes=[];
 function makeHouse(n){
   const h=new THREE.Group();h.userData.day=n;
   const c=CABIN.clone(true);c.position.y=-cbox.min.y;h.add(c);
   const num=new THREE.Mesh(numGeo,new THREE.MeshStandardMaterial({map:numberTexture(n),transparent:true,roughness:.6,polygonOffset:true,polygonOffsetFactor:-4}));
   num.position.set(0,-.21-cbox.min.y,frontZ+.012);h.add(num);
+  // invisible box around the whole cabin: tapping anywhere on the house opens it
+  const sz=cbox.getSize(new THREE.Vector3());
+  const hb=new THREE.Mesh(new THREE.BoxGeometry(sz.x*1.12,sz.y*1.08,sz.z*1.05),hitMat);
+  hb.position.y=sz.y/2;hb.userData.house=h;h.add(hb);hitboxes.push(hb);
   h.scale.setScalar(HS);
   return h;
 }
@@ -323,11 +328,10 @@ const ray=new THREE.Raycaster(),ptr=new THREE.Vector2();let down=null;
 
 renderer.domElement.addEventListener('pointerdown',e=>down=[e.clientX,e.clientY]);
 renderer.domElement.addEventListener('pointerup',e=>{
-  if(!down||Math.hypot(e.clientX-down[0],e.clientY-down[1])>8)return;
+  if(!down||Math.hypot(e.clientX-down[0],e.clientY-down[1])>16)return;
   ptr.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);ray.setFromCamera(ptr,camera);
-  const hit=ray.intersectObjects(houses,true)[0];if(!hit)return;
-  let o=hit.object;while(!o.userData.day)o=o.parent;
-  openDay(o.userData.day);
+  const hit=ray.intersectObjects(hitboxes,false)[0];if(!hit)return;
+  openDay(hit.object.userData.house.userData.day);
 });
 
 /* ---------- locks: house N opens on N December at 00:00:01 ---------- */
