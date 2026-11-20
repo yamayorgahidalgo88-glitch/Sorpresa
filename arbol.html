@@ -253,11 +253,46 @@ const pole=new THREE.Mesh(new THREE.CylinderGeometry(.13,.13,STEP*4,24),new THRE
 const table=new THREE.Mesh(new THREE.CircleGeometry(30,64),new THREE.MeshStandardMaterial({color:0x2a5a44,roughness:.95}));
 table.rotation.x=-Math.PI/2;table.position.y=-.075;table.receiveShadow=true;scene.add(table);
 
-// little lights around the tiers (warm fairy lights)
-const bulbGeo=new THREE.SphereGeometry(.035,8,8);
+// ---------- garlands: fluffy pine needles + red baubles + red ribbon around each tier's edge ----------
+const needleGeo=new THREE.ConeGeometry(.018,.15,4);needleGeo.translate(0,.075,0);
+const needleMat=new THREE.MeshStandardMaterial({roughness:.85});
+const baubleGeo=new THREE.SphereGeometry(.05,14,12);
+const baubleMat=new THREE.MeshStandardMaterial({color:0xc4161c,roughness:.25,metalness:.35});
+const ribbonMat=new THREE.MeshStandardMaterial({color:0xb3121a,roughness:.5,side:THREE.DoubleSide});
+const GREENS=[0x1d5a33,0x24693b,0x2f7d46,0x174a2a,0x3a8a4f].map(c=>new THREE.Color(c));
+const bulbGeo=new THREE.SphereGeometry(.026,8,8);
 const bulbs=[];
-TIERS.slice(0,4).forEach((t,ti)=>{for(let i=0;i<36;i++){const a=i/36*Math.PI*2,R=t.r+.93;
-  const b=new THREE.Mesh(bulbGeo,new THREE.MeshBasicMaterial({color:0xffd27a}));b.position.set(Math.sin(a)*R,ti*STEP+.02,Math.cos(a)*R);tree.add(b);bulbs.push(b)}});
+const UP=new THREE.Vector3(0,1,0),m4=new THREE.Matrix4(),q=new THREE.Quaternion(),v=new THREE.Vector3(),sc=new THREE.Vector3();
+TIERS.slice(0,4).forEach((t,ti)=>{
+  const R=t.r+.97,yc=ti*STEP-.035,TUBE=.085;
+  // needles
+  const N=Math.round(2*Math.PI*R*170);
+  const im=new THREE.InstancedMesh(needleGeo,needleMat,N);im.castShadow=true;
+  for(let i=0;i<N;i++){
+    const a=rnd()*Math.PI*2,b=rnd()*Math.PI*2,rr=TUBE*(.25+.6*rnd());
+    const cx=Math.sin(a)*R,cz=Math.cos(a)*R;                         // point on the ring
+    const out=new THREE.Vector3(Math.sin(a),0,Math.cos(a));
+    const dir=out.clone().multiplyScalar(Math.cos(b)).add(new THREE.Vector3(0,Math.sin(b),0)).normalize();
+    v.set(cx,yc,cz).addScaledVector(dir,rr*.4);
+    dir.add(new THREE.Vector3((rnd()-.5)*.8,(rnd()-.5)*.8,(rnd()-.5)*.8)).normalize();
+    q.setFromUnitVectors(UP,dir);const s=.7+rnd()*.6;sc.set(s,s,s);
+    m4.compose(v,q,sc);im.setMatrixAt(i,m4);im.setColorAt(i,GREENS[(rnd()*GREENS.length)|0]);
+  }
+  tree.add(im);
+  // red baubles
+  const nb=Math.round(2*Math.PI*R/.42);
+  const bm=new THREE.InstancedMesh(baubleGeo,baubleMat,nb);bm.castShadow=true;
+  for(let i=0;i<nb;i++){const a=(i+.5)/nb*Math.PI*2,yy=yc+(i%2?.05:-.04),rr=R+TUBE*.9;
+    m4.compose(v.set(Math.sin(a)*rr,yy,Math.cos(a)*rr),q.identity(),sc.setScalar(.8+((i*7)%5)/10));bm.setMatrixAt(i,m4)}
+  tree.add(bm);
+  // red ribbon spiralling around the garland
+  const turns=Math.round(2*Math.PI*R/.55),pts=[];
+  for(let i=0;i<=turns*24;i++){const a=i/(turns*24)*Math.PI*2,w=a*turns,rr=R+Math.cos(w)*TUBE*.95;pts.push(new THREE.Vector3(Math.sin(a)*rr,yc+Math.sin(w)*TUBE*.95,Math.cos(a)*rr))}
+  const rib=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts,true),turns*24,.014,5,true),ribbonMat);tree.add(rib);
+  // a few warm fairy lights tucked in
+  for(let i=0;i<28;i++){const a=(i+.25)/28*Math.PI*2,rr=R+TUBE*.85;
+    const b=new THREE.Mesh(bulbGeo,new THREE.MeshBasicMaterial({color:0xffd27a}));b.position.set(Math.sin(a)*rr,yc+(i%2?-.05:.06),Math.cos(a)*rr);tree.add(b);bulbs.push(b)}
+});
 
 /* ---------- camera / controls ---------- */
 const target=new THREE.Vector3(0,3.35,0);
