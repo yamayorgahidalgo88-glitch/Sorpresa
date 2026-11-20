@@ -44,9 +44,10 @@ header h1{margin:0;font-weight:700;font-size:clamp(26px,7.5vw,42px);letter-spaci
 <script type="module">
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
-import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 
 await Promise.race([document.fonts.load('700 100px Fredoka'),new Promise(r=>setTimeout(r,2500))]);
+const CABIN=(await new GLTFLoader().loadAsync('modelos/casita.glb')).scene;
 
 /* ---------- random with a seed (same tree every time) ---------- */
 function mulberry32(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
@@ -139,13 +140,11 @@ function roofTexture(){
 // the number: white, rounded, like the painted/engraved numbers, with a little smile line
 function numberTexture(n){
   const c=document.createElement('canvas');c.width=512;c.height=512;const g=c.getContext('2d');
-  g.textAlign='center';g.textBaseline='middle';
-  g.font=`700 ${n>9?250:290}px Fredoka`;
-  g.fillStyle='rgba(60,35,15,.55)';g.fillText(n,262,236);              // burnt shadow
-  g.fillStyle='#fdfaf4';g.fillText(n,256,228);
-  g.strokeStyle='#5a3a1e';g.lineWidth=12;g.lineCap='round';
-  g.beginPath();g.moveTo(186,402);g.quadraticCurveTo(256,446,326,402);g.stroke();
-  const t=tex(c);return t;
+  g.textAlign='center';g.textBaseline='middle';g.lineJoin='round';
+  g.font=`700 ${n>9?300:340}px Fredoka`;
+  g.lineWidth=34;g.strokeStyle='rgba(50,22,8,.9)';g.strokeText(n,256,270);
+  g.fillStyle='#fffaf0';g.fillText(n,256,264);
+  return tex(c);
 }
 
 const woodTex=tex(woodCanvas(512,512)[0]);woodTex.wrapS=woodTex.wrapT=THREE.RepeatWrapping;
@@ -160,43 +159,27 @@ const matRoof=new THREE.MeshStandardMaterial({map:roofTex,roughness:.75,color:0x
 const matRoofEdge=new THREE.MeshStandardMaterial({color:0xece5d9,roughness:.8});
 const matWhite=new THREE.MeshStandardMaterial({color:0xf4efe6,roughness:.6});
 
-/* ---------- one house ---------- */
-const shape=new THREE.Shape();
-shape.moveTo(-W/2,0);shape.lineTo(W/2,0);shape.lineTo(W/2,WALL);shape.lineTo(0,APEX);shape.lineTo(-W/2,WALL);shape.closePath();
-const bodyGeo=new THREE.ExtrudeGeometry(shape,{depth:D,bevelEnabled:false});bodyGeo.translate(0,0,-D/2);
-const SLOPE=Math.hypot(W/2,APEX-WALL),ANG=Math.atan2(APEX-WALL,W/2),OV=.14,TH=.055;
-const roofGeo=new THREE.BoxGeometry(SLOPE+OV,TH,D+.18);
-const sideGeo=new THREE.PlaneGeometry(D*.98,WALL*.98);
-const numGeo=new THREE.PlaneGeometry(.78,.78);
-
+/* ---------- one house: the snowy cabin model + its number ---------- */
+const HS=.86;                                     // cabin scale
+CABIN.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;o.material.side=THREE.FrontSide}});
+const cbox=new THREE.Box3().setFromObject(CABIN);
+// where the front wall is, right where the number goes
+const probe=new THREE.Raycaster(new THREE.Vector3(0,-.2,5),new THREE.Vector3(0,0,-1));
+const frontZ=(probe.intersectObject(CABIN,true)[0]?.point.z)??cbox.max.z;
+const numGeo=new THREE.PlaneGeometry(.74,.74);
 function makeHouse(n){
   const h=new THREE.Group();h.userData.day=n;
-  const body=new THREE.Mesh(bodyGeo,[matGable,matSide]);
-  body.castShadow=body.receiveShadow=true;h.add(body);
-  // side walls get the window texture (planes slightly outside the body)
-  for(const s of[-1,1]){const p=new THREE.Mesh(sideGeo,matSide);p.position.set(s*(W/2+.002),WALL/2,0);p.rotation.y=s*Math.PI/2;h.add(p)}
-  // roof panels
-  for(const s of[-1,1]){
-    const m=new THREE.Mesh(roofGeo,[matRoofEdge,matRoofEdge,matRoof,matRoofEdge,matRoofEdge,matRoofEdge]);
-    const dir=new THREE.Vector2(-s*Math.cos(ANG),Math.sin(ANG));         // eave -> apex
-    const nrm=new THREE.Vector2(s*Math.sin(ANG),Math.cos(ANG));         // outwards
-    const mid=new THREE.Vector2(s*W/4,(WALL+APEX)/2);
-    const c=mid.clone().addScaledVector(dir,-OV/2).addScaledVector(nrm,TH/2);
-    m.position.set(c.x,c.y,0);m.rotation.z=-s*ANG;
-    m.castShadow=m.receiveShadow=true;h.add(m);
-  }
-  // ridge cap
-  const ridge=new THREE.Mesh(new THREE.CylinderGeometry(.035,.035,D+.18,10),matRoofEdge);ridge.rotation.x=Math.PI/2;ridge.position.set(0,APEX+.045,0);h.add(ridge);
-  // number on the front
-  const num=new THREE.Mesh(numGeo,new THREE.MeshStandardMaterial({map:numberTexture(n),transparent:true,roughness:.7}));
-  num.position.set(0,.43,D/2+.004);h.add(num);
+  const c=CABIN.clone(true);c.position.y=-cbox.min.y;h.add(c);
+  const num=new THREE.Mesh(numGeo,new THREE.MeshStandardMaterial({map:numberTexture(n),transparent:true,roughness:.6,polygonOffset:true,polygonOffsetFactor:-4}));
+  num.position.set(0,-.21-cbox.min.y,frontZ+.012);h.add(num);
+  h.scale.setScalar(HS);
   return h;
 }
 
 /* ---------- the tiered stand ---------- */
 const tree=new THREE.Group();scene.add(tree);
-const TIERS=[{r:2.55,n:8},{r:2.0,n:7},{r:1.48,n:5},{r:.98,n:3},{r:0,n:1}];
-const STEP=1.62;
+const TIERS=[{r:2.95,n:8},{r:2.35,n:7},{r:1.8,n:5},{r:1.32,n:3},{r:0,n:1}];
+const STEP=1.48;
 // days 1..23 shuffled around the tree, 24 on top
 const days=Array.from({length:23},(_,i)=>i+1);
 for(let i=days.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[days[i],days[j]]=[days[j],days[i]]}
@@ -204,7 +187,7 @@ let k=0;const houses=[];
 TIERS.forEach((t,ti)=>{
   const y=ti*STEP;
   if(t.r>0){
-    const plate=new THREE.Mesh(new THREE.CylinderGeometry(t.r+.78,t.r+.78,.07,72),matWhite);
+    const plate=new THREE.Mesh(new THREE.CylinderGeometry(t.r+.95,t.r+.95,.07,72),matWhite);
     plate.position.y=y-.035;plate.receiveShadow=plate.castShadow=true;tree.add(plate);
   }
   const off=t.r>0?rnd()*Math.PI*2:0;
@@ -213,7 +196,7 @@ TIERS.forEach((t,ti)=>{
     const h=makeHouse(n);
     const a=off+i/t.n*Math.PI*2;
     h.position.set(Math.sin(a)*t.r,y,Math.cos(a)*t.r);h.rotation.y=a;
-    h.scale.setScalar(n===24?1.08:1);
+    if(n===24)h.scale.setScalar(HS*1.15);
     tree.add(h);houses.push(h);
   }
 });
@@ -225,11 +208,11 @@ table.rotation.x=-Math.PI/2;table.position.y=-.075;table.receiveShadow=true;scen
 // little lights around the tiers (warm fairy lights)
 const bulbGeo=new THREE.SphereGeometry(.035,8,8);
 const bulbs=[];
-TIERS.slice(0,4).forEach((t,ti)=>{for(let i=0;i<36;i++){const a=i/36*Math.PI*2,R=t.r+.74;
+TIERS.slice(0,4).forEach((t,ti)=>{for(let i=0;i<36;i++){const a=i/36*Math.PI*2,R=t.r+.93;
   const b=new THREE.Mesh(bulbGeo,new THREE.MeshBasicMaterial({color:0xffd27a}));b.position.set(Math.sin(a)*R,ti*STEP+.02,Math.cos(a)*R);tree.add(b);bulbs.push(b)}});
 
 /* ---------- camera / controls ---------- */
-const target=new THREE.Vector3(0,3.45,0);
+const target=new THREE.Vector3(0,3.35,0);
 const controls=new OrbitControls(camera,renderer.domElement);
 controls.target.copy(target);controls.enableDamping=true;controls.dampingFactor=.08;
 controls.enablePan=false;controls.minPolarAngle=Math.PI*.30;controls.maxPolarAngle=Math.PI*.52;
@@ -238,7 +221,7 @@ function fit(){
   camera.aspect=innerWidth/innerHeight;
   // keep the whole tree (about 8.5 units tall, 6.8 wide) in view on any screen
   const vFov=THREE.MathUtils.degToRad(camera.fov),hFov=2*Math.atan(Math.tan(vFov/2)*camera.aspect);
-  const dist=Math.max(5.0/Math.tan(vFov/2),3.55/Math.tan(hFov/2));
+  const dist=Math.max(4.6/Math.tan(vFov/2),3.95/Math.tan(hFov/2));
   controls.minDistance=dist*.55;controls.maxDistance=dist*1.25;
   if(!fit.done){camera.position.set(0,target.y+dist*.32,dist);fit.done=true}
   camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);
