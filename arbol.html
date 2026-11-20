@@ -12,7 +12,7 @@
 :root{--cream:#fbf3e6;--green:#1d3b30;--red:#b3262d}
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;overflow:hidden;background:var(--green);color:var(--cream);font-family:"Fredoka",system-ui,sans-serif}
-body{touch-action:none;-webkit-user-select:none;user-select:none}
+body{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 #scene{position:fixed;inset:0}
 #scene canvas{display:block;width:100%;height:100%}
 header{position:fixed;top:0;left:0;right:0;z-index:2;text-align:center;pointer-events:none;
@@ -307,14 +307,15 @@ const target=new THREE.Vector3(0,3.35,0);
 // fixed camera: only the tree turns, around its vertical axis, by swiping left/right
 let spin=0,vel=0,auto=true,dragX=null,lastT=0;
 function fit(){
-  camera.aspect=innerWidth/innerHeight;
+  const VW=host.clientWidth||innerWidth,VH=host.clientHeight||innerHeight;
+  camera.aspect=VW/VH;
   // keep the whole tree (about 8.5 units tall, 6.8 wide) in view on any screen
   const vFov=THREE.MathUtils.degToRad(camera.fov),hFov=2*Math.atan(Math.tan(vFov/2)*camera.aspect);
   const dist=Math.max(4.6/Math.tan(vFov/2),3.95/Math.tan(hFov/2));
   camera.position.set(0,target.y+dist*.32,dist);camera.lookAt(target);
-  camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);
+  camera.updateProjectionMatrix();renderer.setSize(VW,VH);
 }
-fit();addEventListener('resize',fit);
+fit();addEventListener('resize',fit);window.visualViewport?.addEventListener('resize',fit);
 // header space: aim slightly lower on tall screens
 const hint=document.getElementById('hint');
 const cvs=renderer.domElement;
@@ -329,7 +330,7 @@ const ray=new THREE.Raycaster(),ptr=new THREE.Vector2();let down=null;
 renderer.domElement.addEventListener('pointerdown',e=>down=[e.clientX,e.clientY]);
 renderer.domElement.addEventListener('pointerup',e=>{
   if(!down||Math.hypot(e.clientX-down[0],e.clientY-down[1])>16)return;
-  ptr.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);ray.setFromCamera(ptr,camera);
+  const rc=renderer.domElement.getBoundingClientRect();ptr.set((e.clientX-rc.left)/rc.width*2-1,-((e.clientY-rc.top)/rc.height)*2+1);ray.setFromCamera(ptr,camera);
   const hit=ray.intersectObjects(hitboxes,false)[0];if(!hit)return;
   openDay(hit.object.userData.house.userData.day);
 });
@@ -359,10 +360,15 @@ function render(){
   $('mText').textContent=`Se abre el ${n} de diciembre. Faltan:`;$('mCount').hidden=false;
   $('cD').textContent=d;$('cH').textContent=String(h).padStart(2,'0');$('cM').textContent=String(m).padStart(2,'0');$('cS').textContent=String(ss).padStart(2,'0');
 }
-function openDay(n){openN=n;render();clearInterval(tick);tick=setInterval(render,250);modal.classList.add('open')}
+let openedAt=0;
+function openDay(n){openedAt=performance.now();pressedInModal=false;openN=n;render();clearInterval(tick);tick=setInterval(render,250);modal.classList.add('open')}
 function closeDay(){modal.classList.remove('open');clearInterval(tick)}
-$('mClose').onclick=$('mX').onclick=closeDay;
-modal.addEventListener('click',e=>{if(e.target===modal)closeDay()});
+// only a touch that STARTS on the box can close it (the phone sends a late 'click' for the tap that opened it)
+let pressedInModal=false;
+modal.addEventListener('pointerdown',()=>{pressedInModal=true},true);
+const closeIfReal=()=>{if(pressedInModal)closeDay();pressedInModal=false};
+$('mClose').onclick=$('mX').onclick=closeIfReal;
+modal.addEventListener('click',e=>{if(e.target===modal)closeIfReal();else if(!e.target.closest('button'))pressedInModal=false});
 addEventListener('keydown',e=>{if(e.key==='Escape')closeDay()});
 
 /* ---------- loop ---------- */
