@@ -1,6 +1,6 @@
 {
   "cleanUrls": true,
   "redirects": [
-    { "source": "/", "destination": "/calendario", "permanent": false }
+    { "source": "/", "destination": "/arbol", "permanent": false }
   ]
 }
