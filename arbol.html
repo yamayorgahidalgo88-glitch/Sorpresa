@@ -76,7 +76,12 @@ import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 
 await Promise.race([document.fonts.load('700 100px Fredoka'),new Promise(r=>setTimeout(r,2500))]);
-const CABIN=(await new GLTFLoader().loadAsync('modelos/casita.glb')).scene;
+const loader=new GLTFLoader();
+const [CABIN,PINE]=(await Promise.all([loader.loadAsync('modelos/casita.glb'),loader.loadAsync('modelos/arbolito.glb')])).map(g=>g.scene);
+const texLoader=new THREE.TextureLoader();
+const [snowTex,barkTex]=await Promise.all(['texturas/cesped_nevado.webp','texturas/madera_oscura.webp'].map(u=>texLoader.loadAsync(u)));
+for(const t of[snowTex,barkTex]){t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=8}
+snowTex.repeat.set(1.5,1.5);barkTex.repeat.set(1,6);
 
 /* ---------- random with a seed (same tree every time) ---------- */
 function mulberry32(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
@@ -189,7 +194,16 @@ const matRoofEdge=new THREE.MeshStandardMaterial({color:0xece5d9,roughness:.8});
 const matWhite=new THREE.MeshStandardMaterial({color:0xf4efe6,roughness:.6});
 
 /* ---------- one house: the snowy cabin model + its number ---------- */
-const HS=.86;                                     // cabin scale
+const HS=.86;
+const matSnow=new THREE.MeshStandardMaterial({map:snowTex,roughness:.95});
+const matSnowSide=new THREE.MeshStandardMaterial({color:0xeef1f4,roughness:.8});
+PINE.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});
+const pbox=new THREE.Box3().setFromObject(PINE),PH=pbox.max.y-pbox.min.y;
+const PINE_GAPS=[[0,2,3,5,7],[1,3,5,6],[0,2,4],[1]];
+function makePine(x,y,z,height,rot){
+  const p=PINE.clone(true);const sc=height/PH;
+  p.scale.setScalar(sc);p.position.set(x,y-pbox.min.y*sc,z);p.rotation.y=rot;return p;
+}                                     // cabin scale
 CABIN.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;o.material.side=THREE.FrontSide}});
 const cbox=new THREE.Box3().setFromObject(CABIN);
 // where the front wall is, right where the number goes
@@ -216,7 +230,7 @@ let k=0;const houses=[];
 TIERS.forEach((t,ti)=>{
   const y=ti*STEP;
   if(t.r>0){
-    const plate=new THREE.Mesh(new THREE.CylinderGeometry(t.r+.95,t.r+.95,.07,72),matWhite);
+    const plate=new THREE.Mesh(new THREE.CylinderGeometry(t.r+.95,t.r+.95,.09,72),[matSnowSide,matSnow,matSnowSide]);
     plate.position.y=y-.035;plate.receiveShadow=plate.castShadow=true;tree.add(plate);
   }
   const off=t.r>0?rnd()*Math.PI*2:0;
@@ -228,9 +242,14 @@ TIERS.forEach((t,ti)=>{
     if(n===24)h.scale.setScalar(HS*1.15);
     tree.add(h);houses.push(h);
   }
+  // decorative pine trees in some of the gaps between houses (varied heights)
+  for(const i of PINE_GAPS[ti]||[]){
+    const a=off+(i+.5)/t.n*Math.PI*2;
+    tree.add(makePine(Math.sin(a)*(t.r+.12),y,Math.cos(a)*(t.r+.12),.75+rnd()*.85,rnd()*Math.PI*2));
+  }
 });
 // central pole + base
-const pole=new THREE.Mesh(new THREE.CylinderGeometry(.12,.12,STEP*4,20),matWood);pole.position.y=STEP*2-.05;pole.castShadow=true;tree.add(pole);
+const pole=new THREE.Mesh(new THREE.CylinderGeometry(.13,.13,STEP*4,24),new THREE.MeshStandardMaterial({map:barkTex,roughness:.8}));pole.position.y=STEP*2-.05;pole.castShadow=true;tree.add(pole);
 const table=new THREE.Mesh(new THREE.CircleGeometry(30,64),new THREE.MeshStandardMaterial({color:0x2a5a44,roughness:.95}));
 table.rotation.x=-Math.PI/2;table.position.y=-.075;table.receiveShadow=true;scene.add(table);
 
@@ -262,14 +281,13 @@ controls.addEventListener('start',()=>{controls.autoRotate=false;hint.classList.
 
 /* ---------- tap a house ---------- */
 const ray=new THREE.Raycaster(),ptr=new THREE.Vector2();let down=null;
-const dayEl=document.getElementById('day');let dayT,hop=null;
+
 renderer.domElement.addEventListener('pointerdown',e=>down=[e.clientX,e.clientY]);
 renderer.domElement.addEventListener('pointerup',e=>{
   if(!down||Math.hypot(e.clientX-down[0],e.clientY-down[1])>8)return;
   ptr.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);ray.setFromCamera(ptr,camera);
   const hit=ray.intersectObjects(houses,true)[0];if(!hit)return;
   let o=hit.object;while(!o.userData.day)o=o.parent;
-  hop={h:o,t:0,y:o.position.y};
   openDay(o.userData.day);
 });
 
@@ -307,7 +325,6 @@ renderer.setAnimationLoop(()=>{
   const t=clock.getElapsedTime(),dt=clock.getDelta();
   controls.update();
   bulbs.forEach((b,i)=>b.material.color.setHSL(.11,1,.55+.25*Math.sin(t*2+i*1.7)));
-  if(hop){hop.t+=1/60;const p=Math.min(hop.t/.5,1);hop.h.position.y=hop.y+Math.sin(p*Math.PI)*.35;if(p>=1){hop.h.position.y=hop.y;hop=null}}
   renderer.render(scene,camera);
 });
 document.getElementById('loading').classList.add('out');
