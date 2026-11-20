@@ -88,19 +88,47 @@ pl = A.door_panel(out, [(346, 595), (498, 595), (498, 808), (346, 808)], 'l', op
 pr = A.door_panel(out, [(499, 595), (650, 595), (650, 808), (499, 808)], 'r', openness=0.36)
 A.save('mueble', out, om | pl | pr, [[346, 595, 304, 213]], label='mueble del lavabo', feather=0)
 
-# ---------- tapa: the toilet lid opens (lid + seat from the new picture, fitted to this toilet) ----------
-def fx_t(x, y): return 920 + (x - 907.5) / 1.236
-def fy_t(x, y): return np.where(y < 628, 625 - (628 - y) / 0.78, 625 + (y - 628) / 0.90)
-src = A.remap(alt, fx_t, fy_t)
-cover = A.grow(A.clean(A.rect(795, 618, 1022, 708) & ((r > 110) & (r > 1.5 * g) | (base.mean(2) < 70)), 5, 3), 3)
-lid = A.ellipse(896, 572, 92, 70) & (yy >= 503)
-seat = A.ellipse(907, 670, 110, 44)
-tm = cover | lid | seat
-porc = A.rect(822, 716, 1000, 792)
-src = A.match(src, porc, porc, strength=0.9)
-src = A.pixelize(src, 3, 0.55)
-out = A.seamless(src, tm, known=~A.rect(780, 495, 1030, 520))     # keep the tank top crisp
-A.save('tapa', out, tm, [[800, 625, 215, 85]], label='tapa del váter', feather=1.0)
+# ---------- tapa: the toilet lid opens (drawn in the same pixel style as this toilet) ----------
+OUTL = np.array([58, 30, 22], np.float32)
+LIGHT = np.array([242, 226, 205], np.float32); MID = np.array([228, 176, 138], np.float32)
+SHADE = np.array([196, 132, 100], np.float32)
+def shade_ellipse(cx, cy, rx, ry, lx=-0.45, ly=-0.55):
+    """porcelain colour with a light from the top-left"""
+    u = (xx - cx) / rx; v = (yy - cy) / ry
+    t = np.clip(0.5 + 0.55 * (u * lx + v * ly), 0, 1)[..., None]
+    return SHADE * (1 - t) + LIGHT * t * 0.55 + MID * t * 0.45
+out = base.copy()
+# lid standing up against the tank
+LC = (907, 566, 84, 64)
+lid = A.ellipse(*LC) & (yy <= 633)
+out[lid] = shade_ellipse(*LC)[lid]
+inner = A.ellipse(907, 570, 66, 48) & (yy <= 626)
+rim = lid & ~inner
+out[inner] = (shade_ellipse(907, 560, 70, 52, 0.3, 0.6)[inner] * 0.96)       # recessed underside
+out[rim] = out[rim] * 1.04
+out[lid & ~A.shrink(lid, 7)] = OUTL                                          # 3 px outline
+out[(A.grow(inner, 3) & ~inner) & lid] = (out[(A.grow(inner, 3) & ~inner) & lid] * 0.82)
+for hx in (872, 942):                                                         # bumpers / hinges
+    bump = A.rect(hx - 6, 616, hx + 7, 630); out[bump] = MID * 0.93
+    out[bump & ~A.shrink(bump, 3)] = OUTL
+hl = A.ellipse(872, 528, 18, 7) & lid & ~inner; out[hl] = LIGHT                 # shine
+# seat ring with the bowl opening
+SC = (907, 668, 108, 36)
+seat = A.ellipse(*SC)
+out[seat] = shade_ellipse(907, 660, 108, 36, -0.2, -0.8)[seat]
+hole = A.ellipse(907, 664, 70, 19)
+t = np.clip((yy - 645) / 38, 0, 1)[..., None]
+water = np.array([70, 48, 46], np.float32) * (1 - t) + np.array([150, 150, 160], np.float32) * t
+out[hole] = water[hole]
+out[(A.grow(hole, 5) & ~hole)] = out[(A.grow(hole, 5) & ~hole)] * 0.86
+out[seat & ~A.shrink(seat, 7)] = OUTL
+out[(A.grow(hole, 3) & ~hole)] = OUTL * 1.2
+gap = A.rect(798, 612, 1018, 660) & ~seat & ~lid & ((r > 1.4 * g) | (base.mean(2) < 90))
+gap = A.grow(gap, 3) & A.rect(812, 612, 1003, 660) & ~seat & ~lid           # old red cover around the lid
+out[gap] = SHADE * 0.85
+tm = lid | seat | gap
+out = np.where(tm[..., None], A.pixelize(out, 3, 0.7), out)
+A.save('tapa', out, tm, [[800, 625, 215, 85]], label='tapa del váter', feather=0.6)
 
 # ---------- papelera: the bin lid opens ----------
 SX, SY = 1.17, 0.87
@@ -119,22 +147,32 @@ A.save('papelera', out, bm, [[1028, 696, 88, 132]], label='papelera', feather=1.
 
 # ---------- flor: the poinsettia leaves the sink and appears on the floor ----------
 FPOLY = [(392,298),(412,300),(445,312),(468,333),(486,372),(482,392),(458,410),(452,432),(450,512),
-         (356,512),(352,432),(332,420),(312,392),(318,345),(345,322),(375,305)]
+         (356,512),(352,432),(326,428),(300,398),(304,350),(340,318),(375,305)]
 fpoly = A.grow(A.poly(FPOLY), 7)
 petal = (r > 120) & (g < 105) & (r > 1.55 * g)
 leaf = GREEN & (g > 30)
 core = (petal | leaf) & fpoly
 core = A.clean(core, 5, 0)
 outline = A.grow(core, 3) & (base.mean(2) < 70) & fpoly
-pot = A.poly([(354,424),(452,424),(450,504),(356,504)])
+pot = A.poly([(354,424),(452,424),(450,500),(356,500)])
 yellow = (r > 180) & (g > 140) & (b < 90) & A.rect(380, 330, 420, 360)   # flower centre
-flower = A.clean(core | outline | yellow, 7, 0) & fpoly
-flower = (flower & ~(A.rect(300, 280, 382, 440) & ~A.clean(core, 3, 0))) | pot
+garland = A.rect(300, 270, 372, 330) | A.rect(456, 393, 520, 440) | A.rect(300, 400, 326, 440)
+flower = A.clean(core | outline | yellow, 7, 0) & fpoly & ~garland
+flower |= pot
 flower = A.clean(flower, 3, 3)
 from scipy import ndimage
 flower = ndimage.binary_fill_holes(flower)
 lab, n = ndimage.label(flower); sizes = ndimage.sum(flower, lab, range(1, n + 1))
 flower = np.isin(lab, 1 + np.where(sizes >= 400)[0])
+see_through = (base.mean(2) > 135) & ~petal & ~(GREEN) & ~yellow & (yy < 424)
+flower &= ~see_through
+plantpx = petal | leaf | yellow | (base.mean(2) < 85)
+flower = (flower & plantpx) | pot
+holes = ndimage.binary_fill_holes(flower) & ~flower
+hl, hn = ndimage.label(holes); hs = ndimage.sum(holes, hl, range(1, hn + 1))
+flower |= np.isin(hl, 1 + np.where(hs < 80)[0])
+flower = A.clean(flower, 0, 2)
+flower = A.clean(flower, 0, 3)
 rm = A.grow(flower, 5)
 out = base.copy()
 # 1) left garland strip + mirror above the garland bottom: copied from the same columns 120 px higher
