@@ -75,10 +75,11 @@ header h1{margin:0;font-weight:700;font-size:clamp(26px,7.5vw,42px);letter-spaci
 <script type="module">
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 
 await Promise.race([document.fonts.load('700 100px Fredoka'),new Promise(r=>setTimeout(r,2500))]);
-const loader=new GLTFLoader();
-const [CABIN,PINE]=(await Promise.all([loader.loadAsync('modelos/casita.glb'),loader.loadAsync('modelos/arbolito.glb')])).map(g=>g.scene);
+const loader=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+const [CABIN,PINE,SCENERY]=(await Promise.all([loader.loadAsync('modelos/casita.glb'),loader.loadAsync('modelos/arbolito.glb'),loader.loadAsync('modelos/escenario.glb')])).map(g=>g.scene);
 const texLoader=new THREE.TextureLoader();
 const [snowTex,barkTex]=await Promise.all(['texturas/cesped_nevado.webp','texturas/madera_oscura.webp'].map(u=>texLoader.loadAsync(u)));
 for(const t of[snowTex,barkTex]){t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=8}
@@ -99,16 +100,12 @@ host.appendChild(renderer.domElement);
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(38,innerWidth/innerHeight,.1,100);
 
-/* background: cosy dark green wall with warm bokeh lights */
+/* background: winter night sky with stars */
 function bgTexture(){
   const c=document.createElement('canvas');c.width=1024;c.height=1024;const g=c.getContext('2d');
-  const gr=g.createLinearGradient(0,0,0,1024);gr.addColorStop(0,'#16302a');gr.addColorStop(.6,'#244a3b');gr.addColorStop(1,'#132a22');
+  const gr=g.createLinearGradient(0,0,0,1024);gr.addColorStop(0,'#0b1430');gr.addColorStop(.55,'#1d3460');gr.addColorStop(1,'#4b6a9a');
   g.fillStyle=gr;g.fillRect(0,0,1024,1024);
-  for(let i=0;i<70;i++){
-    const x=rnd()*1024,y=rnd()*700,r=6+rnd()*26,col=rnd()<.7?'255,205,120':'255,120,100';
-    const rg=g.createRadialGradient(x,y,0,x,y,r);rg.addColorStop(0,`rgba(${col},${.35+rnd()*.35})`);rg.addColorStop(1,`rgba(${col},0)`);
-    g.fillStyle=rg;g.beginPath();g.arc(x,y,r,0,7);g.fill();
-  }
+  for(let i=0;i<260;i++){const x=rnd()*1024,y=rnd()*560,r=rnd()<.9?1:2;g.fillStyle=`rgba(255,255,240,${.35+rnd()*.6})`;g.fillRect(x,y,r,r)}
   const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;
 }
 scene.background=bgTexture();
@@ -258,8 +255,18 @@ TIERS.forEach((t,ti)=>{
 });
 // central pole + base
 const pole=new THREE.Mesh(new THREE.CylinderGeometry(.13,.13,STEP*4,24),new THREE.MeshStandardMaterial({map:barkTex,roughness:.8}));pole.position.y=STEP*2-.05;pole.castShadow=true;tree.add(pole);
-const table=new THREE.Mesh(new THREE.CircleGeometry(30,64),new THREE.MeshStandardMaterial({color:0x2a5a44,roughness:.95}));
-table.rotation.x=-Math.PI/2;table.position.y=-.075;table.receiveShadow=true;scene.add(table);
+// ---------- the snowy diorama the calendar stands in (fixed: it does not turn) ----------
+{
+  const nrm=await texLoader.loadAsync('texturas/escenario_normal.webp');
+  const snowMat=new THREE.MeshStandardMaterial({color:0xf3f6fb,roughness:.92,normalMap:nrm,normalScale:new THREE.Vector2(1,1)});
+  SCENERY.traverse(o=>{if(o.isMesh){o.geometry.deleteAttribute('normal');o.geometry.computeVertexNormals();o.material=snowMat;o.receiveShadow=true;o.castShadow=false}});
+  const SC=9.2;SCENERY.scale.setScalar(SC);SCENERY.updateMatrixWorld(true);
+  // put the middle of the clearing just under the calendar's bottom tier
+  const down=new THREE.Raycaster(new THREE.Vector3(0,50,0),new THREE.Vector3(0,-1,0));
+  const g=down.intersectObject(SCENERY,true)[0];
+  SCENERY.position.y=-.06-(g?g.point.y:0);
+  scene.add(SCENERY);
+}
 
 // ---------- garlands: fluffy pine needles + red baubles + red ribbon around each tier's edge ----------
 const needleGeo=new THREE.ConeGeometry(.018,.15,4);needleGeo.translate(0,.075,0);
