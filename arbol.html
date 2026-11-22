@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#1d3b30">
 <title>Feliz Navidad mi vida 💚</title>
+<link rel="preload" as="image" href="texturas/carga.webp" fetchpriority="high">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Great+Vibes&display=swap" rel="stylesheet">
@@ -89,8 +90,20 @@ header h1{margin:0;font-weight:700;font-size:clamp(26px,7.5vw,42px);letter-spaci
 .tcard .ticket .t{font-size:21px}
 .tcard .desc{font-size:16px;line-height:1.5;text-align:left;white-space:pre-line;margin:0 0 18px}
 .tcard .row{display:flex;gap:12px;justify-content:center;align-items:center;flex-wrap:wrap}
-#loading{position:fixed;inset:0;z-index:5;display:grid;place-items:center;background:var(--green);font-size:18px;transition:opacity .8s}
+#loading{position:fixed;inset:0;z-index:50;background:#03420f url(texturas/carga.webp) center top/100% auto no-repeat;transition:opacity .9s}
+@media (min-aspect-ratio:941/1672){#loading{background-size:auto 100%}}
 #loading.out{opacity:0;pointer-events:none}
+#loading .bar{position:absolute;left:50%;bottom:max(34px,calc(env(safe-area-inset-bottom) + 22px));transform:translateX(-50%);width:min(78vw,340px);height:22px;
+  border-radius:999px;background:rgba(0,0,0,.35);box-shadow:inset 0 2px 5px rgba(0,0,0,.6),0 0 0 2px rgba(233,185,58,.85),0 0 14px rgba(255,200,60,.35);padding:3px}
+#loading .fill{height:100%;width:2%;border-radius:999px;position:relative;overflow:hidden;transition:width .35s ease-out;
+  background:repeating-linear-gradient(-55deg,#d61f26 0 9px,#fff7f2 9px 17px);background-size:200% 100%;animation:liquorice .55s linear infinite;
+  box-shadow:0 0 8px rgba(214,31,38,.6)}
+/* roundness of the liquorice: light on top, shade underneath */
+#loading .fill::after{content:"";position:absolute;inset:0;border-radius:inherit;
+  background:linear-gradient(rgba(255,255,255,.55),rgba(255,255,255,.08) 38%,rgba(0,0,0,0) 55%,rgba(0,0,0,.32))}
+@keyframes liquorice{to{background-position:-41px 0}}
+#loading .pct{position:absolute;left:50%;bottom:calc(max(34px,calc(env(safe-area-inset-bottom) + 22px)) + 32px);transform:translateX(-50%);
+  color:#ffe7a6;font:700 15px Fredoka,sans-serif;letter-spacing:1px;text-shadow:0 2px 6px rgba(0,0,0,.7)}
 </style>
 </head>
 <body>
@@ -125,8 +138,9 @@ header h1{margin:0;font-weight:700;font-size:clamp(26px,7.5vw,42px);letter-spaci
     <div class="row"><button class="redeem" id="tRedeem">CANJEAR</button><button class="close" id="tClose">Cerrar</button></div>
   </div>
 </div>
-<div id="loading">Preparando las casitas…</div>
+<div id="loading" role="progressbar" aria-label="Cargando" aria-valuemin="0" aria-valuemax="100"><div class="pct" id="ldPct">0%</div><div class="bar"><div class="fill" id="ldFill"></div></div></div>
 
+<script>window.__t0=performance.now()</script>
 <script type="importmap">
 {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}
 </script>
@@ -137,7 +151,13 @@ import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 
 await Promise.race([document.fonts.load('700 100px Fredoka'),new Promise(r=>setTimeout(r,2500))]);
 const loader=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
-const [CABIN,PINE,SCENERY]=(await Promise.all([loader.loadAsync('modelos/casita.glb'),loader.loadAsync('modelos/arbolito.glb'),loader.loadAsync('modelos/escenario.glb')])).map(g=>g.scene);
+// loading bar: real download progress of the big files
+const ld={casita:[0,1047088],arbolito:[0,581704],escenario:[0,855140],normal:[0,776290]};
+let shown=3;const ldFill=document.getElementById('ldFill'),ldPct=document.getElementById('ldPct');
+const setBar=v=>{shown=Math.max(shown,Math.min(100,v));ldFill.style.width=shown+'%';ldPct.textContent=Math.round(shown)+'%';ldFill.parentElement.parentElement.setAttribute('aria-valuenow',Math.round(shown))};
+const onP=k=>e=>{if(e.total)ld[k][1]=e.total;ld[k][0]=e.loaded;const L=Object.values(ld).reduce((a,[l,t])=>[a[0]+l,a[1]+t],[0,0]);setBar(8+L[0]/L[1]*82)};
+setBar(6);
+const [CABIN,PINE,SCENERY]=(await Promise.all([loader.loadAsync('modelos/casita.glb',onP('casita')),loader.loadAsync('modelos/arbolito.glb',onP('arbolito')),loader.loadAsync('modelos/escenario.glb',onP('escenario'))])).map(g=>g.scene);
 const texLoader=new THREE.TextureLoader();
 const [snowTex,barkTex]=await Promise.all(['texturas/cesped_nevado.webp','texturas/madera_oscura.webp'].map(u=>texLoader.loadAsync(u)));
 for(const t of[snowTex,barkTex]){t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=8}
@@ -315,7 +335,7 @@ TIERS.forEach((t,ti)=>{
 const pole=new THREE.Mesh(new THREE.CylinderGeometry(.13,.13,STEP*4,24),new THREE.MeshStandardMaterial({map:barkTex,roughness:.8}));pole.position.y=STEP*2-.05;pole.castShadow=true;tree.add(pole);
 // ---------- the snowy diorama the calendar stands in (fixed: it does not turn) ----------
 {
-  const nrm=await texLoader.loadAsync('texturas/escenario_normal.webp');
+  const nrm=await texLoader.loadAsync('texturas/escenario_normal.webp');onP('normal')({loaded:ld.normal[1],total:ld.normal[1]});
   const snowMat=new THREE.MeshStandardMaterial({color:0xf3f6fb,roughness:.92,normalMap:nrm,normalScale:new THREE.Vector2(1,1)});
   SCENERY.traverse(o=>{if(o.isMesh){o.geometry.deleteAttribute('normal');o.geometry.computeVertexNormals();o.material=snowMat;o.receiveShadow=true;o.castShadow=false}});
   const SC=9.2;SCENERY.scale.setScalar(SC);SCENERY.updateMatrixWorld(true);
@@ -496,7 +516,10 @@ renderer.setAnimationLoop(()=>{
   bulbs.forEach((b,i)=>b.material.color.setHSL(.11,1,.55+.25*Math.sin(t*2+i*1.7)));
   renderer.render(scene,camera);
 });
-document.getElementById('loading').classList.add('out');
+// finish the bar, let the photos be seen a moment, then fade out
+setBar(100);
+const minShow=3200-(performance.now()-(window.__t0||0));
+setTimeout(()=>document.getElementById('loading').classList.add('out'),Math.max(700,minShow));
 </script>
 </body>
 </html>
