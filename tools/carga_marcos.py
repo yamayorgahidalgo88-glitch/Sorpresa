@@ -10,7 +10,7 @@ a=np.array(bg).astype(int)
 green=(a[...,1]>a[...,0]+15)&(a[...,1]>a[...,2])                    # the wall colour
 # (frame, centre of its opening, photo, vertical focus 0..1 of the photo)
 FR=[((240,400),'e9ed16bf-image.jpg',.47),((712,330),'c9b4b247-image.jpg',.46),
-    ((690,820),'c51db12a-image.jpg',.42),((240,965),'fe750bda-image.jpg',.47),((680,1330),'bb22e70f-image.jpg',.55)]
+    ((690,820),'c51db12a-image.jpg',(170,400,828,1345)),((240,965),'fe750bda-image.jpg',.47),((680,1330),'bb22e70f-image.jpg',.55)]
 lab,_=ndimage.label(green)
 out=big.copy()
 for (cx,cy),f,fy in FR:
@@ -19,6 +19,7 @@ for (cx,cy),f,fy in FR:
   ys,xs=np.where(m);x0,x1,y0,y1=xs.min(),xs.max()+1,ys.min(),ys.max()+1
   w,h=(x1-x0)*S,(y1-y0)*S
   ph=ImageOps.exif_transpose(Image.open(U+f)).convert('RGB')
+  if isinstance(fy,tuple): ph=ph.crop(fy);fy=.5                       # explicit crop box around the two of us
   r=max(w/ph.width,h/ph.height);ph=ph.resize((round(ph.width*r),round(ph.height*r)),Image.LANCZOS)
   ox=(ph.width-w)//2;oy=int(np.clip(fy*ph.height-h/2,0,ph.height-h))
   ph=ph.crop((ox,oy,ox+w,oy+h))
