@@ -505,7 +505,7 @@ function unlockTime(n){
   return new Date(y,11,n,0,0,1);
 }
 // PREVIEW_ALL: every house open whatever the date (to check the contents). ?bloqueado shows the countdown instead.
-const PREVIEW_ALL=true;
+const PREVIEW_ALL=false;
 const QS=new URLSearchParams(location.search);
 const FORCE_OPEN=PREVIEW_ALL&&!QS.has('bloqueado');
 const leftMs=n=>FORCE_OPEN?0:unlockTime(n)-now();
