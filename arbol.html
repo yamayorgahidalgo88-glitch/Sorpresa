@@ -300,6 +300,55 @@ function makeHouse(n){
   return h;
 }
 
+
+/* ---------- hand-painted colours for the diorama (its own colour texture came corrupted) ---------- */
+function paintScenery(geo){
+  const P=geo.attributes.position,N=geo.attributes.normal,n=P.count;
+  // ground height map: lowest upward-facing point in each cell (so trees/rocks stand ABOVE it)
+  const G=96,MIN=-1,SZ=2/G,ground=new Float32Array(G*G).fill(Infinity);
+  const cell=(x,z)=>Math.min(G-1,Math.max(0,((x-MIN)/SZ)|0))+G*Math.min(G-1,Math.max(0,((z-MIN)/SZ)|0));
+  for(let i=0;i<n;i++)if(N.getY(i)>.55){const c=cell(P.getX(i),P.getZ(i));ground[c]=Math.min(ground[c],P.getY(i))}
+  // fill empty cells and take a min over neighbours (cells hidden under tree crowns)
+  const g2=new Float32Array(G*G);
+  for(let z=0;z<G;z++)for(let x=0;x<G;x++){let m=Infinity;for(let dz=-3;dz<=3;dz++)for(let dx=-3;dx<=3;dx++){const xx=x+dx,zz=z+dz;if(xx>=0&&zz>=0&&xx<G&&zz<G)m=Math.min(m,ground[xx+G*zz])}g2[x+G*z]=m}
+  // tallest thing in each cell (to tell boulders from little grass tufts)
+  const cmax=new Float32Array(G*G);
+  for(let i=0;i<n;i++){const k=cell(P.getX(i),P.getZ(i));const gy=g2[k];if(isFinite(gy))cmax[k]=Math.max(cmax[k],P.getY(i)-gy)}
+  const near=(x,z)=>{const cx=Math.min(G-1,Math.max(0,((x-MIN)/SZ)|0)),cz=Math.min(G-1,Math.max(0,((z-MIN)/SZ)|0));let m=0;
+    for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){const xx=cx+dx,zz=cz+dz;if(xx>=0&&zz>=0&&xx<G&&zz<G)m=Math.max(m,cmax[xx+G*zz])}return m};
+  const col=new Float32Array(n*3),c=new THREE.Color();
+  const SNOW=new THREE.Color(0xf4f7fc),SNOWSH=new THREE.Color(0xd5e0f0),PINE=new THREE.Color(0x1f4d33),PINE2=new THREE.Color(0x2d6a43),
+        ROCK=new THREE.Color(0x7d828c),ROCK2=new THREE.Color(0x5b606b),BARK=new THREE.Color(0x5a3a22),WOOD=new THREE.Color(0x8a5a32),
+        SOIL=new THREE.Color(0x4a3426),SOIL2=new THREE.Color(0x2e211a),GRASS=new THREE.Color(0xb89a5a),GRASS2=new THREE.Color(0x6f7d3a);
+  const hash=i=>{let h=Math.sin(i*12.9898)*43758.5453;return h-Math.floor(h)};
+  for(let i=0;i<n;i++){
+    const x=P.getX(i),y=P.getY(i),z=P.getZ(i),ny=N.getY(i),r=Math.hypot(x,z);
+    const gy=g2[cell(x,z)],h=y-(isFinite(gy)?gy:y),j=hash(i)*.08-.04;
+    const mount=(r>.78&&y>.09)||(r>.83&&y>.02);                                        // the mountains at the back
+    if(mount){
+      c.copy(ROCK2).lerp(ROCK,Math.max(0,ny));if(ny>.5)c.lerp(SNOW,Math.min(1,(ny-.5)*3));
+    }else if(ny<-.15||(r>.88&&y<-.05)){                                   // underside and the cut edge of the base: earth layers
+      const k=Math.max(0,Math.min(1,(y+.28)/.25));c.copy(SOIL2).lerp(SOIL,k);if(y>-.04)c.lerp(SNOW,.85);
+    }else if(h>.035){                                                 // things standing on the ground (pines, rocks, fence, posts)
+      if(ny>.62)c.copy(SNOW).lerp(SNOWSH,(1-ny)*.6);                  // snow resting on top
+      else if(h<.06&&r<.75&&r>.4&&ny<.3&&ny>-.15&&near(x,z)<.065)c.copy(WOOD);        // low thin vertical bits: fence/posts
+      else if(r<.7&&h<.09)c.copy(ROCK).lerp(ROCK2,hash(i>>3));       // boulders around the clearing
+      else c.copy(PINE).lerp(PINE2,hash(i>>4)*.7);                     // pine needles
+      if(h<.05&&ny<.3&&r>.62)c.lerp(BARK,.6);                          // trunks
+    }else if(h>.006&&ny<.75&&r<.85){
+      if(near(x,z)>.05&&r<.72){c.copy(ROCK).lerp(ROCK2,hash(i>>3));if(ny>.55)c.lerp(SNOW,.7)}   // foot of a boulder
+      else c.copy(GRASS).lerp(GRASS2,hash(i>>2));                    // grass tufts poking out of the snow
+    }else if(y>.05&&ny<.6){                                           // steep mountain faces: rock
+      c.copy(ROCK2).lerp(ROCK,ny);c.lerp(SNOW,Math.max(0,(ny-.35))*1.6);
+    }else{                                                            // snow, slightly blue in the shade
+      c.copy(SNOW).lerp(SNOWSH,Math.max(0,.9-ny)*.9);
+    }
+    c.r+=j;c.g+=j;c.b+=j;
+    col[i*3]=c.r;col[i*3+1]=c.g;col[i*3+2]=c.b;
+  }
+  geo.setAttribute('color',new THREE.BufferAttribute(col,3));
+}
+
 /* ---------- the tiered stand ---------- */
 const tree=new THREE.Group();scene.add(tree);
 const TIERS=[{r:2.95,n:8},{r:2.35,n:7},{r:1.8,n:5},{r:1.32,n:3},{r:0,n:1}];
@@ -336,8 +385,8 @@ const pole=new THREE.Mesh(new THREE.CylinderGeometry(.13,.13,STEP*4,24),new THRE
 // ---------- the snowy diorama the calendar stands in (fixed: it does not turn) ----------
 {
   const nrm=await texLoader.loadAsync('texturas/escenario_normal.webp');onP('normal')({loaded:ld.normal[1],total:ld.normal[1]});
-  const snowMat=new THREE.MeshStandardMaterial({color:0xf3f6fb,roughness:.92,normalMap:nrm,normalScale:new THREE.Vector2(1,1)});
-  SCENERY.traverse(o=>{if(o.isMesh){o.geometry.deleteAttribute('normal');o.geometry.computeVertexNormals();o.material=snowMat;o.receiveShadow=true;o.castShadow=false}});
+  const snowMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.9,normalMap:nrm,normalScale:new THREE.Vector2(1,1)});
+  SCENERY.traverse(o=>{if(o.isMesh){o.geometry.deleteAttribute('normal');o.geometry.computeVertexNormals();paintScenery(o.geometry);o.material=snowMat;o.receiveShadow=true;o.castShadow=false}});
   const SC=9.2;SCENERY.scale.setScalar(SC);SCENERY.updateMatrixWorld(true);
   // put the middle of the clearing just under the calendar's bottom tier
   const down=new THREE.Raycaster(new THREE.Vector3(0,50,0),new THREE.Vector3(0,-1,0));
