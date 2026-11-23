@@ -56,10 +56,10 @@ const CHARS = {
     abilName: 'Furia fantasma', desc: 'No tiene súper. Cada vez que cae un aliado, entra en furia y el daño de su básico sube un 10%. La furia se reinicia en cada ronda.',
     lv: ['Furia fantasma: +10% de daño del básico por cada aliado derrotado en la ronda.', 'El disparo llega a 2 casillas de fondo.', 'La furia sube un 15% por cada aliado derrotado.'],
     all: ['pose', 'front', 'back', 'left', 'right', 'iso', 'top', 'bottom'] },
-  jaspe: { name: 'Jaspe', cost: 4, role: 'Tanque', color: '#9b5cf0', hp: 900, atk: 40, range: 1, as: 1.3, ms: 0.85, abil: 'super', charge: 5,
+  jaspe: { name: 'Jaspe', cost: 3, role: 'Tanque', color: '#9b5cf0', hp: 900, atk: 40, range: 1, as: 1.3, ms: 0.85, abil: 'super', charge: 5,
     atkName: 'Terremoto', atkDesc: 'levanta los dos puños y golpea el suelo: el terremoto alcanza todas las casillas de alrededor. Daño bajo-medio en las de los lados, arriba y abajo, y daño medio en las diagonales.',
     abilName: 'Gran terremoto', desc: 'Súper (se carga con 5 básicos): un golpe al suelo con salto que hace daño medio-alto a todos los rivales de alrededor y los deja aturdidos 1,5 segundos (sin moverse ni atacar).',
-    lv: ['Desbloquea el súper: Gran terremoto, con aturdimiento de 1,5 segundos.', 'Furia de amatista: si su vida baja del 20%, golpea cada 1 segundo y sus ojos se vuelven morados.', 'El súper hace daño alto.'],
+    lv: ['Desbloquea el súper: Gran terremoto, con aturdimiento de 1,5 segundos.', 'Furia de amatista: si su vida baja del 30%, golpea cada 1 segundo y sus ojos se vuelven morados.', 'El súper hace daño alto.'],
     all: ['pose', 'front', 'back', 'left', 'right', 'iso', 'top', 'bottom'] },
   peipo: { name: 'Peipo', cost: 3, role: 'Luchador', color: '#e8452e', hp: 650, atk: 40, range: 1, as: 0.5, ms: 0.7, abil: 'super', charge: 8,
     atkName: 'Cuchilladas cruzadas', atkDesc: 'golpea muy rápido con su cuchillo de carnicero en golpes cruzados al enemigo de al lado. Daño bajo-medio.',
@@ -908,7 +908,7 @@ function updateUnit(u, dt) {
   if (u.domeT > 0) { u.domeT -= dt; if (u.domeT <= 0) { u.shield = Math.max(0, u.shield - u.domeAmt); u.domeAmt = 0; } }
   if (u.inv > 0) u.inv -= dt;
   if (u.type === 'jaspe' && u.level >= 2) {
-    const fury = u.hp < u.maxHp * .2;
+    const fury = u.hp < u.maxHp * .3;
     if (fury !== !!u.fury) { u.fury = fury; u.as = fury ? 1 * PACE : u.baseAs; u.rig.eyes && u.rig.eyes(fury); if (fury) { floatText(u, '¡Furia de amatista!', 'sup'); burstAt(u.gx, u.gy, .7, '#c77dff', 20, { spd: 1.6, up: 2.2, glow: true }); } }
   }
   if (u.root > 0) u.root -= dt;
