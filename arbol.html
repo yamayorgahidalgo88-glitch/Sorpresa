@@ -37,6 +37,10 @@ header h1{margin:0;font-weight:700;font-size:clamp(26px,7.5vw,42px);letter-spaci
   box-shadow:0 18px 50px rgba(0,0,0,.45);border:3px solid #fff;outline:3px dashed rgba(179,38,45,.55);outline-offset:-10px;
   transform:translateY(16px) scale(.96);transition:transform .35s cubic-bezier(.2,1.3,.4,1)}
 .modal.open .card{transform:none}
+.card{max-height:calc(100dvh - 40px);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y}
+.card .small{font-size:13px;letter-spacing:.5px;text-transform:uppercase;opacity:.65;margin-top:4px}
+#mBody:empty{display:none}
+.count[hidden],#mText[hidden]{display:none}
 .card .lock{font-size:34px;line-height:1}
 .card h2{margin:6px 0 2px;font-size:24px}
 .card p{margin:0 0 16px;font-size:15px;opacity:.8}
@@ -115,8 +119,10 @@ header h1{margin:0;font-weight:700;font-size:clamp(26px,7.5vw,42px);letter-spaci
   <div class="card">
     <button class="x" id="mX" aria-label="Cerrar">×</button>
     <div class="lock" id="mIcon">🔒</div>
+    <div class="small" id="mSmall"></div>
     <h2 id="mTitle"></h2>
     <p id="mText"></p>
+    <div id="mBody"></div>
     <div class="count" id="mCount">
       <div><b id="cD">0</b><span>días</span></div><div><b id="cH">00</b><span>horas</span></div>
       <div><b id="cM">00</b><span>min</span></div><div><b id="cS">00</b><span>seg</span></div>
@@ -134,7 +140,7 @@ header h1{margin:0;font-weight:700;font-size:clamp(26px,7.5vw,42px);letter-spaci
   <div class="card tcard">
     <button class="x" id="tX" aria-label="Cerrar">×</button>
     <div id="tCardTicket"></div>
-    <p class="desc" id="tDesc"></p>
+    <div id="tDesc"></div>
     <div class="row"><button class="redeem" id="tRedeem">CANJEAR</button><button class="close" id="tClose">Cerrar</button></div>
   </div>
 </div>
@@ -498,21 +504,30 @@ function unlockTime(n){
   const d=now();const y=d.getMonth()===0?d.getFullYear()-1:d.getFullYear();   // in January it still counts last December
   return new Date(y,11,n,0,0,1);
 }
+// PREVIEW_ALL: every house open whatever the date (to check the contents). ?bloqueado shows the countdown instead.
+const PREVIEW_ALL=true;
+const QS=new URLSearchParams(location.search);
+const FORCE_OPEN=PREVIEW_ALL&&!QS.has('bloqueado');
+const leftMs=n=>FORCE_OPEN?0:unlockTime(n)-now();
+const {TICKETS}=await import('./tickets.js');
+const {renderContent,resetProgress}=await import('./contenido.js');
 const modal=document.getElementById('modal'),$=id=>document.getElementById(id);
 let openN=null,tick=null;
 function render(){
-  const n=openN,left=unlockTime(n)-now();
+  const n=openN,left=leftMs(n),T=TICKETS[n-1];
+  $('mTitle').textContent=T.titulo;
   if(left<=0){
-    $('mIcon').textContent='🎁';$('mTitle').textContent=n===24?'¡Casita 24 abierta!':`¡Casita ${n} abierta!`;
-    $('mText').textContent='Tienes un ticket esperándote';$('mCount').hidden=true;$('mTicket').hidden=false;clearInterval(tick);return;
+    $('mIcon').textContent='🎁';$('mSmall').textContent=`Casita ${n}`;$('mText').textContent='';$('mText').hidden=true;
+    $('mCount').hidden=true;$('mTicket').hidden=false;clearInterval(tick);renderContent(n,$('mBody'));return;
   }
+  $('mBody').innerHTML='';$('mText').hidden=false;
   const s=Math.ceil(left/1000),d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60),ss=s%60;
-  $('mIcon').textContent='🔒';$('mTitle').textContent=n===24?'Casita 24 · Nochebuena':`Casita ${n}`;
-  $('mText').textContent=`Se abre el ${n} de diciembre. Faltan:`;$('mCount').hidden=false;$('mTicket').hidden=true;
+  $('mIcon').textContent='🔒';$('mSmall').textContent=`Casita ${n} · se abre el ${n} de diciembre`;
+  $('mText').textContent='Faltan:';$('mCount').hidden=false;$('mTicket').hidden=true;
   $('cD').textContent=d;$('cH').textContent=String(h).padStart(2,'0');$('cM').textContent=String(m).padStart(2,'0');$('cS').textContent=String(ss).padStart(2,'0');
 }
 let openedAt=0;
-function openDay(n){openedAt=performance.now();pressedInModal=false;openN=n;render();clearInterval(tick);tick=setInterval(render,250);modal.classList.add('open')}
+function openDay(n){openedAt=performance.now();pressedInModal=false;openN=n;clearInterval(tick);render();if(leftMs(n)>0)tick=setInterval(render,250);modal.classList.add('open')}
 function closeDay(){modal.classList.remove('open');clearInterval(tick)}
 // only a touch that STARTS on the box can close it (the phone sends a late 'click' for the tap that opened it)
 let pressedInModal=false;
@@ -523,19 +538,18 @@ modal.addEventListener('click',e=>{if(e.target===modal)closeIfReal();else if(!e.
 addEventListener('keydown',e=>{if(e.key==='Escape')closeDay()});
 
 /* ---------- tickets ---------- */
-const {TICKETS}=await import('./tickets.js');
 const KEY='canjeados-v1';
 const load=()=>{try{return new Set(JSON.parse(localStorage.getItem(KEY)||'[]'))}catch{return new Set()}};
 const save=set=>{try{localStorage.setItem(KEY,JSON.stringify([...set]))}catch{}};
 let done=load();
-const unlocked=n=>unlockTime(n)-now()<=0;
+const unlocked=n=>leftMs(n)<=0;
 const tScreen=$('tScreen'),tList=$('tList'),tModal=$('tModal');
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function ticketHTML(n,tag='button'){
   const T=TICKETS[n-1],open=unlocked(n);
   const sub=!open?`🔒 Se desbloquea el ${n} de diciembre`:done.has(n)?'✓ Canjeado':'Toca para ver los detalles';
   return `<${tag} class="ticket${open?'':' locked'}${done.has(n)?' done':''}" data-n="${n}"><span class="n">${n}</span>
-    <span><span class="t">${open?esc(T.titulo):'Ticket sorpresa'}</span><span class="s">${sub}</span></span></${tag}>`;
+    <span><span class="t">${esc(T.titulo)}</span><span class="s">${sub}</span></span></${tag}>`;
 }
 function redeemBtn(n){
   if(!unlocked(n))return '';
@@ -553,7 +567,7 @@ function tryRedeem(btn,n){
 let tOpenN=null,tOpenedAt=0;
 function showTicket(n){
   tOpenN=n;$('tCardTicket').innerHTML=ticketHTML(n,'div');
-  $('tDesc').textContent=unlocked(n)?TICKETS[n-1].texto:`Este ticket se desbloquea el ${n} de diciembre. ¡Paciencia! 🎄`;
+  if(unlocked(n))renderContent(n,$('tDesc'));else $('tDesc').innerHTML=`<p class="desc">Este ticket se desbloquea el ${n} de diciembre. ¡Paciencia! 🎄</p>`;
   const r=$('tRedeem');r.hidden=!unlocked(n);r.className='redeem'+(done.has(n)?' done':'');r.disabled=done.has(n);r.textContent=done.has(n)?'✓ CANJEADO':'CANJEAR';
   if(!tModal.classList.contains('open')){tOpenedAt=performance.now();tModal.classList.add('open')}
 }
@@ -571,7 +585,7 @@ $('tBack').onclick=()=>tScreen.classList.remove('open');
 // from an opened house straight to its ticket
 $('mTicket').onclick=()=>{const n=openN;closeDay();openTickets();setTimeout(()=>showTicket(n),300)};
 // ?reiniciar  -> clears the redeemed tickets on this phone (for testing)
-if(new URLSearchParams(location.search).has('reiniciar')){done=new Set();save(done)}
+if(QS.has('reiniciar')){done=new Set();save(done);resetProgress()}
 
 /* ---------- loop ---------- */
 const clock=new THREE.Clock();
