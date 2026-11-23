@@ -112,4 +112,4 @@ export const TICKETS = [
 ];
 
 // Días que se pueden elegir en los calendarios (vacaciones de Navidad)
-export const VACACIONES = {desde: '2026-12-22', hasta: '2027-01-07'};
+export const VACACIONES = {desde: '2026-12-18', hasta: '2027-01-07'};
