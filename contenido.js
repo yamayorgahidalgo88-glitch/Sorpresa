@@ -190,7 +190,7 @@ const css = `
 .game{text-align:center;padding:16px 12px;border-radius:14px;background:#13261c;color:#fff3d6;display:flex;flex-direction:column;align-items:center;gap:10px}
 .game-art{font-size:44px}.game p{margin:0;line-height:1.45}.game small{opacity:.6;font-size:11px}
 .swipe{display:flex;flex-direction:column;align-items:center;gap:12px}
-.sw-stack{position:relative;width:min(100%,250px);aspect-ratio:3/4}
+.sw-stack{position:relative;width:min(100%,240px,34dvh);aspect-ratio:3/4}
 .sw-card{position:absolute;inset:0;border-radius:18px;background:linear-gradient(#fff8e6,#f3dfb0);box-shadow:0 8px 20px rgba(0,0,0,.25),inset 0 0 0 3px #e2b54a;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;touch-action:none;transition:transform .26s ease,opacity .26s;user-select:none}
 .sw-pic{font-size:64px}.sw-card b{font-size:20px;color:#1f4d33}.sw-card small{color:#8a7a5a}
