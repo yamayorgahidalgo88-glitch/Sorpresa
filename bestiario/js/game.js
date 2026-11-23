@@ -56,6 +56,11 @@ const CHARS = {
     abilName: 'Furia fantasma', desc: 'No tiene súper. Cada vez que cae un aliado, entra en furia y el daño de su básico sube un 10%. La furia se reinicia en cada ronda.',
     lv: ['Furia fantasma: +10% de daño del básico por cada aliado derrotado en la ronda.', 'El disparo llega a 2 casillas de fondo.', 'La furia sube un 15% por cada aliado derrotado.'],
     all: ['pose', 'front', 'back', 'left', 'right', 'iso', 'top', 'bottom'] },
+  jaspe: { name: 'Jaspe', cost: 4, role: 'Tanque', color: '#9b5cf0', hp: 900, atk: 40, range: 1, as: 1.3, ms: 0.85, abil: 'super', charge: 5,
+    atkName: 'Terremoto', atkDesc: 'levanta los dos puños y golpea el suelo: el terremoto alcanza todas las casillas de alrededor. Daño bajo-medio en las de los lados, arriba y abajo, y daño medio en las diagonales.',
+    abilName: 'Gran terremoto', desc: 'Súper (se carga con 5 básicos): un golpe al suelo con salto que hace daño medio-alto a todos los rivales de alrededor y los deja aturdidos 1,5 segundos (sin moverse ni atacar).',
+    lv: ['Desbloquea el súper: Gran terremoto, con aturdimiento de 1,5 segundos.', 'Furia de amatista: si su vida baja del 20%, golpea cada 1 segundo y sus ojos se vuelven morados.', 'El súper hace daño alto.'],
+    all: ['pose', 'front', 'back', 'left', 'right', 'iso', 'top', 'bottom'] },
   peipo: { name: 'Peipo', cost: 3, role: 'Luchador', color: '#e8452e', hp: 650, atk: 40, range: 1, as: 0.5, ms: 0.7, abil: 'super', charge: 8,
     atkName: 'Cuchilladas cruzadas', atkDesc: 'golpea muy rápido con su cuchillo de carnicero en golpes cruzados al enemigo de al lado. Daño bajo-medio.',
     abilName: 'Postre estrella', desc: 'Súper (se carga con 8 básicos): lanza el postre explosivo de su otra mano. Explota en cruz (la casilla donde cae y las 4 de alrededor) con daño medio y deja un charco pringoso 1,5 segundos: los enemigos atrapados no pueden moverse ni atacar.',
@@ -259,7 +264,7 @@ function removeUnit(u) {
 function stats(u) {
   const m = LVL_MULT[u.level];
   u.maxHp = u.def.fixedHp ? u.def.hp : Math.round(u.def.hp * m); u.atk = Math.round(u.def.atk * m);   // los ciervos de Wyrex caen de un golpe
-  u.range = rangeOf(u.type, u.level); u.as = (u.type === 'peipo' && u.level >= 2 ? .4 : u.def.as) * PACE; u.ms = u.def.ms * MOVE_PACE;
+  u.range = rangeOf(u.type, u.level); u.as = (u.type === 'peipo' && u.level >= 2 ? .4 : u.def.as) * PACE; u.baseAs = u.as; u.ms = u.def.ms * MOVE_PACE;
   if (G.state !== 'fight') u.hp = u.maxHp;
 }
 
@@ -840,7 +845,7 @@ function aiPlan() {
 /* =========================================================
    COMBATE
    ========================================================= */
-const newSim = () => ({ t: 0, events: [], proj: [], domes: [], beams: [], zones: [], vfx: [] });
+const newSim = () => ({ t: 0, events: [], proj: [], domes: [], beams: [], zones: [], vfx: [], quakes: [] });
 const fwd = u => u.team === 'p' ? 1 : -1;
 const vfx = o => sim.vfx.push({ t: 0, dur: .6, ...o });
 let occ = new Map(), sim = newSim(), timers = [];
@@ -902,6 +907,10 @@ function targetInRange(u) {
 function updateUnit(u, dt) {
   if (u.domeT > 0) { u.domeT -= dt; if (u.domeT <= 0) { u.shield = Math.max(0, u.shield - u.domeAmt); u.domeAmt = 0; } }
   if (u.inv > 0) u.inv -= dt;
+  if (u.type === 'jaspe' && u.level >= 2) {
+    const fury = u.hp < u.maxHp * .2;
+    if (fury !== !!u.fury) { u.fury = fury; u.as = fury ? 1 * PACE : u.baseAs; u.rig.eyes && u.rig.eyes(fury); if (fury) { floatText(u, '¡Furia de amatista!', 'sup'); burstAt(u.gx, u.gy, .7, '#c77dff', 20, { spd: 1.6, up: 2.2, glow: true }); } }
+  }
   if (u.root > 0) u.root -= dt;
   if (u.stun > 0) { u.stun -= dt; return; }
   if (u.goo > 0) { u.goo -= dt; return; }   // pegado en el charco de Peipo: ni se mueve ni ataca
@@ -1149,7 +1158,7 @@ function drawStatus(time) {
       const sw = ((time * 1.6) % 1) * 2 - .5; fx.fillStyle = 'rgba(255,255,255,.22)'; fx.beginPath(); fx.moveTo(cx - rx + rx * 2 * sw, cy - ry); fx.lineTo(cx - rx + rx * 2 * sw + rx * .35, cy - ry); fx.lineTo(cx - rx + rx * 2 * sw - rx * .2, cy + ry); fx.lineTo(cx - rx + rx * 2 * sw - rx * .55, cy + ry); fx.fill();
       fx.restore(); fx.strokeStyle = 'rgba(255,240,190,.95)'; fx.lineWidth = 2.5; fx.beginPath(); fx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); fx.stroke(); fx.restore();
     }
-    if (u.rage > 0 || u.glow) {   // furia morada de Jess / raíces radiantes de Sevora
+    if (u.rage > 0 || u.glow || u.fury) {   // furia morada de Jess / raíces radiantes de Sevora / furia de amatista de Jaspe
       const c = u.glow ? '182,255,46' : '190,110,255', pul = .75 + Math.sin(time * 8) * .2;
       fx.save(); fx.globalCompositeOperation = 'lighter';
       const g = fx.createRadialGradient(cx, cy, 0, cx, cy, u.dw * .8); g.addColorStop(0, `rgba(${c},${.28 * pul})`); g.addColorStop(1, `rgba(${c},0)`);
@@ -1163,6 +1172,12 @@ function drawStatus(time) {
       fx.fillStyle = 'rgba(225,245,255,.95)'; for (let i = 0; i < 5; i++) { const an = time * 1.5 + i * 1.256; fx.beginPath(); fx.arc(cx + Math.cos(an) * u.dw * .45, cy + Math.sin(an * 1.3 + i) * h * .35, 2.2, 0, Math.PI * 2); fx.fill(); }
       fx.restore();
     }
+    if (u.stun > 0 && u.stunKind === 'daze') {
+      fx.save(); for (let i = 0; i < 4; i++) { const an = time * 5 + i * 1.571, px = cx + Math.cos(an) * u.dw * .42, py = u.top + h * .08 + Math.sin(an) * h * .07, r = u.dw * .09;
+        fx.fillStyle = i % 2 ? '#ffe46a' : '#d9a8ff'; fx.strokeStyle = '#2a1640'; fx.lineWidth = 1.5; fx.beginPath();
+        for (let k = 0; k < 10; k++) { const a2 = k * Math.PI / 5 - Math.PI / 2, rr = k % 2 ? r * .45 : r; fx.lineTo(px + Math.cos(a2) * rr, py + Math.sin(a2) * rr); } fx.closePath(); fx.fill(); fx.stroke(); }
+      fx.restore();
+    }
     if (u.stun > 0 && u.stunKind === 'para') {
       fx.save(); fx.globalCompositeOperation = 'lighter'; fx.strokeStyle = 'rgba(255,235,90,.95)'; fx.lineWidth = 2.5; fx.lineJoin = 'round';
       for (let i = 0; i < 3; i++) { const an = time * 6 + i * 2.094, px = cx + Math.cos(an) * u.dw * .42, py = u.top + h * .12 + Math.sin(an) * h * .08, z = u.dw * .12; fx.beginPath(); fx.moveTo(px - z, py - z); fx.lineTo(px + z * .2, py - z * .1); fx.lineTo(px - z * .2, py + z * .1); fx.lineTo(px + z, py + z); fx.stroke(); }
@@ -1172,7 +1187,7 @@ function drawStatus(time) {
 }
 function drawFrozen() {
   for (const u of units) {
-    if (!(u.stun > 0 && u.alive) || u.stunKind === 'para') continue;
+    if (!(u.stun > 0 && u.alive) || u.stunKind === 'para' || u.stunKind === 'daze') continue;
     const h = u.sy - u.top, w = u.dw * .95;
     fx.save(); fx.globalAlpha = .55; fx.fillStyle = '#a8dcff'; fx.strokeStyle = '#fff'; fx.lineWidth = 2;
     fx.beginPath(); fx.roundRect(u.sx - w / 2, u.top + h * .08, w, h * .98, 8); fx.fill(); fx.globalAlpha = .9; fx.stroke(); fx.restore();
@@ -1325,10 +1340,33 @@ function vineBite(u, t) {
     });
   });
 }
+// Jaspe: golpe al suelo; terremoto en las 8 casillas de alrededor
+function quake(u, big, o = {}) {
+  const A = o.A ?? u.atk, L = o.L ?? u.level;
+  u.rig.play(big ? 'super' : 'attack');
+  schedule(big ? .3 : .25, () => {
+    if (!u.alive) return;
+    const cx = u.c, cy = u.r;
+    sim.quakes.push({ gx: cx + .5, gy: cy + .5, t0: sim.t, t: 0, dur: big ? 1 : .75, big });
+    shake = Math.max(shake, big ? 9 : 5); sfx.boom();
+    burstAt(cx + .5, cy + .5, .05, '#b98cff', big ? 30 : 16, { spd: big ? 3.5 : 2.4, up: 1.8, glow: true });
+    burstAt(cx + .5, cy + .5, .05, '#6a5a80', big ? 18 : 10, { spd: 2.6, up: 2.4, size: .08 });
+    let hit = false;
+    for (const v of enemiesOf(u)) {
+      const dc = Math.abs(v.c - cx), dr = Math.abs(v.r - cy); if (Math.max(dc, dr) !== 1) continue;
+      hit = true;
+      if (big) { damage(v, A * (L >= 3 ? 2.5 : 1.875), u, 'big'); if (v.alive) { v.stun = 1.5 * (o.P || 1); v.stunKind = 'daze'; floatText(v, '¡Aturdido!', 'sup'); } }
+      else damage(v, A * (dc && dr ? 1.375 : 1), u);
+      v.lunge = .25; v.lungeAmp = -.12; v.faceT = v.faceT || u;
+    }
+    if (!big && hit) charge(u);
+  });
+}
 function attack(u, t) {
   if (u.def.abil === 'super' && !u.def.charge) u.energy = Math.min(100, u.energy + 22);
   u.rig.play('attack');
   if (u.type === 'ogul') return laser(u, t);
+  if (u.type === 'jaspe') return quake(u, false);
   if (u.type === 'jess') return pellets(u, t);
   if (u.type === 'sevora') return vineBite(u, t);
   if (u.type === 'osko') return bone(u, t);
@@ -1416,6 +1454,8 @@ function doSuper(u, t, cp = null) {
       for (const v of enemiesOf(u)) if (tiles.some(q => q.c === v.c && q.r === v.r)) { damage(v, A * 1.36, u, 'big'); burstAt(v.gx, v.gy, .5, '#45f5cf', 14, { spd: 2.5, up: 1.6, glow: true }); }
       sfx.boom(); shake = Math.max(shake, 6);
     });
+  } else if (T === 'jaspe') {
+    quake(u, true, { A, L, P });
   } else if (T === 'peipo') {
     // postre estrella: bomba 3D en bombeo hasta la casilla del objetivo; explota en cruz y deja un charco pringoso
     const tc = t.c, tr = t.r, ox = u.gx, oy = u.gy, tx = tc + .5, ty = tr + .5, flight = .55 + Math.hypot(tx - ox, ty - oy) * .06;
@@ -1491,7 +1531,7 @@ function combatStep(dt) {
   }
 }
 function endRound(w) {
-  G.state = 'result'; G.score[w]++; G.lastLoser = w === 'p' ? 'e' : 'p'; dropAllMeshes(); sim.proj = []; sim.domes = []; sim.beams = []; sim.zones = []; sim.vfx = []; sim.vfx = []; sim.events = [];
+  G.state = 'result'; G.score[w]++; G.lastLoser = w === 'p' ? 'e' : 'p'; dropAllMeshes(); sim.proj = []; sim.domes = []; sim.beams = []; sim.zones = []; sim.vfx = []; sim.quakes = []; sim.vfx = []; sim.events = [];
   banner(w === 'p' ? '¡Ronda ganada!' : 'Ronda perdida', w === 'p' ? 'win' : 'lose'); (w === 'p' ? sfx.win : sfx.lose)();
   for (const u of units) { u.move = null; if (u.alive && u.team === w) u.cheer = 2; }
   hint(w === 'p' ? '¡Bien hecho! El perdedor recibe más elíxir: ¡prepárate!' : 'Recibes 9 de elíxir para remontar');
@@ -1536,6 +1576,16 @@ function quad(c0, r0, c1, r1) {
   ctx.beginPath(); ctx.moveTo(...p[0]); for (let i = 1; i < 4; i++) ctx.lineTo(...p[i]); ctx.closePath();
 }
 // charco de caramelo pringoso de Peipo (estilo de la imagen: brillante, naranja, con gotas)
+function drawQuakes() {
+  for (const q of sim.quakes) {
+    q.t = sim.t - q.t0;
+    const k = q.t / q.dur, pop = Math.min(1, q.t / .08), a = Math.min(1, (1 - k) / .35);
+    if (!IMG.quake || a <= 0) continue;
+    const [x, y] = gridToScreen(q.gx, q.gy), tw = tileW(q.gy), w = tw * 3.15 * (.85 + .15 * pop) * (q.big ? 1.08 : 1), h = w * .62;
+    ctx.save(); ctx.globalAlpha = a; ctx.translate(x, y + Math.sin(q.t * 70) * (1 - k) * 2); ctx.drawImage(IMG.quake, -w / 2, -h / 2, w, h); ctx.restore();
+  }
+  sim.quakes = sim.quakes.filter(q => q.t < q.dur);
+}
 function drawGoo() {
   for (const z of sim.zones) {
     if (z.kind !== 'goo') continue;
@@ -1584,7 +1634,7 @@ function drawBoard() {
     ctx.fillStyle = hv ? (ok ? 'rgba(255,255,180,.5)' : 'rgba(255,60,60,.45)') : 'rgba(255,255,255,.14)';
     quad(c + .04, r + .04, c + .96, r + .96); ctx.fill();
   }
-  drawGoo();
+  drawGoo(); drawQuakes();
   // marca de equipo en el suelo, discreta (el color fuerte va en la barra de vida)
   for (const u of units) {
     if (u.dying > 0 || u.summon) continue;
@@ -1689,6 +1739,7 @@ function loop(now) {
 }
 addEventListener('resize', () => { if (G.screen === 'battle') layout(); });
 
+load('assets/jaspe_terremoto.webp').then(i => { IMG.quake = i; }).catch(() => {});
 load(BOARD.src).then(i => {
   IMG.board = i; initBattle3D(); initStage();
   show('home'); requestAnimationFrame(loop);
@@ -1697,4 +1748,4 @@ load(BOARD.src).then(i => {
 }).catch(e => { $('#loading .ltxt').textContent = 'Error al cargar: ' + e; console.error(e); });
 
 // gancho para pruebas automáticas
-window.__game = { G, B3, createProp, units: () => units, createUnit, upgrade, sim: () => sim, buy, reroll, startFight, setSpeed: s => { G.speed = s; }, openDetail, setAnim };
+window.__game = { G, B3, ST, createProp, units: () => units, createUnit, upgrade, sim: () => sim, buy, reroll, startFight, setSpeed: s => { G.speed = s; }, openDetail, setAnim };

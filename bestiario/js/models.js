@@ -1049,9 +1049,18 @@ function createStatic(type) {
 }
 /* ---------------- modelos con esqueleto y animaciones (Meshy + Blender) ---------------- */
 // Cada .glb trae los clips: idle, walk, attack, super y cheer.
-const SKIN = { bushi: { file: 'bushi_anim', h: 1.2 }, pomona: { file: 'pomona_anim', h: 1.25 }, osko: { file: 'wyrex_anim', h: 1.25 }, bolab: { file: 'bolab_anim', h: 1.15, tongue: { file: 'bolab_lengua', origin: [0, .3, .4], width: .8 }, alt: { file: 'bolab_boca_anim', scale: .88 } }, peipo: { file: 'peipo_anim', h: 1.25, prop: 'bomb' }, sevora: { file: 'sevora_anim', h: 1.25, plant: { bone: 'plant' } } };
+const SKIN = { bushi: { file: 'bushi_anim', h: 1.2 }, pomona: { file: 'pomona_anim', h: 1.25 }, osko: { file: 'wyrex_anim', h: 1.25 }, bolab: { file: 'bolab_anim', h: 1.15, tongue: { file: 'bolab_lengua', origin: [0, .3, .4], width: .8 }, alt: { file: 'bolab_boca_anim', scale: .88 } }, peipo: { file: 'peipo_anim', h: 1.25, prop: 'bomb' }, jaspe: { file: 'jaspe_anim', h: 1.3, eyes: true }, sevora: { file: 'sevora_anim', h: 1.25, plant: { bone: 'plant' } } };
 const _skin = {};
 const loadSkin = type => _skin[type] || (_skin[type] = new Promise((res, rej) => _loader.load(`assets/models/${SKIN[type].file}.glb`, res, undefined, rej)));
+const _eyeTex = new Map();
+function eyeTexture(tex) {   // amarillo intenso → morado brillante
+  if (_eyeTex.has(tex)) return _eyeTex.get(tex);
+  const img = tex.image, c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+  const x = c.getContext('2d'); x.drawImage(img, 0, 0); const d = x.getImageData(0, 0, c.width, c.height), p = d.data;
+  for (let i = 0; i < p.length; i += 4) { const r = p[i], g = p[i + 1], b = p[i + 2]; if (r > 170 && g > 150 && b < 120 && r - b > 90) { const k = (r + g) / 510; p[i] = 175 * k + 20; p[i + 1] = 55 * k; p[i + 2] = 255; } }
+  x.putImageData(d, 0, 0); const t = new THREE.CanvasTexture(c); t.flipY = tex.flipY; t.colorSpace = tex.colorSpace; t.wrapS = tex.wrapS; t.wrapT = tex.wrapT; t.needsUpdate = true;
+  _eyeTex.set(tex, t); return t;
+}
 function createSkinned(type) {
   const cfg = SKIN[type], root = new THREE.Group(), all = new THREE.Group(); root.add(all);
   const mats = [], acts = {}, tintC = new THREE.Color(1, 1, 1); let mixer = null, plant = null, tongue = null, alt = null;
@@ -1071,6 +1080,8 @@ function createSkinned(type) {
     // lengua de Bolab: sale de la boca hasta el objetivo (fn da su posición en el mundo; null = hacia delante)
     tongueTo(fn) { if (tongue) { tongue.t = 0; tongue.target = fn; } },
     tint(r, g, b) { tintC.setRGB(r, g, b); this.flashK = -1; this.flash(0); },
+    // ojos de otro color (Jaspe en furia): cambia a una copia de la textura con los ojos amarillos teñidos de morado
+    eyes(on) { this.eyesOn = on; mats.forEach(mt => { const alt = mt.userData.eyeMap; if (alt) { mt.map = on ? alt : mt.userData.baseMap; mt.needsUpdate = true; } }); },
     flash(k) {
       if (k === this.flashK) return; this.flashK = k;
       mats.forEach(m => m.color.copy(tintC).multiplyScalar(1 + k * 1.6));
@@ -1099,7 +1110,8 @@ function createSkinned(type) {
   };
   loadSkin(type).then(g => {
     const sc = cloneSkinned(g.scene);
-    sc.traverse(ob => { if (ob.isMesh) { ob.material = new THREE.MeshBasicMaterial({ map: ob.material.map }); mats.push(ob.material); ob.castShadow = true; ob.frustumCulled = false; } });
+    sc.traverse(ob => { if (ob.isMesh) { ob.material = new THREE.MeshBasicMaterial({ map: ob.material.map }); mats.push(ob.material); ob.castShadow = true; ob.frustumCulled = false;
+      if (cfg.eyes && ob.material.map) { const mt = ob.material; mt.userData.baseMap = mt.map; mt.userData.eyeMap = eyeTexture(mt.map); } } });
     sc.scale.setScalar(cfg.h); all.add(sc); rig.mainSc = sc; if (cfg.prop) rig.propBone = sc.getObjectByName(cfg.prop);
     if (cfg.alt) _loader.load(`assets/models/${cfg.alt.file}.glb`, ga => {
       const s2 = cloneSkinned(ga.scene); s2.traverse(ob => { if (ob.isMesh) { ob.material = new THREE.MeshBasicMaterial({ map: ob.material.map }); mats.push(ob.material); ob.frustumCulled = false; } });
