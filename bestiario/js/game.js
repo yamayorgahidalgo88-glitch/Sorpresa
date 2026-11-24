@@ -37,7 +37,7 @@ const CHARS = {
     lv: ['Desbloquea el súper: trae a su lado al rival con menos vida y le da un puñetazo de daño medio-alto.', 'Los básicos pasan a hacer daño medio-alto.', 'El portal quita además un 10% de la vida del rival antes del golpe.'],
     all: ['pose', 'front', 'back', 'left', 'right', 'iso', 'top', 'bottom'] },
   tanko: { name: 'Mory', cost: 4, role: 'Artillero', color: '#7d86c8', hp: 850, atk: 100, range: 4, fwd: true, as: 1.25, ms: 0.9, abil: 'clash', sheet: true,
-    atkName: 'Cañonazo', atkDesc: 'dispara una bala de cañón hacia delante, hasta 4 casillas. Daño alto. No atraviesa.',
+    atkName: 'Cañonazo', atkDesc: 'dispara una bala de cañón hacia delante (en línea recta o en diagonal), hasta 4 casillas. Daño alto. No atraviesa.',
     abilName: 'Cubo de hielo', desc: 'No tiene súper. Al empezar cada ronda lanza un cubo de hielo hacia delante que avanza hasta dar a alguien o salir del tablero, y ralentiza 2 segundos al enemigo golpeado. Daño muy bajo.',
     lv: ['Cubo de hielo al empezar la ronda: ralentiza 2 segundos al enemigo que golpee.', 'El cubo congela 1 segundo y después ralentiza 2 segundos.', 'El hielo también ralentiza 2 segundos a los enemigos cercanos (sin daño).'],
     all: ['pose', 'front', 'back', 'left', 'right', 'iso', 'top', 'bottom'] },
@@ -898,7 +898,7 @@ const inRange = (u, v, c = u.c, r = u.r) => {
   const dc = Math.abs(v.c - c), dr = Math.abs(v.r - r);
   if (u.def.front3) return u.slid ? Math.max(dc, dr) === 1 : dc <= 1 && (v.r - r) * fwd(u) === 1;   // la de enfrente y las esquinas de delante; tras la deslizada, cualquiera a su lado
   if (u.def.cone) return dc <= 1 && dr >= 1 && dr <= u.range;   // fila(s) de delante o de detrás, 3 de ancho
-  if (u.def.fwd) return dc === 0 && dr >= 1 && dr <= u.range && ((v.r - r) * fwd(u) > 0 || u.anyDir);   // solo en línea recta hacia delante
+  if (u.def.fwd) return (dc === 0 || dc === dr) && dr >= 1 && dr <= u.range && ((v.r - r) * fwd(u) > 0 || u.anyDir);   // hacia delante: en línea recta o en diagonal
   return u.def.ortho ? (dc === 0 || dr === 0) && dc + dr <= u.range : Math.max(dc, dr) <= u.range;
 };
 function nextStep(u) {
