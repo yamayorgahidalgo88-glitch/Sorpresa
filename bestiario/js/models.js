@@ -1049,7 +1049,7 @@ function createStatic(type) {
 }
 /* ---------------- modelos con esqueleto y animaciones (Meshy + Blender) ---------------- */
 // Cada .glb trae los clips: idle, walk, attack, super y cheer.
-const SKIN = { bushi: { file: 'bushi_anim', h: 1.2 }, pomona: { file: 'pomona_anim', h: 1.25 }, osko: { file: 'wyrex_anim', h: 1.25 }, bolab: { file: 'bolab_anim', h: 1.15, tongue: { file: 'bolab_lengua', origin: [0, .3, .4], width: .8 }, alt: { file: 'bolab_boca_anim', scale: .88 } }, peipo: { file: 'peipo_anim', h: 1.25, prop: 'bomb' }, jaspe: { file: 'jaspe_anim', h: 1.3, eyes: true }, ayew: { file: 'ayew_anim', h: 1.25, feet: { file: 'ayew_pelota', size: .19, pos: [.17, .095, .16] } }, paira: { file: 'paira_anim', h: 1.2, grip: { file: 'paira_bate', bone: 'handR', size: .74, grip: .2, fist: [-.2075, .315, -.12] } }, sevora: { file: 'sevora_anim', h: 1.25, plant: { bone: 'plant' } } };
+const SKIN = { bushi: { file: 'bushi_anim', h: 1.2 }, pomona: { file: 'pomona_anim', h: 1.25 }, osko: { file: 'wyrex_anim', h: 1.25 }, bolab: { file: 'bolab_anim', h: 1.15, tongue: { file: 'bolab_lengua', origin: [0, .3, .4], width: .8 }, alt: { file: 'bolab_boca_anim', scale: .88 } }, peipo: { file: 'peipo_anim', h: 1.25, prop: 'bomb' }, jaspe: { file: 'jaspe_anim', h: 1.3, eyes: true }, ayew: { file: 'ayew_anim', h: 1.25, feet: { file: 'ayew_pelota', size: .19, pos: [.325, .076, .045] } }, paira: { file: 'paira_anim', h: 1.2, grip: { file: 'paira_bate', bone: 'handR', size: 1.2, grip: .19, fist: [-.28, .58, .06], rest: [.86, .445, -.27] } }, sevora: { file: 'sevora_anim', h: 1.25, plant: { bone: 'plant' } } };
 const _skin = {};
 const loadSkin = type => _skin[type] || (_skin[type] = new Promise((res, rej) => _loader.load(`assets/models/${SKIN[type].file}.glb`, res, undefined, rej)));
 const _eyeTex = new Map();
@@ -1122,7 +1122,7 @@ function createSkinned(type) {
       bat.position.y = -G.grip * G.size; pivot.add(bat); all.add(pivot);
       sc.updateWorldMatrix(true, true);
       const fistLocal = bone ? bone.worldToLocal(sc.localToWorld(new THREE.Vector3(...G.fist))) : null;
-      rig.grip = { pivot, bone, fistLocal, t: -1, dir: 1 };
+      rig.grip = { pivot, bone, fistLocal, t: -1, dir: 1, rest: G.rest || [-.32, 1, .18] };
     }
     if (cfg.feet) {   // objeto a los pies (el balón de Ayew)
       const f = createProp(cfg.feet.file, cfg.feet.size); f.position.set(...cfg.feet.pos.map(v => v * cfg.h)); all.add(f); rig.feet = f;
@@ -1155,12 +1155,12 @@ function createSkinned(type) {
     if (!G.bone) return;
     G.pivot.position.copy(all.worldToLocal(G.bone.localToWorld(G.fistLocal.clone())));
     // dirección del bate (en el espacio del personaje: x = su izquierda, z = delante)
-    const rest = [-.32, 1, .18];   // en reposo: de pie, un poco hacia fuera y hacia delante
+    const rest = G.rest;   // en reposo (Paira: al hombro, hacia atrás por su izquierda)
     let d = rest;
     if (G.t >= 0) {
       G.t += dt; const t = G.t, s = G.dir;   // s = 1: barre hacia su izquierda
       const sweep = th => [Math.sin(th) , .18, Math.cos(th)];
-      const a0 = -s * 1.95, a1 = s * 1.25;   // de atrás-derecha a delante-izquierda
+      const a0 = s > 0 ? -1.95 : Math.atan2(rest[0], rest[2]), a1 = s > 0 ? 1.25 : -1.25;   // s=1: barre hacia su izquierda; s=-1: desde el hombro hacia su derecha
       const lerp = (p, q, k) => p.map((v, i) => v + (q[i] - v) * k), ease = k => k * k * (3 - 2 * k);
       if (t < .08) d = lerp(rest, sweep(a0), ease(t / .08));
       else if (t < .2) d = sweep(a0 + (a1 - a0) * ease((t - .08) / .12));
