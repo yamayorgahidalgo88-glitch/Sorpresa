@@ -76,6 +76,11 @@ const CHARS = {
     abilName: 'Postre estrella', desc: 'Súper (se carga con 8 básicos): lanza el postre explosivo de su otra mano. Explota en cruz (la casilla donde cae y las 4 de alrededor) con daño medio y deja un charco pringoso 1,5 segundos: los enemigos atrapados no pueden moverse ni atacar.',
     lv: ['Desbloquea el súper: Postre estrella, explosión en cruz y charco pringoso.', 'El básico se recarga en 0,4 segundos.', 'El charco pringoso hace daño bajo cada 0,75 segundos a quien esté dentro.'],
     all: ['pose', 'front', 'back', 'left', 'right', 'iso', 'top', 'bottom'] },
+  orion: { name: 'Orión', cost: 2, role: 'Lanzador', color: '#a46bff', hp: 560, atk: 6, range: 3, ortho: true, as: 0.4, ms: 0.7, abil: 'super', charge: 23,
+    atkName: 'Ráfaga de rocas', atkDesc: 'lanza hacia delante una ráfaga de 5 de las rocas que flotan a su alrededor, hasta 3 casillas en línea recta (nunca en diagonal). Daño bajo por roca. Se recarga en 0,4 segundos.',
+    abilName: 'Dardo paralizante', desc: 'Súper (se carga con 23 impactos de roca): lanza un dardo que atraviesa a todos los rivales en línea recta hasta 5 casillas. Daño bajo, pero los deja paralizados 1,5 segundos.',
+    lv: ['Desbloquea el súper: Dardo paralizante, que perfora y paraliza 1,5 segundos.', 'La ráfaga lanza 8 rocas.', 'El básico se recarga en 0,25 segundos.'],
+    all: ['pose', 'front', 'back', 'left', 'right', 'iso', 'top', 'bottom'] },
   sevora: { name: 'Sevora', cost: 5, role: 'Imitadora', color: '#8fd23a', hp: 560, atk: 55, range: 2, as: 0.9, ms: 0.75, abil: 'super', charge: 6, sheet: true,
     atkName: 'Mordida de raíz', atkDesc: 'la planta carnívora de su brazo se estira con su raíz y muerde a 2 casillas. Daño medio.',
     abilName: 'Mordida radiante', desc: 'Súper (se carga con 6 básicos): sus raíces brillan en verde hasta su siguiente mordisco. Al rival que muerda le copia el súper, un 5% más fuerte, y lo lanza en cuanto vuelve la planta.',
@@ -275,7 +280,7 @@ function removeUnit(u) {
 function stats(u) {
   const m = LVL_MULT[u.level];
   u.maxHp = u.def.fixedHp ? u.def.hp : Math.round(u.def.hp * m); u.atk = Math.round(u.def.atk * m);   // los ciervos de Wyrex caen de un golpe
-  u.range = rangeOf(u.type, u.level); u.as = (u.type === 'peipo' && u.level >= 2 ? .4 : u.def.as) * PACE; u.baseAs = u.as; u.ms = u.def.ms * MOVE_PACE;
+  u.range = rangeOf(u.type, u.level); u.as = (u.type === 'peipo' && u.level >= 2 ? .4 : u.type === 'orion' && u.level >= 3 ? .25 : u.def.as) * PACE; u.baseAs = u.as; u.ms = u.def.ms * MOVE_PACE;
   if (G.state !== 'fight') u.hp = u.maxHp;
 }
 
@@ -1439,6 +1444,57 @@ function serveBalls(u) {   // saque bombeado al rival (o a los 3 rivales) más a
     } });
   }));
 }
+// ---------- Orión ----------
+// ráfaga: las rocas que flotan a su alrededor salen una tras otra (alternando las manos) hacia el objetivo
+function orionRocks(u, t) {
+  const n = u.level >= 2 ? 8 : 5, gap = Math.min(.07, u.as * .8 / n);
+  for (let i = 0; i < n; i++) schedule(.05 + i * gap, () => {
+    if (!u.alive) return;
+    if (i === 0) sfx.shoot();
+    const ox = u.gx, oy = u.gy, tx = t.gx, ty = t.gy, len = Math.hypot(tx - ox, ty - oy) || 1, side = (i % 2 ? 1 : -1) * .22;
+    const px = -(ty - oy) / len * side, py = (tx - ox) / len * side, dur = .1 + len * .07;
+    const mesh = createProp('orion_roca', .19); B3.scene.add(mesh); const spin = [rand(8, 16), rand(6, 12)];
+    sim.proj.push({ free: true, kind: 'rock', mesh, color: '#6b4a8a', size: .05, gx: ox, gy: oy, tgx: tx, tgy: ty, x: ox, y: oy, h: .6, p: 0,
+      upd(p, dt) {
+        p.p += dt / dur; const k = Math.min(1, p.p), w = 1 - k;
+        p.x = ox + (tx - ox) * k + px * w; p.y = oy + (ty - oy) * k + py * w; p.h = .6 + Math.sin(Math.PI * k) * .15 - k * .15;
+        mesh.position.set(p.x - 2.5, p.h, 4 - p.y); mesh.rotation.set(p.p * spin[0], p.p * spin[1], 0);
+        if (p.p >= 1) {
+          p.done = true; dropMesh(p);
+          if (t.alive && Math.hypot(t.gx - tx, t.gy - ty) < .7) { damage(t, u.atk, u); charge(u); burstAt(t.gx, t.gy, .5, '#b78cff', 4, { glow: true, spd: 1.4 }); if (i % 2 === 0) sfx.hit(); }
+          else burstAt(tx, ty, .3, '#5a4470', 4, { spd: 1.2, up: 1 });
+        }
+      } });
+  });
+}
+// súper: dardo morado que vuela 5 casillas en línea recta, atraviesa y paraliza
+function orionDart(u, t, { A, L, P }) {
+  let dc = Math.sign(t.c - u.c), dr = Math.sign(t.r - u.r);
+  if (dc && dr) { if (Math.abs(t.c - u.c) > Math.abs(t.r - u.r)) dr = 0; else dc = 0; }
+  if (!dc && !dr) dr = fwd(u);
+  schedule(.3, () => {
+    if (!u.alive) return; sfx.shoot();
+    const ox = u.gx, oy = u.gy, tx = ox + dc * 5, ty = oy + dr * 5, dur = .45, hit = new Set();
+    const g = new THREE.Group(), mat = new THREE.MeshBasicMaterial({ color: 0xc58bff }), mat2 = new THREE.MeshBasicMaterial({ color: 0xf2dcff });
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(.025, .025, .42, 8), mat), tip = new THREE.Mesh(new THREE.ConeGeometry(.06, .16, 10), mat2), fin = new THREE.Mesh(new THREE.ConeGeometry(.07, .1, 4), mat);
+    tip.position.y = .29; fin.position.y = -.2; fin.rotation.x = Math.PI; g.add(body, tip, fin);
+    g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(dc, 0, -dr).normalize());
+    g.userData.dispose = () => { [body, tip, fin].forEach(m => m.geometry.dispose()); mat.dispose(); mat2.dispose(); };
+    B3.scene.add(g);
+    sim.proj.push({ free: true, kind: 'dart', mesh: g, color: '#c58bff', size: .06, gx: ox, gy: oy, tgx: tx, tgy: ty, x: ox, y: oy, h: .6, p: 0,
+      upd(p, dt) {
+        p.p += dt / dur; const k = Math.min(1, p.p); p.x = ox + (tx - ox) * k; p.y = oy + (ty - oy) * k;
+        g.position.set(p.x - 2.5, p.h, 4 - p.y);
+        if (Math.random() < .6) burstAt(p.x, p.y, .6, '#c58bff', 1, { glow: true, spd: .3, up: .3 });
+        for (const v of enemiesOf(u)) if (!hit.has(v) && Math.hypot(v.gx - p.x, v.gy - p.y) < .5) {
+          hit.add(v); damage(v, A * 3, u, 'big');
+          v.stun = Math.max(v.stun || 0, 1.5); v.stunKind = 'para'; floatText(v, '¡Paralizado!', 'sup');
+          vfx({ kind: 'flash', gx: v.gx, gy: v.gy, r: .8, color: '197,139,255', dur: .3 }); burstAt(v.gx, v.gy, .5, '#e3c4ff', 10, { glow: true, spd: 2 }); sfx.hit();
+        }
+        if (p.p >= 1) { p.done = true; dropMesh(p); }
+      } });
+  });
+}
 // ---------- Paira ----------
 function batSwing(u, t) {
   const side = u.batSide = -(u.batSide || -1);   // alterna una esquina y la otra
@@ -1495,6 +1551,7 @@ function attack(u, t) {
   if (u.type === 'jaspe') return quake(u, false);
   if (u.type === 'ayew') return volley(u, t);
   if (u.type === 'paira') return batSwing(u, t);
+  if (u.type === 'orion') return orionRocks(u, t);
   if (u.type === 'jess') return pellets(u, t);
   if (u.type === 'sevora') return vineBite(u, t);
   if (u.type === 'osko') return bone(u, t);
@@ -1524,6 +1581,7 @@ function doSuper(u, t, cp = null) {
     burstAt(u.gx, u.gy, .5, '#b6ff2e', 22, { spd: 2, up: 2, glow: true }); return;
   }
   if (T === 'bolab') return placaje(u, { A });
+  if (T === 'orion') return orionDart(u, t, { A, L, P });
   if (T === 'tanko') return iceCube(u, { L, A });
   if (T === 'denton') return windShark(u, { L, A });
   if (T === 'bushi') {
