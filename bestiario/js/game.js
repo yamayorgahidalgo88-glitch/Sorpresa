@@ -873,7 +873,7 @@ function startFight() {
 }
 function beginCombat() {
   occ.clear(); dropAllMeshes(); sim = newSim(); for (const u of units.filter(u => u.summon)) removeUnit(u);
-  for (const u of units) { Object.assign(u, { c: u.hc, r: u.hr, alive: true, hp: u.maxHp, energy: 0, shield: 0, domeT: 0, domeAmt: 0, stun: 0, stunKind: null, slow: 0, inv: 0, root: 0, air: 0, anyDir: false, hold: 0, bone: false, dash: null, rage: 0, glow: false, lungeAmp: 0, move: null, faceT: null, cd: rand(.3, .8), occKey: null }); u.rig.tint && u.rig.tint(1, 1, 1); setOcc(u, u.c, u.r); }
+  for (const u of units) { Object.assign(u, { c: u.hc, r: u.hr, alive: true, hp: u.maxHp, energy: 0, shield: 0, domeT: 0, domeAmt: 0, stun: 0, stunKind: null, slow: 0, inv: 0, root: 0, air: 0, anyDir: false, slid: false, hold: 0, bone: false, dash: null, rage: 0, glow: false, lungeAmp: 0, move: null, faceT: null, cd: rand(.3, .8), occKey: null }); u.rig.tint && u.rig.tint(1, 1, 1); setOcc(u, u.c, u.r); }
   for (const u of units) {
     const L = u.level;
     if (u.type === 'bolab') {
@@ -891,7 +891,7 @@ function beginCombat() {
 const DIRS_P = [[0, 1], [-1, 1], [1, 1], [-1, 0], [1, 0], [0, -1], [-1, -1], [1, -1]], DIRS_E = DIRS_P.map(([c, r]) => [c, -r]);
 const inRange = (u, v, c = u.c, r = u.r) => {
   const dc = Math.abs(v.c - c), dr = Math.abs(v.r - r);
-  if (u.def.front3) return dc <= 1 && (v.r - r) * fwd(u) === 1;   // la de enfrente y las dos esquinas de delante
+  if (u.def.front3) return u.slid ? Math.max(dc, dr) === 1 : dc <= 1 && (v.r - r) * fwd(u) === 1;   // la de enfrente y las esquinas de delante; tras la deslizada, cualquiera a su lado
   if (u.def.cone) return dc <= 1 && dr >= 1 && dr <= u.range;   // fila(s) de delante o de detrás, 3 de ancho
   if (u.def.fwd) return dc === 0 && dr >= 1 && dr <= u.range && ((v.r - r) * fwd(u) > 0 || u.anyDir);   // solo en línea recta hacia delante
   return u.def.ortho ? (dc === 0 || dr === 0) && dc + dr <= u.range : Math.max(dc, dr) <= u.range;
@@ -1392,7 +1392,7 @@ function ballProj(o) {   // balón 3D que vuela de (ox,oy) a (tx,ty) con una alt
 function volley(u, t) {
   const L = u.level;
   if (u.setNext !== false) {   // toque de dedos: el balón sube y baja sobre su cabeza y se cura
-    u.setNext = false; u.rig.play('set');
+    u.setNext = false; u.rig.play('set'); u.rig.hideFeet && u.rig.hideFeet(.7);
     const g = u.gx, gy = u.gy;
     ballProj({ ox: g, oy: gy, tx: g, ty: gy, dur: .55, h0: 1.05, h1: 1.05, arc: .55, size: .22, color: '#9dffb0' });
     schedule(.3, () => {
@@ -1403,7 +1403,7 @@ function volley(u, t) {
     });
     return;
   }
-  u.setNext = true; u.rig.play('attack');   // remate
+  u.setNext = true; u.rig.play('attack'); u.rig.hideFeet && u.rig.hideFeet(.6);   // remate
   const dc = Math.sign(t.c - u.c), dr = Math.sign(t.r - u.r);
   schedule(.25, () => {
     if (!u.alive) return;
@@ -1427,7 +1427,7 @@ function serveBalls(u) {   // saque bombeado al rival (o a los 3 rivales) más a
   const L = u.level, n = L >= 3 ? 3 : 1, dmg = u.atk * (L >= 3 ? .48 : 1);
   const tg = enemiesOf(u).filter(v => !v.summon).sort((a, b) => Math.hypot(b.gx - u.gx, b.gy - u.gy) - Math.hypot(a.gx - u.gx, a.gy - u.gy)).slice(0, n);
   if (!tg.length) return;
-  floatText(u, '¡Saque bombeado!', 'sup'); u.rig.play('super'); sfx.shoot();
+  floatText(u, '¡Saque bombeado!', 'sup'); u.rig.play('super'); u.rig.hideFeet && u.rig.hideFeet(.9); sfx.shoot();
   tg.forEach((v, i) => schedule(.28 + i * .12, () => {
     if (!u.alive) return;
     const c = v.c, r = v.r;
@@ -1441,14 +1441,18 @@ function serveBalls(u) {   // saque bombeado al rival (o a los 3 rivales) más a
 }
 // ---------- Paira ----------
 function batSwing(u, t) {
-  const f = fwd(u), side = u.batSide = -(u.batSide || -1);   // alterna esquina izquierda / derecha
-  const left = u.team === 'p' ? -1 : 1;   // la izquierda de Paira en el tablero (mira hacia el rival)
-  const tiles = [{ c: u.c, r: u.r + f }, { c: u.c + side * left, r: u.r + f }];
-  u.rig.play(side > 0 ? 'attack' : 'attack2'); u.lunge = .3; u.lungeAmp = .12; sfx.slash();
+  const side = u.batSide = -(u.batSide || -1);   // alterna una esquina y la otra
+  const fc = Math.sign(t.c - u.c), fr = Math.sign(t.r - u.r) || (fc ? 0 : fwd(u));
+  const front = { c: u.c + fc, r: u.r + fr };
+  // las dos casillas junto a la de enfrente que también tocan a Paira; ordenadas izquierda / derecha
+  const cand = [];
+  for (let dc = -1; dc <= 1; dc++) for (let dr = -1; dr <= 1; dr++) { const c = u.c + dc, r = u.r + dr; if ((dc || dr) && !(c === front.c && r === front.r) && Math.max(Math.abs(c - front.c), Math.abs(r - front.r)) === 1) cand.push({ c, r, x: fc * dr - fr * dc }); }
+  cand.sort((a, b) => b.x - a.x);
+  const corner = side > 0 ? cand[0] : cand[cand.length - 1], tiles = [front, corner].filter(Boolean);
+  u.faceT = t; u.rig.play(side > 0 ? 'attack' : 'attack2'); u.lunge = .3; u.lungeAmp = .12; sfx.slash();
   schedule(.14, () => {
     if (!u.alive) return;
-    const a = tiles[0], b = tiles[1];
-    vfx({ kind: 'slash', u, tgt: { gx: (a.c + b.c) / 2 + .5, gy: a.r + .5 }, color: '255,120,90', dur: .2, flip: side > 0 ? 0 : 1 });
+    if (corner) vfx({ kind: 'slash', u, tgt: { gx: (front.c + corner.c) / 2 + .5, gy: (front.r + corner.r) / 2 + .5 }, color: '255,120,90', dur: .2, flip: side > 0 ? 0 : 1 });
     let hit = false;
     for (const v of enemiesOf(u)) if (tiles.some(q => q.c === v.c && q.r === v.r)) { hit = true; damage(v, u.atk * (u.level >= 3 ? .67 : 1), u); burstAt(v.gx, v.gy, .55, '#ff7a5a', 9, { glow: true, spd: 1.8 }); }
     if (hit) sfx.hit();
@@ -1469,7 +1473,7 @@ function paireSlide(u) {   // deslizada de rodillas hasta el rival más lejano
   if (!dest || (dest.c === u.c && dest.r === u.r)) return;
   const ox = u.gx, oy = u.gy, tx = dest.c + .5, ty = dest.r + .5, len = Math.hypot(tx - ox, ty - oy), dur = .25 + len * .1;
   floatText(u, '¡Deslizada!', 'sup'); u.rig.play('slide'); sfx.slash();
-  setOcc(u, dest.c, dest.r); u.move = { fc: u.c, fr: u.r, c: dest.c, r: dest.r, t: 0, dur }; u.faceT = far;
+  setOcc(u, dest.c, dest.r); u.move = { fc: u.c, fr: u.r, c: dest.c, r: dest.r, t: 0, dur }; u.faceT = far; u.slid = true;
   sim.trails.push({ u, t0: sim.t, dur: dur + .35 });
   const L = u.level, done = new Set();
   for (const v of enemiesOf(u)) {

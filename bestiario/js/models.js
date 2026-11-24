@@ -1049,7 +1049,7 @@ function createStatic(type) {
 }
 /* ---------------- modelos con esqueleto y animaciones (Meshy + Blender) ---------------- */
 // Cada .glb trae los clips: idle, walk, attack, super y cheer.
-const SKIN = { bushi: { file: 'bushi_anim', h: 1.2 }, pomona: { file: 'pomona_anim', h: 1.25 }, osko: { file: 'wyrex_anim', h: 1.25 }, bolab: { file: 'bolab_anim', h: 1.15, tongue: { file: 'bolab_lengua', origin: [0, .3, .4], width: .8 }, alt: { file: 'bolab_boca_anim', scale: .88 } }, peipo: { file: 'peipo_anim', h: 1.25, prop: 'bomb' }, jaspe: { file: 'jaspe_anim', h: 1.3, eyes: true }, ayew: { file: 'ayew_anim', h: 1.25 }, paira: { file: 'paira_anim', h: 1.2, held: { file: 'paira_bate', bone: 'handR', size: .62, rot: [180, 0, 30], pos: [0, .08, 0] } }, sevora: { file: 'sevora_anim', h: 1.25, plant: { bone: 'plant' } } };
+const SKIN = { bushi: { file: 'bushi_anim', h: 1.2 }, pomona: { file: 'pomona_anim', h: 1.25 }, osko: { file: 'wyrex_anim', h: 1.25 }, bolab: { file: 'bolab_anim', h: 1.15, tongue: { file: 'bolab_lengua', origin: [0, .3, .4], width: .8 }, alt: { file: 'bolab_boca_anim', scale: .88 } }, peipo: { file: 'peipo_anim', h: 1.25, prop: 'bomb' }, jaspe: { file: 'jaspe_anim', h: 1.3, eyes: true }, ayew: { file: 'ayew_anim', h: 1.25, feet: { file: 'ayew_pelota', size: .19, pos: [.17, .095, .16] } }, paira: { file: 'paira_anim', h: 1.2, grip: { file: 'paira_bate', bone: 'handR', size: .74, grip: .2, fist: [-.2075, .315, -.12] } }, sevora: { file: 'sevora_anim', h: 1.25, plant: { bone: 'plant' } } };
 const _skin = {};
 const loadSkin = type => _skin[type] || (_skin[type] = new Promise((res, rej) => _loader.load(`assets/models/${SKIN[type].file}.glb`, res, undefined, rej)));
 const _eyeTex = new Map();
@@ -1068,6 +1068,7 @@ function createSkinned(type) {
     type, root, g: { root, all }, mats: {}, sp: {}, height: cfg.h * 1.02, atkT: -1, supT: -1, flashK: 0, walkW: 0, cheerW: 0, baseW: 1, one: null,
     play(name) {
       if (name === 'attack' && plant) { plant.t = 0; plant.target = null; }
+      if (this.grip && (name === 'attack' || name === 'attack2')) { this.grip.t = 0; this.grip.dir = name === 'attack' ? 1 : -1; }
       const a = acts[name]; if (!a) return;
       if (this.one && this.one !== a) this.one.stop();
       a.reset(); a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = false; a.setEffectiveWeight(1); a.play(); this.one = a;
@@ -1077,6 +1078,7 @@ function createSkinned(type) {
     vineTo(fn) { if (plant) plant.target = fn; },
     // esconde un objeto de la mano (p. ej. la bomba de Peipo) mientras vuela, y lo vuelve a mostrar
     hideProp(delay, dur) { this.propT = { at: delay, until: delay + dur, t: 0 }; },
+    hideFeet(dur) { this.feetT = dur; },
     // lengua de Bolab: sale de la boca hasta el objetivo (fn da su posición en el mundo; null = hacia delante)
     tongueTo(fn) { if (tongue) { tongue.t = 0; tongue.target = fn; } },
     tint(r, g, b) { tintC.setRGB(r, g, b); this.flashK = -1; this.flash(0); },
@@ -1101,6 +1103,8 @@ function createSkinned(type) {
       if (this.propT && this.propBone) { const P = this.propT; P.t += dt; const hid = P.t >= P.at && P.t < P.until; const g = P.t >= P.until ? Math.min(1, (P.t - P.until) / .25) : 1;
         this.propBone.scale.setScalar(hid ? 1e-3 : g); if (P.t > P.until + .3) { this.propT = null; this.propBone.scale.setScalar(1); } }
       if (plant) updatePlant(dt);
+      if (this.grip) updateGrip(this.grip, dt);
+      if (this.feet) { if (this.feetT > 0) this.feetT -= dt; this.feet.visible = !(this.feetT > 0); }
       if (alt && alt.mixer) {
         for (const n of ['idle', 'walk', 'cheer']) if (alt.acts[n] && acts[n]) alt.acts[n].setEffectiveWeight(acts[n].getEffectiveWeight());
         alt.mixer.update(dt);
@@ -1113,20 +1117,15 @@ function createSkinned(type) {
     sc.traverse(ob => { if (ob.isMesh) { ob.material = new THREE.MeshBasicMaterial({ map: ob.material.map }); mats.push(ob.material); ob.castShadow = true; ob.frustumCulled = false;
       if (cfg.eyes && ob.material.map) { const mt = ob.material; mt.userData.baseMap = mt.map; mt.userData.eyeMap = eyeTexture(mt.map); } } });
     sc.scale.setScalar(cfg.h); all.add(sc); rig.mainSc = sc;
-    if (cfg.held) {   // objeto en la mano (el bate de Paira): cuelga del hueso y se mueve con él
-      const bone = sc.getObjectByName(cfg.held.bone), p = createProp(cfg.held.file, cfg.held.size, false);
-      p.rotation.set(...cfg.held.rot.map(d => d * Math.PI / 180)); p.position.set(...cfg.held.pos); if (bone) bone.add(p);
-    } if (cfg.prop) rig.propBone = sc.getObjectByName(cfg.prop);
-    if (cfg.alt) _loader.load(`assets/models/${cfg.alt.file}.glb`, ga => {
-      const s2 = cloneSkinned(ga.scene); s2.traverse(ob => { if (ob.isMesh) { ob.material = new THREE.MeshBasicMaterial({ map: ob.material.map }); mats.push(ob.material); ob.frustumCulled = false; } });
-      s2.scale.setScalar(cfg.h * cfg.alt.scale); s2.visible = false; all.add(s2);
-      const m2 = new THREE.AnimationMixer(s2), a2 = {}; for (const c of ga.animations) a2[c.name] = m2.clipAction(c);
-      for (const n of ['idle', 'walk', 'cheer']) if (a2[n]) a2[n].play();
-      alt = { sc: s2, mixer: m2, acts: a2, one: null }; rig.flashK = -1; rig.flash(0);
-    });
-    if (cfg.tongue) {
-      const g = new THREE.Group(), inner = createProp(cfg.tongue.file, 1, false); inner.scale.set(1, cfg.tongue.width, cfg.tongue.width); g.add(inner); g.visible = false; all.add(g);
-      tongue = { g, t: -1, target: null, dur: .55, o: new THREE.Vector3(...cfg.tongue.origin).multiplyScalar(cfg.h * (cfg.alt ? cfg.alt.scale : 1)) };
+    if (cfg.grip) {   // bate agarrado por el mango: el pivote va pegado al puño y el bate gira alrededor de la mano
+      const G = cfg.grip, bone = sc.getObjectByName(G.bone), pivot = new THREE.Group(), bat = createProp(G.file, G.size, false);
+      bat.position.y = -G.grip * G.size; pivot.add(bat); all.add(pivot);
+      sc.updateWorldMatrix(true, true);
+      const fistLocal = bone ? bone.worldToLocal(sc.localToWorld(new THREE.Vector3(...G.fist))) : null;
+      rig.grip = { pivot, bone, fistLocal, t: -1, dir: 1 };
+    }
+    if (cfg.feet) {   // objeto a los pies (el balón de Ayew)
+      const f = createProp(cfg.feet.file, cfg.feet.size); f.position.set(...cfg.feet.pos.map(v => v * cfg.h)); all.add(f); rig.feet = f;
     }
     if (cfg.plant) {
       // la plantita de su diseño tiene su propio hueso: se estira hacia el enemigo con un tallo y muerde
@@ -1151,6 +1150,26 @@ function createSkinned(type) {
     if (T.t >= 1) { T.t = -1; T.g.visible = false; }
   }
   const _w = new THREE.Vector3(), _fw = new THREE.Vector3(), _pq = new THREE.Quaternion();
+  const _gy = new THREE.Vector3(0, 1, 0), _gd = new THREE.Vector3();
+  function updateGrip(G, dt) {
+    if (!G.bone) return;
+    G.pivot.position.copy(all.worldToLocal(G.bone.localToWorld(G.fistLocal.clone())));
+    // dirección del bate (en el espacio del personaje: x = su izquierda, z = delante)
+    const rest = [-.32, 1, .18];   // en reposo: de pie, un poco hacia fuera y hacia delante
+    let d = rest;
+    if (G.t >= 0) {
+      G.t += dt; const t = G.t, s = G.dir;   // s = 1: barre hacia su izquierda
+      const sweep = th => [Math.sin(th) , .18, Math.cos(th)];
+      const a0 = -s * 1.95, a1 = s * 1.25;   // de atrás-derecha a delante-izquierda
+      const lerp = (p, q, k) => p.map((v, i) => v + (q[i] - v) * k), ease = k => k * k * (3 - 2 * k);
+      if (t < .08) d = lerp(rest, sweep(a0), ease(t / .08));
+      else if (t < .2) d = sweep(a0 + (a1 - a0) * ease((t - .08) / .12));
+      else if (t < .28) d = sweep(a1 + s * .25 * ((t - .2) / .08));
+      else if (t < .45) d = lerp(sweep(a1 + s * .25), rest, ease((t - .28) / .17));
+      else G.t = -1;
+    }
+    _gd.set(d[0], d[1], d[2]).normalize(); G.pivot.quaternion.setFromUnitVectors(_gy, _gd);
+  }
   function updatePlant(dt) {
     const P = plant, B = P.bone, par = B.parent;
     B.position.copy(P.p0); B.quaternion.copy(P.q0); B.scale.copy(P.s0);
