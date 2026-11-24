@@ -56,7 +56,30 @@ bpy.ops.object.mode_set(mode='OBJECT')
 # pesos
 # pieza que debe separarse limpia (p. ej. la plantita de Sevora): se corta de la malla para que al moverla no arrastre la piel
 SPLIT = None
-if hasattr(R, 'split_faces'):
+if hasattr(R, 'SPLITS'):   # varias piezas a cortar (p. ej. los dos guantes)
+    import bmesh
+    for k, (bn, pn, fn) in enumerate(R.SPLITS):
+        bm = bmesh.new(); bm.from_mesh(ob.data); bm.faces.ensure_lookup_table()
+        cen = np.array([[f.calc_center_median()[0], f.calc_center_median()[2], -f.calc_center_median()[1]] for f in bm.faces])
+        sel = [f for f, m_ in zip(bm.faces, fn(cen)) if m_]
+        bmesh.ops.split(bm, geom=sel + list({e for f in sel for e in f.edges}) + list({v for f in sel for v in f.verts}))
+        bm.to_mesh(ob.data); bm.free(); ob.data.update()
+    MULTI = []
+    bm = bmesh.new(); bm.from_mesh(ob.data); bm.faces.ensure_lookup_table()
+    cen = np.array([[f.calc_center_median()[0], f.calc_center_median()[2], -f.calc_center_median()[1]] for f in bm.faces])
+    for bn, pn, fn in R.SPLITS:
+        msk = np.zeros(len(ob.data.vertices), bool)
+        for f, m_ in zip(bm.faces, fn(cen)):
+            if m_:
+                for v in f.verts: msk[v.index] = True
+        MULTI.append((bn, msk)); print('pieza', bn, int(msk.sum()))
+    bm.free()
+    # encoger cada pieza un pelo hacia su centro para que el exportador no vuelva a soldar el corte
+    co = np.zeros(len(ob.data.vertices) * 3); ob.data.vertices.foreach_get('co', co); co = co.reshape(-1, 3)
+    for bn, msk in MULTI:
+        c0 = co[msk].mean(0); co[msk] = c0 + (co[msk] - c0) * 0.995
+    ob.data.vertices.foreach_set('co', co.ravel()); ob.data.update()
+elif hasattr(R, 'split_faces'):
     import bmesh
     bm = bmesh.new(); bm.from_mesh(ob.data); bm.faces.ensure_lookup_table()
     cen = np.array([[f.calc_center_median()[0], f.calc_center_median()[2], -f.calc_center_median()[1]] for f in bm.faces])
@@ -72,6 +95,11 @@ if hasattr(R, 'split_faces'):
 co = np.zeros(len(ob.data.vertices) * 3); ob.data.vertices.foreach_get('co', co); co = co.reshape(-1, 3)
 G = np.stack([co[:, 0], co[:, 2], -co[:, 1]], 1)
 names, W = R.weights(G)
+if hasattr(R, 'SPLITS'):
+    allm = np.zeros(len(W), bool)
+    for bn, msk in MULTI: j = names.index(bn); W[~msk, j] = 0; W[msk] = 0; W[msk, j] = 1; allm |= msk   # el hueso de la pieza solo mueve la pieza
+    z = W.sum(1) < 1e-6; W[z, names.index('chest') if 'chest' in names else 0] = 1
+    W /= W.sum(1, keepdims=True)
 if SPLIT is not None:
     j = names.index(R.SPLIT_BONE)
     W[SPLIT] = 0; W[SPLIT, j] = 1

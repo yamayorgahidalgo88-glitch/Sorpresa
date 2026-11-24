@@ -1049,7 +1049,7 @@ function createStatic(type) {
 }
 /* ---------------- modelos con esqueleto y animaciones (Meshy + Blender) ---------------- */
 // Cada .glb trae los clips: idle, walk, attack, super y cheer.
-const SKIN = { bushi: { file: 'bushi_anim', h: 1.2 }, pomona: { file: 'pomona_anim', h: 1.25 }, osko: { file: 'wyrex_anim', h: 1.25 }, bolab: { file: 'bolab_anim', h: 1.15, tongue: { file: 'bolab_lengua', origin: [0, .3, .4], width: .8 }, alt: { file: 'bolab_boca_anim', scale: .88 } }, peipo: { file: 'peipo_anim', h: 1.25, prop: 'bomb' }, jaspe: { file: 'jaspe_anim', h: 1.3, eyes: true }, sevora: { file: 'sevora_anim', h: 1.25, plant: { bone: 'plant' } } };
+const SKIN = { bushi: { file: 'bushi_anim', h: 1.2 }, pomona: { file: 'pomona_anim', h: 1.25 }, osko: { file: 'wyrex_anim', h: 1.25 }, bolab: { file: 'bolab_anim', h: 1.15, tongue: { file: 'bolab_lengua', origin: [0, .3, .4], width: .8 }, alt: { file: 'bolab_boca_anim', scale: .88 } }, peipo: { file: 'peipo_anim', h: 1.25, prop: 'bomb' }, jaspe: { file: 'jaspe_anim', h: 1.3, eyes: true }, ayew: { file: 'ayew_anim', h: 1.25 }, paira: { file: 'paira_anim', h: 1.2, held: { file: 'paira_bate', bone: 'handR', size: .62, rot: [180, 0, 30], pos: [0, .08, 0] } }, sevora: { file: 'sevora_anim', h: 1.25, plant: { bone: 'plant' } } };
 const _skin = {};
 const loadSkin = type => _skin[type] || (_skin[type] = new Promise((res, rej) => _loader.load(`assets/models/${SKIN[type].file}.glb`, res, undefined, rej)));
 const _eyeTex = new Map();
@@ -1112,7 +1112,11 @@ function createSkinned(type) {
     const sc = cloneSkinned(g.scene);
     sc.traverse(ob => { if (ob.isMesh) { ob.material = new THREE.MeshBasicMaterial({ map: ob.material.map }); mats.push(ob.material); ob.castShadow = true; ob.frustumCulled = false;
       if (cfg.eyes && ob.material.map) { const mt = ob.material; mt.userData.baseMap = mt.map; mt.userData.eyeMap = eyeTexture(mt.map); } } });
-    sc.scale.setScalar(cfg.h); all.add(sc); rig.mainSc = sc; if (cfg.prop) rig.propBone = sc.getObjectByName(cfg.prop);
+    sc.scale.setScalar(cfg.h); all.add(sc); rig.mainSc = sc;
+    if (cfg.held) {   // objeto en la mano (el bate de Paira): cuelga del hueso y se mueve con él
+      const bone = sc.getObjectByName(cfg.held.bone), p = createProp(cfg.held.file, cfg.held.size, false);
+      p.rotation.set(...cfg.held.rot.map(d => d * Math.PI / 180)); p.position.set(...cfg.held.pos); if (bone) bone.add(p);
+    } if (cfg.prop) rig.propBone = sc.getObjectByName(cfg.prop);
     if (cfg.alt) _loader.load(`assets/models/${cfg.alt.file}.glb`, ga => {
       const s2 = cloneSkinned(ga.scene); s2.traverse(ob => { if (ob.isMesh) { ob.material = new THREE.MeshBasicMaterial({ map: ob.material.map }); mats.push(ob.material); ob.frustumCulled = false; } });
       s2.scale.setScalar(cfg.h * cfg.alt.scale); s2.visible = false; all.add(s2);

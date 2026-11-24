@@ -56,6 +56,16 @@ const CHARS = {
     abilName: 'Furia fantasma', desc: 'No tiene súper. Cada vez que cae un aliado, entra en furia y el daño de su básico sube un 10%. La furia se reinicia en cada ronda.',
     lv: ['Furia fantasma: +10% de daño del básico por cada aliado derrotado en la ronda.', 'El disparo llega a 2 casillas de fondo.', 'La furia sube un 15% por cada aliado derrotado.'],
     all: ['pose', 'front', 'back', 'left', 'right', 'iso', 'top', 'bottom'] },
+  ayew: { name: 'Ayew', cost: 4, role: 'Rematador', color: '#ff9a3c', hp: 650, atk: 115, range: 4, ortho: true, as: 1.5, ms: 0.7, abil: 'clash',
+    atkName: 'Toque y remate', atkDesc: 'alterna dos golpes: primero un toque de dedos que le cura un 5% de vida, y después un remate con el balón a 4 casillas en línea recta (nunca en diagonal). Daño muy alto.',
+    abilName: 'Saque bombeado', desc: 'No tiene súper. Al empezar cada ronda lanza un balón bombeado al rival más alejado: tarda 2 segundos en caer y, si el rival se ha movido de su casilla, falla. Daño muy alto.',
+    lv: ['Saque bombeado al rival más alejado al empezar la ronda.', 'El remate rebota contra los que estén detrás del objetivo en la misma línea, y el toque de dedos cura un 10%.', 'El saque lanza 3 balones a los 3 rivales más alejados, con daño medio.'],
+    all: ['pose', 'front', 'back', 'left', 'right', 'iso', 'top', 'bottom'] },
+  paira: { name: 'Paira', cost: 5, role: 'Luchador', color: '#e8282e', hp: 560, atk: 45, range: 1, front3: true, as: 1.8, ms: 0.65, abil: 'clash',
+    atkName: 'Batazo', atkDesc: 'golpea con su bate la casilla de enfrente y una de las esquinas de delante, alternando izquierda y derecha. Daño medio-bajo. Empieza lento (1,8 s) y cada batazo es más rápido, hasta 0,25 s.',
+    abilName: 'Deslizada', desc: 'No tiene súper. Al empezar cada ronda se desliza de rodillas, como al llegar a una base, hasta el rival más lejano, y manda por los aires a todos los que se cruzan (sin daño).',
+    lv: ['Deslizada hacia el rival más lejano al empezar la ronda.', 'Los que se cruza quedan aturdidos 1 segundo.', 'Los batazos van siempre a la máxima velocidad, pero con daño bajo.'],
+    all: ['pose', 'front', 'back', 'left', 'right', 'iso', 'top', 'bottom'] },
   jaspe: { name: 'Jaspe', cost: 3, role: 'Tanque', color: '#9b5cf0', hp: 900, atk: 40, range: 1, as: 1.3, ms: 0.85, abil: 'super', charge: 5,
     atkName: 'Terremoto', atkDesc: 'levanta los dos puños y golpea el suelo: el terremoto alcanza todas las casillas de alrededor. Daño bajo-medio en las de los lados, arriba y abajo, y daño medio en las diagonales.',
     abilName: 'Gran terremoto', desc: 'Súper (se carga con 5 básicos): un golpe al suelo con salto que hace daño medio-alto a todos los rivales de alrededor y los deja aturdidos 1,5 segundos (sin moverse ni atacar).',
@@ -90,6 +100,7 @@ const COLS = 5, ROWS = 8, MAX_UNITS = 7, WIN_ROUNDS = 3, ROUND_CAP = 60, ELIXIR_
 const PACE = 1.5, MOVE_PACE = 1.35;
 const LVL_MULT = [0, 1, 1.3, 1.6], LVL_SCALE = [0, 0.66, 0.71, 0.77];
 const FRONT_ROLES = ['Tanque', 'Luchador', 'Defensor', 'Asesino', 'Pistolera'];
+const PAIRA_MIN = .25;
 const rangeOf = (type, L) => { const d = CHARS[type] || SUMMONS[type]; return d.range + (L >= 2 && (type === 'bolab' || type === 'jess') ? 1 : 0) + (L >= 2 && type === 'sevora' ? 2 : 0); };
 const rangeTxt = (d, r) => d.cone ? `3×${r}` : r === 1 ? 'Melé' : r;
 const rangeTag = (d, r) => d.cone ? 'Corta distancia' : r === 1 ? 'Cuerpo a cuerpo' : 'A distancia';
@@ -845,7 +856,7 @@ function aiPlan() {
 /* =========================================================
    COMBATE
    ========================================================= */
-const newSim = () => ({ t: 0, events: [], proj: [], domes: [], beams: [], zones: [], vfx: [], quakes: [] });
+const newSim = () => ({ t: 0, events: [], proj: [], domes: [], beams: [], zones: [], vfx: [], quakes: [], marks: [], trails: [] });
 const fwd = u => u.team === 'p' ? 1 : -1;
 const vfx = o => sim.vfx.push({ t: 0, dur: .6, ...o });
 let occ = new Map(), sim = newSim(), timers = [];
@@ -862,7 +873,7 @@ function startFight() {
 }
 function beginCombat() {
   occ.clear(); dropAllMeshes(); sim = newSim(); for (const u of units.filter(u => u.summon)) removeUnit(u);
-  for (const u of units) { Object.assign(u, { c: u.hc, r: u.hr, alive: true, hp: u.maxHp, energy: 0, shield: 0, domeT: 0, domeAmt: 0, stun: 0, stunKind: null, slow: 0, inv: 0, root: 0, anyDir: false, hold: 0, bone: false, dash: null, rage: 0, glow: false, lungeAmp: 0, move: null, faceT: null, cd: rand(.3, .8), occKey: null }); u.rig.tint && u.rig.tint(1, 1, 1); setOcc(u, u.c, u.r); }
+  for (const u of units) { Object.assign(u, { c: u.hc, r: u.hr, alive: true, hp: u.maxHp, energy: 0, shield: 0, domeT: 0, domeAmt: 0, stun: 0, stunKind: null, slow: 0, inv: 0, root: 0, air: 0, anyDir: false, hold: 0, bone: false, dash: null, rage: 0, glow: false, lungeAmp: 0, move: null, faceT: null, cd: rand(.3, .8), occKey: null }); u.rig.tint && u.rig.tint(1, 1, 1); setOcc(u, u.c, u.r); }
   for (const u of units) {
     const L = u.level;
     if (u.type === 'bolab') {
@@ -872,12 +883,15 @@ function beginCombat() {
     else if (u.type === 'tanko') { u.hold = .7; schedule(.2, () => iceCube(u)); }
     else if (u.type === 'denton') { u.hold = .8; schedule(.15, () => windShark(u)); }
     else if (u.type === 'bushi' && L >= 3) { u.hold = .7; schedule(.15, () => jadeWave(u)); }
+    else if (u.type === 'ayew') { u.setNext = true; u.hold = .6; schedule(.15, () => serveBalls(u)); }
+    else if (u.type === 'paira') { u.batAs = (L >= 3 ? PAIRA_MIN : u.def.as) * PACE; u.as = u.batAs; u.batSide = -1; u.hold = .3; schedule(.1, () => paireSlide(u)); }
   }
   G.state = 'fight'; renderHud();
 }
 const DIRS_P = [[0, 1], [-1, 1], [1, 1], [-1, 0], [1, 0], [0, -1], [-1, -1], [1, -1]], DIRS_E = DIRS_P.map(([c, r]) => [c, -r]);
 const inRange = (u, v, c = u.c, r = u.r) => {
   const dc = Math.abs(v.c - c), dr = Math.abs(v.r - r);
+  if (u.def.front3) return dc <= 1 && (v.r - r) * fwd(u) === 1;   // la de enfrente y las dos esquinas de delante
   if (u.def.cone) return dc <= 1 && dr >= 1 && dr <= u.range;   // fila(s) de delante o de detrás, 3 de ancho
   if (u.def.fwd) return dc === 0 && dr >= 1 && dr <= u.range && ((v.r - r) * fwd(u) > 0 || u.anyDir);   // solo en línea recta hacia delante
   return u.def.ortho ? (dc === 0 || dr === 0) && dc + dr <= u.range : Math.max(dc, dr) <= u.range;
@@ -918,7 +932,7 @@ function updateUnit(u, dt) {
   if (u.hold > 0) { u.hold -= dt; return; }
   if (u.bone) return;
   u.cd -= dt;
-  if (u.move) { u.move.t += dt / u.ms; if (u.move.t >= 1) { u.c = u.move.c; u.r = u.move.r; u.move = null; } return; }
+  if (u.move) { u.move.t += dt / (u.move.dur || u.ms); if (u.move.t >= 1) { u.c = u.move.c; u.r = u.move.r; u.move = null; } return; }
   const t = targetInRange(u);
   if (t) {
     u.faceT = t;
@@ -1187,7 +1201,7 @@ function drawStatus(time) {
 }
 function drawFrozen() {
   for (const u of units) {
-    if (!(u.stun > 0 && u.alive) || u.stunKind === 'para' || u.stunKind === 'daze') continue;
+    if (!(u.stun > 0 && u.alive) || u.stunKind === 'para' || u.stunKind === 'daze' || u.stunKind === 'air') continue;
     const h = u.sy - u.top, w = u.dw * .95;
     fx.save(); fx.globalAlpha = .55; fx.fillStyle = '#a8dcff'; fx.strokeStyle = '#fff'; fx.lineWidth = 2;
     fx.beginPath(); fx.roundRect(u.sx - w / 2, u.top + h * .08, w, h * .98, 8); fx.fill(); fx.globalAlpha = .9; fx.stroke(); fx.restore();
@@ -1362,11 +1376,121 @@ function quake(u, big, o = {}) {
     if (!big && hit) charge(u);
   });
 }
+// ---------- Ayew ----------
+const BALL = 'ayew_pelota';
+function ballProj(o) {   // balón 3D que vuela de (ox,oy) a (tx,ty) con una altura; al llegar llama a hit()
+  const mesh = createProp(BALL, o.size || .3); B3.scene.add(mesh);
+  const p = { free: true, kind: 'ball3d', mesh, color: o.color || '#ffb347', size: .08, gx: o.ox, gy: o.oy, tgx: o.tx, tgy: o.ty, x: o.ox, y: o.oy, h: o.h0 || .7, p: 0,
+    upd(p, dt) {
+      p.p += dt / o.dur; const k = Math.min(1, p.p);
+      p.x = o.ox + (o.tx - o.ox) * k; p.y = o.oy + (o.ty - o.oy) * k; p.h = (o.h0 || .7) + Math.sin(Math.PI * k) * (o.arc || 0) - k * ((o.h0 || .7) - (o.h1 ?? .4));
+      mesh.position.set(p.x - 2.5, p.h, 4 - p.y); mesh.rotation.set(p.p * 14, p.p * 9, 0);
+      if (p.p >= 1) { p.done = true; dropMesh(p); o.hit && o.hit(); }
+    } };
+  sim.proj.push(p); return p;
+}
+function volley(u, t) {
+  const L = u.level;
+  if (u.setNext !== false) {   // toque de dedos: el balón sube y baja sobre su cabeza y se cura
+    u.setNext = false; u.rig.play('set');
+    const g = u.gx, gy = u.gy;
+    ballProj({ ox: g, oy: gy, tx: g, ty: gy, dur: .55, h0: 1.05, h1: 1.05, arc: .55, size: .22, color: '#9dffb0' });
+    schedule(.3, () => {
+      if (!u.alive) return;
+      const h = Math.min(u.maxHp - u.hp, Math.round(u.maxHp * (L >= 2 ? .10 : .05)));
+      if (h > 0) { u.hp += h; floatText(u, '+' + h, 'heal'); }
+      burstAt(u.gx, u.gy, .9, '#9dffb0', 10, { glow: true, spd: .8, up: 1.6, g: -2 });
+    });
+    return;
+  }
+  u.setNext = true; u.rig.play('attack');   // remate
+  const dc = Math.sign(t.c - u.c), dr = Math.sign(t.r - u.r);
+  schedule(.25, () => {
+    if (!u.alive) return;
+    sfx.shoot();
+    ballProj({ ox: u.gx, oy: u.gy, tx: t.gx, ty: t.gy, dur: .14 + Math.hypot(t.gx - u.gx, t.gy - u.gy) * .05, h0: 1.05, h1: .45, size: .26, hit: () => {
+      if (t.alive) { damage(t, u.atk, u, 'big'); vfx({ kind: 'star', gx: t.gx, gy: t.gy, h: .5, color: '255,190,90', r: .9, dur: .3 }); burstAt(t.gx, t.gy, .5, '#ffcf6a', 12, { glow: true, spd: 2 }); sfx.hit(); shake = Math.max(shake, 3); }
+      if (L >= 2) {   // rebote hacia los que estén detrás en la misma línea
+        const behind = enemiesOf(u).filter(v => v !== t && (dc ? v.r === t.r && Math.sign(v.c - t.c) === dc : v.c === t.c && Math.sign(v.r - t.r) === dr)).sort((a, b) => Math.abs(a.c - t.c) + Math.abs(a.r - t.r) - Math.abs(b.c - t.c) - Math.abs(b.r - t.r));
+        let from = t, delay = 0;
+        for (const v of behind) {
+          const f = from; delay += .12;
+          schedule(delay, () => ballProj({ ox: f.gx, oy: f.gy, tx: v.gx, ty: v.gy, dur: .16, h0: .45, h1: .45, arc: .35, size: .22, hit: () => { if (v.alive) { damage(v, u.atk * .7, u); burstAt(v.gx, v.gy, .5, '#ffcf6a', 8, { glow: true, spd: 1.6 }); sfx.hit(); } } }));
+          from = v;
+        }
+      }
+    } });
+  });
+}
+function serveBalls(u) {   // saque bombeado al rival (o a los 3 rivales) más alejados
+  if (!u.alive) return;
+  const L = u.level, n = L >= 3 ? 3 : 1, dmg = u.atk * (L >= 3 ? .48 : 1);
+  const tg = enemiesOf(u).filter(v => !v.summon).sort((a, b) => Math.hypot(b.gx - u.gx, b.gy - u.gy) - Math.hypot(a.gx - u.gx, a.gy - u.gy)).slice(0, n);
+  if (!tg.length) return;
+  floatText(u, '¡Saque bombeado!', 'sup'); u.rig.play('super'); sfx.shoot();
+  tg.forEach((v, i) => schedule(.28 + i * .12, () => {
+    if (!u.alive) return;
+    const c = v.c, r = v.r;
+    sim.marks.push({ c, r, t0: sim.t, dur: 2 });
+    ballProj({ ox: u.gx, oy: u.gy, tx: c + .5, ty: r + .5, dur: 2, h0: 1, h1: .3, arc: 3.2, size: .3, hit: () => {
+      vfx({ kind: 'flash', gx: c + .5, gy: r + .5, r: .9, color: '255,190,90', dur: .35 }); burstAt(c + .5, r + .5, .2, '#ffcf6a', 14, { spd: 2.2, up: 1.8, glow: true }); sfx.boom();
+      if (v.alive && v.c === c && v.r === r && !v.move) { damage(v, dmg, u, 'big'); shake = Math.max(shake, 5); }
+      else floatText({ sx: gridToScreen(c + .5, r + .5)[0], top: gridToScreen(c + .5, r + .5)[1] - 40 }, '¡Fallo!', '');
+    } });
+  }));
+}
+// ---------- Paira ----------
+function batSwing(u, t) {
+  const f = fwd(u), side = u.batSide = -(u.batSide || -1);   // alterna esquina izquierda / derecha
+  const left = u.team === 'p' ? -1 : 1;   // la izquierda de Paira en el tablero (mira hacia el rival)
+  const tiles = [{ c: u.c, r: u.r + f }, { c: u.c + side * left, r: u.r + f }];
+  u.rig.play(side > 0 ? 'attack' : 'attack2'); u.lunge = .3; u.lungeAmp = .12; sfx.slash();
+  schedule(.14, () => {
+    if (!u.alive) return;
+    const a = tiles[0], b = tiles[1];
+    vfx({ kind: 'slash', u, tgt: { gx: (a.c + b.c) / 2 + .5, gy: a.r + .5 }, color: '255,120,90', dur: .2, flip: side > 0 ? 0 : 1 });
+    let hit = false;
+    for (const v of enemiesOf(u)) if (tiles.some(q => q.c === v.c && q.r === v.r)) { hit = true; damage(v, u.atk * (u.level >= 3 ? .67 : 1), u); burstAt(v.gx, v.gy, .55, '#ff7a5a', 9, { glow: true, spd: 1.8 }); }
+    if (hit) sfx.hit();
+    if (u.level < 3) { u.batAs = Math.max(PAIRA_MIN * PACE, u.batAs * .8); u.as = u.batAs; }
+  });
+}
+function paireSlide(u) {   // deslizada de rodillas hasta el rival más lejano
+  if (!u.alive) return;
+  const far = enemiesOf(u).filter(v => !v.summon).sort((a, b) => Math.hypot(b.gx - u.gx, b.gy - u.gy) - Math.hypot(a.gx - u.gx, a.gy - u.gy))[0];
+  if (!far) return;
+  // casilla libre más cercana a ese rival, en su lado de llegada
+  let dest = null, bd = 1e9;
+  for (let dc = -1; dc <= 1; dc++) for (let dr = -1; dr <= 1; dr++) {
+    const c = far.c + dc, r = far.r + dr; if ((!dc && !dr) || c < 0 || c >= COLS || r < 0 || r >= ROWS) continue;
+    const o = occ.get(key(c, r)); if (o && o !== u) continue;
+    const d = Math.hypot(c - u.c, r - u.r); if (d < bd) { bd = d; dest = { c, r }; }
+  }
+  if (!dest || (dest.c === u.c && dest.r === u.r)) return;
+  const ox = u.gx, oy = u.gy, tx = dest.c + .5, ty = dest.r + .5, len = Math.hypot(tx - ox, ty - oy), dur = .25 + len * .1;
+  floatText(u, '¡Deslizada!', 'sup'); u.rig.play('slide'); sfx.slash();
+  setOcc(u, dest.c, dest.r); u.move = { fc: u.c, fr: u.r, c: dest.c, r: dest.r, t: 0, dur }; u.faceT = far;
+  sim.trails.push({ u, t0: sim.t, dur: dur + .35 });
+  const L = u.level, done = new Set();
+  for (const v of enemiesOf(u)) {
+    const k = ((v.gx - ox) * (tx - ox) + (v.gy - oy) * (ty - oy)) / (len * len); if (k < 0 || k > 1.05) continue;
+    const px = ox + (tx - ox) * k, py = oy + (ty - oy) * k; if (Math.hypot(v.gx - px, v.gy - py) > .62) continue;
+    if (done.has(v)) continue; done.add(v);
+    schedule(dur * Math.min(1, k), () => {
+      if (!v.alive) return;
+      v.air = .7; v.stun = Math.max(v.stun || 0, L >= 2 ? 1 : .7); v.stunKind = L >= 2 ? 'daze' : 'air';
+      if (L >= 2) floatText(v, '¡Aturdido!', 'sup');
+      burstAt(v.gx, v.gy, .2, '#ffffff', 10, { spd: 2.4, up: 2.6 }); burstAt(v.gx, v.gy, .2, '#ff7a5a', 8, { spd: 2, up: 2.2, glow: true }); sfx.hit(); shake = Math.max(shake, 4);
+    });
+  }
+}
 function attack(u, t) {
   if (u.def.abil === 'super' && !u.def.charge) u.energy = Math.min(100, u.energy + 22);
   u.rig.play('attack');
   if (u.type === 'ogul') return laser(u, t);
   if (u.type === 'jaspe') return quake(u, false);
+  if (u.type === 'ayew') return volley(u, t);
+  if (u.type === 'paira') return batSwing(u, t);
   if (u.type === 'jess') return pellets(u, t);
   if (u.type === 'sevora') return vineBite(u, t);
   if (u.type === 'osko') return bone(u, t);
@@ -1531,7 +1655,7 @@ function combatStep(dt) {
   }
 }
 function endRound(w) {
-  G.state = 'result'; G.score[w]++; G.lastLoser = w === 'p' ? 'e' : 'p'; dropAllMeshes(); sim.proj = []; sim.domes = []; sim.beams = []; sim.zones = []; sim.vfx = []; sim.quakes = []; sim.vfx = []; sim.events = [];
+  G.state = 'result'; G.score[w]++; G.lastLoser = w === 'p' ? 'e' : 'p'; dropAllMeshes(); sim.proj = []; sim.domes = []; sim.beams = []; sim.zones = []; sim.vfx = []; sim.quakes = []; sim.marks = []; sim.trails = []; sim.vfx = []; sim.events = [];
   banner(w === 'p' ? '¡Ronda ganada!' : 'Ronda perdida', w === 'p' ? 'win' : 'lose'); (w === 'p' ? sfx.win : sfx.lose)();
   for (const u of units) { u.move = null; if (u.alive && u.team === w) u.cheer = 2; }
   hint(w === 'p' ? '¡Bien hecho! El perdedor recibe más elíxir: ¡prepárate!' : 'Recibes 9 de elíxir para remontar');
@@ -1576,6 +1700,21 @@ function quad(c0, r0, c1, r1) {
   ctx.beginPath(); ctx.moveTo(...p[0]); for (let i = 1; i < 4; i++) ctx.lineTo(...p[i]); ctx.closePath();
 }
 // charco de caramelo pringoso de Peipo (estilo de la imagen: brillante, naranja, con gotas)
+function drawMarks() {
+  for (const m of sim.marks) {
+    const k = Math.min(1, (sim.t - m.t0) / m.dur), [x, y] = gridToScreen(m.c + .5, m.r + .5), tw = tileW(m.r + .5);
+    ctx.save(); ctx.globalAlpha = .45 + .4 * Math.abs(Math.sin(sim.t * 8));
+    ctx.strokeStyle = '#ffcf6a'; ctx.lineWidth = Math.max(2, tw * .05); ctx.setLineDash([tw * .12, tw * .08]);
+    ctx.beginPath(); ctx.ellipse(x, y, tw * .42, tw * .28, 0, 0, 6.283); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(20,10,0,.35)'; ctx.beginPath(); ctx.ellipse(x, y, tw * .38 * k, tw * .25 * k, 0, 0, 6.283); ctx.fill(); ctx.restore();
+  }
+  sim.marks = sim.marks.filter(m => sim.t - m.t0 < m.dur);
+  for (const tr of sim.trails) {   // polvo y surco de la deslizada
+    const u = tr.u; if (!u.alive) continue;
+    if (sim.t - tr.t0 < tr.dur - .3) burstAt(u.gx, u.gy, .02, pick(['#d8c3a5', '#bfa98a', '#fff1d6']), 2, { spd: 1.2, up: .8, life: .5, size: .07 });
+  }
+  sim.trails = sim.trails.filter(tr => sim.t - tr.t0 < tr.dur);
+}
 function drawQuakes() {
   for (const q of sim.quakes) {
     q.t = sim.t - q.t0;
@@ -1634,7 +1773,7 @@ function drawBoard() {
     ctx.fillStyle = hv ? (ok ? 'rgba(255,255,180,.5)' : 'rgba(255,60,60,.45)') : 'rgba(255,255,255,.14)';
     quad(c + .04, r + .04, c + .96, r + .96); ctx.fill();
   }
-  drawGoo(); drawQuakes();
+  drawGoo(); drawQuakes(); drawMarks();
   // marca de equipo en el suelo, discreta (el color fuerte va en la barra de vida)
   for (const u of units) {
     if (u.dying > 0 || u.summon) continue;
@@ -1648,9 +1787,10 @@ function updateUnitVisual(u, dt) {
   let lift = 0;
   if (u.dragging && u.dragG) { u.gx += (u.dragG[0] - u.gx) * .5; u.gy += (u.dragG[1] - u.gy) * .5; lift = .4; }
   else if (u.move) {
-    const t = Math.min(1, u.move.t), e = t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    const t = Math.min(1, u.move.t), e = u.move.dur ? 1 - Math.pow(1 - t, 2) : t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
     u.gx = u.move.fc + .5 + (u.move.c - u.move.fc) * e; u.gy = u.move.fr + .5 + (u.move.r - u.move.fr) * e;
   } else if (u.dying <= 0) { const k = Math.min(1, dt * 14); u.gx += (u.c + .5 - u.gx) * k; u.gy += (u.r + .5 - u.gy) * k; }
+  if (u.air > 0) { u.air -= dt; const k = 1 - Math.max(0, u.air) / .7; lift += Math.sin(k * Math.PI) * 1.3; }
   u.lx = u.ly = 0;
   if (u.lunge > 0) {
     u.lunge -= dt;
