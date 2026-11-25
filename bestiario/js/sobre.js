@@ -20,12 +20,12 @@ export const SOBRE_CONFIG = {
   splitDuration: 650,        // ms que tardan las mitades en separarse
   flashDuration: 550,        // ms que tarda la luz en cubrir la pantalla
   textoToca: '¡ARAÑA EL SOBRE!',
-  minLen: 230, maxLen: 520,  // largo del zarpazo (en píxeles de la imagen 556x640)
+  minLen: 360, maxLen: 700,  // largo del zarpazo (en píxeles de la imagen 556x640)
 };
 
 /* Los zarpazos los hace el jugador deslizando el dedo: cada uno se crea con la dirección y el largo de su gesto
    (coordenadas de la imagen 556x640). Al tercero el sobre se rompe a lo largo de ese zarpazo. */
-const CLAW_SPACING = 36;
+const CLAW_SPACING = 54;
 /* 4 marcas: [desplazamiento lateral, longitud relativa, desfase a lo largo, grosor] */
 const CLAWS = [
   [-1.5, 0.70,  0.10, 0.80],
@@ -81,7 +81,7 @@ function clawShapes(s, sizeMul, smooth) {
     let p0 = [cx - dx * L / 2, cy - dy * L / 2], p2 = [cx + dx * L / 2, cy + dy * L / 2];
     const p1 = [cx + nx * s.curve, cy + ny * s.curve];
     if (s.reverse) [p0, p2] = [p2, p0];
-    const N = 26, left = [], right = [], maxW = 24 * wK * sizeMul;
+    const N = 26, left = [], right = [], maxW = 38 * wK * sizeMul;
     for (let i = 0; i <= N; i++) {
       const u = i / N;
       const x = (1-u)*(1-u)*p0[0] + 2*(1-u)*u*p1[0] + u*u*p2[0];
@@ -302,9 +302,9 @@ export async function abrirSobre(opts = {}) {
     let [x0, y0] = toImg(a.x, a.y), [x1, y1] = toImg(b.x, b.y);
     let L = Math.hypot(x1 - x0, y1 - y0), ang;
     if (L < 40) { ang = (Math.random() * 2 - 1) * 80; } else ang = Math.atan2(y1 - y0, x1 - x0) * 180 / Math.PI;   // un toque: zarpazo en dirección al azar
-    L = Math.min(C.maxLen, Math.max(C.minLen, L * 1.15));
-    const cx = Math.min(W - 90, Math.max(90, (x0 + x1) / 2)), cy = Math.min(H - 90, Math.max(90, (y0 + y1) / 2));
-    return { cx, cy, angle: ang, len: L, curve: (Math.random() < .5 ? -1 : 1) * (18 + Math.random() * 10), reverse: false };
+    L = Math.min(C.maxLen, Math.max(C.minLen, L * 1.4));
+    const cx = Math.min(W - 130, Math.max(130, (x0 + x1) / 2)), cy = Math.min(H - 130, Math.max(130, (y0 + y1) / 2));
+    return { cx, cy, angle: ang, len: L, curve: (Math.random() < .5 ? -1 : 1) * (26 + Math.random() * 14), reverse: false };
   }
   const opened = new Promise(resolveOpen => {
     const down = e => { if (!root.isConnected || scratches.length >= 3) return; drag = { x: e.clientX, y: e.clientY, id: e.pointerId }; trail.length = 0; trail.push({ x: e.clientX, y: e.clientY, t: performance.now() }); };
