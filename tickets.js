@@ -44,7 +44,7 @@ export const TICKETS = [
     {texto: 'Elige hasta 3 días de las vacaciones de Navidad 🎄'},
     {calendario: 3, id: 'cita8'},
     {juego: 'subway'},
-    {vale: 'Te has ganado unos churros con chocolate caliente', arriba: '¡Premio!'},
+    {vale: 'unos churros con chocolate en Madrid'},
     {texto: 'Me apetece ver las luces por Madrid, ¿Y a ti? Anda, si ya has escogido día 😉'},
   ]},
   /* 9 */ {titulo: 'Importante', bloques: [
