@@ -76,12 +76,13 @@ function clawShapes(s, sizeMul, smooth) {
   const dx = Math.cos(a), dy = Math.sin(a), nx = -dy, ny = dx;
   return CLAWS.map(([lat, lenK, shift, wK]) => {
     const L = s.len * lenK;
-    const cx = s.cx + nx * lat * CLAW_SPACING + dx * shift * s.len;
-    const cy = s.cy + ny * lat * CLAW_SPACING + dy * shift * s.len;
+    const K = s.k || 1;   // el último zarpazo es más grande
+    const cx = s.cx + nx * lat * CLAW_SPACING * K + dx * shift * s.len;
+    const cy = s.cy + ny * lat * CLAW_SPACING * K + dy * shift * s.len;
     let p0 = [cx - dx * L / 2, cy - dy * L / 2], p2 = [cx + dx * L / 2, cy + dy * L / 2];
     const p1 = [cx + nx * s.curve, cy + ny * s.curve];
     if (s.reverse) [p0, p2] = [p2, p0];
-    const N = 26, left = [], right = [], maxW = 38 * wK * sizeMul;
+    const N = 26, left = [], right = [], maxW = 38 * wK * sizeMul * K;
     for (let i = 0; i <= N; i++) {
       const u = i / N;
       const x = (1-u)*(1-u)*p0[0] + 2*(1-u)*u*p1[0] + u*u*p2[0];
@@ -302,9 +303,10 @@ export async function abrirSobre(opts = {}) {
     let [x0, y0] = toImg(a.x, a.y), [x1, y1] = toImg(b.x, b.y);
     let L = Math.hypot(x1 - x0, y1 - y0), ang;
     if (L < 40) { ang = (Math.random() * 2 - 1) * 80; } else ang = Math.atan2(y1 - y0, x1 - x0) * 180 / Math.PI;   // un toque: zarpazo en dirección al azar
-    L = Math.min(C.maxLen, Math.max(C.minLen, L * 1.4));
+    const last = scratches.length === 2, K = last ? 1.6 : 1;   // el tercero, el que abre el sobre, es mucho más grande
+    L = last ? Math.max(C.maxLen * 1.25, L * 1.6) : Math.min(C.maxLen, Math.max(C.minLen, L * 1.4));
     const cx = Math.min(W - 130, Math.max(130, (x0 + x1) / 2)), cy = Math.min(H - 130, Math.max(130, (y0 + y1) / 2));
-    return { cx, cy, angle: ang, len: L, curve: (Math.random() < .5 ? -1 : 1) * (26 + Math.random() * 14), reverse: false };
+    return { cx: last ? W / 2 + (cx - W / 2) * .3 : cx, cy: last ? H / 2 + (cy - H / 2) * .3 : cy, angle: ang, len: L, k: K, curve: (Math.random() < .5 ? -1 : 1) * (26 + Math.random() * 14) * K, reverse: false };
   }
   const opened = new Promise(resolveOpen => {
     const down = e => { if (!root.isConnected || scratches.length >= 3) return; drag = { x: e.clientX, y: e.clientY, id: e.pointerId }; trail.length = 0; trail.push({ x: e.clientX, y: e.clientY, t: performance.now() }); };
