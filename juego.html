@@ -121,10 +121,10 @@ const CFG={
   goal:20,                       // churros para ganar
   perLevel:5,                    // cada 5 churros sube la velocidad
   lives:3,                       // golpes que aguanta antes de perder
-  speeds:[150,190,235,285],      // velocidad de cada nivel (1→4)
-  rowGap:[1.45,1.2,1.0,0.86],    // segundos entre filas de obstáculos en cada nivel
-  twoBlocked:[.15,.35,.55,.7],   // probabilidad de que una fila tape 2 carriles (nunca 3)
-  churroChance:.3,               // probabilidad de churro en cada fila de obstáculos
+  speeds:[165,210,260,315],      // velocidad de cada nivel (1→4)
+  rowGap:[1.3,1.08,0.92,0.8],    // segundos entre filas de obstáculos en cada nivel
+  twoBlocked:[.3,.5,.65,.78],    // probabilidad de que una fila tape 2 carriles (nunca 3)
+  churroChance:.27,               // probabilidad de churro en cada fila de obstáculos
   finalMsg:'20 churros con chocolate… y alguien te estaba esperando en la churrería.',
 };
 
@@ -150,7 +150,7 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const q=new URLSearchParams(location.search),GOD=q.has('god'),START_C=+q.get('c')||0;
 
 /* ============================ carga de imágenes ============================ */
-const FILES={chica:'assets/chica.png',yo:'assets/yo.png',churros:'assets/churros.png',bache:'assets/bache.png',
+const FILES={chica:'assets/chica_run.png',yo:'assets/yo.png',churros:'assets/churros.png',bache:'assets/bache.png',
   policia:'assets/policia.png',valla:'assets/valla.png',churreria:'assets/churreria.png',fondo:'assets/fondo.png'};
 const loadImg=src=>new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(src);i.src=src});
 // reduce una imagen con buena calidad (por mitades) hasta el tamaño pedido
@@ -164,7 +164,7 @@ function resize(src,w,h,hardAlpha=true){
 }
 // sprite con varios tamaños precalculados (para que se vea bien de lejos y de cerca)
 function sprite(img,worldW){
-  const iw=img.naturalWidth,ih=img.naturalHeight,wh=Math.round(worldW*ih/iw);
+  const iw=img.naturalWidth||img.width,ih=img.naturalHeight||img.height,wh=Math.round(worldW*ih/iw);
   const base=resize(img,worldW,wh),mips=[base];
   let w=worldW,h=wh;while(w>6&&h>6){w=Math.max(1,Math.round(w/2));h=Math.max(1,Math.round(h/2));mips.push(resize(img,w,h))}
   return{w:worldW,h:wh,mips};
@@ -457,10 +457,10 @@ function drawPlayer(){
   const px=CX+lx*LANE-camX;
   shadow(px,PY,36);
   if(invuln>0&&Math.floor(invuln*14)%2===0&&state==='play')return;
-  const s=SP.chica,running=speed>20&&state!=='over'&&state!=='win';
-  const ph=running?Math.sin(runT*13):0,bob=Math.abs(ph)*3;
-  const w=s.w*(1+.03*Math.abs(ph)),h=s.h*(1-.025*Math.abs(ph));
-  const lean=clamp(-(tl-lx)*.22,-.2,.2)+ph*.025;
+  const running=speed>20&&state!=='over'&&state!=='win';
+  const fr=running?Math.floor(runT*9)%4:1,s=SP.run[fr];      // animación de correr
+  const w=s.w,h=s.h,bob=0;
+  const lean=clamp(-(tl-lx)*.22,-.2,.2)+(running?(fr===0?-.03:fr===2?.03:0):0);
   ctx.save();ctx.translate(Math.round(px),Math.round(PY-bob));ctx.transform(1,0,lean,1,0,0);
   ctx.drawImage(mipFor(s,Math.round(w)),Math.round(-w/2),Math.round(-h),Math.round(w),Math.round(h));
   ctx.restore();
@@ -499,7 +499,10 @@ addEventListener('resize',fit);addEventListener('orientationchange',fit);fit();
     const names=Object.keys(FILES),imgs=await Promise.all(names.map(n=>loadImg(FILES[n])));
     const I={};names.forEach((n,i)=>I[n]=imgs[i]);
     const byH=(img,h)=>Math.round(h*img.naturalWidth/img.naturalHeight);
-    SP.chica=sprite(I.chica,byH(I.chica,100));
+    // tira de 4 fotogramas: pierna izq arriba / apoyo / pierna dcha arriba / apoyo
+    const fw=I.chica.naturalWidth/4,fh=I.chica.naturalHeight;
+    SP.run=[0,1,2,3].map(i=>{const c=cv(fw,fh);c.getContext('2d').drawImage(I.chica,i*fw,0,fw,fh,0,0,fw,fh);return sprite(c,Math.round(100*fw/fh))});
+    SP.chica=SP.run[1];
     SP.yo=sprite(I.yo,byH(I.yo,100));
     SP.churros=sprite(I.churros,40);
     SP.bache=sprite(I.bache,OB.bache.w);SP.policia=sprite(I.policia,OB.policia.w);SP.valla=sprite(I.valla,OB.valla.w);
