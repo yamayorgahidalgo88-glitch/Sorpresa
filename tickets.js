@@ -2,7 +2,7 @@
 // Cada ticket tiene un título y una lista de "bloques" que se muestran uno debajo de otro:
 //   {texto:'…'}                     párrafo de texto
 //   {vale:'…'}                      ticket dibujado "VALE POR …"   ({vale:'…', arriba:'¡PREMIO!'} cambia el encabezado)
-//   {carta:true}                    hueco para la carta (pendiente)
+//   {carta:'…', despedida, firma}   la carta (párrafos separados por una línea en blanco)
 //   {calendario:3, id:'…'}          elegir hasta 3 días de las vacaciones; hasta confirmar no sigue
 //   {juego:'subway'}                minijuego (pendiente); hasta ganar no sigue
 //   {desliza:[…]}                   tarjetas para deslizar a izquierda/derecha (tipo Tinder)
@@ -12,7 +12,8 @@
 
 export const TICKETS = [
   /* 1 */ {titulo: 'Te quiero', bloques: [
-    {carta: true},
+    {carta: "No sé muy bien cómo empezar esto, pero tengo claro que te tengo que decir tantas cosas. Este primer regalo es simple, pero seguro que lo sabes valorar bien. Quiero abrirme contigo, aunque ya lo haya hecho más veces. Quiero que cuando te encuentres mal, triste o de bajón leas esta carta y sientas mis brazos arropándote y mi boca dándote besos por toda la cara hasta hacerte reír.\n\nMi vida es perfecta desde que tú estás conmigo. Y dirás: ¿y la rodilla?, ¿y la universidad?, ¿y el deporte? Y yo te respondería que tienes razón, pero que esas cosas en ningún momento me han podido quitar la felicidad que tengo solo de pensar que estoy un día más a tu lado, en la suerte que tengo de levantarme y ver un «Buenos días, cielo» tuyo. Me siento feliz, me siento en casa contigo. Eres lo mejor de mi vida.\n\nMe acuerdo de cuando nos conocimos. Quién diría que estudiar me iba a brindar la oportunidad de conocer a una chica tan agradable, tan graciosa, tan risueña, tan preciosa. Nunca podré borrar el primer momento en el que te vi, porque ese momento ha significado que haya encontrado el amor de mi vida. Tuvo que pasar un tiempo hasta darnos cuenta de que sí, que era real que estábamos destinados a estar juntos, y estoy seguro de que nuestros abuelos nos cogieron las manos y las juntaron. Y desde ese momento nunca se han separado de nosotros, mientras nos ven juntos desde el cielo, sonriendo.\n\nExisten palabras que pueden intentar expresar lo que siento por ti, pero siento que siempre se quedan cortas. Digamos que la única que está más próxima es: inefable. Eres una persona maravillosa, un apoyo incondicional para mí y para todos, una sonrisa cuando estás triste, un abrazo cuando no puedes más, una chica que se esfuerza día a día en ser mejor y que lo consigue, te lo puedo asegurar. Y por supuesto, una chica hermosa por dentro y por fuera, perfecta tal y como es. En resumen, cuando te digo «te quiero, mi vida 💚», es porque eres mi vida de verdad.\n\nA lo mejor no es el primer «regalo» que esperabas, pero espero, y vuelvo a recalcar, que cuando creas que no puedes más y estés triste, leas esto y me sientas a tu lado. Te quiero, mi vida. Quiero casarme contigo, viajar contigo, formar una familia contigo y envejecer contigo. Todo contigo.",
+     despedida: 'Por otras Navidades juntos 💚', firma: 'Tu chico 💕'},
   ]},
   /* 2 */ {titulo: 'Nuestra Navidad', bloques: [
     {texto: 'Elige hasta 3 días de las vacaciones de Navidad 🎄'},

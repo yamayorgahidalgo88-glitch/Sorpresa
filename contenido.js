@@ -170,6 +170,9 @@ export function renderContent(n, el) {
     if (b.calendario) el.append(calendarDone(st.data[i] || {}));
     else if (b.texto) el.append(h(`<p class="${b.pista ? 'pista' : 'txt'}">${esc(b.texto)}</p>`));
     else if (b.vale) el.append(vale(b.vale, b.arriba));
+    else if (typeof b.carta === 'string') el.append(h(`<article class="carta-papel"><div class="carta-sello">💌</div>
+      ${b.carta.split(/\n\s*\n/).map(p => `<p>${esc(p)}</p>`).join('')}
+      ${b.despedida ? `<p class="carta-desp">${esc(b.despedida)}</p>` : ''}${b.firma ? `<p class="carta-firma">${esc(b.firma)}</p>` : ''}</article>`));
     else if (b.carta) el.append(h(`<div class="carta"><div class="env">✉️</div><p>Tu carta llegará muy pronto…</p></div>`));
   }
 }
@@ -199,6 +202,14 @@ const css = `
 .chosen{font-size:15px;line-height:1.45;padding:10px 12px;border-radius:12px;background:#e9f5ec;color:#1f4d33}
 .carta{text-align:center;padding:16px;border-radius:14px;background:#fff8e6;box-shadow:inset 0 0 0 2px #e2b54a}
 .carta .env{font-size:46px}.carta p{margin:6px 0 0;font-size:16px}
+.carta-papel{position:relative;padding:28px 20px 22px;border-radius:6px;color:#3a2a1c;text-align:left;
+  background:repeating-linear-gradient(#fffaf0 0 33px,#e9dcc3 33px 34px),#fffaf0;background-position:0 14px;
+  box-shadow:0 2px 0 #e2d3b4,0 6px 18px rgba(0,0,0,.18),inset 3px 0 0 #f2b8b8;transform:rotate(-.4deg)}
+.carta-papel p{margin:0 0 14px;font-family:Caveat,'Segoe Print',cursive;font-size:23px;line-height:34px;font-weight:500}
+.carta-papel p:first-of-type::first-letter{font-family:'Great Vibes',cursive;font-size:52px;float:left;line-height:40px;margin:4px 6px 0 0;color:#9b1c1c}
+.carta-sello{position:absolute;top:-14px;right:14px;font-size:30px;transform:rotate(12deg);filter:drop-shadow(0 2px 2px rgba(0,0,0,.25))}
+.carta-desp{text-align:center;margin-top:20px!important;color:#1f6b2e;font-weight:700!important}
+.carta-firma{text-align:right;font-family:'Great Vibes',cursive!important;font-size:34px!important;color:#9b1c1c;margin:4px 6px 0 0!important}
 .game{text-align:center;padding:16px 12px;border-radius:14px;background:#13261c;color:#fff3d6;display:flex;flex-direction:column;align-items:center;gap:10px}
 .game-art{font-size:44px}.game p{margin:0;line-height:1.45}.game small{opacity:.6;font-size:11px}
 .swipe{display:flex;flex-direction:column;align-items:center;gap:12px}
