@@ -206,7 +206,6 @@ const css = `
   background:repeating-linear-gradient(#fffaf0 0 33px,#e9dcc3 33px 34px),#fffaf0;background-position:0 14px;
   box-shadow:0 2px 0 #e2d3b4,0 6px 18px rgba(0,0,0,.18),inset 3px 0 0 #f2b8b8;transform:rotate(-.4deg)}
 .carta-papel p{margin:0 0 14px;font-family:Caveat,'Segoe Print',cursive;font-size:23px;line-height:34px;font-weight:500}
-.carta-papel p:first-of-type::first-letter{font-family:Caveat,cursive;font-weight:700;font-size:76px;float:left;line-height:66px;height:66px;margin:2px 8px 0 -2px;color:#9b1c1c;text-transform:uppercase}
 .carta-sello{position:absolute;top:-14px;right:14px;font-size:30px;transform:rotate(12deg);filter:drop-shadow(0 2px 2px rgba(0,0,0,.25))}
 .carta-desp{text-align:center;margin-top:20px!important;color:#1f6b2e;font-weight:700!important}
 .carta-firma{text-align:right;font-family:'Great Vibes',cursive!important;font-size:34px!important;color:#9b1c1c;margin:4px 6px 0 0!important}
