@@ -124,6 +124,7 @@ const CFG={
   speeds:[150,190,235,285],      // velocidad de cada nivel (1→4)
   rowGap:[1.45,1.2,1.0,0.86],    // segundos entre filas de obstáculos en cada nivel
   twoBlocked:[.15,.35,.55,.7],   // probabilidad de que una fila tape 2 carriles (nunca 3)
+  churroChance:.3,               // probabilidad de churro en cada fila de obstáculos
   finalMsg:'20 churros con chocolate… y alguien te estaba esperando en la churrería.',
 };
 
@@ -230,7 +231,7 @@ let SP={},BG=null,FAROLA=null,HEART_F='',HEART_E='';
 let state='boot',trav=0,speed=0,lx=0,tl=0,camX=0,runT=0,dustT=0,endT=0;
 let lives=3,churros=0,level=0,invuln=0,shake=0;
 let obs=[],items=[],decor=[],parts=[],finale=null;
-let nextRow=0,nextLamp=0,lastFree=0;
+let nextRow=0,nextLamp=0,lastFree=0,rowsNoChurro=0;
 const rowD=new Float32Array(H);for(let y=0;y<H;y++)rowD[y]=y>HOR?CAMH/(y-HOR):0;
 
 // obstáculos: ancho en el mundo (un carril ≈ 82) y profundidad que ocupan
@@ -240,8 +241,8 @@ const lvlFor=c=>Math.min(3,Math.floor(c/CFG.perLevel));
 function reset(){
   trav=0;speed=CFG.speeds[0];lx=0;tl=0;camX=0;lives=CFG.lives;churros=START_C;level=lvlFor(churros);invuln=0;shake=0;endT=0;
   obs=[];items=[];decor=[];parts=[];finale=null;
-  nextRow=430;nextLamp=20;lastFree=0;
-  for(let i=0;i<3;i++)items.push({lane:0,pos:190+i*34});
+  nextRow=430;nextLamp=20;lastFree=0;rowsNoChurro=0;
+  items.push({lane:0,pos:220});
   spawnAhead(false);hudUpdate(true);
 }
 
@@ -268,8 +269,9 @@ function addRow(p){
   }
   lastFree=free;
   const len=Math.max(...obs.filter(o=>o.pos===p).map(o=>o.len));
-  items.push({lane:free,pos:p+len*.5});                         // churro de premio en el hueco
-  if(rnd()<.45){const l=pick(lanes),n=1+(rnd()*2|0);for(let i=0;i<n;i++)items.push({lane:l,pos:p+len+40+i*30})}
+  // churro de vez en cuando (siempre en el hueco libre); como mucho 4 filas seguidas sin ninguno
+  rowsNoChurro++;
+  if(rnd()<CFG.churroChance||rowsNoChurro>=4){items.push({lane:free,pos:p+len*.5});rowsNoChurro=0}
 }
 function addOb(lane,pos){const type=pick(['policia','policia','valla','valla','bache','bache']);obs.push({type,lane,pos,...OB[type]})}
 
@@ -294,7 +296,7 @@ frameEl.addEventListener('pointerdown',e=>{if(e.target.closest('button'))return;
 frameEl.addEventListener('pointermove',e=>{
   if(sid!==e.pointerId)return;
   const dx=e.clientX-sx,th=Math.max(14,frameEl.clientWidth*.06);
-  if(Math.abs(dx)>th){moved=true;sx=e.clientX;(dx>0?right:left)()}
+  if(!moved&&Math.abs(dx)>th){moved=true;(dx>0?right:left)()}
 });
 frameEl.addEventListener('pointerup',e=>{
   if(sid!==e.pointerId)return;sid=null;
