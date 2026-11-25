@@ -2,15 +2,15 @@
 Última actualización: 2026-11-25
 
 ## Archivos
-- `usuario.md` — quién es el usuario y cómo le gusta trabajar
-- `proyectos/sorpresa.md` — estado del proyecto Sorpresa (index.html)
-- `decisiones.md` — decisiones tomadas y por qué
+- `REGLAS.md` — cómo responder (cargado al inicio)
+- `usuario.md` — quién es y cómo trabaja el usuario
+- `proyectos/sorpresa.md` — estado del proyecto (index.html)
+- `decisiones.md` — qué se decidió y por qué
 - `pendientes.md` — tareas abiertas
-- `sesiones/` — un resumen por día (solo leer el más reciente si hace falta continuidad)
+- `log/` — registro automático por sesión (solo lo reciente se carga)
+- `sesiones/` — resúmenes manuales
 
-## Resumen en 5 líneas
-- Repo: página web estática `index.html` ("Sorpresa").
-- Idioma de trabajo: español.
-- El usuario quiere ahorrar tokens: no releer conversaciones, usar este cerebro.
-- Rama de desarrollo: `ccr-6b975381-pq4e9l`.
-- Contenido de chats anteriores al 2026-11-25: no importado (pedir al usuario un resumen o export).
+## Estado
+- Cerebro operativo: hooks de captura y sincronización a `main`, skill `/cerebro`, reglas de respuesta.
+- Repo: web estática `index.html` ("Sorpresa"), aún sin documentar.
+- Falta: resumen de chats anteriores (el usuario debe pegarlo) y probar en sesión nueva.
