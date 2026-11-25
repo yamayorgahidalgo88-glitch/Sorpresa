@@ -96,9 +96,17 @@ function calendarDone(data) {
   return h(`<div class="chosen">📅 ${ds.length > 1 ? 'Días elegidos' : 'Día elegido'}: <b>${esc(ds.join(' · '))}</b></div>`);
 }
 function game(done) {
-  const box = h(`<div class="game"><div class="game-art">🎮</div><p>Aquí irá el minijuego <b>pixel art</b> tipo Subway Surfers.<br>¡Consigue el objetivo para ver tu premio!</p>
-    <button class="redeem">¡LO HE CONSEGUIDO!</button><small>(botón provisional hasta que esté el juego)</small></div>`);
-  box.querySelector('button').onclick = () => done({});
+  // Minijuego "Churros por Madrid" (juegos/churros.html): se abre a pantalla completa y, al ganar, avisa con postMessage
+  const box = h(`<div class="game"><div class="game-art">🍫</div><p><b>Churros por Madrid</b><br>Recoge 20 churros con chocolate esquivando baches, vallas y coches de policía.<br>¡Gana para ver tu premio!</p>
+    <button class="redeem">¡JUGAR!</button></div>`);
+  box.querySelector('button').onclick = () => {
+    const ov = h(`<div class="game-ov"><iframe src="/juegos/churros?embed=1" title="Churros por Madrid" allow="autoplay"></iframe><button class="game-x" aria-label="Cerrar">✕</button></div>`);
+    const close = () => { removeEventListener('message', onMsg); ov.remove(); };
+    const onMsg = e => { if (e.origin === location.origin && e.data && e.data.tipo === 'churros-ganado') { close(); done({ganado: true}); } };
+    addEventListener('message', onMsg);
+    ov.querySelector('.game-x').onclick = close;
+    document.body.append(ov);
+  };
   return box;
 }
 function swipe(cards, done) {
@@ -211,6 +219,8 @@ const css = `
 .carta-firma{text-align:right;font-family:'Great Vibes',cursive!important;font-size:34px!important;color:#9b1c1c;margin:4px 6px 0 0!important}
 .game{text-align:center;padding:16px 12px;border-radius:14px;background:#13261c;color:#fff3d6;display:flex;flex-direction:column;align-items:center;gap:10px}
 .game-art{font-size:44px}.game p{margin:0;line-height:1.45}.game small{opacity:.6;font-size:11px}
+.game-ov{position:fixed;inset:0;z-index:2147483000;background:#120c1c}.game-ov iframe{width:100%;height:100%;border:0;display:block}
+.game-x{position:absolute;top:max(10px,env(safe-area-inset-top));right:10px;width:40px;height:40px;border-radius:50%;border:2px solid #fff3d6;background:rgba(27,22,38,.8);color:#fff3d6;font:700 18px system-ui,sans-serif;cursor:pointer}
 .swipe{display:flex;flex-direction:column;align-items:center;gap:12px}
 .sw-stack{position:relative;width:min(100%,240px,34dvh);aspect-ratio:3/4}
 .sw-card{position:absolute;inset:0;border-radius:18px;background:linear-gradient(#fff8e6,#f3dfb0);box-shadow:0 8px 20px rgba(0,0,0,.25),inset 0 0 0 3px #e2b54a;

@@ -4,7 +4,7 @@
 //   {vale:'…'}                      ticket dibujado "VALE POR …"   ({vale:'…', arriba:'¡PREMIO!'} cambia el encabezado)
 //   {carta:'…', despedida, firma}   la carta (párrafos separados por una línea en blanco)
 //   {calendario:3, id:'…'}          elegir hasta 3 días de las vacaciones; hasta confirmar no sigue
-//   {juego:'subway'}                minijuego (pendiente); hasta ganar no sigue
+//   {juego:'subway'}                minijuego «Churros por Madrid» (juegos/churros.html); hasta ganar no sigue
 //   {desliza:[…]}                   tarjetas para deslizar a izquierda/derecha (tipo Tinder)
 //   {elige:[[a,b],…]}               rondas de "elige una de dos"
 //   {clave:'sha256…'}               contraseña para poder ver lo que viene después
