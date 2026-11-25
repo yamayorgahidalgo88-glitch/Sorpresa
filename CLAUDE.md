@@ -1,9 +1,9 @@
 # Sorpresa
 
-Al empezar cada sesión, lee SOLO `brain/INDEX.md` (es corto). No releas chats antiguos.
+La memoria se captura y se carga automáticamente con hooks (`.claude/settings.json`). No releas chats antiguos.
 Abre otros archivos de `brain/` únicamente si el INDEX indica que son relevantes para la tarea.
 
-@brain/INDEX.md
+(El INDEX y la memoria reciente se cargan automáticamente por hook al iniciar sesión.)
 
 ## Reglas del cerebro
 1. Antes de terminar una tarea importante: añade una nota en `brain/sesiones/AAAA-MM-DD.md` (qué se hizo, decisiones, pendientes; máx. 15 líneas).
