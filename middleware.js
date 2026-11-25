@@ -13,6 +13,7 @@ const cont = () => new Response(null, { headers: { 'x-middleware-next': '1' } })
 export default async function middleware(request) {
   const url = new URL(request.url);
   if (url.hostname.includes('pruebas')) return cont();          // the test copy has no password
+  if (url.pathname === '/respuestas' || url.pathname === '/api/respuestas') return cont();   // has its own password
   const cookies = Object.fromEntries((request.headers.get('cookie') || '').split(/;\s*/).filter(Boolean)
     .map(c => { const i = c.indexOf('='); return [c.slice(0, i), c.slice(i + 1)]; }));
 

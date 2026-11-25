@@ -535,7 +535,7 @@ const QS=new URLSearchParams(location.search);
 const FORCE_OPEN=PREVIEW_ALL&&!QS.has('bloqueado');
 const leftMs=n=>FORCE_OPEN?0:unlockTime(n)-now();
 const {TICKETS}=await import('./tickets.js');
-const {renderContent,resetProgress}=await import('./contenido.js');
+const {renderContent,resetProgress,report}=await import('./contenido.js');
 const modal=document.getElementById('modal'),$=id=>document.getElementById(id);
 let openN=null,tick=null;
 function render(){
@@ -587,7 +587,7 @@ function tryRedeem(btn,n){
   if(done.has(n)||!unlocked(n))return;
   if(armed!==btn){armed=btn;btn.classList.add('confirm');btn.textContent='¿SEGURO? TOCA OTRA VEZ';clearTimeout(armT);
     armT=setTimeout(()=>{if(armed===btn){btn.classList.remove('confirm');btn.textContent='CANJEAR';armed=null}},3500);return}
-  armed=null;done.add(n);save(done);drawList();if(tModal.classList.contains('open'))showTicket(n);
+  armed=null;done.add(n);save(done);report(n,'canje');drawList();if(tModal.classList.contains('open'))showTicket(n);
 }
 let tOpenN=null,tOpenedAt=0;
 function showTicket(n){

@@ -1,6 +1,16 @@
 {
   "cleanUrls": true,
   "redirects": [
-    { "source": "/", "destination": "/arbol", "permanent": false }
+    {
+      "source": "/",
+      "destination": "/arbol",
+      "permanent": false
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/respuestas",
+      "destination": "/api/respuestas"
+    }
   ]
 }

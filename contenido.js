@@ -8,6 +8,16 @@ let prog = loadP();
 const saveP = () => { try { localStorage.setItem(KEY, JSON.stringify(prog)); } catch {} };
 export function resetProgress() { prog = {}; saveP(); }
 
+// Sends an answer to his private page. Only on her real site (the test copy never sends anything).
+export function report(casita, tipo, datos = {}) {
+  if (!location.hostname.includes('mi-vida') || location.hostname.includes('pruebas')) return;
+  const T = TICKETS[casita - 1] || {};
+  try {
+    fetch('/api/guardar', {method: 'POST', keepalive: true, headers: {'content-type': 'application/json'},
+      body: JSON.stringify({casita, titulo: T.titulo, tipo, datos})}).catch(() => {});
+  } catch {}
+}
+
 const esc = t => String(t).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
 const h = (html) => { const d = document.createElement('div'); d.innerHTML = html.trim(); return d.firstElementChild; };
 const sha256 = async s => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))]
@@ -93,10 +103,10 @@ function game(done) {
 }
 function swipe(cards, done) {
   const box = h(`<div class="swipe"><div class="sw-stack"></div><div class="sw-btns"><button class="sw-no" aria-label="No">✕</button><button class="sw-yes" aria-label="Sí">♥</button></div></div>`);
-  const stack = box.querySelector('.sw-stack'), likes = []; let k = 0;
+  const stack = box.querySelector('.sw-stack'), likes = [], nopes = []; let k = 0;
   const show = () => {
     stack.innerHTML = '';
-    if (k >= cards.length) return done({likes});
+    if (k >= cards.length) return done({likes, nopes});
     const c = h(`<div class="sw-card"><div class="sw-pic">🍳</div><b>${esc(cards[k])}</b><small>${k + 1} / ${cards.length}</small><i class="sw-tag yes">SÍ</i><i class="sw-tag no">NO</i></div>`);
     stack.append(c);
     let x0 = null, dx = 0;
@@ -109,7 +119,7 @@ function swipe(cards, done) {
   };
   const decide = yes => {
     const c = stack.firstElementChild; if (!c) return;
-    if (yes) likes.push(cards[k]);
+    (yes ? likes : nopes).push(cards[k]);
     c.style.transform = `translateX(${yes ? 140 : -140}%) rotate(${yes ? 25 : -25}deg)`; c.style.opacity = 0;
     k++; setTimeout(show, 260);
   };
@@ -148,7 +158,9 @@ export function renderContent(n, el) {
   el.classList.add('contenido');
   for (let i = 0; i < T.bloques.length; i++) {
     const b = T.bloques[i];
-    const finish = data => { st.done[i] = true; st.data[i] = data; saveP(); renderContent(n, el); el.dispatchEvent(new CustomEvent('paso', {bubbles: true})); };
+    const finish = data => {
+      report(n, b.calendario ? 'calendario' : b.juego ? 'juego' : b.desliza ? 'desliza' : b.elige ? 'elige' : 'clave', data);
+      st.done[i] = true; st.data[i] = data; saveP(); renderContent(n, el); el.dispatchEvent(new CustomEvent('paso', {bubbles: true})); };
     const isStep = b.calendario || b.juego || b.desliza || b.elige || b.clave;
     if (isStep && !st.done[i]) {
       el.append(b.calendario ? calendar(b.calendario, st, finish) : b.juego ? game(finish) : b.desliza ? swipe(b.desliza, finish)
