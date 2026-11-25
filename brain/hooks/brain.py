@@ -41,6 +41,9 @@ def main():
     LOG = os.path.join(BRAIN, "log", datetime.date.today().isoformat() + "-" + sid + ".md")
     now = datetime.datetime.now().strftime("%H:%M")
     if mode == "prompt":
+        if data.get("transcript_path"):
+            try: open(os.path.join(BRAIN, ".transcript"), "w").write(data["transcript_path"])
+            except Exception: pass
         p = data.get("prompt", "")
         if p.strip(): append(f"\n## {now} USUARIO\n{clip(p, MAX_USER)}")
     elif mode == "stop":
@@ -49,6 +52,8 @@ def main():
         if t: append(f"## {now} CLAUDE\n{clip(t, MAX_ASSIST)}")
     elif mode == "start":
         out = []
+        try: out.append(open(os.path.join(BRAIN, "REGLAS.md"), encoding="utf-8").read())
+        except Exception: pass
         try: out.append(open(os.path.join(BRAIN, "INDEX.md"), encoding="utf-8").read())
         except Exception: pass
         logs = sorted(f for f in os.listdir(os.path.join(BRAIN, "log"))) if os.path.isdir(os.path.join(BRAIN, "log")) else []
