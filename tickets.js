@@ -64,7 +64,7 @@ export const TICKETS = [
   /* 13 */ {titulo: 'TikTok', bloques: [
     {texto: 'Desliza a la derecha lo que te guste y a la izquierda lo que no 👉👈'},
     {desliza: ['Receta 1', 'Receta 2', 'Receta 3', 'Receta 4', 'Receta 5'], pendiente: 'imágenes'},
-    {texto: 'Mucha carpeta de recetitas, pero está cogiendo polvo la carpeta...'},
+    {texto: 'Mucha carpeta de recetitas, pero está cogiendo polvo...'},
     {vale: 'comida casera'},
   ]},
   /* 14 */ {titulo: 'Piojos', bloques: [
@@ -84,7 +84,7 @@ export const TICKETS = [
     {texto: '🔎 Pista: hay muchas cosas que te atan, pero no te gusta librarte de ellas.', pista: true},
   ]},
   /* 18 */ {titulo: 'Bajón', bloques: [
-    {texto: 'Vaya, no hacerte con las chuches que querías... Menos mal que me cubrí las espaldas. Te toca buscar de nuevo por tu habitación jeje.'},
+    {texto: 'Vaya, no acerté con las chuches que querías... Menos mal que me cubrí las espaldas. Te toca buscar de nuevo por tu habitación jeje.'},
     {texto: '🔎 Pista: (muy pronto)', pista: true, pendiente: 'pista'},
   ]},
   /* 19 */ {titulo: 'Inicio', bloques: [
