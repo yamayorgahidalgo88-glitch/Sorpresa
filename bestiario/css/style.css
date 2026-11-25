@@ -284,3 +284,7 @@ img{-webkit-user-drag:none}
 #home .menu .hbig{font-size:28px;padding:10px 12px}
 #home .mrow .btn{font-size:20px;padding:9px 6px}
 #home .menu{gap:8px}
+
+/* logo de GREVOS (imagen) en el inicio */
+#home .logo.logo-img{transform:none;filter:drop-shadow(0 6px 10px rgba(0,0,0,.45));margin:0 0 2px -6px;line-height:0}
+#home .logo.logo-img img{display:block;width:clamp(170px,47vw,260px);height:auto}
