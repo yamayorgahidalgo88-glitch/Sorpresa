@@ -518,7 +518,9 @@ renderer.domElement.addEventListener('pointerup',e=>{
 
 /* ---------- locks: house N opens on N December at 00:00:01 ---------- */
 // ?ahora=2026-12-05T10:00 simulates another date (for testing)
-const fake=new URLSearchParams(location.search).get('ahora');
+// only on the test copy / local: on her site nobody can fake the date to open houses early
+const TEST_HOST=/pruebas|localhost|127\.0\.0\.1/.test(location.hostname);
+const fake=TEST_HOST?new URLSearchParams(location.search).get('ahora'):null;
 const skew=fake&&!isNaN(new Date(fake))?new Date(fake)-Date.now():0;
 const now=()=>new Date(Date.now()+skew);
 const todayEl=document.getElementById('today');
