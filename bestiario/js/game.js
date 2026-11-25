@@ -437,7 +437,7 @@ function showReward(res) {
     el.id = 'reward';
     let art, title, sub, extra = '';
     if (res.kind === 'monedas') {
-      art = `<div class="rw-coin"><img src="assets/moneda.svg" alt=""></div>`;
+      art = `<div class="rw-coin"><img src="assets/moneda.webp" alt=""></div>`;
       title = `+${res.n} monedas`; sub = `Ahora tienes ${PROG.coins}`;
     } else {
       const ch = CHARS[res.t];
@@ -625,7 +625,7 @@ function levelPanel(t) {
   const c = COLLECTION[t], next = LEVEL_COST[c.level + 1];
   if (!next) return `<div class="lvup"><div class="lvrow"><b>Nivel máximo</b></div>${cardBar(t)}</div>`;
   const okC = c.cards >= next.cards, okM = PROG.coins >= next.coins;
-  return `<div class="lvup"><div class="lvrow"><b>Subir a nivel ${c.level + 1}</b><span class="lvcoins${okM ? '' : ' no'}"><img src="assets/moneda.svg" alt="">${next.coins} <small>(tienes ${PROG.coins})</small></span></div>
+  return `<div class="lvup"><div class="lvrow"><b>Subir a nivel ${c.level + 1}</b><span class="lvcoins${okM ? '' : ' no'}"><img src="assets/moneda.webp" alt="">${next.coins} <small>(tienes ${PROG.coins})</small></span></div>
     ${cardBar(t)}<button class="btn gold" id="lvBtn"${okC && okM ? '' : ' disabled'}>${okC ? (okM ? '⬆ Subir de nivel' : 'Faltan monedas') : `Faltan ${next.cards - c.cards} cartas`}</button></div>`;
 }
 function levelUp(t) {
