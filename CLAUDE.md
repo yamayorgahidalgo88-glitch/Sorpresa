@@ -1,0 +1,13 @@
+# Sorpresa
+
+Al empezar cada sesión, lee SOLO `brain/INDEX.md` (es corto). No releas chats antiguos.
+Abre otros archivos de `brain/` únicamente si el INDEX indica que son relevantes para la tarea.
+
+@brain/INDEX.md
+
+## Reglas del cerebro
+1. Antes de terminar una tarea importante: añade una nota en `brain/sesiones/AAAA-MM-DD.md` (qué se hizo, decisiones, pendientes; máx. 15 líneas).
+2. Si aprendes algo duradero (preferencia del usuario, decisión, dato del proyecto), guárdalo en el archivo temático correspondiente y actualiza `brain/INDEX.md` (una línea por archivo).
+3. Mantén cada archivo corto. Resume y reemplaza lo obsoleto; no acumules.
+4. No guardes secretos (claves, contraseñas).
+5. Responde al usuario en español.
