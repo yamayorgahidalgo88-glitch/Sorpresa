@@ -349,7 +349,8 @@ function update(dt){
   dustT-=dt;if(dustT<=0&&speed>20){dustT=.09;spawnDust(1)}
   spawnAhead(true);
 
-  for(const o of obs){ // choques
+  for(const o of obs){ // choques (durante el final ya no se puede chocar)
+    if(finale)break;
     const rel=o.pos-trav;
     if(o.hit||rel>6||rel<-o.len)continue;
     if(Math.abs(lx-o.lane)>=.5)continue;
@@ -370,13 +371,15 @@ function update(dt){
 }
 function startFinale(){
   // lo que queda por delante desaparece con un "puf" y aparece la churrería al fondo de la calle
-  for(const o of obs){if(o.pos>trav+50){const p=project(o.lane*LANE,o.pos);if(p)spawnSpark(p.x,p.y-10*p.s,6,['#fff','#ffd23f']);o.gone=true}}
+  // TODOS los obstáculos que quedan delante (también los de la fila del último churro) desaparecen
+  for(const o of obs){if(o.pos+o.len>trav-6){const p=project(o.lane*LANE,o.pos);if(p)spawnSpark(p.x,p.y-10*p.s,6,['#fff','#ffd23f']);o.gone=true}}
   obs=obs.filter(o=>!o.gone);
   items.forEach(i=>{if(i.pos>trav)i.got=true});
   finale={pos:trav+SPAWN,stop:UNIT*1.35};
   tl=0;toast('¡20 CHURROS!','¡a la churrería!');
 }
 function crash(){
+  if(finale||state!=='play')return;
   lives--;sfx.hit();shake=.35;invuln=1.6;speed*=.6;
   spawnSpark(CX+lx*LANE-camX,PY-50,16,['#fff','#e5453a','#ffd23f']);
   const f=$('#flash');f.classList.add('on');setTimeout(()=>f.classList.remove('on'),90);
