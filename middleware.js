@@ -28,6 +28,9 @@ export default async function middleware(request) {
     }
     return page(true);
   }
+  // the contents of the houses can only be loaded by the page itself, not opened by typing the address
+  if (/^\/(tickets|contenido)\.js$/.test(url.pathname) && request.headers.get('sec-fetch-dest') === 'document')
+    return new Response('🎄 Aquí no hay nada que ver… ¡paciencia! 💚', {status: 403, headers: {'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store'}});
   if (cookies[COOKIE] === COOKIE_VALUE) return cont();
   return page(false);
 }
