@@ -349,7 +349,7 @@ document.querySelectorAll('[data-back]').forEach(b => b.onclick = () => { sfx.cl
 $('#goBattle').onclick = () => { initAudio(); sfx.click(); openPrebattle(); };
 $('#goDecks').onclick = () => { initAudio(); sfx.click(); openDecks('home'); };
 $('#pbDecks').onclick = () => { sfx.click(); openDecks('prebattle'); };
-$('#pbGo').onclick = () => { if (!deckTypes().length) return sfx.no(); sfx.click(); show('battle'); newMatch(); };
+$('#pbGo').onclick = () => { if (deckTypes().length < DECK_MAX) return sfx.no(); sfx.click(); show('battle'); newMatch(); };
 $('#dkBack').onclick = () => { sfx.click(); decksReturn === 'prebattle' ? openPrebattle() : show('home'); };
 $('#goBestiary').onclick = () => { initAudio(); sfx.click(); renderBestiary(); show('bestiary'); };
 $('#exit').onclick = () => { sfx.click(); stopMatch(); show('home'); };
@@ -464,10 +464,11 @@ function miniCard(t, extra = '') {
 function slotsHtml(deck) {
   return Array.from({ length: DECK_MAX }, (_, i) => deck[i] ? miniCard(deck[i]) : '<div class="dslot"><span>+</span></div>').join('');
 }
+const deckFull = deck => deck.filter(owns).length >= DECK_MAX;   // solo se puede jugar con el mazo completo
 function deckInfo(deck) {
-  if (!deck.length) return 'Mazo vacío';
+  if (!deck.length) return 'Mazo vacío · <span class="warn">añade 6 bestias para poder jugar</span>';
   const avg = deck.reduce((a, t) => a + CHARS[t].cost, 0) / deck.length;
-  return `${deck.length}/${DECK_MAX} · Coste medio <b>${avg.toFixed(1).replace('.', ',')}</b>`;
+  return `${deck.length}/${DECK_MAX} · Coste medio <b>${avg.toFixed(1).replace('.', ',')}</b>` + (deck.length < DECK_MAX ? ` · <span class="warn">${DECK_MAX - deck.length === 1 ? 'falta 1' : 'faltan ' + (DECK_MAX - deck.length)} para poder jugar</span>` : '');
 }
 function openDecks(from) {
   decksReturn = from; editDeck = PROG.deck; renderDecks(); show('decks'); $('#decks').scrollTop = 0;
@@ -479,7 +480,7 @@ function renderDecks() {
   $('#dslots').innerHTML = slotsHtml(deck);
   $('#dkInfo').innerHTML = deckInfo(deck);
   const sb = $('#dkSelect'), isSel = editDeck === PROG.deck;
-  sb.textContent = isSel ? '✓ Seleccionado' : 'Seleccionar'; sb.disabled = isSel || !deck.length;
+  sb.textContent = isSel ? '✓ Seleccionado' : 'Seleccionar'; sb.disabled = isSel || !deckFull(deck);
   sb.className = 'btn ' + (isSel ? 'gold' : 'green');
   $('#dcoll').innerHTML = TYPES.filter(owns).map(t => miniCard(t, deck.includes(t) ? '<div class="inDeck o">✓</div>' : '')).join('');
   document.querySelectorAll('#dcoll .dcard').forEach(el => { if (deck.includes(el.dataset.t)) el.classList.add('used'); });
@@ -496,15 +497,15 @@ function renderDecks() {
   });
 }
 $('#dkSelect').onclick = () => {
-  if (!PROG.decks[editDeck].length) return sfx.no();
+  if (!deckFull(PROG.decks[editDeck])) return sfx.no();
   PROG.deck = editDeck; saveProg(); sfx.merge(); renderDecks();
 };
 function openPrebattle() {
   const deck = PROG.decks[PROG.deck];
   $('#pbName').textContent = `Mazo ${PROG.deck + 1}`;
   $('#pbSlots').innerHTML = slotsHtml(deck);
-  $('#pbNote').innerHTML = deck.length ? deckInfo(deck) : '<span class="warn">Tu mazo está vacío: añade bestias en Mazos</span>';
-  $('#pbGo').disabled = !deck.length;
+  $('#pbNote').innerHTML = deckFull(deck) ? deckInfo(deck) : `<span class="warn">Tu mazo tiene ${deck.length}/${DECK_MAX} bestias: complétalo en Mazos para poder jugar</span>`;
+  $('#pbGo').disabled = !deckFull(deck);
   show('prebattle');
 }
 (function embers() {
@@ -606,8 +607,7 @@ function homeTick(dt) {
   f.globalCompositeOperation = 'source-over';
 }
 function renderHomeDeck() {
-  const n = PROG.decks[PROG.deck].length;
-  $('#homeDeck').innerHTML = `<span>🃏 Mazo ${PROG.deck + 1}</span><b>${n}/${DECK_MAX} bestias</b>`;
+  // (el resumen del mazo ya no se muestra en el inicio)
 }
 
 function renderBestiary() {
