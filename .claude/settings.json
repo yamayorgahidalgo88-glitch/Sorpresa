@@ -25,8 +25,18 @@
         "hooks": [
           {
             "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/brain/hooks/brain.py\" stop"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
             "timeout": 90,
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/brain/hooks/brain.py\" stop; bash \"$CLAUDE_PROJECT_DIR/brain/hooks/sync.sh\""
+            "command": "bash \"$CLAUDE_PROJECT_DIR/brain/hooks/sync.sh\""
           }
         ]
       }
