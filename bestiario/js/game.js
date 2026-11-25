@@ -102,7 +102,7 @@ const VIEW_ANGLES = { pose: [-25, 12], left: [-90, 6], right: [90, 6], iso: [-35
 const TYPES = Object.keys(CHARS);
 const COLS = 5, ROWS = 8, MAX_UNITS = 7, WIN_ROUNDS = 3, ROUND_CAP = 60, ELIXIR_CAP = 20;
 // ritmo de combate: todas las recargas x1,5 y los pasos x1,35 (mismas proporciones entre personajes)
-const PACE = 1.5, MOVE_PACE = 1.35;
+const PACE = 1, MOVE_PACE = 1.35;   // PACE: las recargas son exactamente las del diseño
 const LVL_MULT = [0, 1, 1.3, 1.6], LVL_SCALE = [0, 0.66, 0.71, 0.77];
 const FRONT_ROLES = ['Tanque', 'Luchador', 'Defensor', 'Asesino', 'Pistolera'];
 const PAIRA_MIN = .25;
