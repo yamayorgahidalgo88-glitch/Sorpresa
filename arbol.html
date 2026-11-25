@@ -535,7 +535,9 @@ function unlockTime(n){
 const PREVIEW_ALL=location.hostname.includes('pruebas');
 const QS=new URLSearchParams(location.search);
 const FORCE_OPEN=PREVIEW_ALL&&!QS.has('bloqueado');
-const leftMs=n=>FORCE_OPEN?0:unlockTime(n)-now();
+// houses opened early on purpose (before their day)
+const ABIERTAS_YA=new Set([2]);
+const leftMs=n=>FORCE_OPEN||ABIERTAS_YA.has(n)?0:unlockTime(n)-now();
 const {TICKETS}=await import('./tickets.js');
 const {renderContent,resetProgress,report}=await import('./contenido.js');
 const modal=document.getElementById('modal'),$=id=>document.getElementById(id);
