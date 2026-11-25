@@ -858,6 +858,69 @@ function aiPlan() {
   }
 }
 
+// Formación táctica: antes de cada combate el rival estudia la formación del jugador y recoloca sus criaturas
+// buscando la mejor disposición (prueba miles de cambios y se queda con la que mejor puntúa, como una IA de ajedrez).
+const LINE_SHOOTERS = { osko: 1, ayew: 1, orion: 1 };          // solo atacan en línea recta (sin diagonal)
+const AOE_TYPES = { ogul: 1, jaspe: 1, peipo: 1, bushi: 1, pomona: 0 };
+function aiArrange() {
+  const E = team('e'), P = team('p'); if (E.length < 2 && !P.length) return;
+  const D = u => CHARS[u.type] || SUMMONS[u.type];
+  const isFront = u => FRONT_ROLES.includes(D(u).role) || D(u).range <= 1;
+  const tank = u => D(u).hp >= 650 || D(u).role === 'Tanque' || D(u).role === 'Defensor';
+  const imp = u => (D(u).cost || 1) * (1 + .5 * (u.level - 1));
+  const frag = u => Math.max(0, 1 - D(u).hp / 900) + (isFront(u) ? 0 : .3);    // lo que le duele recibir daño
+  const pType = t => P.filter(p => p.type === t);
+  const aoeN = P.filter(p => AOE_TYPES[p.type]).length;
+  const far = (from, pos, n) => from.length ? E.map((e, i) => [i, Math.max(...from.map(f => Math.hypot(pos[i].c - f.hc, pos[i].r - f.hr)))]).sort((a, b) => b[1] - a[1]).slice(0, n).map(x => x[0]) : [];
+  function score(pos) {
+    let s = 0;
+    E.forEach((e, i) => {
+      const { c, r } = pos[i], depth = r - 4, d = D(e);
+      // profundidad: los de cuerpo a cuerpo delante, los de distancia detrás
+      s += isFront(e) ? -depth * 1.1 : -(3 - depth) * .8 * Math.min(1, (d.range || 1) / 3);
+      // ataque: los que tiran en línea buscan columna con rivales; los de cuerpo a cuerpo van a por los de distancia del jugador
+      for (const p of P) {
+        const dc = Math.abs(p.hc - c), dr = r - p.hr;
+        if (LINE_SHOOTERS[e.type] && dc === 0 && dr <= d.range + 2) s += .9 * imp(p) / 3;
+        if (e.type === 'tanko' && (dc === 0 || dc === dr) && dr <= 4) s += 1 * imp(p) / 3;
+        if (e.type === 'bolab' && dc === 0 && dr >= 1 && dr <= 3) s += 1.3;
+        if (e.type === 'denton' && dc === 0 && dr <= 3) s += .8;
+        if (isFront(e) && !isFront(p)) s += .5 * imp(p) / 3 / (1 + dc);
+        // defensa: no dejar a los frágiles en la línea de tiro del jugador
+        if (LINE_SHOOTERS[p.type] && dc === 0) s -= 1.1 * frag(e);
+        if (p.type === 'tanko' && (dc === 0 || dc === dr)) { const first = !E.some((o, j) => j !== i && pos[j].c === c && pos[j].r < r && (dc === 0)); s -= (first ? 1.6 : .4) * frag(e); }
+        if (p.type === 'bolab' && dc === 0 && dr >= 1 && dr <= 3) s -= 1 * frag(e) + .3;
+        if (p.type === 'denton' && dc === 0 && dr <= 3) s -= .6 * frag(e);
+        if (p.type === 'jess' && dc <= 1 && dr <= (p.level >= 2 ? 2 : 1)) s -= .7 * frag(e);
+      }
+      // protección: un frágil con un tanque aliado delante, en su columna
+      if (frag(e) > .4 && E.some((o, j) => j !== i && tank(o) && pos[j].c === c && pos[j].r < r)) s += .9;
+      // contra daño en área: no amontonarse
+      if (aoeN) E.forEach((o, j) => { if (j > i && Math.max(Math.abs(pos[j].c - c), Math.abs(pos[j].r - r)) === 1) s -= .3 * aoeN; });
+    });
+    // Ayew (saque) y Paira (deslizada) van a por el más alejado: que sea alguien que aguante
+    const ay = pType('ayew'), pa = pType('paira');
+    for (const i of far(ay, pos, ay.some(u => u.level >= 3) ? 3 : 1)) s -= 2 * frag(E[i]);
+    for (const i of far(pa, pos, 1)) s -= 1.6 * frag(E[i]) - (tank(E[i]) ? .6 : 0);
+    return s;
+  }
+  const tiles = []; for (let r = 4; r < ROWS; r++) for (let c = 0; c < COLS; c++) tiles.push({ c, r });
+  const kf = (p) => p.c + ',' + p.r;
+  let best = E.map(e => ({ c: e.hc, r: e.hr })), bestS = score(best);
+  for (let run = 0; run < 4; run++) {
+    let cur = run === 0 ? best.map(p => ({ ...p })) : shuffle(tiles.slice()).slice(0, E.length).map(p => ({ ...p })), cs = score(cur);
+    for (let it = 0, T = 1.2; it < 1500; it++, T *= .996) {
+      const i = Math.floor(Math.random() * E.length), t = tiles[Math.floor(Math.random() * tiles.length)];
+      const j = cur.findIndex(p => p.c === t.c && p.r === t.r); if (j === i) continue;
+      const old = cur[i]; cur[i] = { ...t }; if (j >= 0) cur[j] = old;
+      const ns = score(cur);
+      if (ns >= cs || Math.random() < Math.exp((ns - cs) / T)) { cs = ns; if (cs > bestS + 1e-9) { bestS = cs; best = cur.map(p => ({ ...p })); } }
+      else { cur[i] = old; if (j >= 0) cur[j] = { ...t }; }
+    }
+  }
+  E.forEach((e, i) => { e.hc = e.c = best[i].c; e.hr = e.r = best[i].r; });   // se deslizan a su nueva casilla durante el «¡A luchar!»
+}
+
 /* =========================================================
    COMBATE
    ========================================================= */
@@ -872,7 +935,7 @@ const schedule = (delay, fn) => sim.events.push({ at: sim.t + delay, fn });
 
 function startFight() {
   if (G.state !== 'plan') return;
-  closeInfo(); G.state = 'prefight'; aiPlan(); renderHud();
+  closeInfo(); G.state = 'prefight'; aiPlan(); aiArrange(); renderHud();
   banner('¡A luchar!'); sfx.round(); hint('Combate automático: ¡mira cómo luchan tus criaturas!');
   later(1000, beginCombat);
 }
