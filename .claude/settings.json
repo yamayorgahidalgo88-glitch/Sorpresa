@@ -1,7 +1,35 @@
 {
   "hooks": {
-    "SessionStart": [{"hooks": [{"type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR/brain/hooks/brain.py\" start"}]}],
-    "UserPromptSubmit": [{"hooks": [{"type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR/brain/hooks/brain.py\" prompt"}]}],
-    "Stop": [{"hooks": [{"type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR/brain/hooks/brain.py\" stop"}]}]
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/brain/hooks/brain.py\" start"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/brain/hooks/brain.py\" prompt"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 90,
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/brain/hooks/brain.py\" stop; bash \"$CLAUDE_PROJECT_DIR/brain/hooks/sync.sh\""
+          }
+        ]
+      }
+    ]
   }
 }

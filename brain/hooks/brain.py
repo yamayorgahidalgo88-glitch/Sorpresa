@@ -3,7 +3,7 @@
 import json, sys, os, datetime
 ROOT = os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
 BRAIN = os.path.join(ROOT, "brain")
-LOG = os.path.join(BRAIN, "log", datetime.date.today().isoformat() + ".md")
+LOG = None
 MAX_USER, MAX_ASSIST, MAX_INJECT = 1500, 1200, 3500
 
 def append(text):
@@ -36,6 +36,9 @@ def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else ""
     try: data = json.load(sys.stdin)
     except Exception: data = {}
+    global LOG
+    sid = "".join(c for c in str(data.get("session_id", "x")) if c.isalnum())[:8] or "x"
+    LOG = os.path.join(BRAIN, "log", datetime.date.today().isoformat() + "-" + sid + ".md")
     now = datetime.datetime.now().strftime("%H:%M")
     if mode == "prompt":
         p = data.get("prompt", "")
