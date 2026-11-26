@@ -367,3 +367,10 @@ img{-webkit-user-drag:none}
 .pfs{font-size:4.6cqw;color:var(--gold);-webkit-text-stroke:1cqw var(--ink);paint-order:stroke fill}
 .pfq{font-size:30cqw;color:#8d7ee0;-webkit-text-stroke:2cqw var(--ink);paint-order:stroke fill;opacity:.8;line-height:1}
 .pfq+.pfn{font-size:4.6cqw;padding:0 6cqw}
+
+/* ---------- Botones de imagen (pantalla previa a la batalla) ---------- */
+.pbtns{align-items:center;justify-content:center;gap:2%;margin-top:14px}
+.imgb{flex:1 1 0;max-width:260px;padding:0;border:0;background:none;cursor:pointer;filter:drop-shadow(0 5px 6px rgba(0,0,0,.45));transition:transform .1s}
+.imgb img{display:block;width:100%;height:auto;pointer-events:none}
+.imgb:active{transform:translateY(3px) scale(.97)}
+.imgb:disabled{filter:grayscale(1) brightness(.7);cursor:default}
