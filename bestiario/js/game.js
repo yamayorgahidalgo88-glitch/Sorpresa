@@ -151,9 +151,16 @@ const load = url => new Promise((res, rej) => { const i = new Image(); i.onload 
 /* =========================================================
    SONIDO
    ========================================================= */
-let ac = null, muted = false;
+let ac = null;
+// AJUSTES DE SONIDO (se guardan en el móvil). Volúmenes de 0 a 100.
+const SET_KEY = 'bdb_ajustes_v1';
+const SET = Object.assign({ mute: false, master: 100, music: 100, battle: 100, chars: 100, ui: 100 },
+  (() => { try { return JSON.parse(localStorage.getItem(SET_KEY)) || {}; } catch (e) { return {}; } })());
+const saveSet = () => { try { localStorage.setItem(SET_KEY, JSON.stringify(SET)); } catch (e) { } };
+let sfxCat = 'ui';
 function tone(f, d = 0.08, type = 'square', v = 0.04, slide = 1, delay = 0) {
-  if (!ac || muted) return;
+  v *= SET.mute ? 0 : (SET.master / 100) * ((SET[sfxCat] ?? 100) / 100);
+  if (!ac || v < 0.0002) return;
   const t0 = ac.currentTime + delay, o = ac.createOscillator(), g = ac.createGain();
   o.type = type; o.frequency.setValueAtTime(f, t0);
   if (slide !== 1) o.frequency.exponentialRampToValueAtTime(f * slide, t0 + d);
@@ -175,6 +182,9 @@ const sfx = {
   lose: () => [440, 392, 330, 262].forEach((f, i) => tone(f, .2, 'triangle', .06, 1, i * .13)),
   round: () => { tone(392, .12, 'square', .04); tone(523, .16, 'square', .04, 1, .12); },
 };
+// cada sonido pertenece a una categoría de los ajustes
+const SFX_CAT = { click: 'ui', place: 'ui', merge: 'ui', no: 'ui', hit: 'battle', boom: 'battle', die: 'battle', win: 'battle', lose: 'battle', round: 'battle', slash: 'chars', shoot: 'chars', super: 'chars' };
+for (const k in sfx) { const f = sfx[k]; sfx[k] = (...a) => { sfxCat = SFX_CAT[k] || 'ui'; f(...a); }; }
 function initAudio() { if (!ac) try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { } }
 
 /* =========================================================
@@ -334,9 +344,14 @@ function stageRender(dt) {
 /* =========================================================
    NAVEGACIÓN ENTRE PANTALLAS
    ========================================================= */
+const SCREENS = ['home', 'decks', 'detail', 'prebattle', 'shop-page', 'user', 'settings'];
+const TAB_SCREEN = { shop: 'shop-page', bestiary: 'decks', battle: 'home', user: 'user', settings: 'settings' };
 function show(screen) {
   G.screen = screen;
-  for (const id of ['home', 'bestiary', 'detail', 'decks', 'prebattle']) $('#' + id).classList.toggle('hide', id !== screen);
+  for (const id of SCREENS) $('#' + id).classList.toggle('hide', id !== screen);
+  const tab = Object.keys(TAB_SCREEN).find(k => TAB_SCREEN[k] === screen);
+  $('#nav').classList.toggle('hide', !tab);
+  document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
   const battle = screen === 'battle';
   $('#battleHud').classList.toggle('hide', !battle);
   $('#scene').style.visibility = labelsEl.style.visibility = battle ? 'visible' : 'hidden';
@@ -345,17 +360,25 @@ function show(screen) {
   if (battle) layout();
   if (screen === 'home') { renderWallet(); renderHomeDeck(); syncHomeDeck(); setTimeout(openPendingPacks, 350); }
 }
-document.querySelectorAll('[data-back]').forEach(b => b.onclick = () => { sfx.click(); show(b.dataset.back); });
+let decksScroll = 0;
+document.querySelectorAll('[data-back]').forEach(b => b.onclick = () => {
+  sfx.click();
+  if (b.dataset.back === 'decks') { renderDecks(); show('decks'); $('#decks').scrollTop = decksScroll; } else show(b.dataset.back);
+});
 $('#goBattle').onclick = () => { initAudio(); sfx.click(); openPrebattle(); };
-$('#goDecks').onclick = () => { initAudio(); sfx.click(); openDecks('home'); };
-$('#pbDecks').onclick = () => { sfx.click(); openDecks('prebattle'); };
+$('#pbDecks').onclick = () => { sfx.click(); openDecks(); };
 $('#pbGo').onclick = () => { if (deckTypes().length < DECK_MAX) return sfx.no(); sfx.click(); show('battle'); newMatch(); };
-$('#dkBack').onclick = () => { sfx.click(); decksReturn === 'prebattle' ? openPrebattle() : show('home'); };
-$('#goBestiary').onclick = () => { initAudio(); sfx.click(); renderBestiary(); show('bestiary'); };
+document.querySelectorAll('#nav button').forEach(b => b.onclick = () => {
+  initAudio(); sfx.click();
+  const t = b.dataset.tab;
+  if (G.screen === TAB_SCREEN[t]) return;
+  if (t === 'bestiary') openDecks();
+  else if (t === 'settings') { renderSettings(); show('settings'); }
+  else show(TAB_SCREEN[t]);
+});
 $('#exit').onclick = () => { sfx.click(); stopMatch(); show('home'); };
 $('#endMenu').onclick = () => { $('#end').classList.add('hide'); stopMatch(); show('home'); };
 $('#again').onclick = () => { $('#end').classList.add('hide'); newMatch(); };
-$('#mute').onclick = () => { muted = !muted; $('#mute').textContent = muted ? '🔇' : '🔊'; };
 
 /* =========================================================
    BESTIARIO
@@ -456,10 +479,10 @@ function showReward(res) {
    MAZOS Y PANTALLA PREVIA A LA BATALLA
    ========================================================= */
 const deckTypes = () => PROG.decks[PROG.deck].filter(owns);
-let editDeck = 0, decksReturn = 'home';
+let editDeck = 0;
 function miniCard(t, extra = '') {
   const ch = CHARS[t], c = COLLECTION[t];
-  return `<div class="dcard" data-t="${t}" style="--fam:${ch.color}"><img src="${src(t, 'pose')}" alt=""><div class="dcost">${ch.cost}</div><div class="dlv">Nv.${c ? c.level : 1}</div><div class="band"><div class="nm">${ch.name}</div></div>${extra}</div>`;
+  return `<div class="dcard${c ? '' : ' locked'}" data-t="${t}" style="--fam:${ch.color}"><img src="${src(t, 'pose')}" alt=""><div class="dcost">${ch.cost}</div>${c ? `<div class="dlv">Nv.${c.level}</div>` : '<div class="dlock">🔒</div>'}<div class="band"><div class="nm">${ch.name}</div></div>${extra}</div>`;
 }
 function slotsHtml(deck) {
   return Array.from({ length: DECK_MAX }, (_, i) => deck[i] ? miniCard(deck[i]) : '<div class="dslot"><span>+</span></div>').join('');
@@ -470,26 +493,28 @@ function deckInfo(deck) {
   const avg = deck.reduce((a, t) => a + CHARS[t].cost, 0) / deck.length;
   return `${deck.length}/${DECK_MAX} · Coste medio <b>${avg.toFixed(1).replace('.', ',')}</b>` + (deck.length < DECK_MAX ? ` · <span class="warn">${DECK_MAX - deck.length === 1 ? 'falta 1' : 'faltan ' + (DECK_MAX - deck.length)} para poder jugar</span>` : '');
 }
-function openDecks(from) {
-  decksReturn = from; editDeck = PROG.deck; renderDecks(); show('decks'); $('#decks').scrollTop = 0;
+function openDecks() {
+  editDeck = PROG.deck; renderDecks(); show('decks'); $('#decks').scrollTop = 0;
 }
 function renderDecks() {
   const deck = PROG.decks[editDeck];
-  $('#dkCount').textContent = `Mazo ${PROG.deck + 1} en uso`;
+  $('#dkCount').textContent = `Mazo ${PROG.deck + 1} en uso · ${TYPES.filter(owns).length}/${TYPES.length} personajes`;
   $('#dtabs').innerHTML = PROG.decks.map((d, i) => `<button class="dtab${i === editDeck ? ' on' : ''}${i === PROG.deck ? ' sel' : ''}" data-i="${i}">${i + 1}${i === PROG.deck ? '<i>✓</i>' : ''}</button>`).join('');
   $('#dslots').innerHTML = slotsHtml(deck);
   $('#dkInfo').innerHTML = deckInfo(deck);
   const sb = $('#dkSelect'), isSel = editDeck === PROG.deck;
   sb.textContent = isSel ? '✓ Seleccionado' : 'Seleccionar'; sb.disabled = isSel || !deckFull(deck);
   sb.className = 'btn ' + (isSel ? 'gold' : 'green');
-  $('#dcoll').innerHTML = TYPES.filter(owns).map(t => miniCard(t, deck.includes(t) ? '<div class="inDeck o">✓</div>' : '')).join('');
+  $('#dcoll').innerHTML = TYPES.map(t => miniCard(t, (deck.includes(t) ? '<div class="inDeck o">✓</div>' : '') + '<button class="dinfo" aria-label="Ver datos">i</button>')).join('');
   document.querySelectorAll('#dcoll .dcard').forEach(el => { if (deck.includes(el.dataset.t)) el.classList.add('used'); });
   document.querySelectorAll('.dtab').forEach(b => b.onclick = () => { sfx.click(); editDeck = +b.dataset.i; renderDecks(); });
   document.querySelectorAll('#dslots .dcard').forEach(el => el.onclick = () => {
     sfx.click(); deck.splice(deck.indexOf(el.dataset.t), 1); saveProg(); renderDecks();
   });
+  document.querySelectorAll('#dcoll .dinfo').forEach(b => b.onclick = e => { e.stopPropagation(); decksScroll = $('#decks').scrollTop; sfx.click(); openDetail(b.parentElement.dataset.t); });
   document.querySelectorAll('#dcoll .dcard').forEach(el => el.onclick = () => {
     const tp = el.dataset.t;
+    if (!owns(tp)) { decksScroll = $('#decks').scrollTop; sfx.click(); openDetail(tp); return; }   // sin desbloquear: solo se puede ver
     if (deck.includes(tp)) { deck.splice(deck.indexOf(tp), 1); sfx.click(); }
     else if (deck.length >= DECK_MAX) { sfx.no(); $('#dkInfo').innerHTML = '<span class="warn">¡Mazo lleno! Quita una bestia primero</span>'; return; }
     else { deck.push(tp); sfx.place(); }
@@ -500,6 +525,39 @@ $('#dkSelect').onclick = () => {
   if (!deckFull(PROG.decks[editDeck])) return sfx.no();
   PROG.deck = editDeck; saveProg(); sfx.merge(); renderDecks();
 };
+/* =========================================================
+   AJUSTES
+   ========================================================= */
+const SND_ROWS = [
+  ['master', '🔊', 'Volumen general', 'Todo el juego a la vez', 'click'],
+  ['music', '🎵', 'Música de fondo', 'Aún no hay música; el ajuste ya queda guardado', 'click'],
+  ['battle', '⚔️', 'Sonidos de batalla', 'Golpes, explosiones, victoria y derrota', 'hit'],
+  ['chars', '🐾', 'Sonidos de personajes', 'Ataques, disparos y trucos', 'slash'],
+  ['ui', '👆', 'Botones y menús', 'Clics, colocar y subir de nivel', 'click'],
+];
+function renderSettings() {
+  $('#sndBox').innerHTML = `<div class="setrow mute"><div class="stxt"><b>Silenciar todo</b><small>Apaga todos los sonidos del juego</small></div>
+    <button class="switch${SET.mute ? ' on' : ''}" id="muteAll" role="switch" aria-checked="${!!SET.mute}"><i></i></button></div>` +
+    SND_ROWS.map(([k, ic, nm, sub]) => `<div class="setrow vol" data-k="${k}"><span class="sic">${ic}</span><div class="stxt"><b>${nm}</b><small>${sub}</small>
+      <div class="sl"><input type="range" min="0" max="100" step="5" value="${SET[k]}" aria-label="${nm}"><output class="o">${SET[k]}</output></div></div></div>`).join('');
+  const refresh = () => $('#sndBox').classList.toggle('muted', !!SET.mute);
+  refresh();
+  $('#muteAll').onclick = e => {
+    SET.mute = !SET.mute; saveSet(); e.currentTarget.classList.toggle('on', SET.mute); e.currentTarget.setAttribute('aria-checked', SET.mute); refresh(); initAudio(); sfx.click();
+  };
+  document.querySelectorAll('#sndBox .vol').forEach(row => {
+    const k = row.dataset.k, inp = row.querySelector('input'), out = row.querySelector('output'), probe = SND_ROWS.find(r => r[0] === k)[4];
+    inp.oninput = () => { SET[k] = +inp.value; out.textContent = inp.value; inp.style.setProperty('--v', inp.value + '%'); };
+    inp.onchange = () => { saveSet(); initAudio(); if (SET.mute) { SET.mute = false; saveSet(); renderSettings(); return; } sfx[probe](); };
+    inp.style.setProperty('--v', inp.value + '%');
+  });
+  const rb = $('#resetBtn'); let armed = 0;
+  rb.onclick = () => {
+    if (!armed) { armed = 1; rb.textContent = '¿Seguro?'; sfx.no(); setTimeout(() => { armed = 0; rb.textContent = 'Borrar'; }, 3000); return; }
+    try { localStorage.removeItem(SAVE_KEY); } catch (e) { }
+    location.reload();
+  };
+}
 function openPrebattle() {
   const deck = PROG.decks[PROG.deck];
   $('#pbName').textContent = `Mazo ${PROG.deck + 1}`;
@@ -610,18 +668,8 @@ function renderHomeDeck() {
   // (el resumen del mazo ya no se muestra en el inicio)
 }
 
-function renderBestiary() {
-  $('#bcount').textContent = `${TYPES.filter(owns).length}/${TYPES.length}`;
-  $('#bgrid').innerHTML = TYPES.map(t => {
-    const ch = CHARS[t], own = COLLECTION[t];
-    return `<div class="bcard${own ? '' : ' locked'}" data-t="${t}" style="--fam:${own ? ch.color : '#55536e'}"><img src="${src(t, 'pose')}" alt="">${own ? `<div class="lv">Nv. ${own.level}</div>${cardBar(t)}` : '<div class="lock o">🔒</div>'}<div class="band"><div class="nm">${own ? ch.name : '???'}</div></div></div>`;
-  }).join('');
-  document.querySelectorAll('.bcard').forEach(el => el.onclick = () => {
-    if (!owns(el.dataset.t)) { sfx.no(); return; }
-    sfx.click(); openDetail(el.dataset.t);
-  });
-}
 function levelPanel(t) {
+  if (!COLLECTION[t]) return `<div class="lvup"><div class="lvrow"><b>🔒 Aún no lo tienes</b></div><p class="idesc">Se desbloquea al conseguirlo en un sobre.</p></div>`;
   const c = COLLECTION[t], next = LEVEL_COST[c.level + 1];
   if (!next) return `<div class="lvup"><div class="lvrow"><b>Nivel máximo</b></div>${cardBar(t)}</div>`;
   const okC = c.cards >= next.cards, okM = PROG.coins >= next.coins;
@@ -641,7 +689,7 @@ function setAnim(a) {
 }
 function openDetail(t) {
   const ch = CHARS[t], lvl = (COLLECTION[t] || { level: 1 }).level, m = LVL_MULT[lvl];
-  $('#dName').textContent = ch.name; $('#dLevel').textContent = 'Nivel ' + lvl;
+  $('#dName').textContent = ch.name; $('#dLevel').textContent = COLLECTION[t] ? 'Nivel ' + lvl : 'Bloqueado';
   const anims = [['idle', 'Reposo'], ['walk', 'Andar'], ['attack', 'Atacar']]; if (ch.abil === 'super') anims.push(['super', 'Truco']);
   $('#anims').innerHTML = anims.map(([a, n]) => `<button class="btn blue" data-a="${a}">${n}</button>`).join('');
   $('#views').innerHTML = ch.all.map(v => `<button data-v="${v}" title="${VIEW_NAMES[v]}"><img src="${src(t, v)}" alt="${VIEW_NAMES[v]}"></button>`).join('');

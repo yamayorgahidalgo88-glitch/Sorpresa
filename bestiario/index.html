@@ -49,7 +49,7 @@ if (__li.complete) __lstart(); else { __li.onload = __li.onerror = __lstart; set
 <div id="battleHud" class="hide">
   <div id="top">
     <div class="side p"><span class="nm o">Tú</span><div class="pips" id="pipsP"><i></i><i></i><i></i></div></div>
-    <div id="mid"><div id="roundLbl" class="o">Ronda 1</div><div style="display:flex;gap:4px"><button class="mini" id="exit">🏠 Menú</button><button class="mini" id="mute">🔊</button></div></div>
+    <div id="mid"><div id="roundLbl" class="o">Ronda 1</div><div style="display:flex;gap:4px"><button class="mini" id="exit">🏠 Menú</button></div></div>
     <div class="side e"><div class="pips" id="pipsE"><i></i><i></i><i></i></div><span class="nm o">Rival</span></div>
   </div>
   <div id="banner" class="o"></div>
@@ -77,29 +77,67 @@ if (__li.complete) __lstart(); else { __li.onload = __li.onerror = __lstart; set
     <div class="htop"><h1 class="logo o logo-img"><img src="assets/logo_grevos.webp" alt="GREVOS"></h1></div>
     <div class="hspace"></div>
     <div class="menu">
-      <button class="btn green hbig" id="goBattle">⚔️ ¡Batalla!<small>Duelo contra la máquina</small></button>
-      <div class="mrow">
-        <button class="btn blue" id="goDecks">🃏 Mazos</button>
-        <button class="btn purple" id="goBestiary">📖 Bestiario</button>
-      </div>
+      <button class="btn green hbig" id="goBattle">⚔️ ¡Luchar!<small>Duelo contra la máquina</small></button>
     </div>
   </div>
 </div>
 
-<!-- MAZOS -->
+<!-- BESTIARIO (mazos + personajes) -->
 <div id="decks" class="page hide">
   <div class="wrap">
-    <div class="bar"><button class="btn gray" id="dkBack">←</button><h2 class="o">Mazos</h2><span class="count" id="dkCount"></span></div>
+    <div class="bar"><h2 class="o">Bestiario</h2><span class="count" id="dkCount"></span></div>
+    <h3 class="sub o first">Tus mazos</h3>
     <div class="dtabs" id="dtabs"></div>
     <div class="deckbox">
       <div class="dslots" id="dslots"></div>
       <div class="dkfoot"><span id="dkInfo"></span><button class="btn green" id="dkSelect">Seleccionar</button></div>
     </div>
-    <p class="note">Toca una bestia de tu colección para añadirla al mazo. Toca una del mazo para quitarla. Para jugar, el mazo tiene que tener 6 bestias.</p>
-    <h3 class="sub o">Tu colección</h3>
+    <p class="note">Toca un personaje para añadirlo al mazo (o quitarlo). Con la <b>i</b> ves sus datos y lo giras en 3D. Los que están en gris aún no los tienes: puedes verlos, pero no elegirlos. Para jugar, el mazo tiene que tener 6.</p>
+    <h3 class="sub o">Personajes</h3>
     <div class="dcoll" id="dcoll"></div>
   </div>
 </div>
+
+<!-- TIENDA -->
+<div id="shop-page" class="page tabpage hide">
+  <div class="wrap">
+    <div class="bar"><h2 class="o">Tienda</h2></div>
+    <div class="signwrap"><div class="sign"><i class="chain l"></i><i class="chain r"></i><i class="nail a"></i><i class="nail b"></i><i class="nail c"></i><i class="nail d"></i>
+      <div class="sg1">CERRADO</div><div class="sg2">temporalmente</div><div class="sg3">Muy pronto abriremos las puertas</div></div></div>
+  </div>
+</div>
+
+<!-- USUARIO -->
+<div id="user" class="page tabpage hide">
+  <div class="wrap">
+    <div class="bar"><h2 class="o">Usuario</h2></div>
+    <div class="signwrap"><div class="sign"><i class="chain l"></i><i class="chain r"></i><i class="nail a"></i><i class="nail b"></i><i class="nail c"></i><i class="nail d"></i>
+      <div class="sg0">🛠️</div><div class="sg1 sm">EN MANTENIMIENTO</div><div class="sg3">Tu perfil estará disponible más adelante</div></div></div>
+  </div>
+</div>
+
+<!-- AJUSTES -->
+<div id="settings" class="page tabpage hide">
+  <div class="wrap">
+    <div class="bar"><h2 class="o">Ajustes</h2></div>
+    <h3 class="sub o first">Sonido</h3>
+    <div class="setbox" id="sndBox"></div>
+    <h3 class="sub o">Datos</h3>
+    <div class="setbox">
+      <div class="setrow"><div class="stxt"><b>Borrar progreso</b><small>Vuelves al principio: monedas, niveles, mazos y sobres</small></div><button class="btn red" id="resetBtn">Borrar</button></div>
+    </div>
+    <p class="note">GREVOS · versión de pruebas</p>
+  </div>
+</div>
+
+<!-- BARRA INFERIOR -->
+<nav id="nav" class="hide">
+  <button data-tab="shop" aria-label="Tienda"><img src="assets/nav/tienda.webp" alt=""></button>
+  <button data-tab="bestiary" aria-label="Bestiario"><img src="assets/nav/bestiario.webp" alt=""></button>
+  <button data-tab="battle" aria-label="Batalla"><img src="assets/nav/batalla.webp" alt=""></button>
+  <button data-tab="user" aria-label="Usuario"><img src="assets/nav/usuario.webp" alt=""></button>
+  <button data-tab="settings" aria-label="Ajustes"><img src="assets/nav/ajustes.webp" alt=""></button>
+</nav>
 
 <!-- ANTES DE LA BATALLA -->
 <div id="prebattle" class="page hide">
@@ -115,19 +153,10 @@ if (__li.complete) __lstart(); else { __li.onload = __li.onerror = __lstart; set
   </div>
 </div>
 
-<!-- BESTIARIO -->
-<div id="bestiary" class="page hide">
-  <div class="wrap">
-    <div class="bar"><button class="btn gray" data-back="home">←</button><h2 class="o">Bestiario</h2><span class="count" id="bcount"></span></div>
-    <div class="grid" id="bgrid"></div>
-    <p class="note">Toca una criatura para verla en 3D, girarla y ver sus animaciones.</p>
-  </div>
-</div>
-
 <!-- FICHA DE CRIATURA -->
 <div id="detail" class="page hide">
   <div class="wrap">
-    <div class="bar"><button class="btn gray" data-back="bestiary">←</button><h2 class="o" id="dName"></h2><span class="count" id="dLevel"></span></div>
+    <div class="bar"><button class="btn gray" data-back="decks">←</button><h2 class="o" id="dName"></h2><span class="count" id="dLevel"></span></div>
     <div id="viewer"><div class="plat"></div><div class="tip">↔ Desliza para girar 360° · ↕ para inclinar</div></div>
     <div class="anims" id="anims"></div>
     <div class="dpanel" id="dInfo"></div>

@@ -11,3 +11,4 @@
 - Mazos: solo se juega/selecciona con 6 bestias. Todos los personajes desbloqueados para pruebas.
 - Nombre del juego: GREVOS (logo `assets/logo_grevos.webp`, iconos de app + `manifest.webmanifest`). Moneda nueva: `assets/moneda.webp`.
 - Sobres: 3 zarpazos del jugador; el tercero mucho más grande.
+- 2026-11-26: Navegación por barra inferior de 5 botones pegados (Tienda, Bestiario, Batalla, Usuario, Ajustes; imágenes en `assets/nav/`, el activo crece). Tienda y Usuario = cartel de madera "cerrado/en mantenimiento". Bestiario = mazos arriba + personajes debajo (los no desbloqueados en gris: se pueden ver con la "i", no elegir). Batalla = inicio con botón ¡Luchar! → pantalla de confirmar. Ajustes: sonido por categorías (general, música, batalla, personajes, interfaz) + silenciar todo + borrar progreso; el altavoz del HUD de batalla se quitó.
