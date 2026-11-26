@@ -374,6 +374,7 @@ document.querySelectorAll('#nav button').forEach(b => b.onclick = () => {
   if (G.screen === TAB_SCREEN[t]) return;
   if (t === 'bestiary') openDecks();
   else if (t === 'settings') { renderSettings(); show('settings'); }
+  else if (t === 'user') { renderProfile(); show('user'); }
   else show(TAB_SCREEN[t]);
 });
 $('#exit').onclick = () => { sfx.click(); stopMatch(); show('home'); };
@@ -414,6 +415,9 @@ if (!Array.isArray(PROG.decks)) PROG.decks = [Object.keys(PROG.chars).slice(0, D
 while (PROG.decks.length < DECK_COUNT) PROG.decks.push([]);
 PROG.decks = PROG.decks.slice(0, DECK_COUNT).map(d => [...new Set(d)].filter(t => PROG.chars[t]).slice(0, DECK_MAX));
 if (!(PROG.deck >= 0 && PROG.deck < DECK_COUNT)) PROG.deck = 0;
+if (typeof PROG.name !== 'string') PROG.name = '';
+for (const k of ['trophies', 'wins', 'streak', 'bestStreak']) if (!(PROG[k] >= 0)) PROG[k] = 0;
+if (!PROG.plays || typeof PROG.plays !== 'object') PROG.plays = {};
 const owns = t => !!COLLECTION[t];
 function saveProg() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(PROG)); } catch (e) { } renderWallet(); }
 const randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
@@ -525,6 +529,23 @@ $('#dkSelect').onclick = () => {
   if (!deckFull(PROG.decks[editDeck])) return sfx.no();
   PROG.deck = editDeck; saveProg(); sfx.merge(); renderDecks();
 };
+/* =========================================================
+   PERFIL
+   ========================================================= */
+function renderProfile() {
+  $('#pfName').value = PROG.name;
+  $('#pfTrophy').textContent = PROG.trophies;
+  $('#pfWins').textContent = PROG.wins;
+  $('#pfStreak').textContent = PROG.bestStreak;
+  // personaje favorito: el que más batallas has jugado (si hay empate, al azar entre los empatados)
+  const best = Math.max(0, ...TYPES.map(t => PROG.plays[t] || 0)), fav = $('#pfFav');
+  if (!best) { fav.innerHTML = '<div class="pfq o">?</div><div class="pfn o">Juega una batalla para descubrir a tu favorito</div>'; return; }
+  const t = pick(TYPES.filter(x => (PROG.plays[x] || 0) === best)), ch = CHARS[t];
+  fav.innerHTML = `<img src="${src(t, 'pose')}" alt="${ch.name}"><div class="pfn o">${ch.name}</div><div class="pfs o">${best} ${best === 1 ? 'batalla' : 'batallas'}</div>`;
+}
+$('#pfName').addEventListener('input', e => { PROG.name = e.target.value.replace(/\s+/g, ' ').slice(0, 14); saveProg(); });
+$('#pfName').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
+
 /* =========================================================
    AJUSTES
    ========================================================= */
@@ -983,7 +1004,7 @@ const schedule = (delay, fn) => sim.events.push({ at: sim.t + delay, fn });
 
 function startFight() {
   if (G.state !== 'plan') return;
-  closeInfo(); G.state = 'prefight'; aiPlan(); aiArrange(G.seenP || []);
+  closeInfo(); G.state = 'prefight'; (G.used = G.used || new Set()); team('p').forEach(u => { if (!u.summon) G.used.add(u.type); }); aiPlan(); aiArrange(G.seenP || []);
   G.seenP = team('p').map(u => ({ type: u.type, level: u.level, hc: u.hc, hr: u.hr }));   // lo que verá el rival en la ronda siguiente
   renderHud();
   banner('¡A luchar!'); sfx.round(); hint('Combate automático: ¡mira cómo luchan tus criaturas!');
@@ -1853,6 +1874,10 @@ function endMatch(w) {
   G.state = 'end';
   $('#endTitle').textContent = w === 'p' ? '¡VICTORIA!' : 'DERROTA'; $('#endTitle').style.color = w === 'p' ? '#ffd84a' : '#ff9a9a';
   $('#endScore').textContent = `${G.score.p} - ${G.score.e}`; $('#end').classList.remove('hide');
+  for (const t of (G.used || [])) PROG.plays[t] = (PROG.plays[t] || 0) + 1;   // personajes con los que has jugado esta batalla
+  if (w === 'p') { PROG.wins++; PROG.streak++; PROG.bestStreak = Math.max(PROG.bestStreak, PROG.streak); }
+  else PROG.streak = 0;
+  saveProg();
   if (w === 'p') { PROG.packs++; saveProg(); precargarSobre(); }
   $('#endPack').classList.toggle('hide', w !== 'p');
 }
@@ -1863,7 +1888,8 @@ function stopMatch() {
 }
 function newMatch() {
   stopMatch();
-  Object.assign(G, { round: 0, score: { p: 0, e: 0 }, elixir: { p: 0, e: 0 }, lastLoser: null, speed: 1, seenP: null });
+  Object.assign(G, { round: 0, score: { p: 0, e: 0 }, elixir: { p: 0, e: 0 }, lastLoser: null, speed: 1, seenP: null, used: new Set() });
+  $('#battleHud .side.p .nm').textContent = PROG.name || 'Tú';
   layout(); startRound();
 }
 

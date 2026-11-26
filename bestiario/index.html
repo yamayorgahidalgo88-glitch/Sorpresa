@@ -77,7 +77,7 @@ if (__li.complete) __lstart(); else { __li.onload = __li.onerror = __lstart; set
     <div class="htop"><h1 class="logo o logo-img"><img src="assets/logo_grevos.webp" alt="GREVOS"></h1></div>
     <div class="hspace"></div>
     <div class="menu">
-      <button class="btn green hbig" id="goBattle">⚔️ ¡Luchar!<small>Duelo contra la máquina</small></button>
+      <button class="fightbtn" id="goBattle" aria-label="Luchar"><img src="assets/luchar.webp" alt="Luchar"></button>
     </div>
   </div>
 </div>
@@ -107,12 +107,15 @@ if (__li.complete) __lstart(); else { __li.onload = __li.onerror = __lstart; set
   </div>
 </div>
 
-<!-- USUARIO -->
+<!-- PERFIL -->
 <div id="user" class="page tabpage hide">
-  <div class="wrap">
-    <div class="bar"><h2 class="o">Usuario</h2></div>
-    <div class="signwrap"><div class="sign"><i class="chain l"></i><i class="chain r"></i><i class="nail a"></i><i class="nail b"></i><i class="nail c"></i><i class="nail d"></i>
-      <div class="sg0">🛠️</div><div class="sg1 sm">EN MANTENIMIENTO</div><div class="sg3">Tu perfil estará disponible más adelante</div></div></div>
+  <div class="pstage" id="pstage">
+    <img class="pbg" src="assets/perfil.webp" alt="Perfil">
+    <input id="pfName" class="pf pf-name o" maxlength="14" placeholder="Tu nombre" autocomplete="off" autocapitalize="words" spellcheck="false">
+    <div class="pf pf-trophy o" id="pfTrophy">0</div>
+    <div class="pf pf-wins o" id="pfWins">0</div>
+    <div class="pf pf-streak o" id="pfStreak">0</div>
+    <div class="pfav" id="pfFav"></div>
   </div>
 </div>
 

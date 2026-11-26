@@ -342,3 +342,28 @@ img{-webkit-user-drag:none}
 .setbox.muted .vol{opacity:.45}
 .setrow .btn{font-size:17px;padding:8px 14px;flex:none}
 #nav button:first-child{transform-origin:0 100%}#nav button:last-child{transform-origin:100% 100%}
+
+/* ---------- Botón Luchar (imagen) ---------- */
+.fightbtn{display:block;width:min(92vw,400px);margin:0 auto;padding:0;border:0;background:none;cursor:pointer;animation:fpulse 1.7s ease-in-out infinite;filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))}
+.fightbtn img{display:block;width:100%;height:auto;pointer-events:none}
+.fightbtn:active{animation:none;transform:scale(.95)}
+@keyframes fpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+#home .menu{align-items:center}
+
+/* ---------- Perfil ---------- */
+#user{background:repeating-linear-gradient(45deg,transparent 0 70px,rgba(10,0,70,.28) 70px 73px),repeating-linear-gradient(-45deg,transparent 0 70px,rgba(10,0,70,.28) 70px 73px),linear-gradient(180deg,#1e0172,#2c0299)}
+#user::before,#user::after{display:none}
+#user .pstage{position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:min(100%,560px);aspect-ratio:941/1671;container-type:inline-size}
+#user .pbg{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none}
+.pf{position:absolute;margin:0;padding:0;border:0;background:none;color:#fff;font-family:'Lilita One',system-ui,sans-serif;display:flex;align-items:center;justify-content:center;text-align:center;-webkit-text-stroke:1.2cqw var(--ink);paint-order:stroke fill;line-height:1}
+.pf-name{left:55.9%;width:37.7%;top:22.8%;height:6.4%;font-size:6.6cqw;user-select:text;-webkit-user-select:text;touch-action:manipulation;outline:none;cursor:text;text-transform:none}
+.pf-name::placeholder{color:rgba(255,255,255,.5);-webkit-text-stroke:0}
+.pf-name:focus{background:rgba(120,200,255,.18);border-radius:2cqw}
+.pf-trophy,.pf-wins,.pf-streak{left:73%;width:18%;height:6%;font-size:9cqw}
+.pf-trophy{top:35.7%}.pf-wins{top:49%}.pf-streak{top:73.7%}
+.pfav{position:absolute;left:3%;width:48%;top:24%;height:56%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5cqw;text-align:center}
+.pfav img{width:100%;height:76%;object-fit:contain;filter:drop-shadow(0 2cqw 2cqw rgba(0,0,0,.45))}
+.pfn{font-size:7cqw;color:#fff;-webkit-text-stroke:1.4cqw var(--ink);paint-order:stroke fill;line-height:1.05}
+.pfs{font-size:4.6cqw;color:var(--gold);-webkit-text-stroke:1cqw var(--ink);paint-order:stroke fill}
+.pfq{font-size:30cqw;color:#8d7ee0;-webkit-text-stroke:2cqw var(--ink);paint-order:stroke fill;opacity:.8;line-height:1}
+.pfq+.pfn{font-size:4.6cqw;padding:0 6cqw}
