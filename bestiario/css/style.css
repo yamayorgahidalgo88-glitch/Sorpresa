@@ -381,3 +381,8 @@ img{-webkit-user-drag:none}
 /* ---------- Azar (bestiario) ---------- */
 .dkbtns{display:flex;align-items:center;gap:8px}
 .imgb.azar{flex:none;width:58px;max-width:none}
+
+/* ---------- Coste de las cartas = gota de elíxir ---------- */
+.card .cost,.dcost{background:url(../assets/elixir.webp) center/contain no-repeat;border:0;border-radius:0;box-shadow:none;filter:drop-shadow(0 2px 3px rgba(0,0,0,.45));color:#fff;-webkit-text-stroke:3px #0a2a5a;paint-order:stroke fill;padding-top:22%}
+.card .cost{top:-12px;left:-11px;width:40px;height:37px;font-size:19px}
+.dcost{top:1px;left:1px;width:32px;height:30px;font-size:15px;-webkit-text-stroke:2.5px #0a2a5a}
