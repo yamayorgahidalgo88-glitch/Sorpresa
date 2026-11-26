@@ -41,3 +41,17 @@ CLIPS = {
  ],
 }
 INTERP = {}
+
+# ANDAR: no anda, ruedan. Las 6 ruedas giran sobre el eje X (una vuelta por ciclo); el tanque casi no se mueve.
+import importlib.util as _u, os as _o
+_sp = _u.spec_from_file_location('mory_rig', _o.path.join(_o.path.dirname(_o.path.abspath(__file__)), 'mory_rig.py')); _R = _u.module_from_spec(_sp); _sp.loader.exec_module(_R)
+_T, _N = 0.6, 6
+def _walk():
+    keys = []
+    for k in range(_N + 1):
+        pose = {w: [(X, 360.0 * k / _N)] for w in _R.WHEELS}
+        pose.update({'hips': [(X, 0.8)], 'turret': [(X, -0.5)], 'head': [(X, 1.5)], 'loc': (0, 0.003 if k % 2 == 0 else 0.0, 0)})
+        keys.append((_T * k / _N, pose))
+    return keys
+CLIPS['walk'] = _walk()
+INTERP = {'walk': 'LINEAR'}

@@ -40,3 +40,9 @@ CLIPS = {
  ],
 }
 INTERP = {}
+
+# ANDAR: no anda, rueda como un coche: desliza con una vibración fina de suspensión y se inclina un pelo hacia delante.
+_T = 0.6
+CLIPS['walk'] = [(_T * k / 6, {'hips': [(X, 1.2)], 'chest': [(X, -1.5)], 'head': [(X, 1.5)], 'arm.R': [(X, 5)], 'arm.L': [(X, 5)],
+                               'tail': [(Y, 8 if k % 2 == 0 else -8)], 'loc': (0, 0.005 if k % 2 == 0 else 0.0, 0)}) for k in range(7)]
+INTERP = {}

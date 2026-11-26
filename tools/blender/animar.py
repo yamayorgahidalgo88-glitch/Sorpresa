@@ -56,20 +56,48 @@ bpy.ops.object.mode_set(mode='OBJECT')
 # pesos
 # pieza que debe separarse limpia (p. ej. la plantita de Sevora): se corta de la malla para que al moverla no arrastre la piel
 SPLIT = None
+def face_lum(bm):
+    # brillo medio (0-255) de la textura en el centro de cada cara: sirve para separar piezas por color (p. ej. neumático negro / buje gris)
+    img = next((n.image for m_ in ob.data.materials for n in m_.node_tree.nodes if n.type == 'TEX_IMAGE' and n.image), None)
+    uvl = bm.loops.layers.uv.active
+    if img is None or uvl is None: return np.full(len(bm.faces), 128.0)
+    w_, h_ = img.size; px = np.array(img.pixels[:], dtype=np.float32).reshape(h_, w_, -1)[..., :3] * 255
+    uv = np.array([np.mean([l[uvl].uv for l in f.loops], axis=0) for f in bm.faces])
+    xi = np.clip((uv[:, 0] % 1 * (w_ - 1)).astype(int), 0, w_ - 1); yi = np.clip((uv[:, 1] % 1 * (h_ - 1)).astype(int), 0, h_ - 1)
+    return px[yi, xi].mean(1)
+def call_fn(fn, cen, lum, bm=None):
+    try: m_ = np.asarray(fn(cen, lum), bool)
+    except TypeError: m_ = np.asarray(fn(cen), bool)
+    if bm is not None and getattr(R, 'KEEP_LARGEST', False) and m_.any():   # se queda solo con el trozo conectado más grande (sin restos sueltos del cuerpo)
+        bm.faces.ensure_lookup_table(); sel = set(np.where(m_)[0].tolist()); seen = set(); best = []
+        for st in sel:
+            if st in seen: continue
+            comp = []; stack = [st]; seen.add(st)
+            while stack:
+                i = stack.pop(); comp.append(i)
+                for v in bm.faces[i].verts:
+                    for f2 in v.link_faces:
+                        j = f2.index
+                        if j in sel and j not in seen: seen.add(j); stack.append(j)
+            if len(comp) > len(best): best = comp
+        m_ = np.zeros(len(m_), bool); m_[best] = True
+    return m_
 if hasattr(R, 'SPLITS'):   # varias piezas a cortar (p. ej. los dos guantes)
     import bmesh
     for k, (bn, pn, fn) in enumerate(R.SPLITS):
         bm = bmesh.new(); bm.from_mesh(ob.data); bm.faces.ensure_lookup_table()
         cen = np.array([[f.calc_center_median()[0], f.calc_center_median()[2], -f.calc_center_median()[1]] for f in bm.faces])
-        sel = [f for f, m_ in zip(bm.faces, fn(cen)) if m_]
+        lum = face_lum(bm)
+        sel = [f for f, m_ in zip(bm.faces, call_fn(fn, cen, lum, bm)) if m_]
         bmesh.ops.split(bm, geom=sel + list({e for f in sel for e in f.edges}) + list({v for f in sel for v in f.verts}))
         bm.to_mesh(ob.data); bm.free(); ob.data.update()
     MULTI = []
     bm = bmesh.new(); bm.from_mesh(ob.data); bm.faces.ensure_lookup_table()
     cen = np.array([[f.calc_center_median()[0], f.calc_center_median()[2], -f.calc_center_median()[1]] for f in bm.faces])
+    lum = face_lum(bm)
     for bn, pn, fn in R.SPLITS:
         msk = np.zeros(len(ob.data.vertices), bool)
-        for f, m_ in zip(bm.faces, fn(cen)):
+        for f, m_ in zip(bm.faces, call_fn(fn, cen, lum, bm)):
             if m_:
                 for v in f.verts: msk[v.index] = True
         MULTI.append((bn, msk)); print('pieza', bn, int(msk.sum()))
@@ -120,13 +148,16 @@ def qworld(rots):
 for clip, keys in A.CLIPS.items():
     act = bpy.data.actions.new(clip); act.use_fake_user = True; arm.animation_data.action = act
     bones = set(['root']) | {b for _, pose in keys for b in pose if b != 'loc'}
+    prevq = {}
     for t, pose in keys:
         f = round(t * FPS) + 1
         for bn in bones:
             pb = arm.pose.bones[bn]; pb.rotation_mode = 'QUATERNION'
             M = pb.bone.matrix_local.to_3x3()
             qw = qworld(pose.get(bn, []))
-            pb.rotation_quaternion = (M.inverted() @ qw.to_matrix() @ M).to_quaternion()
+            q = (M.inverted() @ qw.to_matrix() @ M).to_quaternion()
+            if bn in prevq and prevq[bn].dot(q) < 0: q = Quaternion((-q.w, -q.x, -q.y, -q.z))   # misma rama que la clave anterior (giros de más de 180°: ruedas)
+            prevq[bn] = q.copy(); pb.rotation_quaternion = q
             pb.keyframe_insert('rotation_quaternion', frame=f)
             if bn == 'root':
                 pb.location = M.inverted() @ B(pose.get('loc', (0, 0, 0))); pb.keyframe_insert('location', frame=f)

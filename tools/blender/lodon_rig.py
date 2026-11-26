@@ -10,6 +10,8 @@ BONES = {
  'arm.R': ((-0.17, 0.60, 0.0), (-0.30, 0.52, 0.05), 'chest'),
  'arm.L': ((0.17, 0.60, 0.0), (0.30, 0.52, 0.05), 'chest'),
 }
+# Las 5 ruedas del carrito (redondo) vienen soldadas al cuerpo en el modelo: se probó a separarlas para girarlas y se rompe la malla.
+# Por eso el carrito rueda deslizándose (sin patas ni pasos).
 def sig(x): return 1 / (1 + np.exp(-x))
 def weights(P):
     names = list(BONES); x, y, z = P[:, 0], P[:, 1], P[:, 2]; I = names.index

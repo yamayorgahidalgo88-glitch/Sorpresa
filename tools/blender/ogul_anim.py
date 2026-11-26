@@ -7,13 +7,13 @@ CLIPS = {
    (1.0, {'head': [(X, 3), (Z, 2)], 'arm.R': [(Z, 3)], 'arm.L': [(Z, -3)], 'hips': [(Z, -1)], 'loc': (0, 0.022, 0)}),
    (2.0, {'head': [(X, -2), (Z, -2)], 'arm.R': [(Z, -3)], 'arm.L': [(Z, 3)], 'hips': [(Z, 1)], 'loc': (0, 0.004, 0)}),
  ],
- # flota hacia delante: se mece de lado a lado y las mangas se balancean
+ # levita: sin piernas ni pasos. Se inclina hacia delante para impulsarse con la energía que le sale de abajo (cada impulso lo empuja un poco más)
  'walk': [
-   (0.0,  {'hips': [(Z, 3), (X, 2)], 'head': [(Z, -3)], 'arm.R': [(X, 12)], 'arm.L': [(X, -12)], 'loc': (0, 0.0, 0)}),
-   (0.15, {'hips': [(X, 0)], 'head': [(Z, 0)], 'arm.R': [(X, 0)], 'arm.L': [(X, 0)], 'loc': (0, 0.03, 0)}),
-   (0.3,  {'hips': [(Z, -3), (X, 2)], 'head': [(Z, 3)], 'arm.R': [(X, -12)], 'arm.L': [(X, 12)], 'loc': (0, 0.0, 0)}),
-   (0.45, {'hips': [(X, 0)], 'head': [(Z, 0)], 'arm.R': [(X, 0)], 'arm.L': [(X, 0)], 'loc': (0, 0.03, 0)}),
-   (0.6,  {'hips': [(Z, 3), (X, 2)], 'head': [(Z, -3)], 'arm.R': [(X, 12)], 'arm.L': [(X, -12)], 'loc': (0, 0.0, 0)}),
+   (0.0,  {'hips': [(X, 9)], 'head': [(X, -4)], 'arm.R': [(X, 14), (Z, -4)], 'arm.L': [(X, 14), (Z, 4)], 'loc': (0, 0.03, 0.01)}),
+   (0.15, {'hips': [(X, 13)], 'head': [(X, -6)], 'arm.R': [(X, 20), (Z, -6)], 'arm.L': [(X, 20), (Z, 6)], 'loc': (0, 0.05, 0.02)}),
+   (0.3,  {'hips': [(X, 9)], 'head': [(X, -4)], 'arm.R': [(X, 14), (Z, -4)], 'arm.L': [(X, 14), (Z, 4)], 'loc': (0, 0.03, 0.01)}),
+   (0.45, {'hips': [(X, 12)], 'head': [(X, -5)], 'arm.R': [(X, 18), (Z, -5)], 'arm.L': [(X, 18), (Z, 5)], 'loc': (0, 0.045, 0.02)}),
+   (0.6,  {'hips': [(X, 9)], 'head': [(X, -4)], 'arm.R': [(X, 14), (Z, -4)], 'arm.L': [(X, 14), (Z, 4)], 'loc': (0, 0.03, 0.01)}),
  ],
  # hechizo: levanta las dos mangas y las lanza hacia delante
  'attack': [
