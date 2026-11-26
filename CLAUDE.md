@@ -11,3 +11,4 @@ Abre otros archivos de `brain/` únicamente si el INDEX indica que son relevante
 3. Mantén cada archivo corto. Resume y reemplaza lo obsoleto; no acumules.
 4. No guardes secretos (claves, contraseñas).
 5. Responde en español y sigue `brain/REGLAS.md` (se carga solo al iniciar). Para activar el cerebro en un chat ya empezado, usa `/cerebro`.
+6. Archivos generados para el usuario (Excel, PDF…) van en `entregables/` y se listan en el INDEX.
