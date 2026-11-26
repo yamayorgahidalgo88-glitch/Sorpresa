@@ -539,12 +539,19 @@ const FORCE_OPEN=PREVIEW_ALL&&!QS.has('bloqueado');
 const ABIERTAS_YA=new Set([2]);
 const leftMs=n=>FORCE_OPEN||ABIERTAS_YA.has(n)?0:unlockTime(n)-now();
 const {TICKETS}=await import('./tickets.js');
-const {renderContent,resetProgress,report}=await import('./contenido.js');
+const {renderContent,resetProgress,report,ticketOf,needsGlitch,setSwapped,glitch}=await import('./contenido.js');
 const modal=document.getElementById('modal'),$=id=>document.getElementById(id);
 let openN=null,tick=null;
 function render(){
-  const n=openN,left=leftMs(n),T=TICKETS[n-1];
+  const n=openN,left=leftMs(n),T=ticketOf(n);
   $('mTitle').textContent=T.titulo;
+  if(left<=0&&needsGlitch(n)){                       // house 3, first time: only the title… then the glitch
+    $('mIcon').textContent='🎁';$('mSmall').textContent=`Casita ${n}`;$('mText').hidden=true;$('mCount').hidden=true;$('mTicket').hidden=true;
+    $('mBody').innerHTML='';clearInterval(tick);
+    setTimeout(()=>{if(openN!==n||!modal.classList.contains('open'))return;
+      glitch(modal.querySelector('.card'),()=>{setSwapped();$('mTitle').textContent=ticketOf(n).titulo;$('mIcon').textContent='🍚'},()=>{render()})},1600);
+    return;
+  }
   if(left<=0){
     $('mIcon').textContent='🎁';$('mSmall').textContent=`Casita ${n}`;$('mText').textContent='';$('mText').hidden=true;
     $('mCount').hidden=true;$('mTicket').hidden=false;clearInterval(tick);renderContent(n,$('mBody'));return;
@@ -575,7 +582,7 @@ const unlocked=n=>leftMs(n)<=0;
 const tScreen=$('tScreen'),tList=$('tList'),tModal=$('tModal');
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function ticketHTML(n,tag='button'){
-  const T=TICKETS[n-1],open=unlocked(n);
+  const T=ticketOf(n),open=unlocked(n);
   const sub=!open?`🔒 Se desbloquea el ${n} de diciembre`:done.has(n)?'✓ Canjeado':'Toca para ver los detalles';
   return `<${tag} class="ticket${open?'':' locked'}${done.has(n)?' done':''}" data-n="${n}"><span class="n">${n}</span>
     <span><span class="t">${esc(T.titulo)}</span><span class="s">${sub}</span></span></${tag}>`;
@@ -596,6 +603,13 @@ function tryRedeem(btn,n){
 let tOpenN=null,tOpenedAt=0;
 function showTicket(n){
   tOpenN=n;$('tCardTicket').innerHTML=ticketHTML(n,'div');
+  if(unlocked(n)&&needsGlitch(n)){
+    $('tDesc').innerHTML='';$('tRedeem').hidden=true;
+    if(!tModal.classList.contains('open')){tOpenedAt=performance.now();tModal.classList.add('open')}
+    setTimeout(()=>{if(tOpenN!==n||!tModal.classList.contains('open'))return;
+      glitch(tModal.querySelector('.card'),()=>{setSwapped();$('tCardTicket').innerHTML=ticketHTML(n,'div')},()=>{showTicket(n);drawList()})},1600);
+    return;
+  }
   if(unlocked(n))renderContent(n,$('tDesc'));else $('tDesc').innerHTML=`<p class="desc">Este ticket se desbloquea el ${n} de diciembre. ¡Paciencia! 🎄</p>`;
   const r=$('tRedeem');r.hidden=!unlocked(n);r.className='redeem'+(done.has(n)?' done':'');r.disabled=done.has(n);r.textContent=done.has(n)?'✓ CANJEADO':'CANJEAR';
   if(!tModal.classList.contains('open')){tOpenedAt=performance.now();tModal.classList.add('open')}

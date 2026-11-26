@@ -6,12 +6,29 @@ const KEY = 'progreso-v1';
 const loadP = () => { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch { return {}; } };
 let prog = loadP();
 const saveP = () => { try { localStorage.setItem(KEY, JSON.stringify(prog)); } catch {} };
-export function resetProgress() { prog = {}; saveP(); }
+export function resetProgress() { prog = {}; saveP(); try { localStorage.removeItem(SWAP_KEY); } catch {} }
+
+// ---------- the surprise swap: the first time house 3 is opened it "glitches" into house 21's content ----------
+// Before: 3 = Sorpresa, 21 = Arroz con voces. After the glitch (remembered on this phone): 3 = Arroz con voces, 21 = Sorpresa.
+export const SWAP = [3, 21];
+const SWAP_KEY = 'intercambio-3-21';
+export const swapped = () => { try { return localStorage.getItem(SWAP_KEY) === '1'; } catch { return false; } };
+export const setSwapped = () => { try { localStorage.setItem(SWAP_KEY, '1'); } catch {} };
+export const needsGlitch = n => n === SWAP[0] && !swapped();
+// which ticket's title/content a house shows right now
+export const ticketOf = n => swapped() && SWAP.includes(n) ? TICKETS[(n === SWAP[0] ? SWAP[1] : SWAP[0]) - 1] : TICKETS[n - 1];
+
+// glitch animation on an element; calls mid() at the peak (to swap the text) and done() at the end
+export function glitch(el, mid, done) {
+  el.classList.add('glitching');
+  setTimeout(mid, 650);
+  setTimeout(() => { el.classList.remove('glitching'); done && done(); }, 1400);
+}
 
 // Sends an answer to his private page. Only on her real site (the test copy never sends anything).
 export function report(casita, tipo, datos = {}) {
   if (!location.hostname.includes('mi-vida') || location.hostname.includes('pruebas')) return;
-  const T = TICKETS[casita - 1] || {};
+  const T = ticketOf(casita) || {};
   try {
     fetch('/api/guardar', {method: 'POST', keepalive: true, headers: {'content-type': 'application/json'},
       body: JSON.stringify({casita, titulo: T.titulo, tipo, datos})}).catch(() => {});
@@ -160,7 +177,7 @@ function password(hash, done) {
 
 /* ---------- main ---------- */
 export function renderContent(n, el) {
-  const T = TICKETS[n - 1]; if (!T) return;
+  const T = ticketOf(n); if (!T) return;
   const st = prog[n] || (prog[n] = {done: {}, data: {}});
   el.innerHTML = '';
   el.classList.add('contenido');
@@ -245,4 +262,19 @@ const css = `
 .shake{animation:shake .4s}
 @keyframes shake{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
 `;
-document.head.append(Object.assign(document.createElement('style'), {textContent: css}));
+document.head.append(Object.assign(document.createElement('style'), {textContent: css + `
+.glitching{animation:gl-shake .14s steps(2) infinite;position:relative}
+.glitching h2,.glitching .t{animation:gl-text .2s steps(3) infinite;text-shadow:-3px 0 #ff1744,3px 0 #00e5ff}
+.glitching::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;mix-blend-mode:screen;z-index:5;
+  background:repeating-linear-gradient(0deg,rgba(255,255,255,.18) 0 2px,transparent 2px 5px),linear-gradient(90deg,rgba(255,23,68,.25),rgba(0,229,255,.25));
+  animation:gl-bars .18s steps(2) infinite}
+@keyframes gl-shake{0%{transform:translate(0,0)}25%{transform:translate(-5px,2px) skewX(4deg)}50%{transform:translate(4px,-3px)}75%{transform:translate(-2px,4px) skewX(-6deg)}100%{transform:translate(3px,0)}}
+@keyframes gl-text{0%{clip-path:inset(0 0 60% 0);transform:translateX(-6px)}33%{clip-path:inset(40% 0 0 0);transform:translateX(6px)}66%{clip-path:inset(20% 0 30% 0);transform:translateX(-3px)}100%{clip-path:inset(0);transform:none}}
+@keyframes gl-bars{0%{opacity:.9;transform:translateY(-4px)}50%{opacity:.4;transform:translateY(3px)}100%{opacity:.8}}
+@media (prefers-reduced-motion:reduce){.glitching,.glitching h2,.glitching .t,.glitching::after{animation-duration:.6s;animation-iteration-count:1}}
+`}));
+
+// the test copy starts from zero once (as if nobody had touched anything)
+if (location.hostname.includes('pruebas')) {
+  try { if (localStorage.getItem('pruebas-inicio') !== 'r2') { ['progreso-v1', 'canjeados-v1', SWAP_KEY].forEach(k => localStorage.removeItem(k)); localStorage.setItem('pruebas-inicio', 'r2'); prog = {}; } } catch {}
+}
