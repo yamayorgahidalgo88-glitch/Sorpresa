@@ -50,7 +50,9 @@ img{-webkit-user-drag:none}
 .card:nth-child(2).fresh{animation-delay:.06s}.card:nth-child(3).fresh{animation-delay:.12s}
 @keyframes deal{from{transform:translateY(40px) scale(.7);opacity:0}}
 #row{display:flex;align-items:center;gap:8px;margin-top:10px}
-#elixir .drop{width:44px;height:44px;background:radial-gradient(circle at 35% 30%,#f6b8ff,#c04dff 55%,#7a1fb0);border:3px solid var(--ink);border-radius:50%;display:grid;place-items:center;font-size:21px;box-shadow:0 0 12px rgba(192,77,255,.6)}
+#elixir{position:relative;width:58px;height:54px;flex:none}
+#elixir img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 0 8px rgba(60,220,255,.55));pointer-events:none}
+#elixir .drop{position:absolute;left:0;right:0;top:34%;height:50%;display:grid;place-items:center;font-size:24px;line-height:1;color:#fff;-webkit-text-stroke:4px #0a2a5a;paint-order:stroke fill}
 #elixir.bump .drop{animation:bump .3s}#elixir.no .drop{animation:shake .3s}
 @keyframes bump{50%{transform:scale(1.25)}}
 @keyframes shake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
@@ -59,7 +61,7 @@ img{-webkit-user-drag:none}
 .btn small{display:block;font-size:11px}
 .btn.blue{background:linear-gradient(#69b8ff,#2f7de1)}.btn.green{background:linear-gradient(#86e866,#3fae2a)}.btn.gold{background:linear-gradient(#ffd863,#f0a020)}.btn.red{background:linear-gradient(#ff7a7a,#d93a4a)}.btn.gray{background:linear-gradient(#b7b7c9,#77778f)}.btn.purple{background:linear-gradient(#b48cff,#7a4fe0)}
 .btn:disabled{filter:grayscale(1) brightness(.85);cursor:default}
-#ready{flex:1;font-size:19px}
+#ready{flex:1 1 0;max-width:210px}
 #reroll{min-width:70px}
 #banner{position:fixed;left:0;right:0;top:34%;text-align:center;z-index:6;pointer-events:none;font-size:clamp(34px,10vw,58px);opacity:0}
 #banner.show{animation:ban 1.5s ease-out forwards}
@@ -130,11 +132,12 @@ img{-webkit-user-drag:none}
 #loading>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 35%}
 #loading .lbar{position:absolute;left:0;right:0;bottom:0;padding:70px 22px calc(env(safe-area-inset-bottom) + 34px);background:linear-gradient(transparent,rgba(10,12,40,.82) 45%);display:flex;flex-direction:column;align-items:center;gap:8px}
 #loading .ltxt{font-size:22px;color:#fff;letter-spacing:.5px}
-#loading .ltrack{position:relative;width:min(100%,420px);height:30px;border-radius:16px;background:#1b1838;border:3px solid #0b0a1c;box-shadow:0 4px 0 rgba(0,0,0,.45),inset 0 3px 0 rgba(0,0,0,.4);overflow:hidden}
-#loading .ltrack i{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:12px;background:linear-gradient(#9ff3ff,#3ec7ff 45%,#1f8fe0);box-shadow:inset 0 -4px 0 rgba(0,0,0,.18),inset 0 4px 0 rgba(255,255,255,.45)}
-#loading .ltrack i::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(-45deg,rgba(255,255,255,.18) 0 10px,transparent 10px 20px);animation:lstripes .8s linear infinite}
+#loading .ltrack{position:relative;width:min(100%,440px);aspect-ratio:1002/256;filter:drop-shadow(0 6px 8px rgba(0,0,0,.5))}
+#loading .lt-bg{position:absolute;inset:0;width:100%;height:100%;display:block}
+#loading .lt-in{position:absolute;left:7.49%;top:27.34%;width:84.43%;height:49.22%;container-type:inline-size;overflow:hidden;border-radius:999px}
+#loading .ltrack i{display:block;height:100%;width:0;background:url(../assets/barra_fill.webp) no-repeat left center;background-size:100cqw 100%}
 @keyframes lstripes{to{background-position:28px 0}}
-#loading .ltrack b{position:absolute;inset:0;display:grid;place-items:center;font-size:17px;color:#fff}
+#loading .ltrack b{position:absolute;left:7.49%;top:27.34%;width:84.43%;height:49.22%;display:grid;place-items:center;font-size:20px;color:#fff;-webkit-text-stroke:4px #0b0a3a;paint-order:stroke fill}
 
 .atkimg{display:block;width:100%;border-radius:12px;border:2px solid var(--ink);margin-top:8px}
 
@@ -374,3 +377,7 @@ img{-webkit-user-drag:none}
 .imgb img{display:block;width:100%;height:auto;pointer-events:none}
 .imgb:active{transform:translateY(3px) scale(.97)}
 .imgb:disabled{filter:grayscale(1) brightness(.7);cursor:default}
+
+/* ---------- Azar (bestiario) ---------- */
+.dkbtns{display:flex;align-items:center;gap:8px}
+.imgb.azar{flex:none;width:58px;max-width:none}

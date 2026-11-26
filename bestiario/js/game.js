@@ -525,6 +525,14 @@ function renderDecks() {
     saveProg(); renderDecks();
   });
 }
+// AZAR: rellena al azar los huecos libres del mazo con personajes que tengas y no estén ya en él
+$('#dkRandom').onclick = () => {
+  const deck = PROG.decks[editDeck], free = DECK_MAX - deck.length;
+  if (free <= 0) { sfx.no(); $('#dkInfo').innerHTML = '<span class="warn">El mazo ya está completo</span>'; return; }
+  const pool = shuffle(TYPES.filter(t => owns(t) && !deck.includes(t)));
+  if (!pool.length) { sfx.no(); $('#dkInfo').innerHTML = '<span class="warn">No tienes más personajes</span>'; return; }
+  deck.push(...pool.slice(0, free)); saveProg(); sfx.merge(); renderDecks();
+};
 $('#dkSelect').onclick = () => {
   if (!deckFull(PROG.decks[editDeck])) return sfx.no();
   PROG.deck = editDeck; saveProg(); sfx.merge(); renderDecks();
@@ -771,8 +779,7 @@ function renderHud() {
   rr.disabled = !plan || (!G.freeRoll && G.elixir.p < 1);
   rr.innerHTML = `↻<small>${G.freeRoll ? 'Gratis' : '1 elíxir'}</small>`;
   const rd = $('#ready');
-  if (G.state === 'fight') { rd.disabled = true; rd.className = 'btn blue'; rd.textContent = '⚔️ ¡Luchando!'; }
-  else { rd.disabled = !plan; rd.className = 'btn green'; rd.textContent = '¡A luchar!'; }
+  rd.disabled = !plan;
   renderShop();
 }
 const hint = t => { $('#hint').textContent = t; };
