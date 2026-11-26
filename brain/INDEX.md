@@ -9,6 +9,7 @@
 - `decisiones.md` — qué se decidió y por qué (cerebro + juego)
 - `pendientes.md` — tareas abiertas
 - `../entregables/` — archivos generados (p. ej. `GREVOS_personajes.xlsx`)
+- `CODIGO.md` — mapa autogenerado del código (qué hay y dónde); consultar antes de explorar
 - `log/` — registro automático por sesión; `sesiones/` — resúmenes manuales
 
 ## Resumen
