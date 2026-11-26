@@ -3,14 +3,16 @@
 
 ## Archivos
 - `REGLAS.md` — cómo responder (cargado al inicio)
-- `usuario.md` — quién es y cómo trabaja el usuario
-- `proyectos/sorpresa.md` — estado del proyecto (index.html)
-- `decisiones.md` — qué se decidió y por qué
+- `usuario.md` — quién es el usuario y sus preferencias
+- `proyectos/grevos.md` — juego GREVOS: estado, archivos clave, despliegue
+- `proyectos/sorpresa.md` — el repo y su `main`
+- `decisiones.md` — qué se decidió y por qué (cerebro + juego)
 - `pendientes.md` — tareas abiertas
-- `log/` — registro automático por sesión (solo lo reciente se carga)
-- `sesiones/` — resúmenes manuales
+- `log/` — registro automático por sesión; `sesiones/` — resúmenes manuales
 
-## Estado
-- Cerebro operativo: hooks de captura y sincronización a `main`, skill `/cerebro`, reglas de respuesta.
-- Repo: web estática `index.html` ("Sorpresa"), aún sin documentar.
-- Falta: resumen de chats anteriores (el usuario debe pegarlo) y probar en sesión nueva.
+## Resumen
+- Proyecto principal: GREVOS, auto-battler web tipo Clash Mini con 16 personajes propios en 3D (Meshy + Blender).
+- Publicado en batalla-de-bestias.vercel.app desde la rama `claude/clash-mini-game-design-dleq7j`; desplegar tras cada cambio.
+- Últimos cambios: Ayew/Paira con modelos nuevos, Orión nuevo, IA rival táctica, recargas exactas, logo/icono GREVOS, mazos de 6 obligatorios.
+- Pendiente principal: decidir el equilibrado (Orión, Bolab, Pomona, Ogul).
+- Cerebro con hooks automáticos; responder en español, corto y solo lo pedido.
