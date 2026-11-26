@@ -130,7 +130,9 @@ for clip, keys in A.CLIPS.items():
             pb.keyframe_insert('rotation_quaternion', frame=f)
             if bn == 'root':
                 pb.location = M.inverted() @ B(pose.get('loc', (0, 0, 0))); pb.keyframe_insert('location', frame=f)
-    for fc in act.fcurves:
+    try: fcs = list(act.fcurves)                                    # Blender 4.x
+    except AttributeError: fcs = [fc for l in act.layers for st in l.strips for cb in st.channelbags for fc in cb.fcurves]   # Blender 5.x
+    for fc in fcs:
         for k in fc.keyframe_points: k.interpolation = A.INTERP.get(clip, 'BEZIER')
 arm.animation_data.action = None
 for o in bpy.context.scene.objects: o.select_set(True)
