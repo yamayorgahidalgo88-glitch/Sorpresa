@@ -906,12 +906,12 @@ function aiPlan() {
   }
 }
 
-// Formación táctica: antes de cada combate el rival estudia la formación del jugador y recoloca sus criaturas
-// buscando la mejor disposición (prueba miles de cambios y se queda con la que mejor puntúa, como una IA de ajedrez).
+// Formación táctica: el rival NO ve cómo has colocado en esta ronda. Solo recuerda tu formación de la ronda anterior
+// (G.seenP) y con ella prevé lo que harás y recoloca sus criaturas, buscando la mejor disposición (prueba miles de cambios y se queda con la que mejor puntúa, como una IA de ajedrez).
 const LINE_SHOOTERS = { osko: 1, ayew: 1, orion: 1 };          // solo atacan en línea recta (sin diagonal)
 const AOE_TYPES = { ogul: 1, jaspe: 1, peipo: 1, bushi: 1, pomona: 0 };
-function aiArrange() {
-  const E = team('e'), P = team('p'); if (E.length < 2 && !P.length) return;
+function aiArrange(P) {
+  const E = team('e'); if (E.length < 2 && !P.length) return;
   const D = u => CHARS[u.type] || SUMMONS[u.type];
   const isFront = u => FRONT_ROLES.includes(D(u).role) || D(u).range <= 1;
   const tank = u => D(u).hp >= 650 || D(u).role === 'Tanque' || D(u).role === 'Defensor';
@@ -983,7 +983,9 @@ const schedule = (delay, fn) => sim.events.push({ at: sim.t + delay, fn });
 
 function startFight() {
   if (G.state !== 'plan') return;
-  closeInfo(); G.state = 'prefight'; aiPlan(); aiArrange(); renderHud();
+  closeInfo(); G.state = 'prefight'; aiPlan(); aiArrange(G.seenP || []);
+  G.seenP = team('p').map(u => ({ type: u.type, level: u.level, hc: u.hc, hr: u.hr }));   // lo que verá el rival en la ronda siguiente
+  renderHud();
   banner('¡A luchar!'); sfx.round(); hint('Combate automático: ¡mira cómo luchan tus criaturas!');
   later(1000, beginCombat);
 }
@@ -1861,7 +1863,7 @@ function stopMatch() {
 }
 function newMatch() {
   stopMatch();
-  Object.assign(G, { round: 0, score: { p: 0, e: 0 }, elixir: { p: 0, e: 0 }, lastLoser: null, speed: 1 });
+  Object.assign(G, { round: 0, score: { p: 0, e: 0 }, elixir: { p: 0, e: 0 }, lastLoser: null, speed: 1, seenP: null });
   layout(); startRound();
 }
 
