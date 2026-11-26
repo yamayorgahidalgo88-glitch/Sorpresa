@@ -8,6 +8,7 @@
 - `proyectos/sorpresa.md` — el repo y su `main`
 - `decisiones.md` — qué se decidió y por qué (cerebro + juego)
 - `pendientes.md` — tareas abiertas
+- `../entregables/` — archivos generados (p. ej. `GREVOS_personajes.xlsx`)
 - `log/` — registro automático por sesión; `sesiones/` — resúmenes manuales
 
 ## Resumen
