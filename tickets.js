@@ -21,8 +21,9 @@ export const TICKETS = [
     {texto: '¡Has confirmado una cita conmigo en la Ciudad de la Navidad! 🎅'},
     {vale: 'Entrada gratis a la Ciudad de la Navidad', arriba: 'Entrada', pendiente: 'imagen'},
   ]},
-  /* 3 */ {titulo: 'Sorpresa. Bueno... O no tanto', bloques: [
-    {texto: 'Se está muy cómodo entre tantos personajes conocidos... Pero más cómodo es estar en tu habitación jeje.'},
+  /* 3 */ {titulo: 'Arroz con voces', bloques: [
+    {clave: '907d29f538c8673e48411cac69619d84107c79713fcb32f32fa028703a15e287'},
+    {texto: 'Hoy vuelvo cenado a casa, pero es que era Black y también era Friday, y al final...'},
   ]},
   /* 4 */ {titulo: 'Japón', bloques: [
     {texto: 'Ojalá poder irnos a Japón, pero todavía no doy para tanto... Por lo menos te ofrezco algo típico de allí.'},
@@ -94,9 +95,8 @@ export const TICKETS = [
   /* 20 */ {titulo: 'Estética', bloques: [
     {texto: 'Sé que la estética de tu habitación es intocable, pero bueno, aunque sea para que lo guardes. Habla conmigo 😉'},
   ]},
-  /* 21 */ {titulo: 'Arroz con voces', bloques: [
-    {clave: '907d29f538c8673e48411cac69619d84107c79713fcb32f32fa028703a15e287'},
-    {texto: 'Hoy vuelvo cenado a casa, pero es que era Black y también era Friday, y al final...'},
+  /* 21 */ {titulo: 'Sorpresa. Bueno... O no tanto', bloques: [
+    {texto: 'Se está muy cómodo entre tantos personajes conocidos... Pero más cómodo es estar en tu habitación jeje.'},
   ]},
   /* 22 */ {titulo: 'Chao', bloques: [
     {texto: 'Es bastante vergonzoso la verdad, pero aquí la tienes, cielo. Espero que te guste. Habla conmigo ☺️'},
