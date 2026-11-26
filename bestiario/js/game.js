@@ -81,10 +81,10 @@ const CHARS = {
     abilName: 'Dardo paralizante', desc: 'Súper (se carga con 23 impactos de roca): lanza un dardo que atraviesa a todos los rivales en línea recta hasta 5 casillas. Daño bajo, pero los deja paralizados 1,5 segundos.',
     lv: ['Desbloquea el súper: Dardo paralizante, que perfora y paraliza 1,5 segundos.', 'La ráfaga lanza 8 rocas.', 'El básico se recarga en 0,25 segundos.'],
     all: ['pose', 'front', 'back', 'left', 'right', 'iso', 'top', 'bottom'] },
-  sevora: { name: 'Sevora', cost: 5, role: 'Imitadora', color: '#8fd23a', hp: 560, atk: 55, range: 2, as: 0.9, ms: 0.75, abil: 'super', charge: 6, sheet: true,
+  sevora: { name: 'Sevora', cost: 5, role: 'Imitadora', color: '#8fd23a', hp: 600, atk: 75, range: 2, as: 0.8, ms: 0.75, abil: 'super', charge: 6, sheet: true,
     atkName: 'Mordida de raíz', atkDesc: 'la planta carnívora de su brazo se estira con su raíz y muerde a 2 casillas. Daño medio.',
-    abilName: 'Mordida radiante', desc: 'Súper (se carga con 6 básicos): sus raíces brillan en verde hasta su siguiente mordisco. Al rival que muerda le copia el súper, un 5% más fuerte, y lo lanza en cuanto vuelve la planta.',
-    lv: ['Desbloquea el súper: copia el súper del rival que muerda, un 5% más fuerte.', 'El básico y el súper llegan a 4 casillas.', 'El súper copiado es un 10% más fuerte.'],
+    abilName: 'Mordida radiante', desc: 'Súper (se carga con 6 básicos): sus raíces brillan en verde hasta su siguiente mordisco. Al rival que muerda le copia el súper, un 15% más fuerte, y lo lanza en cuanto vuelve la planta.',
+    lv: ['Desbloquea el súper: copia el súper del rival que muerda, un 15% más fuerte.', 'El básico y el súper llegan a 4 casillas.', 'El súper copiado es un 25% más fuerte.'],
     all: ['pose', 'front', 'back', 'left', 'right', 'iso', 'top', 'bottom'] },
 };
 const SUMMONS = {
@@ -1492,7 +1492,7 @@ function vineBite(u, t) {
     if (t.alive) { damage(t, u.atk, u, glow ? 'big' : ''); burstAt(t.gx, t.gy, .55, glow ? '#c8ff4a' : '#9ccf4a', glow ? 16 : 7, { glow: true, spd: 1.6 }); sfx.hit(); }
     if (!glow) return charge(u);
     if (!copyable(t)) return;   // a quien no tiene súper no se le copia nada: sigue brillando
-    const cp = { type: t.type, level: t.level, atk: t.atk, pow: u.level >= 3 ? 1.1 : 1.05 };
+    const cp = { type: t.type, level: t.level, atk: t.atk, pow: u.level >= 3 ? 1.25 : 1.15 };
     vfx({ kind: 'link', ax: t.gx, ay: t.gy, bx: u.gx, by: u.gy, color: '182,255,46', dur: .35 });
     schedule(.3, () => {   // la planta ha vuelto: lanza el súper copiado
       if (!u.alive) return;

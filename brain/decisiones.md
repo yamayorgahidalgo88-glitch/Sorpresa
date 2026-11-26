@@ -21,3 +21,4 @@
 - 2026-11-26: UI nueva (hoja del usuario): botón LUCHAR de imagen en la batalla (#ready, assets/btn_luchar.webp), botón Azar en el Bestiario (rellena huecos del mazo con personajes propios al azar; assets/btn_azar.webp), elíxir = gota (assets/elixir.webp, solo el contador), barra de carga nueva (assets/barra_vacia.webp + barra_fill.webp recortada por porcentaje).
 - 2026-11-26: el coste de las cartas mantiene el círculo de siempre pero en azul oscuro (para que se lea el número), no la forma de gota.
 - 2026-11-26: Perfil: el personaje favorito se muestra en 3D (reutiliza el escenario compartido ST/VW en modo 'profile', gira solo en reposo), con margen respecto a los botones de la derecha.
+- 2026-11-26: Sevora: PV 600, daño básico 75, recarga básico 0,8; súper copiado +15% (nv1-2) y +25% (nv3).
