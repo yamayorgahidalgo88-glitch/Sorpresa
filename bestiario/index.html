@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#14173a">
+<title>GREVOS</title>
+<meta name="application-name" content="GREVOS">
+<meta name="apple-mobile-web-app-title" content="GREVOS">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<link rel="preload" as="image" href="assets/carga.webp">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="loading">
+  <img id="limg" src="assets/carga.webp" alt="" fetchpriority="high">
+  <div class="lbar">
+    <div class="ltxt o">Cargando…</div>
+    <div class="ltrack"><i id="lfill"></i><b id="lpct" class="o">0%</b></div>
+  </div>
+</div>
+<script>
+// barra de carga: avanza sola hasta ~90% y llega al 100% cuando el juego está listo
+window.__load = { p: 0, done: false, finish: null };
+function __lstart() {
+  if (window.__lgo) return; window.__lgo = 1;
+(function tick() {
+  var L = window.__load, f = document.getElementById('lfill'), t = document.getElementById('lpct');
+  L.p = L.done ? Math.min(100, L.p + 3) : Math.min(90, L.p + (92 - L.p) * 0.025 + 0.15);
+  f.style.width = L.p + '%'; t.textContent = Math.floor(L.p) + '%';
+  if (L.p < 100) requestAnimationFrame(tick); else if (L.finish) L.finish();
+})();
+}
+var __li = document.getElementById('limg');
+if (__li.complete) __lstart(); else { __li.onload = __li.onerror = __lstart; setTimeout(__lstart, 4000); }
+</script>
+<div id="scene"><canvas id="c"></canvas><canvas id="gl"></canvas><canvas id="fx"></canvas></div>
+<div id="labels"></div>
+
+<div id="battleHud" class="hide">
+  <div id="top">
+    <div class="side p"><span class="nm o">Tú</span><div class="pips" id="pipsP"><i></i><i></i><i></i></div></div>
+    <div id="mid"><div id="roundLbl" class="o">Ronda 1</div><div style="display:flex;gap:4px"><button class="mini" id="exit">🏠 Menú</button><button class="mini" id="mute">🔊</button></div></div>
+    <div class="side e"><div class="pips" id="pipsE"><i></i><i></i><i></i></div><span class="nm o">Rival</span></div>
+  </div>
+  <div id="banner" class="o"></div>
+  <div id="bottom">
+    <div id="hint"></div>
+    <div id="panel">
+      <div id="sellDrop"><div class="drop o"><b>+0</b></div><span class="o">Suelta para vender</span></div>
+      <div id="shop"><div class="card" data-i="0"></div><div class="card" data-i="1"></div><div class="card" data-i="2"></div></div>
+      <div id="row">
+        <div id="elixir"><div class="drop o" id="elixirNum">6</div></div>
+        <button class="btn blue" id="reroll">↻<small>Gratis</small></button>
+        <button class="btn green" id="ready">¡A luchar!</button>
+      </div>
+    </div>
+  </div>
+</div>
+<img id="ghost" alt="">
+<div id="info" class="hide"><div class="sheet" id="sheet"></div></div>
+
+<!-- MENÚ PRINCIPAL -->
+<div id="home" class="page hide">
+  <div class="hbg"><img class="hb-img" src="assets/inicio.webp" alt=""><canvas id="hFxB"></canvas><canvas id="hGL"></canvas><canvas id="hFxF"></canvas></div>
+  <div class="wallet o"><img src="assets/moneda.webp" alt=""><span id="coinNum">0</span></div>
+  <div class="wrap">
+    <div class="htop"><h1 class="logo o logo-img"><img src="assets/logo_grevos.webp" alt="GREVOS"></h1></div>
+    <div class="hspace"></div>
+    <div class="menu">
+      <button class="btn green hbig" id="goBattle">⚔️ ¡Batalla!<small>Duelo contra la máquina</small></button>
+      <div class="mrow">
+        <button class="btn blue" id="goDecks">🃏 Mazos</button>
+        <button class="btn purple" id="goBestiary">📖 Bestiario</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAZOS -->
+<div id="decks" class="page hide">
+  <div class="wrap">
+    <div class="bar"><button class="btn gray" id="dkBack">←</button><h2 class="o">Mazos</h2><span class="count" id="dkCount"></span></div>
+    <div class="dtabs" id="dtabs"></div>
+    <div class="deckbox">
+      <div class="dslots" id="dslots"></div>
+      <div class="dkfoot"><span id="dkInfo"></span><button class="btn green" id="dkSelect">Seleccionar</button></div>
+    </div>
+    <p class="note">Toca una bestia de tu colección para añadirla al mazo. Toca una del mazo para quitarla. Para jugar, el mazo tiene que tener 6 bestias.</p>
+    <h3 class="sub o">Tu colección</h3>
+    <div class="dcoll" id="dcoll"></div>
+  </div>
+</div>
+
+<!-- ANTES DE LA BATALLA -->
+<div id="prebattle" class="page hide">
+  <div class="wrap pbwrap">
+    <div class="bar"><button class="btn gray" data-back="home">←</button><h2 class="o">¿Listo?</h2><span class="count" id="pbName"></span></div>
+    <h3 class="sub o pbtitle">Lucharás con este mazo</h3>
+    <div class="deckbox"><div class="dslots" id="pbSlots"></div></div>
+    <p class="note" id="pbNote"></p>
+    <div class="pbtns">
+      <button class="btn blue" id="pbDecks">🃏 Mazos<small>Cambiar de mazo</small></button>
+      <button class="btn green" id="pbGo">✔ Confirmar<small>¡A la batalla!</small></button>
+    </div>
+  </div>
+</div>
+
+<!-- BESTIARIO -->
+<div id="bestiary" class="page hide">
+  <div class="wrap">
+    <div class="bar"><button class="btn gray" data-back="home">←</button><h2 class="o">Bestiario</h2><span class="count" id="bcount"></span></div>
+    <div class="grid" id="bgrid"></div>
+    <p class="note">Toca una criatura para verla en 3D, girarla y ver sus animaciones.</p>
+  </div>
+</div>
+
+<!-- FICHA DE CRIATURA -->
+<div id="detail" class="page hide">
+  <div class="wrap">
+    <div class="bar"><button class="btn gray" data-back="bestiary">←</button><h2 class="o" id="dName"></h2><span class="count" id="dLevel"></span></div>
+    <div id="viewer"><div class="plat"></div><div class="tip">↔ Desliza para girar 360° · ↕ para inclinar</div></div>
+    <div class="anims" id="anims"></div>
+    <div class="dpanel" id="dInfo"></div>
+    <p class="vlabel">Diseño original (toca para girar el modelo a esa vista)</p>
+    <div class="views" id="views"></div>
+  </div>
+</div>
+
+<div id="end" class="overlay hide">
+  <div class="box">
+    <h1 class="o" id="endTitle">¡VICTORIA!</h1>
+    <div class="score o" id="endScore">3 - 1</div>
+    <div class="endpack hide" id="endPack"><img src="assets/sobre.png" alt=""><span>¡Has ganado un sobre!<small>Se abrirá al volver al menú</small></span></div>
+    <div class="btns"><button class="btn gray" id="endMenu">Menú</button><button class="btn green" id="again">Revancha</button></div>
+  </div>
+</div>
+
+<script type="module" src="js/game.js"></script>
+</body>
+</html>
