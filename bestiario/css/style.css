@@ -383,4 +383,4 @@ img{-webkit-user-drag:none}
 .imgb.azar{flex:none;width:58px;max-width:none}
 
 /* ---------- Coste de las cartas: diseño de siempre, en el color de la gota de elíxir ---------- */
-.card .cost,.dcost{background:radial-gradient(circle at 35% 30%,#c4fcff,#22d6ee 55%,#0b8fd0)}
+.card .cost,.dcost{background:radial-gradient(circle at 35% 30%,#4fb8ff,#1a6fe0 55%,#0b3a9e)}
