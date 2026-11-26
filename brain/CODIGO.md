@@ -3,19 +3,11 @@ Archivos del repo con tamaño y definiciones principales. Úsalo para saber QUÉ
 
 
 ## ./
-<<<<<<< HEAD
-=======
-- `.git` (45B)
->>>>>>> origin/main
 - `.gitignore` (65B)
 - `CLAUDE.md` (1KB)
 - `index.html` (22KB)
 
 ## brain/
-<<<<<<< HEAD
-- `.transcript` (85B)
-=======
->>>>>>> origin/main
 - `INDEX.md` (1KB)
 - `REGLAS.md` (1KB)
 - `decisiones.md` (2KB)

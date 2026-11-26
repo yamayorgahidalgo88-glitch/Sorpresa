@@ -15,7 +15,7 @@ for d, dirs, files in os.walk(root):
     dirs[:] = sorted(x for x in dirs if x not in SKIP and not (d == root and x == "brain" and False))
     for f in sorted(files):
         p = os.path.join(d, f); rel = os.path.relpath(p, root)
-        if rel in ("brain/CODIGO.md",) or rel.startswith("brain/log"): continue
+        if f in (".git", ".transcript") or rel == "brain/CODIGO.md" or rel.startswith("brain/log"): continue
         try: size = os.path.getsize(p)
         except OSError: continue
         ext = os.path.splitext(f)[1].lower(); names = []
