@@ -364,8 +364,9 @@ img{-webkit-user-drag:none}
 .pf-name:focus{background:rgba(120,200,255,.18);border-radius:2cqw}
 .pf-trophy,.pf-wins,.pf-streak{left:73%;width:18%;height:6%;font-size:9cqw}
 .pf-trophy{top:35.7%}.pf-wins{top:49%}.pf-streak{top:73.7%}
-.pfav{position:absolute;left:3%;width:48%;top:24%;height:56%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5cqw;text-align:center}
-.pfav img{width:100%;height:76%;object-fit:contain;filter:drop-shadow(0 2cqw 2cqw rgba(0,0,0,.45))}
+.pfav{position:absolute;left:2%;width:42%;top:22%;height:58%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5cqw;text-align:center}
+.pf3d{position:relative;flex:1 1 0;min-height:0;width:100%}
+.pfav .stage3d{position:absolute;inset:0}
 .pfn{font-size:7cqw;color:#fff;-webkit-text-stroke:1.4cqw var(--ink);paint-order:stroke fill;line-height:1.05}
 .pfs{font-size:4.6cqw;color:var(--gold);-webkit-text-stroke:1cqw var(--ink);paint-order:stroke fill}
 .pfq{font-size:30cqw;color:#8d7ee0;-webkit-text-stroke:2cqw var(--ink);paint-order:stroke fill;opacity:.8;line-height:1}

@@ -310,7 +310,7 @@ function initStage() {
 }
 const HOME_POS = { tanko: [-2.0, -1.2, 0.35], ogul: [-1.2, -1.2, 0.2], jess: [-0.4, -1.2, 0.07], denton: [0.4, -1.2, -0.07], sevora: [1.2, -1.2, -0.2], osko: [2.0, -1.2, -0.35], bolab: [-1.75, 0.35, 0.35], bushi: [-0.95, 0.5, 0.15], pomona: [0, 0.75, 0], rogue: [0.95, 0.5, -0.15], gloop: [1.75, 0.35, -0.35] };
 function stageMount(mode) {
-  const box = mode === 'home' ? $('#homeStage') : $('#viewer');
+  const box = mode === 'home' ? $('#homeStage') : mode === 'profile' ? $('#pf3d') : $('#viewer');
   if (ST.renderer.domElement.parentNode !== box) box.insertBefore(ST.renderer.domElement, box.querySelector('.tip'));
   ST.mode = mode; ST.w = 0;
   // solo se carga el modelo de la criatura que se está viendo (ahorra memoria en el móvil)
@@ -331,7 +331,7 @@ function stageRender(dt) {
       r.rig.update(dt);
     }
   } else if (VW) {
-    const r = rigs[VW.t]; if (!r) return; const p = VW.pitch * Math.PI / 180, dist = 4.7;
+    const r = rigs[VW.t]; if (!r) return; const p = VW.pitch * Math.PI / 180, dist = ST.mode === 'profile' ? Math.max(4.2, 0.6 / (0.2309 * camera.aspect)) : 4.7;
     camera.position.set(0, 0.68 + Math.sin(p) * dist, Math.cos(p) * dist); camera.lookAt(0, 0.68, 0);
     r.pv.rotation.set(0, VW.yaw * Math.PI / 180, 0);
     if (VW.anim === 'attack' || VW.anim === 'super') { VW.loop -= dt; if (VW.loop <= 0) { r.rig.play(VW.anim); if (VW.anim === 'attack' && r.rig.tongueTo) setTimeout(() => r.rig.tongueTo(null), 60); VW.loop = 1.35; } }
@@ -355,8 +355,9 @@ function show(screen) {
   const battle = screen === 'battle';
   $('#battleHud').classList.toggle('hide', !battle);
   $('#scene').style.visibility = labelsEl.style.visibility = battle ? 'visible' : 'hidden';
-  if (screen !== 'detail') VW = null;
+  if (screen !== 'detail' && screen !== 'user') VW = null;
   if (screen === 'detail') stageMount(screen);
+  if (screen === 'user' && VW && $('#pf3d')) stageMount('profile');
   if (battle) layout();
   if (screen === 'home') { renderWallet(); renderHomeDeck(); syncHomeDeck(); setTimeout(openPendingPacks, 350); }
 }
@@ -547,9 +548,10 @@ function renderProfile() {
   $('#pfStreak').textContent = PROG.bestStreak;
   // personaje favorito: el que más batallas has jugado (si hay empate, al azar entre los empatados)
   const best = Math.max(0, ...TYPES.map(t => PROG.plays[t] || 0)), fav = $('#pfFav');
-  if (!best) { fav.innerHTML = '<div class="pfq o">?</div><div class="pfn o">Juega una batalla para descubrir a tu favorito</div>'; return; }
+  if (!best) { VW = null; fav.innerHTML = '<div class="pfq o">?</div><div class="pfn o">Juega una batalla para descubrir a tu favorito</div>'; return; }
   const t = pick(TYPES.filter(x => (PROG.plays[x] || 0) === best)), ch = CHARS[t];
-  fav.innerHTML = `<img src="${src(t, 'pose')}" alt="${ch.name}"><div class="pfn o">${ch.name}</div><div class="pfs o">${best} ${best === 1 ? 'batalla' : 'batallas'}</div>`;
+  fav.innerHTML = `<div class="pf3d" id="pf3d"></div><div class="pfn o">${ch.name}</div><div class="pfs o">${best} ${best === 1 ? 'batalla' : 'batallas'}</div>`;
+  VW = { t, yaw: -20, pitch: 8, auto: true, vel: 0, goal: null, dragging: false, anim: 'idle', loop: 0 };   // el modelo 3D del favorito (se monta al mostrar la pantalla)
 }
 $('#pfName').addEventListener('input', e => { PROG.name = e.target.value.replace(/\s+/g, ' ').slice(0, 14); saveProg(); });
 $('#pfName').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
@@ -2081,7 +2083,7 @@ function loop(now) {
     fx.setTransform(dpr, 0, 0, dpr, 0, 0); fx.clearRect(0, 0, W, Hs);
     drawZones(time); drawDomes(time, dt); drawSummons(time); drawBeams(dt); drawShields(time); drawStatus(time); drawVfx(dt, time); drawFrozen(); drawProjectiles(); drawParts();
     updateLabels();
-  } else if (G.screen === 'detail') { viewerTick(); stageRender(rdt); }
+  } else if (G.screen === 'detail' || (G.screen === 'user' && VW)) { viewerTick(); stageRender(rdt); }
   else if (G.screen === 'home') homeTick(rdt);
   requestAnimationFrame(loop);
 }
