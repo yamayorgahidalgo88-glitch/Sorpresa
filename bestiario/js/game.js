@@ -208,6 +208,7 @@ function initBattle3D() {
   camera.position.set(...BOARD.cam.pos); camera.rotation.set(...BOARD.cam.rot, 'YXZ');
   Object.assign(B3, { renderer, scene, camera });
 }
+let BG = null;
 function layout() {
   W = innerWidth; Hs = innerHeight; dpr = Math.min(devicePixelRatio || 1, 2);
   for (const c of [canvas, fxc]) { c.width = Math.round(W * dpr); c.height = Math.round(Hs * dpr); }
@@ -215,6 +216,15 @@ function layout() {
   const [x0, x1] = [225, 742], [y0, y1] = [267 - 95, 781];
   S = Math.min(W * 0.94 / (x1 - x0), availH * 0.98 / (y1 - y0));
   OX = W / 2 - (x0 + x1) / 2 * S; OY = topH + availH / 2 - (y0 + y1) / 2 * S;
+  // pantallas anchas (PC): fondo con el propio tablero difuminado en lugar de franjas lisas a los lados
+  BG = null;
+  if (W / Hs > 0.75 && IMG.board) {
+    BG = document.createElement('canvas'); BG.width = Math.round(W * dpr / 2); BG.height = Math.round(Hs * dpr / 2);
+    const b = BG.getContext('2d'), k = Math.max(BG.width / BOARD.w, BG.height / BOARD.h);
+    b.filter = 'blur(10px) brightness(.5) saturate(1.2)';
+    b.drawImage(IMG.board, (BG.width - BOARD.w * k) / 2, (BG.height - BOARD.h * k) / 2, BOARD.w * k, BOARD.h * k);
+    b.filter = 'none'; b.fillStyle = 'rgba(10,8,40,.35)'; b.fillRect(0, 0, BG.width, BG.height);
+  }
   B3.renderer.setSize(W, Hs, false);
   B3.camera.setViewOffset(BOARD.w * S, BOARD.h * S, -OX, -OY, W, Hs);
 }
@@ -627,8 +637,9 @@ function initHome() {
   const streaks = HFALLS.map(() => Array.from({ length: 22 }, () => ({ u: Math.random(), v: Math.random(), w: .02 + Math.random() * .05, l: .12 + Math.random() * .25, sp: .55 + Math.random() * .5 })));
   Object.assign(HS, { renderer, scene, camera, flies, stars, streaks, bk: $('#hFxB').getContext('2d'), fr: $('#hFxF').getContext('2d'), ready: true, w: 0, h: 0 });
 }
-function homeMap() {   // misma colocación que object-fit:cover centrado
-  const W = innerWidth, H = innerHeight, s = Math.max(W / HIMG.w, H / HIMG.h);
+const WIDE = matchMedia('(min-aspect-ratio: 3/4)');   // PC / pantallas anchas: la imagen del inicio entera, sin recortar
+function homeMap() {   // misma colocación que la imagen (object-fit: cover en móvil, contain en pantallas anchas)
+  const W = innerWidth, H = innerHeight, s = WIDE.matches ? Math.min(W / HIMG.w, H / HIMG.h) : Math.max(W / HIMG.w, H / HIMG.h);
   return { s, ox: (W - HIMG.w * s) / 2, oy: (H - HIMG.h * s) / 2, W, H };
 }
 function syncHomeDeck() {
@@ -1969,8 +1980,8 @@ function drawGoo() {
   }
 }
 function drawBoard() {
-  const g = ctx.createLinearGradient(0, 0, 0, Hs); g.addColorStop(0, '#0b2350'); g.addColorStop(1, '#393766');
-  ctx.fillStyle = g; ctx.fillRect(0, 0, W, Hs);
+  if (BG) ctx.drawImage(BG, 0, 0, W, Hs);
+  else { const g = ctx.createLinearGradient(0, 0, 0, Hs); g.addColorStop(0, '#0b2350'); g.addColorStop(1, '#393766'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, Hs); }
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(IMG.board, OX, OY, BOARD.w * S, BOARD.h * S);
   if (G.state === 'plan') {

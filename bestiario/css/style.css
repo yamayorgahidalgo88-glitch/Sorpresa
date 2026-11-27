@@ -385,3 +385,21 @@ img{-webkit-user-drag:none}
 
 /* ---------- Coste de las cartas: diseño de siempre, en el color de la gota de elíxir ---------- */
 .card .cost,.dcost{background:radial-gradient(circle at 35% 30%,#4fb8ff,#1a6fe0 55%,#0b3a9e)}
+
+/* ---------- PC / pantallas anchas ---------- */
+#top{max-width:640px;margin:0 auto}
+#user .pstage{width:min(100%,560px,calc(100dvh * 941 / 1671))}
+@media (hover:hover) and (pointer:fine){
+  #nav button:hover img{filter:brightness(1) saturate(1)}
+  .imgb:not(:disabled):hover,.fightbtn:hover{filter:brightness(1.08) drop-shadow(0 5px 6px rgba(0,0,0,.45))}
+  .btn:not(:disabled):hover{filter:brightness(1.08)}
+  .dcard:hover{transform:translateY(-2px)}
+}
+@media (min-width:900px) and (min-height:700px){
+  .wrap{max-width:600px}
+  .bar h2{font-size:34px}
+}
+@media (min-aspect-ratio:3/4){
+  .hbg::before{content:'';position:absolute;inset:-40px;background:url(../assets/inicio.webp) center/cover;filter:blur(18px) brightness(.5) saturate(1.2)}
+  .hbg .hb-img{object-fit:contain}
+}
