@@ -18,12 +18,12 @@ Valores de nivel 1 sacados de `bestiario/js/game.js`. Nivel 2: daño ×1,3; nive
 - Por qué la valoración: Cuesta solo 2 y tiene la vida de un tanque (850), daño correcto (36 por segundo) y placaje gratis cada ronda.
 
 ## Ogul — coste 4, vida 420, valoración: Débil
-- Básico: daño 55, alcance 4 casillas, recarga 1 s
+- Básico: daño 55, alcance 4 casillas, recarga 0.8 s
 - Súper: daño 55, alcance Sobre el objetivo; explosión de 2 casillas de radio, recarga 6 golpes
 - Habilidad: No; alcance — (no tiene)
 - Niveles: N1 Desbloquea el súper: bola láser que explota en un radio de 2 casillas. | N2 El rayo básico atraviesa a los rivales y puede golpear a varios a la vez. | N3 La explosión deja 3 segundos una superficie de fuego que hace 20 de daño cada segundo a los rivales que estén encima.
 - Notas: Súper: explosión de 2 casillas de radio.
-- Por qué la valoración: Poca vida (420) para coste 4, aunque dispara a 4 casillas y hace 55 de daño por segundo; cae rápido.
+- Por qué la valoración: Poca vida (420) para coste 4, aunque dispara a 4 casillas y hace unos 69 de daño por segundo; cae rápido.
 
 ## Rogue — coste 3, vida 650, valoración: Fuerte
 - Básico: daño 55, alcance 1 casilla (cuerpo a cuerpo), recarga 0.75 s
@@ -121,8 +121,8 @@ Valores de nivel 1 sacados de `bestiario/js/game.js`. Nivel 2: daño ×1,3; nive
 - Por qué la valoración: Cuesta 2 pero la ráfaga hace unos 75 de daño por segundo (120 a nivel 2), más que casi todos, y además paraliza.
 
 ## Sevora — coste 5, vida 600, valoración: Normal
-- Básico: daño 75, alcance 2 casillas (4 a nivel 2), recarga 0.8 s
+- Básico: daño 90, alcance 2 casillas (4 a nivel 2), recarga 0.8 s
 - Súper: daño Copia el súper del rival (+15 %), alcance Sobre el rival que muerda: 2 casillas (4 a nivel 2), recarga 6 golpes
 - Habilidad: No; alcance — (no tiene)
 - Niveles: N1 Desbloquea el súper: copia el súper del rival que muerda, un 15 % más fuerte. | N2 El básico y el súper llegan a 4 casillas. | N3 El súper copiado es un 25 % más fuerte.
-- Por qué la valoración: Cuesta 5; con 600 de vida y 94 de daño por segundo es sólida, y su fuerza depende además de qué súper copie.
+- Por qué la valoración: Cuesta 5; con 600 de vida y unos 113 de daño por segundo es sólida, y su fuerza depende además de qué súper copie.
