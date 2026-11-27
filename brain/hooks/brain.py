@@ -46,12 +46,6 @@ def main():
             except Exception: pass
         p = data.get("prompt", "")
         if p.strip(): append(f"\n## {now} USUARIO\n{clip(p, MAX_USER)}")
-    elif mode == "tool":
-        fp = (data.get("tool_input") or {}).get("file_path") or (data.get("tool_input") or {}).get("notebook_path")
-        if fp:
-            try: fp = os.path.relpath(fp, ROOT)
-            except Exception: pass
-            append(f"- [{now}] {data.get('tool_name','')} → {fp}")
     elif mode == "stop":
         if data.get("stop_hook_active"): return
         t = last_assistant_text(data.get("transcript_path", ""))
@@ -66,14 +60,6 @@ def main():
         if logs:
             txt = open(os.path.join(BRAIN, "log", logs[-1]), encoding="utf-8").read()
             out.append(f"# Memoria reciente ({logs[-1]}), últimas entradas\n" + txt[-MAX_INJECT:])
-        try:
-            import subprocess
-            r = subprocess.run(["git", "log", "-n", "25", "--name-only", "--format="], cwd=ROOT, capture_output=True, text=True, timeout=5).stdout
-            seen = []
-            for l in r.splitlines():
-                if l and not l.startswith("brain/log") and l not in seen: seen.append(l)
-            if seen: out.append("# Archivos tocados recientemente (mapa completo: brain/CODIGO.md)\n" + "\n".join("- " + x for x in seen[:15]))
-        except Exception: pass
         print("\n\n".join(out))
 
 main()

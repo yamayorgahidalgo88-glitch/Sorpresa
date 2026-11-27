@@ -11,5 +11,3 @@
 - Mazos: solo se juega/selecciona con 6 bestias. Todos los personajes desbloqueados para pruebas.
 - Nombre del juego: GREVOS (logo `assets/logo_grevos.webp`, iconos de app + `manifest.webmanifest`). Moneda nueva: `assets/moneda.webp`.
 - Sobres: 3 zarpazos del jugador; el tercero mucho más grande.
-- 2026-11-26: Todo archivo generado para el usuario (Excel, PDF, imágenes) se guarda en `entregables/` y se sube a `main`; el INDEX lo lista con su ruta. Motivo: un Excel se perdió porque solo vivió en el contenedor de una sesión.
-- 2026-11-26: `sync.sh` ahora sincroniza a `main` también `brain/` curado y `entregables/` con fusión a 3 vías; si hay conflicto conserva main y guarda la versión de la sesión en `brain/sesiones/conflicto-*`.
