@@ -22,5 +22,5 @@
 - 2026-11-26: el coste de las cartas mantiene el círculo de siempre pero en azul oscuro (para que se lea el número), no la forma de gota.
 - 2026-11-26: Perfil: el personaje favorito se muestra en 3D (reutiliza el escenario compartido ST/VW en modo 'profile', gira solo en reposo), con margen respecto a los botones de la derecha.
 - 2026-11-26: Sevora: PV 600, daño básico 75, recarga básico 0,8; súper copiado +15% (nv1-2) y +25% (nv3).
-- 2026-11-26: el Excel original de personajes no estaba disponible; se generó uno nuevo desde los datos del juego (GREVOS_personajes.xlsx en la raíz del repo; columna Valoración vacía). Regenerable leyendo CHARS de bestiario/js/game.js.
+- 2026-11-27: el Excel del usuario es `brain/archivos/Personajes_GREVOS.xlsx` (vive en main y en la rama del juego). Se actualiza ahí, junto con `proyectos/grevos_personajes.md`. Se borró el Excel improvisado de la raíz.
 - 2026-11-27: Bolab recarga 1,1. Ogul: vida 420, recarga 1, alcance 4 (no mejora alcance por nivel), súper a 6 básicos, fuego nv3 = 20 de daño/seg (zona con 'every'). Rogue: súper a 6 golpes, nv3 a 4. Bushi: corte de jade (solo nv3) daño fijo 60; tabla JADE_CUT {2:50,3:60} lista pero el corte sigue siendo solo de nv3 (pendiente confirmar si el usuario lo quiere también a nv2).

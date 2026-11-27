@@ -6,6 +6,7 @@
 - `usuario.md` — quién es el usuario y sus preferencias
 - `proyectos/grevos.md` — juego GREVOS: estado, archivos clave, despliegue
 - `proyectos/sorpresa.md` — el repo y su `main`
+- `archivos/Personajes_GREVOS.xlsx` — Excel de personajes del usuario (se actualiza aquí; copia en texto: `proyectos/grevos_personajes.md`)
 - `decisiones.md` — qué se decidió y por qué (cerebro + juego)
 - `pendientes.md` — tareas abiertas
 - `log/` — registro automático por sesión; `sesiones/` — resúmenes manuales
