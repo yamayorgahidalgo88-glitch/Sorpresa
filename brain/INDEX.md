@@ -1,11 +1,12 @@
 # Cerebro — Índice (leer primero)
-Última actualización: 2026-11-25
+Última actualización: 2026-11-27
 
 ## Archivos
 - `REGLAS.md` — cómo responder (cargado al inicio)
 - `usuario.md` — quién es el usuario y sus preferencias
 - `proyectos/grevos.md` — juego GREVOS: estado, archivos clave, despliegue
 - `proyectos/sorpresa.md` — el repo y su `main`
+- `archivos/Personajes_GREVOS.xlsx` — tabla Excel de los 16 personajes (coste, vida, daño, alcances, recargas, mejoras por nivel, valoración)
 - `decisiones.md` — qué se decidió y por qué (cerebro + juego)
 - `pendientes.md` — tareas abiertas
 - `log/` — registro automático por sesión; `sesiones/` — resúmenes manuales
