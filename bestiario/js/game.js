@@ -9,22 +9,22 @@ const CHARS = {
   bushi: { name: 'Bushi', cost: 3, role: 'Luchador', color: '#2fbf86', hp: 560, atk: 55, range: 1, as: 1.0, ms: 0.6, abil: 'super', charge: 5,
     atkName: 'Tajo', atkDesc: 'golpea con su espada al enemigo de la casilla de al lado. Daño medio.',
     abilName: 'Giro de jade', desc: 'Súper (se carga con 5 básicos): gira con su espada y golpea a todos los rivales en un círculo de 1 casilla de radio. Daño medio-alto.',
-    lv: ['Desbloquea el súper: Giro de jade.', 'El Giro de jade también cura un 15% de la vida a los aliados que estén en su radio.', 'Al empezar cada ronda lanza un corte de 3 casillas de ancho que avanza 2 casillas. Daño medio-alto.'],
+    lv: ['Desbloquea el súper: Giro de jade.', 'El Giro de jade también cura un 15% de la vida a los aliados que estén en su radio.', 'Al empezar cada ronda lanza un corte de 3 casillas de ancho que avanza 2 casillas. Hace 60 de daño.'],
     all: ['pose', 'front', 'q', 'bq', 'back', 'top', 'bottom'] },
-  bolab: { name: 'Bolab', cost: 2, role: 'Tanque', color: '#f08a2c', hp: 850, atk: 40, range: 1, as: 0.8, ms: 0.92, abil: 'clash', melee: true,
+  bolab: { name: 'Bolab', cost: 2, role: 'Tanque', color: '#f08a2c', hp: 850, atk: 40, range: 1, as: 1.1, ms: 0.92, abil: 'clash', melee: true,
     atkName: 'Cabezazo', atkDesc: 'golpea con la cabeza al enemigo de la casilla de al lado. Daño bajo-medio.',
     abilName: 'Placaje', desc: 'No tiene súper. Al empezar cada ronda embiste 3 casillas hacia delante y vuelve, arrastrando a los rivales que golpea hasta el final del placaje.',
     lv: ['Placaje: al empezar la ronda embiste 3 casillas en vertical, ida y vuelta. Empuja a los rivales golpeados hasta el final. Daño bajo.', 'El básico pasa a ser un lengüetazo: 2 casillas de alcance y daño medio.', 'Empieza cada ronda con un escudo del 10% de su vida.'],
     all: ['pose', 'front', 'q', 'side', 'back', 'top', 'fronttop', 'bottom'] },
-  ogul: { name: 'Ogul', cost: 4, role: 'Mago', color: '#8b4fd8', hp: 380, atk: 55, range: 3, as: 1.2, ms: 0.8, abil: 'super', charge: 5,
-    atkName: 'Rayo ocular', atkDesc: 'dispara un rayo láser con el ojo a 3 casillas. Daño medio.',
-    abilName: 'Bola láser', desc: 'Súper (se carga con 5 básicos que impacten): dispara una bola láser que explota en un radio de 2 casillas. Daño medio.',
-    lv: ['Desbloquea el súper: bola láser que explota en un radio de 2 casillas.', 'El rayo básico atraviesa a los rivales y puede golpear a varios a la vez.', 'La explosión deja 3 segundos una superficie de fuego que hace daño bajo-medio a los rivales que estén encima.'],
+  ogul: { name: 'Ogul', cost: 4, role: 'Mago', color: '#8b4fd8', hp: 420, atk: 55, range: 4, as: 1.0, ms: 0.8, abil: 'super', charge: 6,
+    atkName: 'Rayo ocular', atkDesc: 'dispara un rayo láser con el ojo a 4 casillas. Daño medio.',
+    abilName: 'Bola láser', desc: 'Súper (se carga con 6 básicos que impacten): dispara una bola láser que explota en un radio de 2 casillas. Daño medio.',
+    lv: ['Desbloquea el súper: bola láser que explota en un radio de 2 casillas.', 'El rayo básico atraviesa a los rivales y puede golpear a varios a la vez.', 'La explosión deja 3 segundos una superficie de fuego que hace 20 de daño cada segundo a los rivales que estén encima.'],
     all: ['pose', 'front', 'q', 'side', 'back', 'top', 'top2', 'frontbottom'] },
-  rogue: { name: 'Rogue', cost: 3, role: 'Defensor', color: '#3a5fa8', hp: 650, atk: 55, range: 1, as: 0.75, ms: 0.7, abil: 'super', charge: 4, charge3: 3,
+  rogue: { name: 'Rogue', cost: 3, role: 'Defensor', color: '#3a5fa8', hp: 650, atk: 55, range: 1, as: 0.75, ms: 0.7, abil: 'super', charge: 6, charge3: 4,
     atkName: 'Puñetazo', atkDesc: 'golpea al enemigo de la casilla de al lado. Daño medio.',
-    abilName: 'Ráfaga de puños', desc: 'Súper (se carga con 4 golpes): lanza puñetazos a bocajarro sobre las 3 casillas en horizontal que tiene delante. Daño medio-alto.',
-    lv: ['Desbloquea el súper: ráfaga de puñetazos sobre las 3 casillas de delante.', 'Al empezar cada ronda gana un escudo del 10% de su vida.', 'Cada súper le da un escudo del 25% de su vida actual, y se carga con 3 golpes.'],
+    abilName: 'Ráfaga de puños', desc: 'Súper (se carga con 6 golpes): lanza puñetazos a bocajarro sobre las 3 casillas en horizontal que tiene delante. Daño medio-alto.',
+    lv: ['Desbloquea el súper: ráfaga de puñetazos sobre las 3 casillas de delante.', 'Al empezar cada ronda gana un escudo del 10% de su vida.', 'Cada súper le da un escudo del 25% de su vida actual, y se carga con 4 golpes.'],
     all: ['pose', 'front', 'side', 'bq', 'back', 'top', 'bottom'] },
   osko: { name: 'Wyrex', cost: 3, role: 'Invocador', color: '#2fc592', hp: 480, atk: 30, range: 2, ortho: true, as: 0.9, ms: 0.7, abil: 'super', charge: 4, charge2: 3, sheet: true,
     atkName: 'Bumerán óseo', atkDesc: 'lanza un hueso en línea recta (nunca en diagonal) que atraviesa a los rivales, llega a 2 casillas y vuelve. Daño bajo. No vuelve a lanzar hasta que el hueso regresa.',
@@ -1450,12 +1450,13 @@ function windShark(u, o = { L: u.level, A: u.atk }) {
       } else if (Math.abs(p.y - oy) >= 2.3) { p.done = true; burstAt(p.x, p.y, .2, '#bff4ff', 6, { spd: 1, up: 1 }); }
     } });
 }
+const JADE_CUT = { 2: 50, 3: 60 };   // daño fijo del corte de jade por nivel (hoy solo existe a nivel 3)
 function jadeWave(u) {
   if (!u.alive) return;
   const f = fwd(u), hit = new Set(); floatText(u, '¡Corte de jade!', 'sup'); u.rig.play('super'); sfx.slash();
   vfx({ kind: 'wave', gx: u.gx, gy: u.gy + f * .4, gy1: u.gy + f * 2.5, w: 1.5, f, color: '93,255,176', dur: .45 });
   for (const [d, row] of [[.14, 1], [.3, 2]]) schedule(d, () => {
-    for (const v of enemiesOf(u)) if (!hit.has(v) && Math.abs(v.c - u.c) <= 1 && v.r === u.r + f * row) { hit.add(v); damage(v, u.atk * 1.36, u, 'big'); burstAt(v.gx, v.gy, .5, '#5dffb0', 12, { glow: true, spd: 2 }); sfx.hit(); }
+    for (const v of enemiesOf(u)) if (!hit.has(v) && Math.abs(v.c - u.c) <= 1 && v.r === u.r + f * row) { hit.add(v); damage(v, JADE_CUT[Math.min(u.level, 3)] || 60, u, 'big'); burstAt(v.gx, v.gy, .5, '#5dffb0', 12, { glow: true, spd: 2 }); sfx.hit(); }
   });
 }
 // Jess: ráfaga de perdigones sobre la zona de delante (3 de ancho)
@@ -1812,7 +1813,7 @@ function doSuper(u, t, cp = null) {
       for (const v of enemiesOf(u)) if (Math.hypot(v.gx - p.tgx, v.gy - p.tgy) <= 2.05) damage(v, A, u, 'big');
       fxs.push({ gx: p.tgx, gy: p.tgy, r: 2.2, color: '#ff9a3c', t: 0, dur: .55 }); vfx({ kind: 'flash', gx: p.tgx, gy: p.tgy, r: 2, color: '255,150,70', dur: .5 });
       burstAt(p.tgx, p.tgy, .3, '#ff6a4a', 30, { spd: 4, up: 2.2, glow: true }); sfx.boom(); shake = Math.max(shake, 7);
-      if (L >= 3) sim.zones.push({ gx: p.tgx, gy: p.tgy, rad: 2, t: 0, dur: 3, tick: .5, team: u.team, dmg: A * .36, src: u });
+      if (L >= 3) sim.zones.push({ gx: p.tgx, gy: p.tgy, rad: 2, t: 0, dur: 3, tick: 1, every: 1, team: u.team, dmg: 20, src: u });   // fuego: 20 de daño cada segundo
     } }));
   }
 }
@@ -1849,7 +1850,7 @@ function combatStep(dt) {
       continue;
     }
     z.t += dt; z.tick -= dt;
-    if (z.tick <= 0) { z.tick += .5; for (const v of units) if (v.alive && v.team !== z.team && Math.hypot(v.gx - z.gx, v.gy - z.gy) <= z.rad + .05) damage(v, z.dmg, z.src); }
+    if (z.tick <= 0) { z.tick += z.every ?? .5; for (const v of units) if (v.alive && v.team !== z.team && Math.hypot(v.gx - z.gx, v.gy - z.gy) <= z.rad + .05) damage(v, z.dmg, z.src); }
   }
   sim.zones = sim.zones.filter(z => z.t < z.dur);
   const pA = units.some(u => u.team === 'p' && u.alive), eA = units.some(u => u.team === 'e' && u.alive);
