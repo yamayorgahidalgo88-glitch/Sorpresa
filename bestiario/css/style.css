@@ -554,3 +554,18 @@ img{-webkit-user-drag:none}
 #ngName{font:400 24px 'Lilita One',system-ui;text-align:center;border:3px solid var(--ink);border-radius:14px;padding:8px;background:#fff;color:var(--ink);user-select:text;-webkit-user-select:text}
 .ngmsg{min-height:18px;margin:0;text-align:center;font:600 13px system-ui;color:#cfc8f5}.ngmsg.warn{color:#ffb0b0}
 #ngOk{font-size:20px;padding:10px}
+/* fotos de perfil: imagen ya recortada a la cara */
+.ava img{width:100%;height:100%;margin:0;object-fit:cover}
+/* aviso de solicitudes */
+#nav button.badge::after{content:attr(data-n);position:absolute;top:4%;right:10%;min-width:22px;height:22px;padding:0 5px;border-radius:11px;background:#e8283c;border:2px solid #fff;color:#fff;font:400 14px/18px 'Lilita One',system-ui;text-align:center;box-shadow:0 2px 0 var(--ink);z-index:3}
+.notif{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 70px);transform:translateX(-50%);z-index:150;max-width:min(92vw,420px);padding:10px 16px;border:3px solid var(--ink);border-radius:16px;background:linear-gradient(#69b8ff,#2f7de1);color:#fff;font-size:18px;text-align:center;box-shadow:0 5px 0 var(--ink);cursor:pointer;animation:rwpop .35s cubic-bezier(.2,1.6,.4,1) both;transition:opacity .4s}
+.notif.out{opacity:0}
+/* lobby en ordenador: todo dentro de la columna de la imagen */
+@media (min-aspect-ratio:3/4){
+  #home{--col:min(100vw,calc(100dvh * 941 / 1672))}
+  #home .wrap{max-width:var(--col)}
+  #home .homeava{right:calc((100vw - var(--col)) / 2 + 10px);width:min(54px,7.5vh);height:min(54px,7.5vh)}
+  #home .wallet{right:calc((100vw - var(--col)) / 2 + 10px + min(54px,7.5vh) + 10px)}
+  #home .htop{padding-left:calc(var(--col) * .02)}
+  #nav{width:min(100%,560px,64vh,calc(100dvh * 941 / 1672))}
+}

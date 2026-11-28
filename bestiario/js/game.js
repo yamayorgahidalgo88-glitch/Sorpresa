@@ -604,11 +604,11 @@ $('#dkSelect').onclick = () => {
    PERFIL
    ========================================================= */
 /* ---------- Perfil: foto, marco, maestría, fondo, favorito, rachas, clan y copas ---------- */
-const FRAMES = { '': 'Sin marco' }, MASTERIES = { '': 'Sin maestría' }, BACKS = { clasico: 'Clásico' };   // de momento solo estos
-const avatarHtml = (t, frame) => t && CHARS[t] ? `<div class="ava${frame ? ' fr-' + frame : ''}" style="--fam:${CHARS[t].color}"><img src="${src(t, 'pose')}" alt=""></div>` : '<div class="ava empty">?</div>';
+const FRAMES = { '': 'Sin marco' }, MASTERIES = { '': 'Sin maestría' }, BACKS = { fantasia: 'Fantasía' };   // fondo = la lobby (pantalla de inicio)   // de momento solo estos
+const avatarHtml = (t, frame) => t && CHARS[t] ? `<div class="ava${frame ? ' fr-' + frame : ''}" style="--fam:${CHARS[t].color}"><img src="assets/ava/${t}.webp" alt=""></div>` : '<div class="ava empty">?</div>';
 function myProfile() {
   const own = TYPES.filter(owns), av = PROG.avatar && owns(PROG.avatar) ? PROG.avatar : (PROG.favPick && owns(PROG.favPick) ? PROG.favPick : own[0]);
-  return { avatar: av, frame: PROG.frame || '', mastery: PROG.mastery || '', bg: PROG.bg || 'clasico', fav: PROG.favPick && owns(PROG.favPick) ? PROG.favPick : '', streak: PROG.streak || 0, bestStreak: PROG.bestStreak || 0, trophies: PROG.trophies || 0, clan: 'Sin clan', wins: PROG.wins || 0 };
+  return { avatar: av, frame: PROG.frame || '', mastery: PROG.mastery || '', bg: PROG.bg && BACKS[PROG.bg] ? PROG.bg : 'fantasia', fav: PROG.favPick && owns(PROG.favPick) ? PROG.favPick : '', streak: PROG.streak || 0, bestStreak: PROG.bestStreak || 0, trophies: PROG.trophies || 0, clan: 'Sin clan', wins: PROG.wins || 0 };
 }
 function renderHomeAvatar() { const b = $('#homeAva'); if (b) b.innerHTML = avatarHtml(myProfile().avatar, PROG.frame); }
 let PFVIEW = null;   // null = mi perfil; { name, profile } = perfil de un amigo
@@ -636,11 +636,11 @@ $('#homeAva').onclick = () => { initAudio(); sfx.click(); openProfile(null); };
 // personalizar: foto, marco, maestría y fondo (de momento solo hay uno de cada salvo la foto)
 function openCustomize(tab = 'foto') {
   const el = document.createElement('div'); el.className = 'overlay favpick';
-  const tabs = [['foto', 'Foto'], ['marco', 'Marco'], ['maestria', 'Maestría'], ['fondo', 'Fondo'], ['fav', 'Favorito']];
+  const tabs = [['foto', 'Foto'], ['marco', 'Marco'], ['maestria', 'Maestría'], ['fondo', 'Lobby'], ['fav', 'Favorito']];
   const body = () => {
     if (tab === 'foto') return `<p class="cuhint">Solo puedes usar la foto de personajes que tengas</p><div class="dcoll fpgrid">${TYPES.map(t => `<div class="cuava${owns(t) ? '' : ' locked'}${myProfile().avatar === t ? ' on' : ''}" data-t="${t}">${avatarHtml(t, PROG.frame)}${owns(t) ? '' : '<b class="o">🔒</b>'}</div>`).join('')}</div>`;
-    const list = tab === 'marco' ? FRAMES : tab === 'maestria' ? MASTERIES : BACKS, cur = tab === 'marco' ? PROG.frame || '' : tab === 'maestria' ? PROG.mastery || '' : PROG.bg || 'clasico';
-    return `<div class="culist">${Object.entries(list).map(([k, n]) => `<button class="mdopt cuopt${k === cur ? ' on' : ''}" data-k="${k}"><span class="mdic">${tab === 'fondo' ? '🖼️' : tab === 'marco' ? '⬜' : '🏅'}</span><b class="o">${n}</b><small>${k === cur ? 'En uso' : ''}</small></button>`).join('')}</div><p class="cuhint">Más adelante habrá más para elegir</p>`;
+    const list = tab === 'marco' ? FRAMES : tab === 'maestria' ? MASTERIES : BACKS, cur = tab === 'marco' ? PROG.frame || '' : tab === 'maestria' ? PROG.mastery || '' : PROG.bg && BACKS[PROG.bg] ? PROG.bg : 'fantasia';
+    return `<div class="culist">${Object.entries(list).map(([k, n]) => `<button class="mdopt cuopt${k === cur ? ' on' : ''}" data-k="${k}"><span class="mdic">${tab === 'fondo' ? '🖼️' : tab === 'marco' ? '⬜' : '🏅'}</span><b class="o">${n}</b><small>${k === cur ? 'En uso' : ''}</small></button>`).join('')}</div><p class="cuhint">${tab === 'fondo' ? 'El fondo de tu pantalla de inicio. ' : ''}Más adelante habrá más para elegir</p>`;
   };
   const draw = () => {
     el.innerHTML = `<div class="mdbox"><button class="mdx" aria-label="Cerrar">✕</button><h2 class="o">Personalizar</h2><div class="cutabs">${tabs.map(([k, n]) => `<button class="${k === tab ? 'on' : ''}" data-tab="${k}">${n}</button>`).join('')}</div>${body()}</div>`;
@@ -719,8 +719,29 @@ function renderFriends() {
   document.querySelectorAll('#frReq .frno').forEach(b => b.onclick = () => frDo('respond', { from: nameOf(b), accept: false }, 'Solicitud rechazada'));
   document.querySelectorAll('#frList .frsee').forEach(b => b.onclick = async () => { sfx.click(); frMsg('Cargando perfil…'); try { const j = await api('profile', { of: nameOf(b) }); frMsg(''); openProfile(j.user); } catch (e) { frMsg(e.message, true); } });
 }
-async function frDo(op, data, okMsg) { sfx.click(); try { const j = await api(op, data); FR = j.me; renderFriends(); frMsg(j.msg || okMsg); sfx.merge(); } catch (e) { frMsg(e.message, true); sfx.no(); } }
-async function refreshFriends() { if (!PROG.account) return frMsg('Primero elige tu nombre', true); try { FR = (await api('me')).me; renderFriends(); } catch (e) { frMsg(/fetch/i.test(e.message) ? 'No hay conexión con el servidor' : e.message, true); } }
+async function frDo(op, data, okMsg) { sfx.click(); try { const j = await api(op, data); FR = j.me; _seenReq = FR.requests.slice(); document.querySelector('#nav [data-tab=friends]').classList.toggle('badge', FR.requests.length > 0); document.querySelector('#nav [data-tab=friends]').dataset.n = FR.requests.length; renderFriends(); frMsg(j.msg || okMsg); sfx.merge(); } catch (e) { frMsg(e.message, true); sfx.no(); } }
+let _seenReq = null;
+async function pollFriends() {   // aviso de solicitudes nuevas (punto rojo en Amigos + mensaje)
+  if (!PROG.account || document.hidden) return;
+  try {
+    FR = (await api('me')).me;
+    const n = FR.requests.length; document.querySelector('#nav [data-tab=friends]').classList.toggle('badge', n > 0);
+    document.querySelector('#nav [data-tab=friends]').dataset.n = n;
+    const fresh = FR.requests.filter(x => !(_seenReq || []).includes(x));
+    if (_seenReq && fresh.length) notify(`🤝 ${fresh[0]}${fresh.length > 1 ? ' y ' + (fresh.length - 1) + ' más' : ''} quiere${fresh.length > 1 ? 'n' : ''} ser tu amigo`, () => { renderFriends(); show('friends'); });
+    else if (!_seenReq && n) notify(`🤝 Tienes ${n} solicitud${n > 1 ? 'es' : ''} de amistad`, () => { renderFriends(); show('friends'); });
+    _seenReq = FR.requests.slice();
+    if (G.screen === 'friends') renderFriends();
+  } catch (e) { }
+}
+function notify(text, onTap) {
+  const el = document.createElement('div'); el.className = 'notif o'; el.textContent = text; document.body.appendChild(el); sfx.merge();
+  el.onclick = () => { el.remove(); if (G.screen !== 'battle') onTap && onTap(); };
+  setTimeout(() => el.classList.add('out'), 4500); setTimeout(() => el.remove(), 5000);
+}
+setInterval(pollFriends, 30000);
+setTimeout(pollFriends, 4000);
+async function refreshFriends() { if (!PROG.account) return frMsg('Primero elige tu nombre', true); try { FR = (await api('me')).me; _seenReq = FR.requests.slice(); document.querySelector('#nav [data-tab=friends]').classList.toggle('badge', FR.requests.length > 0); document.querySelector('#nav [data-tab=friends]').dataset.n = FR.requests.length; renderFriends(); } catch (e) { frMsg(/fetch/i.test(e.message) ? 'No hay conexión con el servidor' : e.message, true); } }
 $('#frInvite').onclick = () => { const n = $('#frName').value.trim(); if (!n) return frMsg('Escribe el nombre de tu amigo', true); frDo('invite', { to: n }).then(() => { $('#frName').value = ''; }); };
 $('#frName').addEventListener('keydown', e => { if (e.key === 'Enter') $('#frInvite').click(); });
 
