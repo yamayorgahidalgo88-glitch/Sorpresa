@@ -623,3 +623,20 @@ img{-webkit-user-drag:none}
 .afr-plata>.ava{inset:9% 9% 20% 9%}
 .afr-plata .afr-eng{color:#3d4757;text-shadow:0 .6cqw 0 rgba(255,255,255,.8),0 -.4cqw 0 rgba(20,25,35,.45)}
 .pftitle{position:absolute;left:52%;width:45%;top:29.6%;text-align:center;font-size:3.6cqw;color:#ffd84a;-webkit-text-stroke:.8cqw var(--ink);paint-order:stroke fill;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* foto y marco junto al nombre en la partida */
+.hava{width:34px;height:34px;flex:none;display:block}
+.side{gap:6px}
+#top .side{padding:4px 6px;gap:5px;min-width:0;flex:1 1 0}
+#top .side.e{justify-content:flex-end}
+#top .side .nm{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:92px}
+#top .pips{flex:none;gap:3px}#top .pips i{width:11px;height:11px}
+#top .hava{width:30px;height:30px}
+#mid{flex:none}
+#roundLbl{white-space:nowrap}
+/* nombre arriba y puntos de ronda debajo, junto a la foto */
+#top .side{display:grid;grid-template-columns:auto 1fr;grid-template-areas:"ava nm" "ava pips";align-items:center;column-gap:6px;row-gap:1px}
+#top .side.e{grid-template-columns:1fr auto;grid-template-areas:"nm ava" "pips ava";text-align:right}
+#top .side .hava{grid-area:ava;width:34px;height:34px}
+#top .side .nm{grid-area:nm;max-width:none;font-size:14px;line-height:1.1}
+#top .side .pips{grid-area:pips}
+#top .side.e .pips{justify-content:flex-end}

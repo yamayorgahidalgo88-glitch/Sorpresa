@@ -54,3 +54,4 @@
 - 2026-11-28: Maestría reordenada: Nv.3 foto + marco de bronce (nombre grabado); Nv.8 foto plata + marco oro; Nv.9 foto oro + marco diamante; Nv.10 (As) marco con su nombre girando + maestría. Nv.5 ya no da nada.
 - 2026-11-28: Maestría Nv.5 = marco de plata (FRAME_LV).
 - 2026-11-28: Maestrías (Nv.10) = título bajo tu nombre en el perfil (MASTERY_NAMES): Mory «Sargento pico congelado», Wyrex «Entre vivo y muerto»; las demás pendientes del usuario. Rivales IA con nombre al azar (botName).
+- 2026-11-28: HUD de batalla: foto + marco junto a cada nombre (puntos de ronda debajo). Amistoso: se envían avatar y marco en 'hello'. Bots: foto normal al azar + marco al azar (o ninguno).

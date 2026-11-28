@@ -1422,7 +1422,7 @@ function netWire(conn) {
   NET.conn = conn;
   conn.on('data', m => {
     if (!m || typeof m !== 'object') return;
-    if (m.t === 'hello') { NET.oppName = (m.name || 'Amigo').slice(0, 14); if (NET.host) { netSend({ t: 'hello', name: PROG.name || 'Anfitrión' }); netSend({ t: 'start' }); friendlyStart(); } }
+    if (m.t === 'hello') { NET.oppName = (m.name || 'Amigo').slice(0, 14); NET.oppAva = String(m.ava || ''); NET.oppFrame = String(m.frame || ''); if (NET.host) { netSend({ t: 'hello', name: PROG.name || 'Anfitrión', ava: myProfile().avatar, frame: myProfile().frame }); netSend({ t: 'start' }); friendlyStart(); } }
     else if (m.t === 'start') friendlyStart();
     else if (m.t === 'ready') { NET.opp = m; pvpTry(); }
     else if (m.t === 'bye') friendlyLost('Tu amigo ha salido de la partida');
@@ -1464,7 +1464,7 @@ async function friendlyJoin(code) {
     Object.assign(NET, { host: false, code, peer });
     peer.on('open', () => {
       const conn = peer.connect('grevos-' + code.toLowerCase(), { reliable: true });
-      netWire(conn); conn.on('open', () => { netSend({ t: 'hello', name: PROG.name || 'Invitado' }); modesMsg('¡Conectado! Empezando…'); });
+      netWire(conn); conn.on('open', () => { netSend({ t: 'hello', name: PROG.name || 'Invitado', ava: myProfile().avatar, frame: myProfile().frame }); modesMsg('¡Conectado! Empezando…'); });
       setTimeout(() => { if (!NET.on && NET.peer === peer) modesMsg('No se encuentra esa sala', true); }, 9000);
     });
     peer.on('error', e => modesMsg(e.type === 'peer-unavailable' ? 'No existe ninguna sala con ese código' : 'No se pudo conectar (' + (e.type || e.message) + ')', true));
@@ -2431,6 +2431,10 @@ function newMatch() {
     aiCardLv: Math.round(deckTypes().reduce((a, t) => a + COLLECTION[t].level, 0) / Math.max(1, deckTypes().length)) || 1 });
   $('#battleHud .side.p .nm').textContent = PROG.name || 'Tú';
   $('#battleHud .side.e .nm').textContent = NET.on ? (NET.oppName || 'Amigo') : (G.aiName = botName());
+  // foto y marco junto al nombre: los tuyos, los de tu amigo o, en los bots, una foto normal al azar con un marco al azar
+  const me = myProfile(); $('#avaP').innerHTML = avatarHtml(me.avatar, me.frame);
+  if (NET.on) $('#avaE').innerHTML = avatarHtml(NET.oppAva, NET.oppFrame);
+  else { const fv = pick(['', 'bronce', 'plata', 'oro', 'diamante', 'nombre']); $('#avaE').innerHTML = avatarHtml(pick(TYPES), fv ? pick(TYPES) + ':' + fv : ''); }
   setMirror(false); simRng = null;
   layout(); startRound();
 }
