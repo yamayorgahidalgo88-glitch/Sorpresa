@@ -534,7 +534,7 @@ img{-webkit-user-drag:none}
 .cuava{position:relative;aspect-ratio:1;cursor:pointer;border-radius:22%}
 .cuava.on{box-shadow:0 0 0 3px var(--gold)}
 .cuava.locked .ava{filter:grayscale(1) brightness(.7)}
-.cuava b{position:absolute;inset:0;display:grid;place-items:center;font-size:22px}
+.cuava>b{position:absolute;inset:0;display:grid;place-items:center;font-size:22px}
 .culist{display:flex;flex-direction:column;gap:8px}
 /* ---------- Amigos ---------- */
 .frinv{display:flex;gap:8px;padding:10px}
@@ -572,3 +572,43 @@ img{-webkit-user-drag:none}
 /* momento frenesí */
 #banner.frenzy{color:#ff5a3c;text-shadow:0 0 18px #ffb03c}
 #battleHud.frenzy #roundLbl{color:#ffb03c;animation:fpulse .5s ease-in-out infinite}
+
+/* ---------- Maestría: fotos metálicas y marcos ---------- */
+.ava{position:relative}
+.ava.m-bronce{background:radial-gradient(circle at 35% 25%,#ffd2a1,#b8692f 55%,#5e2f12)}
+.ava.m-bronce img{filter:sepia(1) saturate(2.4) hue-rotate(-18deg) brightness(.85) contrast(1.15)}
+.ava.m-plata{background:radial-gradient(circle at 35% 25%,#ffffff,#b9c3d1 55%,#5f6a7a)}
+.ava.m-plata img{filter:grayscale(1) brightness(1.2) contrast(1.15)}
+.ava.m-oro{background:radial-gradient(circle at 35% 25%,#fff4b8,#e8a917 55%,#7a4d06)}
+.ava.m-oro img{filter:sepia(1) saturate(3.6) hue-rotate(2deg) brightness(1.02) contrast(1.1)}
+.ava.m-bronce::after,.ava.m-plata::after,.ava.m-oro::after{content:'';position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.55) 48%,transparent 60%);background-size:250% 100%;animation:shine 3s linear infinite;pointer-events:none}
+@keyframes shine{from{background-position:120% 0}to{background-position:-130% 0}}
+.afr{position:relative;width:100%;height:100%;container-type:inline-size;border-radius:16%;border:2px solid var(--ink)}
+.afr>.ava{position:absolute;inset:14%;width:auto;height:auto;border-width:2px}
+.afr-nombre{background:#16142e}
+.afr-svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.afr-svg text{font-weight:400;letter-spacing:.3px}
+.afr-oro{background:linear-gradient(135deg,#fff3a8,#e0a012 30%,#fff0a0 50%,#b67a08 75%,#ffe27a)}
+.afr-diamante{background:linear-gradient(135deg,#f2feff,#8fe3ff 25%,#ffffff 45%,#5fc0f0 65%,#e6fbff 85%,#9fe7ff);box-shadow:inset 0 0 6cqw rgba(255,255,255,.8)}
+.afr-diamante::before{content:'';position:absolute;inset:0;border-radius:inherit;background:radial-gradient(circle at 20% 15%,#fff 0 2%,transparent 3%),radial-gradient(circle at 80% 30%,#fff 0 1.6%,transparent 2.6%),radial-gradient(circle at 70% 85%,#fff 0 2%,transparent 3%);animation:sparkle 1.6s ease-in-out infinite alternate;pointer-events:none}
+@keyframes sparkle{from{opacity:.25}to{opacity:1}}
+.afr-oro>.ava,.afr-diamante>.ava{inset:9% 9% 20% 9%}
+.afr-eng{position:absolute;left:0;right:0;bottom:3%;text-align:center;font:400 9cqw/1 'Lilita One',system-ui;letter-spacing:.5cqw;color:#7a4d06;text-shadow:0 .6cqw 0 rgba(255,255,255,.65),0 -.4cqw 0 rgba(60,30,0,.5);white-space:nowrap;overflow:hidden}
+.afr-diamante .afr-eng{color:#1f6a95;text-shadow:0 .6cqw 0 rgba(255,255,255,.9),0 -.4cqw 0 rgba(0,40,80,.45)}
+/* ventana de maestría */
+.mastbtn{width:100%;font-size:19px;padding:9px;margin-bottom:10px;display:flex;justify-content:center;align-items:center;gap:8px}
+.mastbtn small{display:inline;font-size:14px;margin:0}
+.mastlist{display:flex;flex-direction:column;gap:8px}
+.mastrow{display:flex;gap:10px;align-items:stretch;padding:8px;border:3px solid var(--ink);border-radius:14px;background:rgba(22,20,46,.55);opacity:.75}
+.mastrow.ok{opacity:1;background:linear-gradient(90deg,rgba(255,216,74,.25),rgba(22,20,46,.55))}
+.mastlv{flex:none;width:44px;display:grid;place-items:center;font-size:17px;color:var(--gold)}
+.mastitems{flex:1;display:flex;flex-direction:column;gap:6px}
+.mastitem{display:flex;align-items:center;gap:10px}
+.mastprev{flex:none;width:58px;height:58px}
+.mastprev.locked{filter:grayscale(1) brightness(.6)}
+.mastname{flex:1;display:flex;align-items:center;justify-content:space-between;gap:6px}
+.mastname b{font-weight:400;font-size:16px}
+.mastname small{font:600 12px system-ui;color:#cfc8f5;white-space:nowrap}
+.mastname .inuse{color:#a8ffb0}
+.mastname .btn{font-size:14px;padding:5px 12px;flex:none}
+.cufr .afr,.cuava .afr{border-radius:16%}

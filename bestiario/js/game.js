@@ -604,13 +604,42 @@ $('#dkSelect').onclick = () => {
    PERFIL
    ========================================================= */
 /* ---------- Perfil: foto, marco, maestría, fondo, favorito, rachas, clan y copas ---------- */
-const FRAMES = { '': 'Sin marco' }, MASTERIES = { '': 'Sin maestría' }, BACKS = { fantasia: 'Fantasía' };   // fondo = la lobby (pantalla de inicio)   // de momento solo estos
-const avatarHtml = (t, frame) => t && CHARS[t] ? `<div class="ava${frame ? ' fr-' + frame : ''}" style="--fam:${CHARS[t].color}"><img src="assets/ava/${t}.webp" alt=""></div>` : '<div class="ava empty">?</div>';
-function myProfile() {
-  const own = TYPES.filter(owns), av = PROG.avatar && owns(PROG.avatar) ? PROG.avatar : (PROG.favPick && owns(PROG.favPick) ? PROG.favPick : own[0]);
-  return { avatar: av, frame: PROG.frame || '', mastery: PROG.mastery || '', bg: PROG.bg && BACKS[PROG.bg] ? PROG.bg : 'fantasia', fav: PROG.favPick && owns(PROG.favPick) ? PROG.favPick : '', streak: PROG.streak || 0, bestStreak: PROG.bestStreak || 0, trophies: PROG.trophies || 0, clan: 'Sin clan', wins: PROG.wins || 0 };
+const BACKS = { fantasia: 'Fantasía' };   // fondo = la lobby (pantalla de inicio)   // de momento solo estos
+/* ---------- MAESTRÍA: recompensas de cada personaje según su nivel de carta ----------
+   Nv.3 foto de bronce · Nv.5 marco con su nombre girando · Nv.8 foto plateada + marco de oro · Nv.9 foto dorada + marco de diamante · Nv.10 maestría (por definir)
+   Fotos: "tipo" o "tipo:bronce|plata|oro". Marcos: "" o "tipo:nombre|oro|diamante". Maestrías: "" o "tipo". */
+const MASTERY = [
+  { lv: 3, items: [['foto', 'bronce', 'Foto de bronce']] },
+  { lv: 5, items: [['marco', 'nombre', 'Marco con su nombre']] },
+  { lv: 8, items: [['foto', 'plata', 'Foto plateada'], ['marco', 'oro', 'Marco de oro']] },
+  { lv: 9, items: [['foto', 'oro', 'Foto dorada'], ['marco', 'diamante', 'Marco de diamante']] },
+  { lv: 10, items: [['maestria', '', 'Maestría']] },
+];
+const MLV = { bronce: 3, nombre: 5, plata: 8, oro: 8, diamante: 9 };
+const cardLv = t => (COLLECTION[t] || {}).level || 0;
+const avatarOk = id => { const [t, v] = String(id || '').split(':'); return !!CHARS[t] && owns(t) && (!v || cardLv(t) >= (v === 'oro' ? 9 : MLV[v] || 99)); };
+const frameOk = id => { if (!id) return true; const [t, v] = String(id).split(':'); return !!CHARS[t] && owns(t) && cardLv(t) >= (MLV[v] || 99); };
+const masteryOk = t => !t || (CHARS[t] && cardLv(t) >= 10);
+const frameName = id => { if (!id) return 'Sin marco'; const [t, v] = id.split(':'); return { nombre: 'Marco con su nombre', oro: 'Marco de oro', diamante: 'Marco de diamante' }[v] + ' · ' + CHARS[t].name; };
+function tickerSvg(name, color) {   // el nombre muchas veces alrededor de la foto, girando despacio como un rótulo de noticias
+  const unit = name + ' · ', half = 344, reps = Math.max(2, Math.round(half / (unit.length * 5.6))), txt = unit.repeat(reps);
+  return `<svg class="afr-svg" viewBox="0 0 100 100"><path id="tk" d="M 7 7 H 93 V 93 H 7 Z" fill="none"/><text style="fill:color-mix(in srgb,${color} 55%,#fff)" font-size="8.2" font-family="Lilita One, system-ui" dominant-baseline="middle"><textPath href="#tk" startOffset="0" textLength="${half * 2}" lengthAdjust="spacingAndGlyphs">${txt}${txt}<animate attributeName="startOffset" from="0" to="-${half}" dur="16s" repeatCount="indefinite"/></textPath></text></svg>`;
 }
-function renderHomeAvatar() { const b = $('#homeAva'); if (b) b.innerHTML = avatarHtml(myProfile().avatar, PROG.frame); }
+function avatarHtml(av, frame) {
+  const [t, v] = String(av || '').split(':');
+  if (!CHARS[t]) return '<div class="ava empty">?</div>';
+  const img = `<div class="ava${v ? ' m-' + v : ''}" style="--fam:${CHARS[t].color}"><img src="assets/ava/${t}.webp" alt=""></div>`;
+  const [ft, fv] = String(frame || '').split(':');
+  if (!CHARS[ft]) return img;
+  const nm = CHARS[ft].name.toUpperCase();
+  if (fv === 'nombre') return `<div class="afr afr-nombre">${tickerSvg(nm, CHARS[ft].color)}${img}</div>`;
+  return `<div class="afr afr-${fv}">${img}<b class="afr-eng">${nm}</b></div>`;
+}
+function myProfile() {
+  const own = TYPES.filter(owns), av = avatarOk(PROG.avatar) ? PROG.avatar : (PROG.favPick && owns(PROG.favPick) ? PROG.favPick : own[0]);
+  return { avatar: av, frame: frameOk(PROG.frame) ? PROG.frame || '' : '', mastery: masteryOk(PROG.mastery) ? PROG.mastery || '' : '', bg: PROG.bg && BACKS[PROG.bg] ? PROG.bg : 'fantasia', fav: PROG.favPick && owns(PROG.favPick) ? PROG.favPick : '', streak: PROG.streak || 0, bestStreak: PROG.bestStreak || 0, trophies: PROG.trophies || 0, clan: 'Sin clan', wins: PROG.wins || 0 };
+}
+function renderHomeAvatar() { const b = $('#homeAva'); if (b) { const m = myProfile(); b.innerHTML = avatarHtml(m.avatar, m.frame); } }
 let PFVIEW = null;   // null = mi perfil; { name, profile } = perfil de un amigo
 function openProfile(view = null) { PFVIEW = view; renderProfile(); show('user'); }
 function renderProfile() {
@@ -638,16 +667,26 @@ function openCustomize(tab = 'foto') {
   const el = document.createElement('div'); el.className = 'overlay favpick';
   const tabs = [['foto', 'Foto'], ['marco', 'Marco'], ['maestria', 'Maestría'], ['fondo', 'Lobby'], ['fav', 'Favorito']];
   const body = () => {
-    if (tab === 'foto') return `<p class="cuhint">Solo puedes usar la foto de personajes que tengas</p><div class="dcoll fpgrid">${TYPES.map(t => `<div class="cuava${owns(t) ? '' : ' locked'}${myProfile().avatar === t ? ' on' : ''}" data-t="${t}">${avatarHtml(t, PROG.frame)}${owns(t) ? '' : '<b class="o">🔒</b>'}</div>`).join('')}</div>`;
-    const list = tab === 'marco' ? FRAMES : tab === 'maestria' ? MASTERIES : BACKS, cur = tab === 'marco' ? PROG.frame || '' : tab === 'maestria' ? PROG.mastery || '' : PROG.bg && BACKS[PROG.bg] ? PROG.bg : 'fantasia';
-    return `<div class="culist">${Object.entries(list).map(([k, n]) => `<button class="mdopt cuopt${k === cur ? ' on' : ''}" data-k="${k}"><span class="mdic">${tab === 'fondo' ? '🖼️' : tab === 'marco' ? '⬜' : '🏅'}</span><b class="o">${n}</b><small>${k === cur ? 'En uso' : ''}</small></button>`).join('')}</div><p class="cuhint">${tab === 'fondo' ? 'El fondo de tu pantalla de inicio. ' : ''}Más adelante habrá más para elegir</p>`;
+    const me = myProfile();
+    if (tab === 'foto') {
+      const ids = TYPES.flatMap(t => [t, ...['bronce', 'plata', 'oro'].map(v => t + ':' + v).filter(avatarOk)]);
+      return `<p class="cuhint">Fotos de tus personajes. Las de bronce, plata y oro se ganan en su Maestría</p><div class="dcoll fpgrid">${ids.map(id => { const ok = avatarOk(id); return `<div class="cuava${ok ? '' : ' locked'}${me.avatar === id ? ' on' : ''}" data-id="${id}">${avatarHtml(id, me.frame)}${ok ? '' : '<b class="o">🔒</b>'}</div>`; }).join('')}</div>`;
+    }
+    if (tab === 'marco') {
+      const ids = ['', ...TYPES.flatMap(t => ['nombre', 'oro', 'diamante'].map(v => t + ':' + v)).filter(frameOk)];
+      return `<div class="dcoll fpgrid">${ids.map(id => `<div class="cuava cufr${me.frame === id ? ' on' : ''}" data-fr="${id}" title="${frameName(id)}">${avatarHtml(me.avatar, id)}</div>`).join('')}</div><p class="cuhint">${ids.length > 1 ? '' : 'Aún no tienes marcos. '}Los marcos se ganan subiendo personajes (Maestría, nivel 5, 8 y 9)</p>`;
+    }
+    const list = tab === 'maestria' ? Object.fromEntries([['', 'Sin maestría'], ...TYPES.filter(t => masteryOk(t) && t).map(t => [t, 'Maestría de ' + CHARS[t].name])]) : BACKS;
+    const cur = tab === 'maestria' ? me.mastery : me.bg;
+    return `<div class="culist">${Object.entries(list).map(([k, n]) => `<button class="mdopt cuopt${k === cur ? ' on' : ''}" data-k="${k}"><span class="mdic">${tab === 'fondo' ? '🖼️' : '🏅'}</span><b class="o">${n}</b><small>${k === cur ? 'En uso' : ''}</small></button>`).join('')}</div><p class="cuhint">${tab === 'fondo' ? 'El fondo de tu pantalla de inicio. Más adelante habrá más para elegir' : 'Las maestrías se ganan con un personaje a nivel 10'}</p>`;
   };
   const draw = () => {
     el.innerHTML = `<div class="mdbox"><button class="mdx" aria-label="Cerrar">✕</button><h2 class="o">Personalizar</h2><div class="cutabs">${tabs.map(([k, n]) => `<button class="${k === tab ? 'on' : ''}" data-tab="${k}">${n}</button>`).join('')}</div>${body()}</div>`;
     el.querySelector('.mdx').onclick = () => { sfx.click(); el.remove(); };
     el.querySelectorAll('.cutabs button').forEach(b => b.onclick = () => { sfx.click(); if (b.dataset.tab === 'fav') { el.remove(); openFavPicker(); return; } tab = b.dataset.tab; draw(); });
-    el.querySelectorAll('.cuava').forEach(c => c.onclick = () => { if (!owns(c.dataset.t)) return sfx.no(); sfx.merge(); PROG.avatar = c.dataset.t; saveProg(); renderProfile(); renderHomeAvatar(); draw(); });
-    el.querySelectorAll('.cuopt').forEach(c => c.onclick = () => { sfx.click(); const k = c.dataset.k; if (tab === 'marco') PROG.frame = k; else if (tab === 'maestria') PROG.mastery = k; else PROG.bg = k; saveProg(); renderProfile(); draw(); });
+    el.querySelectorAll('.cuava[data-id]').forEach(c => c.onclick = () => { if (!avatarOk(c.dataset.id)) return sfx.no(); sfx.merge(); PROG.avatar = c.dataset.id; saveProg(); renderProfile(); renderHomeAvatar(); draw(); });
+    el.querySelectorAll('.cuava[data-fr]').forEach(c => c.onclick = () => { sfx.merge(); PROG.frame = c.dataset.fr; saveProg(); renderProfile(); renderHomeAvatar(); draw(); });
+    el.querySelectorAll('.cuopt').forEach(c => c.onclick = () => { sfx.click(); const k = c.dataset.k; if (tab === 'maestria') PROG.mastery = k; else PROG.bg = k; saveProg(); renderProfile(); draw(); });
   };
   draw(); document.body.appendChild(el); el.onclick = e => { if (e.target === el) el.remove(); };
 }
@@ -1020,13 +1059,28 @@ function setAnim(a) {
   const rig = ST.rigs[VW.t].rig; rig.atkT = rig.supT = -1;
   document.querySelectorAll('#anims .btn').forEach(b => b.classList.toggle('on', b.dataset.a === a));
 }
+function openMastery(t) {
+  const el = document.createElement('div'), L = cardLv(t), ch = CHARS[t]; el.className = 'overlay favpick';
+  const draw = () => {
+    const me = myProfile();
+    el.innerHTML = `<div class="mdbox"><button class="mdx" aria-label="Cerrar">✕</button><h2 class="o">Maestría · ${ch.name}</h2><p class="cuhint">${L ? 'Nivel actual: ' + L + '. Sube a ' + ch.name + ' de nivel para desbloquear recompensas.' : 'Aún no tienes a ' + ch.name + '.'}</p>
+      <div class="mastlist">${MASTERY.map(m => { const ok = L >= m.lv; return `<div class="mastrow${ok ? ' ok' : ''}"><div class="mastlv o">Nv.${m.lv}</div><div class="mastitems">${m.items.map(([k, v, n]) => {
+        const prev = k === 'foto' ? avatarHtml(t + ':' + v, '') : k === 'marco' ? avatarHtml(t, t + ':' + v) : `<div class="ava empty">🏅</div>`;
+        const id = k === 'foto' ? t + ':' + v : k === 'marco' ? t + ':' + v : t, used = k === 'foto' ? me.avatar === id : k === 'marco' ? me.frame === id : me.mastery === id;
+        const btn = !ok ? '<small>🔒 Bloqueado</small>' : k === 'maestria' ? '<small>Próximamente</small>' : used ? '<small class="inuse">✓ En uso</small>' : `<button class="btn green mastuse" data-k="${k}" data-id="${id}">Usar</button>`;
+        return `<div class="mastitem"><div class="mastprev${ok ? '' : ' locked'}">${prev}</div><div class="mastname"><b>${k === 'maestria' ? 'Maestría de ' + ch.name : n}</b>${btn}</div></div>`; }).join('')}</div></div>`; }).join('')}</div></div>`;
+    el.querySelector('.mdx').onclick = () => { sfx.click(); el.remove(); };
+    el.querySelectorAll('.mastuse').forEach(b => b.onclick = () => { sfx.merge(); if (b.dataset.k === 'foto') PROG.avatar = b.dataset.id; else PROG.frame = b.dataset.id; saveProg(); renderHomeAvatar(); draw(); });
+  };
+  draw(); document.body.appendChild(el); el.onclick = e => { if (e.target === el) el.remove(); };
+}
 function openDetail(t) {
   const ch = CHARS[t], lvl = (COLLECTION[t] || { level: 1 }).level, m = cardMult(lvl);
   $('#dName').textContent = ch.name; $('#dLevel').textContent = COLLECTION[t] ? 'Nivel ' + lvl : 'Bloqueado';
   const anims = [['idle', 'Reposo'], ['walk', 'Andar'], ['attack', 'Atacar']]; if (ch.abil === 'super') anims.push(['super', 'Truco']);
   $('#anims').innerHTML = anims.map(([a, n]) => `<button class="btn blue" data-a="${a}">${n}</button>`).join('');
   $('#views').innerHTML = ch.all.map(v => `<button data-v="${v}" title="${VIEW_NAMES[v]}"><img src="${src(t, v)}" alt="${VIEW_NAMES[v]}"></button>`).join('');
-  $('#dInfo').innerHTML = levelPanel(t) + `
+  $('#dInfo').innerHTML = `<button class="btn gold mastbtn" id="mastBtn">🏅 Maestría <small>${COLLECTION[t] ? MASTERY.filter(m => cardLv(t) >= m.lv).length + '/' + MASTERY.length : '🔒'}</small></button>` + levelPanel(t) + `
     <div class="itags"><span style="background:${ch.color};color:#fff">${ch.role}</span><span>${ch.cost} de elíxir</span><span>${rangeTag(ch, rangeOf(t, 1))}</span></div>
     <div class="istats"><div>Vida<b>${Math.round(ch.hp * m)}</b></div><div>Ataque<b>${Math.round(ch.atk * m)}</b></div><div>Alcance<b>${rangeTxt(ch, rangeOf(t, 1))}</b></div><div>Ritmo<b>${paceTxt(ch)}</b></div></div>
     <p class="idesc"><b>${ch.abilName}</b> · ${ch.desc}<br><em>Estadísticas provisionales.</em></p>${ch.lv ? `<div class="ilv"><p class="ilvh">Mejoras al fusionar en batalla</p>${ch.lv.map((x, i) => `<p class="on"><b>${'★'.repeat(i + 1)}</b>${x}</p>`).join('')}</div>` : ''}${ch.atkName ? `<p class="idesc"><b>Ataque básico: ${ch.atkName}</b> · ${ch.atkDesc}</p>` : ''}${ch.sheet ? `<img class="atkimg" src="assets/${t}_ataques.webp" alt="Ataques">` : ''}`;
@@ -1034,6 +1088,7 @@ function openDetail(t) {
   renderSkinBar();
   show('detail'); setAnim('idle'); $('#detail').scrollTop = 0;
   const lb = $('#lvBtn'); if (lb) lb.onclick = () => levelUp(t);
+  $('#mastBtn').onclick = () => { sfx.click(); openMastery(t); };
   document.querySelectorAll('#anims .btn').forEach(b => b.onclick = () => { sfx.click(); setAnim(b.dataset.a); });
   document.querySelectorAll('#views button').forEach(b => b.onclick = () => { const [y, p] = VIEW_ANGLES[b.dataset.v] || [0, 6]; VW.auto = false; VW.vel = 0; VW.goal = { yaw: y, pitch: p }; $('#detail').scrollTo({ top: 0, behavior: 'smooth' }); });
 }
