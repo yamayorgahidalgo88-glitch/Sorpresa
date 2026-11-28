@@ -1105,7 +1105,7 @@ function renderHud() {
   rr.disabled = !plan || (!G.freeRoll && G.elixir.p < 1);
   rr.innerHTML = `↻<small>${G.freeRoll ? 'Gratis' : '1 elíxir'}</small>`;
   const rd = $('#ready');
-  rd.disabled = !plan;
+  rd.disabled = !plan || (G.round === 1 && !team('p').length);
   renderShop();
 }
 const hint = t => { $('#hint').textContent = t; };
@@ -1452,6 +1452,7 @@ setMode((() => { try { return localStorage.getItem('grevos_modo') === 'amistoso'
 
 function startFight() {
   if (G.state !== 'plan') return;
+  if (G.round === 1 && !team('p').length) { sfx.no(); hint('Coloca al menos un personaje para poder luchar'); return; }
   closeInfo(); G.state = 'prefight'; (G.used = G.used || new Set()); team('p').forEach(u => { if (!u.summon) G.used.add(u.type); }); if (NET.on) return pvpReady(); aiPlan(); aiArrange(G.seenP || []);
   G.seenP = team('p').map(u => ({ type: u.type, level: u.level, hc: u.hc, hr: u.hr }));   // lo que verá el rival en la ronda siguiente
   renderHud();
@@ -1484,8 +1485,8 @@ const inRange = (u, v, c = u.c, r = u.r) => {
   if (u.def.fwd) return (dc === 0 || dc === dr) && dr >= 1 && dr <= u.range && ((v.r - r) * fwd(u) > 0 || u.anyDir);   // hacia delante: en línea recta o en diagonal
   return u.def.ortho ? (dc === 0 || dr === 0) && dc + dr <= u.range : Math.max(dc, dr) <= u.range;
 };
-function nextStep(u) {
-  const en = enemiesOf(u); if (!en.length) return null;
+function nextStep(u, only = null) {
+  const en = only ? [only] : enemiesOf(u); if (!en.length) return null;
   const start = key(u.c, u.r), prev = new Map([[start, null]]), q = [[u.c, u.r]], dirs = u.team === 'p' ? DIRS_P : DIRS_E;
   for (let h = 0; h < q.length; h++) {
     const [c, r] = q[h], k = key(c, r);
@@ -1500,12 +1501,18 @@ function nextStep(u) {
   }
   return null;
 }
-function targetInRange(u) {
-  if (u.faceT && u.faceT.alive && u.faceT.team !== u.team && inRange(u, u.faceT)) return u.faceT;
-  let best = null, bd = 1e9;
-  for (const v of enemiesOf(u)) { const d = cheb(u, v); if (inRange(u, v) && d * 1e4 + v.hp < bd) { bd = d * 1e4 + v.hp; best = v; } }
+// Cada personaje va siempre a por el rival más cercano (aunque esté peleando con otro); si hay varios igual de cerca, al que tenga menos vida
+function nearestEnemy(u) {
+  let best = null, bd = 1e18;
+  for (const v of enemiesOf(u)) { const d = cheb(u, v) * 1e6 + v.hp; if (d < bd) { bd = d; best = v; } }
   return best;
 }
+function anyInRange(u) {   // reserva: si no puede llegar al más cercano, ataca al que tenga a tiro (el más cercano y con menos vida)
+  let best = null, bd = 1e18;
+  for (const v of enemiesOf(u)) { const d = cheb(u, v) * 1e6 + v.hp; if (inRange(u, v) && d < bd) { bd = d; best = v; } }
+  return best;
+}
+function targetInRange(u) { const n = nearestEnemy(u); return n && inRange(u, n) ? n : null; }
 function updateUnit(u, dt) {
   if (u.domeT > 0) { u.domeT -= dt; if (u.domeT <= 0) { u.shield = Math.max(0, u.shield - u.domeAmt); u.domeAmt = 0; } }
   if (u.inv > 0) u.inv -= dt;
@@ -1521,12 +1528,15 @@ function updateUnit(u, dt) {
   if (u.bone) return;
   u.cd -= dt;
   if (u.move) { u.move.t += dt / (u.move.dur || u.ms); if (u.move.t >= 1) { u.c = u.move.c; u.r = u.move.r; u.move = null; } return; }
-  const t = targetInRange(u);
+  const near = nearestEnemy(u);
+  let t = near && inRange(u, near) ? near : null, s = null;
+  if (!t && near && u.root <= 0) s = nextStep(u, near);           // camino hacia el más cercano
+  if (!t && !s) t = anyInRange(u);                                 // no puede acercarse: ataca al que tenga a tiro
   if (t) {
     u.faceT = t;
     if (u.cd <= 0) { u.cd = u.as; if (u.def.abil === 'super' && u.energy >= 99.9) { u.energy = 0; doSuper(u, t); } else attack(u, t); }
   } else {
-    const s = u.root > 0 ? null : nextStep(u);
+    if (!s && u.root <= 0) s = nextStep(u);
     if (!s && u.def.fwd && u.root <= 0) u.anyDir = true;   // nadie delante: puede disparar hacia atrás
     if (s) { setOcc(u, s.c, s.r); u.move = { fc: u.c, fr: u.r, c: s.c, r: s.r, t: 0 }; }
     const en = enemiesOf(u); if (en.length) u.faceT = en.reduce((a, b) => cheb(u, a) <= cheb(u, b) ? a : b);
