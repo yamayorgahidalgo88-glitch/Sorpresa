@@ -85,7 +85,7 @@ Valores de nivel 1 sacados de `bestiario/js/game.js`. Nivel 2: daño ×1,3; nive
 - Súper: daño —, alcance — (no tiene súper), recarga — golpes
 - Habilidad: Sí; alcance Saque bombeado: todo el tablero (va al rival más alejado)
 - Niveles: N1 Saque bombeado al rival más alejado al empezar la ronda. | N2 El remate rebota contra los que estén detrás del objetivo en la misma línea, y el toque de dedos cura un 10 %. | N3 El saque lanza 3 balones a los 3 rivales más alejados, de 50 de daño cada uno.
-- Notas: Sin súper. Habilidad: saque bombeado al empezar la ronda (cae en 0,5 s, 50 de daño).
+- Notas: Sin súper. Habilidad: saque bombeado al empezar la ronda (cae en 0,5 s, siempre acierta, 70 de daño).
 - Por qué la valoración: Remate de 130, pero solo cada dos ataques (cada 1,25 s; el otro cura) y en línea recta. El saque cae rápido (0,5 s).
 
 ## Paira — coste 5, vida 600, valoración: Normal

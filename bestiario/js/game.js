@@ -58,8 +58,8 @@ const CHARS = {
     all: ['pose', 'front', 'back', 'left', 'right', 'iso', 'top', 'bottom'] },
   ayew: { name: 'Ayew', cost: 4, role: 'Rematador', color: '#ff9a3c', hp: 650, atk: 130, range: 4, ortho: true, as: 1.25, ms: 0.7, abil: 'clash',
     atkName: 'Toque y remate', atkDesc: 'alterna dos golpes: primero un toque de dedos que le cura un 5% de vida, y después un remate con el balón a 4 casillas en línea recta (nunca en diagonal). Daño muy alto.',
-    abilName: 'Saque bombeado', desc: 'No tiene súper. Al empezar cada ronda lanza un balón bombeado al rival más alejado: tarda 0,5 segundos en caer y, si el rival se ha movido de su casilla, falla. Hace 50 de daño.',
-    lv: ['Saque bombeado al rival más alejado al empezar la ronda.', 'El remate rebota contra los que estén detrás del objetivo en la misma línea, y el toque de dedos cura un 10%.', 'El saque lanza 3 balones a los 3 rivales más alejados, de 50 de daño cada uno.'],
+    abilName: 'Saque bombeado', desc: 'No tiene súper. Al empezar cada ronda lanza un balón bombeado al rival más alejado: tarda 0,5 segundos en caer y siempre acierta. Hace 70 de daño.',
+    lv: ['Saque bombeado al rival más alejado al empezar la ronda.', 'El remate rebota contra los que estén detrás del objetivo en la misma línea, y el toque de dedos cura un 10%.', 'El saque lanza 3 balones a los 3 rivales más alejados, de 70 de daño cada uno.'],
     all: ['pose', 'front', 'back', 'left', 'right', 'iso', 'top', 'bottom'] },
   paira: { name: 'Paira', cost: 5, role: 'Luchador', color: '#e8282e', hp: 600, atk: 45, range: 1, front3: true, as: 1.5, ms: 0.65, abil: 'clash',
     atkName: 'Batazo', atkDesc: 'golpea con su bate la casilla de enfrente y una de las esquinas de delante, alternando izquierda y derecha. Daño medio-bajo. Empieza lento (1,5 s) y cada batazo es más rápido, hasta 0,25 s.',
@@ -1644,10 +1644,11 @@ function quake(u, big, o = {}) {
 const BALL = 'ayew_pelota';
 function ballProj(o) {   // balón 3D que vuela de (ox,oy) a (tx,ty) con una altura; al llegar llama a hit()
   const mesh = createProp(BALL, o.size || .3); B3.scene.add(mesh);
-  const p = { free: true, kind: 'ball3d', mesh, color: o.color || '#ffb347', size: .08, gx: o.ox, gy: o.oy, tgx: o.tx, tgy: o.ty, x: o.ox, y: o.oy, h: o.h0 || .7, p: 0,
+  const p = { free: true, kind: 'ball3d', mesh, color: o.color || '#ffb347', size: .08, gx: o.ox, gy: o.oy, tgx: typeof o.tx === 'function' ? o.tx() : o.tx, tgy: typeof o.ty === 'function' ? o.ty() : o.ty, x: o.ox, y: o.oy, h: o.h0 || .7, p: 0,
     upd(p, dt) {
       p.p += dt / o.dur; const k = Math.min(1, p.p);
-      p.x = o.ox + (o.tx - o.ox) * k; p.y = o.oy + (o.ty - o.oy) * k; p.h = (o.h0 || .7) + Math.sin(Math.PI * k) * (o.arc || 0) - k * ((o.h0 || .7) - (o.h1 ?? .4));
+      const tx = typeof o.tx === 'function' ? o.tx() : o.tx, ty = typeof o.ty === 'function' ? o.ty() : o.ty;   // destino fijo o que sigue al objetivo
+      p.x = o.ox + (tx - o.ox) * k; p.y = o.oy + (ty - o.oy) * k; p.h = (o.h0 || .7) + Math.sin(Math.PI * k) * (o.arc || 0) - k * ((o.h0 || .7) - (o.h1 ?? .4));
       mesh.position.set(p.x - 2.5, p.h, 4 - p.y); mesh.rotation.set(p.p * 14, p.p * 9, 0);
       if (p.p >= 1) { p.done = true; dropMesh(p); o.hit && o.hit(); }
     } };
@@ -1686,7 +1687,7 @@ function volley(u, t) {
     } });
   });
 }
-const AYEW_SERVE = { dmg: 50, dur: .5 };   // saque bombeado: daño fijo y segundos que tarda en caer
+const AYEW_SERVE = { dmg: 70, dur: .5 };   // saque bombeado: daño fijo y segundos que tarda en caer
 function serveBalls(u) {   // saque bombeado al rival (o a los 3 rivales) más alejados
   if (!u.alive) return;
   const L = u.level, n = L >= 3 ? 3 : 1, dmg = AYEW_SERVE.dmg;
@@ -1696,11 +1697,9 @@ function serveBalls(u) {   // saque bombeado al rival (o a los 3 rivales) más a
   tg.forEach((v, i) => schedule(.28 + i * .12, () => {
     if (!u.alive) return;
     const c = v.c, r = v.r;
-    sim.marks.push({ c, r, t0: sim.t, dur: AYEW_SERVE.dur });
-    ballProj({ ox: u.gx, oy: u.gy, tx: c + .5, ty: r + .5, dur: AYEW_SERVE.dur, h0: 1, h1: .3, arc: 1.6, size: .3, hit: () => {
-      vfx({ kind: 'flash', gx: c + .5, gy: r + .5, r: .9, color: '255,190,90', dur: .35 }); burstAt(c + .5, r + .5, .2, '#ffcf6a', 14, { spd: 2.2, up: 1.8, glow: true }); sfx.boom();
-      if (v.alive && v.c === c && v.r === r && !v.move) { damage(v, dmg, u, 'big'); shake = Math.max(shake, 5); }
-      else floatText({ sx: gridToScreen(c + .5, r + .5)[0], top: gridToScreen(c + .5, r + .5)[1] - 40 }, '¡Fallo!', '');
+    ballProj({ ox: u.gx, oy: u.gy, tx: () => v.gx, ty: () => v.gy, dur: AYEW_SERVE.dur, h0: 1, h1: .3, arc: 1.6, size: .3, hit: () => {
+      vfx({ kind: 'flash', gx: v.gx, gy: v.gy, r: .9, color: '255,190,90', dur: .35 }); burstAt(v.gx, v.gy, .2, '#ffcf6a', 14, { spd: 2.2, up: 1.8, glow: true }); sfx.boom();
+      if (v.alive) { damage(v, dmg, u, 'big'); shake = Math.max(shake, 5); }   // siempre acierta
     } });
   }));
 }

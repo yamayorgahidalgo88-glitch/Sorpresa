@@ -36,3 +36,4 @@
 - 2026-11-28: Tras la carga robusta de .glb, el diagnóstico del PC del usuario ya no muestra errores (0).
 - 2026-11-28: PC del usuario (Intel Iris Xe D3D11) seguía sin personajes con 0 errores: sospecha de texelFetch de huesos. El parche de huesos (texture2D, textura 32x32) se aplica ahora siempre; ?huesos=nuevo lo desactiva para comparar.
 - 2026-11-28: CAUSA CONFIRMADA en el PC del usuario: los .glb le llegan decodificados como texto UTF-8 y recodificados (tamaño exacto coincide; bytes >0x7F → EF BF BD). Algo en su equipo/red (antivirus, extensión o proxy) trata 'model/gltf-binary' como texto. Arreglo: bestiario/vercel.json sirve assets/models/* como application/octet-stream + nosniff + no-transform. CONFIRMADO por el usuario: con esto ya se ven los personajes en su PC.
+- 2026-11-28: Ayew: el saque bombeado sigue al objetivo y siempre acierta, 70 de daño (también los 3 balones de nv3).
