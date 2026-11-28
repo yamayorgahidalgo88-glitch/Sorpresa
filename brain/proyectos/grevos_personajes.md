@@ -33,13 +33,13 @@ Valores de nivel 1 sacados de `bestiario/js/game.js`. Nivel 2: daño ×1,3; nive
 - Notas: Súper sobre las 3 casillas de delante; se carga con 6 golpes (4 a nivel 3). Habilidad a nivel 2: escudo al empezar la ronda.
 - Por qué la valoración: Mucho daño por segundo (73) para coste 3, buena vida y escudos.
 
-## Wyrex — coste 3, vida 480, valoración: Débil
-- Básico: daño 30, alcance 2 casillas en línea recta (ida y vuelta), recarga 0.9 s
-- Súper: daño Invoca reno (45 por cabezazo), alcance Invoca el reno en una casilla libre a su lado, recarga 4 golpes
+## Wyrex — coste 3, vida 500, valoración: Débil
+- Básico: daño 40, alcance 2 casillas en línea recta (ida y vuelta), recarga 0.9 s
+- Súper: daño Invoca reno (45 por cabezazo), alcance Invoca el reno en una casilla libre a su lado, recarga 8 golpes
 - Habilidad: No; alcance — (no tiene)
-- Niveles: N1 Desbloquea el súper: invoca un reno fantasma. Se carga con 4 impactos. | N2 El súper se carga con 3 impactos. | N3 El súper invoca 2 renos.
-- Notas: No vuelve a atacar hasta que vuelve el hueso. Súper con 3 golpes a nivel 2.
-- Por qué la valoración: Poca vida (480) y poco daño; depende mucho del reno, que muere de un golpe.
+- Niveles: N1 Desbloquea el súper: invoca un reno fantasma. Se carga con 8 impactos. | N2 El súper se carga con 6 impactos. | N3 El súper invoca 2 renos.
+- Notas: No vuelve a atacar hasta que vuelve el hueso. Súper con 6 impactos a nivel 2.
+- Por qué la valoración: Poca vida (500) y daño bajo (unos 44 por segundo); el reno tarda en salir (8 impactos) y muere de un golpe.
 
 ## Aly — coste 4, vida 650, valoración: Normal
 - Básico: daño 55, alcance 1 casilla (cuerpo a cuerpo), recarga 1 s
@@ -48,13 +48,13 @@ Valores de nivel 1 sacados de `bestiario/js/game.js`. Nivel 2: daño ×1,3; nive
 - Niveles: N1 Desbloquea el súper: trae a su lado al rival con menos vida y le da un puñetazo de daño medio-alto. | N2 Los básicos pasan a hacer daño medio-alto. | N3 El portal quita además un 10 % de la vida del rival antes del golpe.
 - Por qué la valoración: Daño y vida correctos, pero cuesta 4; su súper es más útil que fuerte.
 
-## Mory — coste 4, vida 850, valoración: Fuerte
-- Básico: daño 100, alcance 4 casillas hacia delante (recta o diagonal), recarga 1.25 s
+## Mory — coste 4, vida 850, valoración: Normal
+- Básico: daño 70, alcance 4 casillas hacia delante (recta o diagonal), recarga 1.5 s
 - Súper: daño —, alcance — (no tiene súper), recarga — golpes
 - Habilidad: Sí; alcance Cubo de hielo: hacia delante hasta dar a alguien o salir del tablero
 - Niveles: N1 Cubo de hielo al empezar la ronda: ralentiza 2 segundos al enemigo que golpee. | N2 El cubo congela 1 segundo y después ralentiza 2 segundos. | N3 El hielo también ralentiza 2 segundos a los enemigos cercanos (sin daño).
 - Notas: Sin súper. Habilidad: cubo de hielo al empezar la ronda.
-- Por qué la valoración: Mucha vida (850), mucho daño a 4 casillas y ralentiza con el hielo.
+- Por qué la valoración: Mucha vida (850) y alcance de 4 casillas, pero ahora hace unos 47 de daño por segundo; el hielo ralentiza.
 
 ## Lodon — coste 3, vida 850, valoración: Normal
 - Básico: daño 45, alcance 1 casilla (cuerpo a cuerpo), recarga 1 s
@@ -64,13 +64,13 @@ Valores de nivel 1 sacados de `bestiario/js/game.js`. Nivel 2: daño ×1,3; nive
 - Notas: Sin súper. Habilidad: tiburón de cuerda al empezar la ronda.
 - Por qué la valoración: Buena vida (850) pero poco daño, y el tiburón a nivel 1 no hace daño.
 
-## Pomona — coste 3, vida 560, valoración: Fuerte
-- Básico: daño 45, alcance 2 casillas, recarga 0.5 s
-- Súper: daño 0, alcance Ella misma (a nivel 2 y 3 también protege a aliados de alrededor; a nivel 3, a todos), recarga 7 golpes
+## Pomona — coste 3, vida 560, valoración: Normal
+- Básico: daño 45, alcance 2 casillas, recarga 0.7 s
+- Súper: daño 0, alcance Ella misma (a nivel 2 y 3 también protege a aliados de alrededor; a nivel 3, a todos), recarga 6 golpes
 - Habilidad: No; alcance — (no tiene)
 - Niveles: N1 Desbloquea el súper: invencible 1 segundo, sin poder moverse. | N2 El súper también protege a los aliados de alrededor. | N3 El súper protege a TODOS los aliados y se carga con 5 golpes.
-- Notas: Súper: invencible 1 s (sin daño). Se carga con 5 golpes a nivel 3.
-- Por qué la valoración: A distancia 2 y cada 0,5 s: unos 90 de daño/s, el más alto de coste 3, además de su súper protector.
+- Notas: Súper: invencible 1 s (sin daño). Se carga con 6 golpes (5 a nivel 3).
+- Por qué la valoración: A distancia 2, unos 64 de daño por segundo, y su súper protector cada 6 golpes.
 
 ## Jess — coste 3, vida 560, valoración: Normal
 - Básico: daño 55, alcance Fila de delante: 3 de ancho × 1 de fondo (2 de fondo a nivel 2), recarga 1.3 s
@@ -81,20 +81,20 @@ Valores de nivel 1 sacados de `bestiario/js/game.js`. Nivel 2: daño ×1,3; nive
 - Por qué la valoración: Daño medio pero puede dar a varios a la vez; la furia la mejora si mueren aliados.
 
 ## Ayew — coste 4, vida 650, valoración: Normal
-- Básico: daño 115, alcance 4 casillas en línea recta (nunca en diagonal), recarga 1.5 s
+- Básico: daño 130, alcance 4 casillas en línea recta (nunca en diagonal), recarga 1.25 s
 - Súper: daño —, alcance — (no tiene súper), recarga — golpes
 - Habilidad: Sí; alcance Saque bombeado: todo el tablero (va al rival más alejado)
-- Niveles: N1 Saque bombeado al rival más alejado al empezar la ronda. | N2 El remate rebota contra los que estén detrás del objetivo en la misma línea, y el toque de dedos cura un 10 %. | N3 El saque lanza 3 balones a los 3 rivales más alejados, con daño medio.
-- Notas: Sin súper. Habilidad: saque bombeado al empezar la ronda.
-- Por qué la valoración: Golpe muy fuerte pero solo cada dos ataques (el otro cura), y solo en línea recta. El saque compensa.
+- Niveles: N1 Saque bombeado al rival más alejado al empezar la ronda. | N2 El remate rebota contra los que estén detrás del objetivo en la misma línea, y el toque de dedos cura un 10 %. | N3 El saque lanza 3 balones a los 3 rivales más alejados, de 50 de daño cada uno.
+- Notas: Sin súper. Habilidad: saque bombeado al empezar la ronda (cae en 0,5 s, 50 de daño).
+- Por qué la valoración: Remate de 130, pero solo cada dos ataques (cada 1,25 s; el otro cura) y en línea recta. El saque cae rápido (0,5 s).
 
-## Paira — coste 5, vida 560, valoración: Normal
-- Básico: daño 45, alcance Casilla de enfrente + una esquina de delante (alterna lado), recarga 1.8 s
+## Paira — coste 5, vida 600, valoración: Normal
+- Básico: daño 45, alcance Casilla de enfrente + una esquina de delante (alterna lado), recarga 1.5 s
 - Súper: daño —, alcance — (no tiene súper), recarga — golpes
 - Habilidad: Sí; alcance Deslizada: hasta el rival más lejano (todo el tablero)
 - Niveles: N1 Deslizada hacia el rival más lejano al empezar la ronda. | N2 Los que se cruza quedan aturdidos 1 segundo. | N3 Los batazos van siempre a la máxima velocidad, pero con daño bajo.
 - Notas: Sin súper. La recarga baja con cada batazo hasta 0,25 s. Habilidad: deslizada.
-- Por qué la valoración: Empieza muy lento (1,8 s) y es caro (5), pero acelera hasta 0,25 s: en combates largos se vuelve fuerte.
+- Por qué la valoración: Empieza lento (1,5 s) y es caro (5), pero acelera hasta 0,25 s: en combates largos se vuelve fuerte.
 
 ## Jaspe — coste 3, vida 900, valoración: Normal
 - Básico: daño 40, alcance Las 8 casillas de alrededor (radio 1), recarga 1.3 s
@@ -104,21 +104,21 @@ Valores de nivel 1 sacados de `bestiario/js/game.js`. Nivel 2: daño ×1,3; nive
 - Notas: Básico: 55 en las diagonales. Súper: aturde 1,5 s y hace 100 a nivel 3. Habilidad a nivel 2: furia de amatista.
 - Por qué la valoración: La que más vida tiene (900) pero hace poco daño; compensa con el terremoto en área y el aturdimiento.
 
-## Peipo — coste 3, vida 650, valoración: Fuerte
-- Básico: daño 40, alcance 1 casilla (cuerpo a cuerpo), recarga 0.5 s
+## Peipo — coste 3, vida 650, valoración: Normal
+- Básico: daño 30, alcance 1 casilla (cuerpo a cuerpo), recarga 0.5 s
 - Súper: daño 55, alcance Sobre el objetivo; explosión en cruz (su casilla + las 4 de alrededor), recarga 8 golpes
 - Habilidad: No; alcance — (no tiene)
 - Niveles: N1 Desbloquea el súper: Postre estrella, explosión en cruz y charco pringoso. | N2 El básico se recarga en 0,4 segundos. | N3 El charco pringoso hace daño bajo cada 0,75 segundos a quien esté dentro.
 - Notas: Súper: deja un charco pringoso. Recarga del básico 0,4 s a nivel 2.
-- Por qué la valoración: Ataca muy rápido (80 de daño/s), aguanta bien (650) y su súper deja a varios inmovilizados.
+- Por qué la valoración: Ataca muy rápido (unos 60 de daño por segundo), aguanta bien (650) y su súper deja a varios inmovilizados.
 
-## Orión — coste 2, vida 560, valoración: Muy fuerte
+## Orión — coste 2, vida 500, valoración: Fuerte
 - Básico: daño 6, alcance 3 casillas en línea recta (nunca en diagonal), recarga 0.4 s
-- Súper: daño 18, alcance 5 casillas en línea recta (atraviesa), recarga 23 golpes
+- Súper: daño 18, alcance 5 casillas en línea recta (atraviesa), recarga 50 golpes
 - Habilidad: No; alcance — (no tiene)
 - Niveles: N1 Desbloquea el súper: Dardo paralizante, que perfora y paraliza 1,5 segundos. | N2 La ráfaga lanza 8 rocas. | N3 El básico se recarga en 0,25 segundos.
 - Notas: Daño por roca (5 rocas por ráfaga, 8 a nivel 2). Súper: paraliza 1,5 s. Recarga 0,25 s a nivel 3.
-- Por qué la valoración: Cuesta 2 pero la ráfaga hace unos 75 de daño por segundo (120 a nivel 2), más que casi todos, y además paraliza.
+- Por qué la valoración: Cuesta 2 y la ráfaga hace unos 75 de daño por segundo (120 a nivel 2), pero el dardo paralizante tarda más en cargarse (50 rocas).
 
 ## Sevora — coste 5, vida 600, valoración: Normal
 - Básico: daño 90, alcance 2 casillas (4 a nivel 2), recarga 0.8 s

@@ -26,17 +26,17 @@ const CHARS = {
     abilName: 'Ráfaga de puños', desc: 'Súper (se carga con 6 golpes): lanza puñetazos a bocajarro sobre las 3 casillas en horizontal que tiene delante. Daño medio-alto.',
     lv: ['Desbloquea el súper: ráfaga de puñetazos sobre las 3 casillas de delante.', 'Al empezar cada ronda gana un escudo del 10% de su vida.', 'Cada súper le da un escudo del 25% de su vida actual, y se carga con 4 golpes.'],
     all: ['pose', 'front', 'side', 'bq', 'back', 'top', 'bottom'] },
-  osko: { name: 'Wyrex', cost: 3, role: 'Invocador', color: '#2fc592', hp: 480, atk: 30, range: 2, ortho: true, as: 0.9, ms: 0.7, abil: 'super', charge: 4, charge2: 3, sheet: true,
+  osko: { name: 'Wyrex', cost: 3, role: 'Invocador', color: '#2fc592', hp: 500, atk: 40, range: 2, ortho: true, as: 0.9, ms: 0.7, abil: 'super', charge: 8, charge2: 6, sheet: true,
     atkName: 'Bumerán óseo', atkDesc: 'lanza un hueso en línea recta (nunca en diagonal) que atraviesa a los rivales, llega a 2 casillas y vuelve. Daño bajo. No vuelve a lanzar hasta que el hueso regresa.',
-    abilName: 'Reno fantasma', desc: 'Súper (se carga con 4 impactos del hueso): invoca un reno fantasma que pelea a cabezazos. El reno cae de un solo golpe, pero golpea cada 0,4 segundos.',
-    lv: ['Desbloquea el súper: invoca un reno fantasma. Se carga con 4 impactos.', 'El súper se carga con 3 impactos.', 'El súper invoca 2 renos.'],
+    abilName: 'Reno fantasma', desc: 'Súper (se carga con 8 impactos del hueso): invoca un reno fantasma que pelea a cabezazos. El reno cae de un solo golpe, pero golpea cada 0,4 segundos.',
+    lv: ['Desbloquea el súper: invoca un reno fantasma. Se carga con 8 impactos.', 'El súper se carga con 6 impactos.', 'El súper invoca 2 renos.'],
     all: ['pose', 'front', 'back', 'left', 'right', 'iso', 'top', 'bottom'] },
   gloop: { name: 'Aly', cost: 4, role: 'Asesino', color: '#7fbf1f', hp: 650, atk: 55, range: 1, as: 1.0, ms: 0.65, abil: 'super', charge: 5, sheet: true,
     atkName: 'Puñetazo radiactivo', atkDesc: 'golpea al enemigo de la casilla de al lado. Daño medio.',
     abilName: 'Portal radiactivo', desc: 'Súper (se carga con 5 básicos): teletransporta a su lado al rival con menos vida y le asesta un puñetazo radiactivo de daño medio-alto.',
     lv: ['Desbloquea el súper: trae a su lado al rival con menos vida y le da un puñetazo de daño medio-alto.', 'Los básicos pasan a hacer daño medio-alto.', 'El portal quita además un 10% de la vida del rival antes del golpe.'],
     all: ['pose', 'front', 'back', 'left', 'right', 'iso', 'top', 'bottom'] },
-  tanko: { name: 'Mory', cost: 4, role: 'Artillero', color: '#7d86c8', hp: 850, atk: 100, range: 4, fwd: true, as: 1.25, ms: 0.9, abil: 'clash', sheet: true,
+  tanko: { name: 'Mory', cost: 4, role: 'Artillero', color: '#7d86c8', hp: 850, atk: 70, range: 4, fwd: true, as: 1.5, ms: 0.9, abil: 'clash', sheet: true,
     atkName: 'Cañonazo', atkDesc: 'dispara una bala de cañón hacia delante (en línea recta o en diagonal), hasta 4 casillas. Daño alto. No atraviesa.',
     abilName: 'Cubo de hielo', desc: 'No tiene súper. Al empezar cada ronda lanza un cubo de hielo hacia delante que avanza hasta dar a alguien o salir del tablero, y ralentiza 2 segundos al enemigo golpeado. Daño muy bajo.',
     lv: ['Cubo de hielo al empezar la ronda: ralentiza 2 segundos al enemigo que golpee.', 'El cubo congela 1 segundo y después ralentiza 2 segundos.', 'El hielo también ralentiza 2 segundos a los enemigos cercanos (sin daño).'],
@@ -46,9 +46,9 @@ const CHARS = {
     abilName: 'Tiburón de cuerda', desc: 'No tiene súper. Al empezar cada ronda lanza un tiburón de cuerda 2 casillas en línea recta: al que golpea lo hace retroceder 2 casillas (1 si hay alguien detrás, ninguna si tampoco puede).',
     lv: ['Tiburón de cuerda al empezar la ronda: empuja 2 casillas al rival golpeado. Sin daño.', 'El tiburón hace daño medio-bajo.', 'El tiburón hace daño medio-alto y paraliza 1 segundo.'],
     all: ['pose', 'front', 'back', 'left', 'right', 'iso', 'top', 'bottom'] },
-  pomona: { name: 'Pomona', cost: 3, role: 'Protectora', color: '#e0a83a', hp: 560, atk: 45, range: 2, as: 0.5, ms: 0.8, abil: 'super', charge: 7, charge3: 5, sheet: true,
+  pomona: { name: 'Pomona', cost: 3, role: 'Protectora', color: '#e0a83a', hp: 560, atk: 45, range: 2, as: 0.7, ms: 0.8, abil: 'super', charge: 6, charge3: 5, sheet: true,
     atkName: 'Manzana pétrea', atkDesc: 'lanza una manzana de piedra a 2 casillas. Daño medio-bajo. No atraviesa.',
-    abilName: 'Escudo del Jardín', desc: 'Súper (se carga con 7 golpes): se vuelve invencible 1 segundo, pero no puede moverse mientras dura.',
+    abilName: 'Escudo del Jardín', desc: 'Súper (se carga con 6 golpes): se vuelve invencible 1 segundo, pero no puede moverse mientras dura.',
     lv: ['Desbloquea el súper: invencible 1 segundo, sin poder moverse.', 'El súper también protege a los aliados de alrededor.', 'El súper protege a TODOS los aliados y se carga con 5 golpes.'],
     all: ['pose', 'front', 'back', 'left', 'right', 'iso', 'top', 'bottom'] },
   jess: { name: 'Jess', cost: 3, role: 'Pistolera', color: '#3fc7c9', hp: 560, atk: 55, range: 1, cone: true, as: 1.3, ms: 0.7, abil: 'clash', sheet: true,
@@ -56,13 +56,13 @@ const CHARS = {
     abilName: 'Furia fantasma', desc: 'No tiene súper. Cada vez que cae un aliado, entra en furia y el daño de su básico sube un 10%. La furia se reinicia en cada ronda.',
     lv: ['Furia fantasma: +10% de daño del básico por cada aliado derrotado en la ronda.', 'El disparo llega a 2 casillas de fondo.', 'La furia sube un 15% por cada aliado derrotado.'],
     all: ['pose', 'front', 'back', 'left', 'right', 'iso', 'top', 'bottom'] },
-  ayew: { name: 'Ayew', cost: 4, role: 'Rematador', color: '#ff9a3c', hp: 650, atk: 115, range: 4, ortho: true, as: 1.5, ms: 0.7, abil: 'clash',
+  ayew: { name: 'Ayew', cost: 4, role: 'Rematador', color: '#ff9a3c', hp: 650, atk: 130, range: 4, ortho: true, as: 1.25, ms: 0.7, abil: 'clash',
     atkName: 'Toque y remate', atkDesc: 'alterna dos golpes: primero un toque de dedos que le cura un 5% de vida, y después un remate con el balón a 4 casillas en línea recta (nunca en diagonal). Daño muy alto.',
-    abilName: 'Saque bombeado', desc: 'No tiene súper. Al empezar cada ronda lanza un balón bombeado al rival más alejado: tarda 2 segundos en caer y, si el rival se ha movido de su casilla, falla. Daño muy alto.',
-    lv: ['Saque bombeado al rival más alejado al empezar la ronda.', 'El remate rebota contra los que estén detrás del objetivo en la misma línea, y el toque de dedos cura un 10%.', 'El saque lanza 3 balones a los 3 rivales más alejados, con daño medio.'],
+    abilName: 'Saque bombeado', desc: 'No tiene súper. Al empezar cada ronda lanza un balón bombeado al rival más alejado: tarda 0,5 segundos en caer y, si el rival se ha movido de su casilla, falla. Hace 50 de daño.',
+    lv: ['Saque bombeado al rival más alejado al empezar la ronda.', 'El remate rebota contra los que estén detrás del objetivo en la misma línea, y el toque de dedos cura un 10%.', 'El saque lanza 3 balones a los 3 rivales más alejados, de 50 de daño cada uno.'],
     all: ['pose', 'front', 'back', 'left', 'right', 'iso', 'top', 'bottom'] },
-  paira: { name: 'Paira', cost: 5, role: 'Luchador', color: '#e8282e', hp: 560, atk: 45, range: 1, front3: true, as: 1.8, ms: 0.65, abil: 'clash',
-    atkName: 'Batazo', atkDesc: 'golpea con su bate la casilla de enfrente y una de las esquinas de delante, alternando izquierda y derecha. Daño medio-bajo. Empieza lento (1,8 s) y cada batazo es más rápido, hasta 0,25 s.',
+  paira: { name: 'Paira', cost: 5, role: 'Luchador', color: '#e8282e', hp: 600, atk: 45, range: 1, front3: true, as: 1.5, ms: 0.65, abil: 'clash',
+    atkName: 'Batazo', atkDesc: 'golpea con su bate la casilla de enfrente y una de las esquinas de delante, alternando izquierda y derecha. Daño medio-bajo. Empieza lento (1,5 s) y cada batazo es más rápido, hasta 0,25 s.',
     abilName: 'Deslizada', desc: 'No tiene súper. Al empezar cada ronda se desliza de rodillas, como al llegar a una base, hasta el rival más lejano, y manda por los aires a todos los que se cruzan (sin daño).',
     lv: ['Deslizada hacia el rival más lejano al empezar la ronda.', 'Los que se cruza quedan aturdidos 1 segundo.', 'Los batazos van siempre a la máxima velocidad, pero con daño bajo.'],
     all: ['pose', 'front', 'back', 'left', 'right', 'iso', 'top', 'bottom'] },
@@ -71,14 +71,14 @@ const CHARS = {
     abilName: 'Gran terremoto', desc: 'Súper (se carga con 5 básicos): un golpe al suelo con salto que hace daño medio-alto a todos los rivales de alrededor y los deja aturdidos 1,5 segundos (sin moverse ni atacar).',
     lv: ['Desbloquea el súper: Gran terremoto, con aturdimiento de 1,5 segundos.', 'Furia de amatista: si su vida baja del 30%, golpea cada 1 segundo y sus ojos se vuelven morados.', 'El súper hace daño alto.'],
     all: ['pose', 'front', 'back', 'left', 'right', 'iso', 'top', 'bottom'] },
-  peipo: { name: 'Peipo', cost: 3, role: 'Luchador', color: '#e8452e', hp: 650, atk: 40, range: 1, as: 0.5, ms: 0.7, abil: 'super', charge: 8,
+  peipo: { name: 'Peipo', cost: 3, role: 'Luchador', color: '#e8452e', hp: 650, atk: 30, range: 1, as: 0.5, ms: 0.7, abil: 'super', charge: 8,
     atkName: 'Cuchilladas cruzadas', atkDesc: 'golpea muy rápido con su cuchillo de carnicero en golpes cruzados al enemigo de al lado. Daño bajo-medio.',
     abilName: 'Postre estrella', desc: 'Súper (se carga con 8 básicos): lanza el postre explosivo de su otra mano. Explota en cruz (la casilla donde cae y las 4 de alrededor) con daño medio y deja un charco pringoso 1,5 segundos: los enemigos atrapados no pueden moverse ni atacar.',
     lv: ['Desbloquea el súper: Postre estrella, explosión en cruz y charco pringoso.', 'El básico se recarga en 0,4 segundos.', 'El charco pringoso hace daño bajo cada 0,75 segundos a quien esté dentro.'],
     all: ['pose', 'front', 'back', 'left', 'right', 'iso', 'top', 'bottom'] },
-  orion: { name: 'Orión', cost: 2, role: 'Lanzador', color: '#a46bff', hp: 560, atk: 6, range: 3, ortho: true, as: 0.4, ms: 0.7, abil: 'super', charge: 23,
+  orion: { name: 'Orión', cost: 2, role: 'Lanzador', color: '#a46bff', hp: 500, atk: 6, range: 3, ortho: true, as: 0.4, ms: 0.7, abil: 'super', charge: 50,
     atkName: 'Ráfaga de rocas', atkDesc: 'lanza hacia delante una ráfaga de 5 de las rocas que flotan a su alrededor, hasta 3 casillas en línea recta (nunca en diagonal). Daño bajo por roca. Se recarga en 0,4 segundos.',
-    abilName: 'Dardo paralizante', desc: 'Súper (se carga con 23 impactos de roca): lanza un dardo que atraviesa a todos los rivales en línea recta hasta 5 casillas. Daño bajo, pero los deja paralizados 1,5 segundos.',
+    abilName: 'Dardo paralizante', desc: 'Súper (se carga con 50 impactos de roca): lanza un dardo que atraviesa a todos los rivales en línea recta hasta 5 casillas. Daño bajo, pero los deja paralizados 1,5 segundos.',
     lv: ['Desbloquea el súper: Dardo paralizante, que perfora y paraliza 1,5 segundos.', 'La ráfaga lanza 8 rocas.', 'El básico se recarga en 0,25 segundos.'],
     all: ['pose', 'front', 'back', 'left', 'right', 'iso', 'top', 'bottom'] },
   sevora: { name: 'Sevora', cost: 5, role: 'Imitadora', color: '#8fd23a', hp: 600, atk: 90, range: 2, as: 0.8, ms: 0.75, abil: 'super', charge: 6, sheet: true,
@@ -1608,17 +1608,18 @@ function volley(u, t) {
     } });
   });
 }
+const AYEW_SERVE = { dmg: 50, dur: .5 };   // saque bombeado: daño fijo y segundos que tarda en caer
 function serveBalls(u) {   // saque bombeado al rival (o a los 3 rivales) más alejados
   if (!u.alive) return;
-  const L = u.level, n = L >= 3 ? 3 : 1, dmg = u.atk * (L >= 3 ? .48 : 1);
+  const L = u.level, n = L >= 3 ? 3 : 1, dmg = AYEW_SERVE.dmg;
   const tg = enemiesOf(u).filter(v => !v.summon).sort((a, b) => Math.hypot(b.gx - u.gx, b.gy - u.gy) - Math.hypot(a.gx - u.gx, a.gy - u.gy)).slice(0, n);
   if (!tg.length) return;
   floatText(u, '¡Saque bombeado!', 'sup'); u.rig.play('super'); u.rig.hideFeet && u.rig.hideFeet(.9); sfx.shoot();
   tg.forEach((v, i) => schedule(.28 + i * .12, () => {
     if (!u.alive) return;
     const c = v.c, r = v.r;
-    sim.marks.push({ c, r, t0: sim.t, dur: 2 });
-    ballProj({ ox: u.gx, oy: u.gy, tx: c + .5, ty: r + .5, dur: 2, h0: 1, h1: .3, arc: 3.2, size: .3, hit: () => {
+    sim.marks.push({ c, r, t0: sim.t, dur: AYEW_SERVE.dur });
+    ballProj({ ox: u.gx, oy: u.gy, tx: c + .5, ty: r + .5, dur: AYEW_SERVE.dur, h0: 1, h1: .3, arc: 1.6, size: .3, hit: () => {
       vfx({ kind: 'flash', gx: c + .5, gy: r + .5, r: .9, color: '255,190,90', dur: .35 }); burstAt(c + .5, r + .5, .2, '#ffcf6a', 14, { spd: 2.2, up: 1.8, glow: true }); sfx.boom();
       if (v.alive && v.c === c && v.r === r && !v.move) { damage(v, dmg, u, 'big'); shake = Math.max(shake, 5); }
       else floatText({ sx: gridToScreen(c + .5, r + .5)[0], top: gridToScreen(c + .5, r + .5)[1] - 40 }, '¡Fallo!', '');
