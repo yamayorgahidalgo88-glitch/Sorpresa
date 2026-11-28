@@ -1598,6 +1598,7 @@ function updateUnit(u, dt) {
   if (u.move) { u.move.t += dt / (u.move.dur || u.ms); if (u.move.t >= 1) { u.c = u.move.c; u.r = u.move.r; u.move = null; } return; }
   const near = nearestEnemy(u);
   let t = near && inRange(u, near) ? near : null, s = null;
+  if (!t && u.range > 1) t = anyInRange(u);   // a distancia: si ya tiene a alguien a tiro, dispara y no se mueve aunque se acerque otro
   if (!t && near && u.root <= 0) s = nextStep(u, near);           // camino hacia el más cercano
   if (!t && !s) t = anyInRange(u);                                 // no puede acercarse: ataca al que tenga a tiro
   if (t) {
