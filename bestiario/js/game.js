@@ -366,8 +366,8 @@ function stageRender(dt) {
 /* =========================================================
    NAVEGACIÓN ENTRE PANTALLAS
    ========================================================= */
-const SCREENS = ['home', 'decks', 'detail', 'prebattle', 'shop-page', 'user', 'settings'];
-const TAB_SCREEN = { shop: 'shop-page', bestiary: 'decks', battle: 'home', user: 'user', settings: 'settings' };
+const SCREENS = ['home', 'decks', 'detail', 'prebattle', 'shop-page', 'user', 'friends', 'settings'];
+const TAB_SCREEN = { shop: 'shop-page', bestiary: 'decks', battle: 'home', friends: 'friends', settings: 'settings' };
 function show(screen) {
   G.screen = screen;
   for (const id of SCREENS) $('#' + id).classList.toggle('hide', id !== screen);
@@ -382,7 +382,7 @@ function show(screen) {
   if (screen === 'detail') stageMount(screen);
   if (screen === 'user' && VW && $('#pf3d')) stageMount('profile');
   if (battle) layout();
-  if (screen === 'home') { renderWallet(); renderHomeDeck(); syncHomeDeck(); setTimeout(openPendingPacks, 350); }
+  if (screen === 'home') { renderHomeAvatar(); renderWallet(); renderHomeDeck(); syncHomeDeck(); setTimeout(openPendingPacks, 350); }
 }
 let decksScroll = 0;
 document.querySelectorAll('[data-back]').forEach(b => b.onclick = () => {
@@ -398,7 +398,7 @@ document.querySelectorAll('#nav button').forEach(b => b.onclick = () => {
   if (G.screen === TAB_SCREEN[t]) return;
   if (t === 'bestiary') openDecks();
   else if (t === 'settings') { renderSettings(); show('settings'); }
-  else if (t === 'user') { renderProfile(); show('user'); }
+  else if (t === 'friends') { renderFriends(); show('friends'); refreshFriends(); }
   else if (t === 'shop') { renderShopPage(); show('shop-page'); }
   else show(TAB_SCREEN[t]);
 });
@@ -465,7 +465,7 @@ const skinOf = (t, id) => (SKINS[t] || []).find(k => k.id === id) || null;
 const ownsSkin = (t, id) => !id || PROG.skins.includes(t + ':' + id);
 const activeSkinTex = t => { const k = skinOf(t, PROG.skinOn[t]); return k && ownsSkin(t, k.id) ? k.tex : null; };
 const owns = t => !!COLLECTION[t];
-function saveProg() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(PROG)); } catch (e) { } renderWallet(); }
+function saveProg() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(PROG)); } catch (e) { } renderWallet(); if (typeof syncProfile === 'function') syncProfile(); }
 const randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 function renderWallet() { const w = $('#coinNum'); if (w) w.textContent = PROG.coins; }
 
@@ -603,21 +603,56 @@ $('#dkSelect').onclick = () => {
 /* =========================================================
    PERFIL
    ========================================================= */
-function renderProfile() {
-  $('#pfName').value = PROG.name;
-  $('#pfTrophy').textContent = PROG.trophies;
-  $('#pfWins').textContent = PROG.wins;
-  $('#pfStreak').textContent = PROG.bestStreak;
-  // personaje favorito: el que elijas tú; si no eliges, el que más batallas has jugado (empate: al azar entre los empatados)
-  const best = Math.max(0, ...TYPES.map(t => PROG.plays[t] || 0)), fav = $('#pfFav');
-  let t = PROG.favPick && owns(PROG.favPick) ? PROG.favPick : null;
-  if (!t && best) t = pick(TYPES.filter(x => (PROG.plays[x] || 0) === best));
-  if (!t) { VW = null; fav.innerHTML = '<div class="pfq o">?</div><div class="pfn o">Toca para elegir a tu favorito</div>'; return; }
-  const ch = CHARS[t], n = PROG.plays[t] || 0;
-  fav.innerHTML = `<div class="pf3d" id="pf3d"></div><div class="pfn o">${ch.name} <span class="pfedit">✎</span></div><div class="pfs o">${n} ${n === 1 ? 'batalla' : 'batallas'}</div>`;
-  VW = { t, yaw: -20, pitch: 8, auto: true, vel: 0, goal: null, dragging: false, anim: 'idle', loop: 0 };   // el modelo 3D del favorito (se monta al mostrar la pantalla)
+/* ---------- Perfil: foto, marco, maestría, fondo, favorito, rachas, clan y copas ---------- */
+const FRAMES = { '': 'Sin marco' }, MASTERIES = { '': 'Sin maestría' }, BACKS = { clasico: 'Clásico' };   // de momento solo estos
+const avatarHtml = (t, frame) => t && CHARS[t] ? `<div class="ava${frame ? ' fr-' + frame : ''}" style="--fam:${CHARS[t].color}"><img src="${src(t, 'pose')}" alt=""></div>` : '<div class="ava empty">?</div>';
+function myProfile() {
+  const own = TYPES.filter(owns), av = PROG.avatar && owns(PROG.avatar) ? PROG.avatar : (PROG.favPick && owns(PROG.favPick) ? PROG.favPick : own[0]);
+  return { avatar: av, frame: PROG.frame || '', mastery: PROG.mastery || '', bg: PROG.bg || 'clasico', fav: PROG.favPick && owns(PROG.favPick) ? PROG.favPick : '', streak: PROG.streak || 0, bestStreak: PROG.bestStreak || 0, trophies: PROG.trophies || 0, clan: 'Sin clan', wins: PROG.wins || 0 };
 }
-// elegir el favorito: tocar el hueco abre la lista de tus personajes
+function renderHomeAvatar() { const b = $('#homeAva'); if (b) b.innerHTML = avatarHtml(myProfile().avatar, PROG.frame); }
+let PFVIEW = null;   // null = mi perfil; { name, profile } = perfil de un amigo
+function openProfile(view = null) { PFVIEW = view; renderProfile(); show('user'); }
+function renderProfile() {
+  const mineV = !PFVIEW, pr = mineV ? myProfile() : PFVIEW.profile || {}, name = mineV ? PROG.name : PFVIEW.name;
+  $('#pfName').textContent = name || '—';
+  $('#pfAva').innerHTML = avatarHtml(pr.avatar, pr.frame);
+  $('#pfTrophy').textContent = pr.trophies || 0;
+  $('#pfWins').textContent = pr.streak || 0;
+  $('#pfStreak').textContent = pr.bestStreak || 0;
+  $('#pfClan').textContent = pr.clan || 'Sin clan';
+  $('#pfCustom').classList.toggle('hide', !mineV);
+  $('#user').classList.toggle('readonly', !mineV);
+  // favorito: el elegido; si no hay, el que más batallas has jugado (solo en el mío)
+  const fav = $('#pfFav');
+  let t = pr.fav && CHARS[pr.fav] ? pr.fav : null;
+  if (!t && mineV) { const best = Math.max(0, ...TYPES.map(x => PROG.plays[x] || 0)); if (best) t = pick(TYPES.filter(x => (PROG.plays[x] || 0) === best)); }
+  if (!t) { VW = null; fav.innerHTML = `<div class="pfq o">?</div><div class="pfn o">${mineV ? 'Toca para elegir a tu favorito' : 'Sin favorito'}</div>`; return; }
+  fav.innerHTML = `<div class="pf3d" id="pf3d"></div><div class="pfn o">${CHARS[t].name}${mineV ? ' <span class="pfedit">✎</span>' : ''}</div><div class="pfs o">Favorito</div>`;
+  VW = { t, yaw: -20, pitch: 8, auto: true, vel: 0, goal: null, dragging: false, anim: 'idle', loop: 0, skin: mineV ? undefined : null };
+}
+$('#pfBack').onclick = () => { sfx.click(); const back = PFVIEW ? 'friends' : 'home'; PFVIEW = null; show(back); if (back === 'friends') renderFriends(); };
+$('#homeAva').onclick = () => { initAudio(); sfx.click(); openProfile(null); };
+// personalizar: foto, marco, maestría y fondo (de momento solo hay uno de cada salvo la foto)
+function openCustomize(tab = 'foto') {
+  const el = document.createElement('div'); el.className = 'overlay favpick';
+  const tabs = [['foto', 'Foto'], ['marco', 'Marco'], ['maestria', 'Maestría'], ['fondo', 'Fondo'], ['fav', 'Favorito']];
+  const body = () => {
+    if (tab === 'foto') return `<p class="cuhint">Solo puedes usar la foto de personajes que tengas</p><div class="dcoll fpgrid">${TYPES.map(t => `<div class="cuava${owns(t) ? '' : ' locked'}${myProfile().avatar === t ? ' on' : ''}" data-t="${t}">${avatarHtml(t, PROG.frame)}${owns(t) ? '' : '<b class="o">🔒</b>'}</div>`).join('')}</div>`;
+    const list = tab === 'marco' ? FRAMES : tab === 'maestria' ? MASTERIES : BACKS, cur = tab === 'marco' ? PROG.frame || '' : tab === 'maestria' ? PROG.mastery || '' : PROG.bg || 'clasico';
+    return `<div class="culist">${Object.entries(list).map(([k, n]) => `<button class="mdopt cuopt${k === cur ? ' on' : ''}" data-k="${k}"><span class="mdic">${tab === 'fondo' ? '🖼️' : tab === 'marco' ? '⬜' : '🏅'}</span><b class="o">${n}</b><small>${k === cur ? 'En uso' : ''}</small></button>`).join('')}</div><p class="cuhint">Más adelante habrá más para elegir</p>`;
+  };
+  const draw = () => {
+    el.innerHTML = `<div class="mdbox"><button class="mdx" aria-label="Cerrar">✕</button><h2 class="o">Personalizar</h2><div class="cutabs">${tabs.map(([k, n]) => `<button class="${k === tab ? 'on' : ''}" data-tab="${k}">${n}</button>`).join('')}</div>${body()}</div>`;
+    el.querySelector('.mdx').onclick = () => { sfx.click(); el.remove(); };
+    el.querySelectorAll('.cutabs button').forEach(b => b.onclick = () => { sfx.click(); if (b.dataset.tab === 'fav') { el.remove(); openFavPicker(); return; } tab = b.dataset.tab; draw(); });
+    el.querySelectorAll('.cuava').forEach(c => c.onclick = () => { if (!owns(c.dataset.t)) return sfx.no(); sfx.merge(); PROG.avatar = c.dataset.t; saveProg(); renderProfile(); renderHomeAvatar(); draw(); });
+    el.querySelectorAll('.cuopt').forEach(c => c.onclick = () => { sfx.click(); const k = c.dataset.k; if (tab === 'marco') PROG.frame = k; else if (tab === 'maestria') PROG.mastery = k; else PROG.bg = k; saveProg(); renderProfile(); draw(); });
+  };
+  draw(); document.body.appendChild(el); el.onclick = e => { if (e.target === el) el.remove(); };
+}
+$('#pfCustom').onclick = () => { sfx.click(); openCustomize(); };
+// elegir el favorito: lista de tus personajes o "Automático" (el más jugado)
 function openFavPicker() {
   const el = document.createElement('div'); el.className = 'overlay favpick';
   el.innerHTML = `<div class="mdbox"><button class="mdx" aria-label="Cerrar">✕</button><h2 class="o">Tu favorito</h2>
@@ -630,9 +665,64 @@ function openFavPicker() {
   el.querySelector('.fpauto').onclick = () => choose(null);
   el.querySelectorAll('.fpgrid .dcard').forEach(c => c.onclick = () => choose(c.dataset.t));
 }
-$('#pfFav').onclick = () => { sfx.click(); openFavPicker(); };
-$('#pfName').addEventListener('input', e => { PROG.name = e.target.value.replace(/\s+/g, ' ').slice(0, 14); saveProg(); });
-$('#pfName').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
+$('#pfFav').onclick = () => { if (PFVIEW) return; sfx.click(); openFavPicker(); };
+
+/* ---------- Cuenta: nombre único (no se puede cambiar) y amigos, guardados en el servidor (/api/cuenta) ---------- */
+const API = '/api/cuenta';
+async function api(op, data = {}) {
+  const acc = PROG.account || {};
+  const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ op, name: acc.name, token: acc.token, ...data }) });
+  let j = null; try { j = await r.json(); } catch (e) { }
+  if (!j) throw new Error('No se pudo conectar con el servidor');
+  if (!j.ok && j.msg) throw new Error(j.msg);
+  return j;
+}
+let _syncT = null, _lastSync = '';
+function syncProfile() {   // sube tu perfil público (lo ven tus amigos); agrupa cambios seguidos
+  if (!PROG.account) return; clearTimeout(_syncT);
+  _syncT = setTimeout(() => { const p = JSON.stringify(myProfile()); if (p === _lastSync) return; api('save', { profile: myProfile() }).then(() => { _lastSync = p; }).catch(() => { }); }, 1500);
+}
+function nameGate() {
+  if (PROG.account) return;
+  const g = $('#nameGate'), inp = $('#ngName'), msg = $('#ngMsg'), ok = $('#ngOk'); g.classList.remove('hide');
+  inp.value = PROG.name || '';
+  let busy = false;
+  const go = async () => {
+    const n = inp.value.replace(/\s+/g, ' ').trim();
+    if (!/^[\p{L}\p{N} _.-]{3,14}$/u.test(n)) { msg.className = 'ngmsg warn'; msg.textContent = 'Entre 3 y 14 letras o números'; return sfx.no(); }
+    if (busy) return; busy = true; ok.disabled = true; msg.className = 'ngmsg'; msg.textContent = 'Comprobando…';
+    const token = Array.from(crypto.getRandomValues(new Uint8Array(24)), b => b.toString(16).padStart(2, '0')).join('');
+    try {
+      const prev = PROG.account; PROG.account = null;
+      const j = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ op: 'register', name: n, token, profile: myProfile() }) }).then(r => r.json());
+      if (!j.ok) { PROG.account = prev; throw new Error(j.msg || 'Error'); }
+      PROG.account = { name: j.me.name, token }; PROG.name = j.me.name; saveProg(); sfx.merge();
+      g.classList.add('hide'); renderHomeAvatar(); $('#battleHud .side.p .nm').textContent = PROG.name;
+    } catch (e) { msg.className = 'ngmsg warn'; msg.textContent = /Failed to fetch|NetworkError|JSON/i.test(e.message) ? 'No hay conexión con el servidor. Inténtalo de nuevo.' : e.message; sfx.no(); }
+    busy = false; ok.disabled = false;
+  };
+  ok.onclick = go; inp.onkeydown = e => { if (e.key === 'Enter') go(); };
+}
+/* ---------- Amigos ---------- */
+let FR = { friends: [], requests: [], sent: [] };
+const frMsg = (t, err) => { const m = $('#frMsg'); m.textContent = t || ''; m.className = 'frmsg' + (err ? ' warn' : ''); };
+function renderFriends() {
+  $('#frMe').textContent = PROG.name || '';
+  const row = (n, btns) => `<div class="frrow" data-n="${n.replace(/"/g, '&quot;')}"><b class="o">${n}</b><span>${btns}</span></div>`;
+  $('#frReqBox').classList.toggle('hide', !FR.requests.length);
+  $('#frReq').innerHTML = FR.requests.map(n => row(n, '<button class="btn green frok">Aceptar</button><button class="btn red frno">✕</button>')).join('');
+  $('#frList').innerHTML = FR.friends.length ? FR.friends.map(n => row(n, '<button class="btn blue frsee">Ver perfil</button>')).join('') : '<p class="note snote">Aún no tienes amigos. ¡Invita a alguien por su nombre!</p>';
+  $('#frSentBox').classList.toggle('hide', !FR.sent.length);
+  $('#frSent').innerHTML = FR.sent.map(n => row(n, '<small>Pendiente</small>')).join('');
+  const nameOf = b => b.closest('.frrow').dataset.n;
+  document.querySelectorAll('#frReq .frok').forEach(b => b.onclick = () => frDo('respond', { from: nameOf(b), accept: true }, '¡Ahora sois amigos!'));
+  document.querySelectorAll('#frReq .frno').forEach(b => b.onclick = () => frDo('respond', { from: nameOf(b), accept: false }, 'Solicitud rechazada'));
+  document.querySelectorAll('#frList .frsee').forEach(b => b.onclick = async () => { sfx.click(); frMsg('Cargando perfil…'); try { const j = await api('profile', { of: nameOf(b) }); frMsg(''); openProfile(j.user); } catch (e) { frMsg(e.message, true); } });
+}
+async function frDo(op, data, okMsg) { sfx.click(); try { const j = await api(op, data); FR = j.me; renderFriends(); frMsg(j.msg || okMsg); sfx.merge(); } catch (e) { frMsg(e.message, true); sfx.no(); } }
+async function refreshFriends() { if (!PROG.account) return frMsg('Primero elige tu nombre', true); try { FR = (await api('me')).me; renderFriends(); } catch (e) { frMsg(/fetch/i.test(e.message) ? 'No hay conexión con el servidor' : e.message, true); } }
+$('#frInvite').onclick = () => { const n = $('#frName').value.trim(); if (!n) return frMsg('Escribe el nombre de tu amigo', true); frDo('invite', { to: n }).then(() => { $('#frName').value = ''; }); };
+$('#frName').addEventListener('keydown', e => { if (e.key === 'Enter') $('#frInvite').click(); });
 
 /* =========================================================
    AJUSTES
@@ -2437,7 +2527,7 @@ load('assets/jaspe_terremoto.webp').then(i => { IMG.quake = i; }).catch(() => {}
 load(BOARD.src).then(i => {
   IMG.board = i; initBattle3D(); initStage();
   show('home'); requestAnimationFrame(loop);
-  const L = window.__load || {}; L.finish = () => { const el = $('#loading'); el.classList.add('fade'); setTimeout(() => el.classList.add('hide'), 500); }; L.done = true;
+  const L = window.__load || {}; L.finish = () => { const el = $('#loading'); el.classList.add('fade'); setTimeout(() => el.classList.add('hide'), 500); nameGate(); }; L.done = true;
   if (!window.__load) L.finish();
 }).catch(e => { $('#loading .ltxt').textContent = 'Error al cargar: ' + e; console.error(e); });
 

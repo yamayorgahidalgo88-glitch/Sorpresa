@@ -1,0 +1,8 @@
+{
+  "name": "grevos",
+  "private": true,
+  "description": "GREVOS: juego web estático + función /api/cuenta (cuentas y amigos en Vercel Blob)",
+  "dependencies": {
+    "@vercel/blob": "2.9.0"
+  }
+}

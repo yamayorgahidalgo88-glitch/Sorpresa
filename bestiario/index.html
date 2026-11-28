@@ -82,6 +82,7 @@ if (__li.complete) __lstart(); else { __li.onload = __li.onerror = __lstart; set
 <div id="home" class="page hide">
   <div class="hbg"><img class="hb-img" src="assets/inicio.webp" alt=""><canvas id="hFxB"></canvas><canvas id="hGL"></canvas><canvas id="hFxF"></canvas></div>
   <div class="wallet o"><img src="assets/moneda.webp" alt=""><span id="coinNum">0</span></div>
+  <button class="homeava" id="homeAva" aria-label="Tu perfil"></button>
   <div class="wrap">
     <div class="htop"><h1 class="logo o logo-img"><img src="assets/logo_grevos.webp" alt="GREVOS"></h1></div>
     <div class="hspace"></div>
@@ -123,15 +124,32 @@ if (__li.complete) __lstart(); else { __li.onload = __li.onerror = __lstart; set
   </div>
 </div>
 
-<!-- PERFIL -->
-<div id="user" class="page tabpage hide">
+<!-- PERFIL (se abre con el botón de arriba a la derecha; también sirve para ver el de un amigo) -->
+<div id="user" class="page hide">
+  <button class="btn gray pfback" id="pfBack" aria-label="Volver">←</button>
   <div class="pstage" id="pstage">
     <img class="pbg" src="assets/perfil.webp" alt="Perfil">
-    <input id="pfName" class="pf pf-name o" maxlength="14" placeholder="Tu nombre" autocomplete="off" autocapitalize="words" spellcheck="false">
+    <div class="pf pf-name o" id="pfName"></div>
+    <div class="pfava" id="pfAva"></div>
     <div class="pf pf-trophy o" id="pfTrophy">0</div>
     <div class="pf pf-wins o" id="pfWins">0</div>
+    <div class="pf pf-clan o" id="pfClan">Sin clan</div>
     <div class="pf pf-streak o" id="pfStreak">0</div>
+    <div class="pflbl l1 o">Copas</div><div class="pflbl l2 o">Racha actual</div><div class="pflbl l3 o">Clan</div><div class="pflbl l4 o">Mejor racha</div>
     <div class="pfav" id="pfFav"></div>
+    <button class="btn purple pfcustom" id="pfCustom">🎨 Personalizar</button>
+  </div>
+</div>
+
+<!-- AMIGOS -->
+<div id="friends" class="page tabpage hide">
+  <div class="wrap">
+    <div class="bar"><h2 class="o">Amigos</h2><span class="count" id="frMe"></span></div>
+    <div class="setbox frinv"><input id="frName" maxlength="14" placeholder="Nombre de tu amigo" autocomplete="off" spellcheck="false"><button class="btn green" id="frInvite">Invitar</button></div>
+    <p class="frmsg" id="frMsg"></p>
+    <div id="frReqBox"><h3 class="sub o">Solicitudes</h3><div class="setbox" id="frReq"></div></div>
+    <h3 class="sub o">Tus amigos</h3><div class="setbox" id="frList"></div>
+    <div id="frSentBox"><h3 class="sub o">Invitaciones enviadas</h3><div class="setbox" id="frSent"></div></div>
   </div>
 </div>
 
@@ -160,7 +178,7 @@ if (__li.complete) __lstart(); else { __li.onload = __li.onerror = __lstart; set
   <button data-tab="shop" aria-label="Tienda"><img src="assets/nav/tienda.webp" alt=""></button>
   <button data-tab="bestiary" aria-label="Bestiario"><img src="assets/nav/bestiario.webp" alt=""></button>
   <button data-tab="battle" aria-label="Batalla"><img src="assets/nav/batalla.webp" alt=""></button>
-  <button data-tab="user" aria-label="Usuario"><img src="assets/nav/usuario.webp" alt=""></button>
+  <button data-tab="friends" aria-label="Amigos"><img src="assets/nav/usuario.webp" alt=""></button>
   <button data-tab="settings" aria-label="Ajustes"><img src="assets/nav/ajustes.webp" alt=""></button>
 </nav>
 
@@ -203,6 +221,17 @@ if (__li.complete) __lstart(); else { __li.onload = __li.onerror = __lstart; set
       <div class="mdjoin"><input id="mdCode" maxlength="6" placeholder="Código" autocomplete="off" autocapitalize="characters" spellcheck="false"><button class="btn blue" id="mdJoin">Unirse</button></div>
       <div id="mdRoom" class="mdroom"></div>
     </div>
+  </div>
+</div>
+
+<!-- ELEGIR NOMBRE (primera vez) -->
+<div id="nameGate" class="overlay hide">
+  <div class="mdbox">
+    <h2 class="o">¡Bienvenido a GREVOS!</h2>
+    <p class="ngtxt">Elige tu nombre de jugador. Será el que vean tus amigos y <b>no podrás cambiarlo</b>.</p>
+    <input id="ngName" maxlength="14" placeholder="Tu nombre" autocomplete="off" spellcheck="false">
+    <p class="ngmsg" id="ngMsg"></p>
+    <button class="btn green" id="ngOk">Confirmar</button>
   </div>
 </div>
 
