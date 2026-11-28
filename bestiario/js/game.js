@@ -636,6 +636,28 @@ function renderDiag() {
   L.push('Errores (' + window.__log.length + '):'); window.__log.slice(-12).forEach(x => L.push('· ' + x));
   $('#diag').textContent = L.join('\n');
 }
+async function diagTest() {
+  const out = [], put = t => { out.push(t); $('#diag2').textContent = out.join('\n'); };
+  put('Probando…');
+  // 1) imagen 2D
+  await new Promise(res => { const i = new Image(); i.onload = () => { put('Imagen: OK ' + i.naturalWidth + 'x' + i.naturalHeight); res(); }; i.onerror = () => { put('Imagen: FALLA'); res(); }; i.src = 'assets/rogue_pose.webp?t=' + Date.now(); });
+  // 2) render 3D: cubo rojo + Rogue animado, y se cuentan los píxeles dibujados
+  try {
+    const cv = $('#diagCv'); cv.style.display = 'block';
+    const r = new THREE.WebGLRenderer({ canvas: cv, alpha: true, preserveDrawingBuffer: true }); r.setSize(160, 160, false);
+    const sc = new THREE.Scene(); setupScene(r, sc, { shadows: false });
+    const cam = new THREE.PerspectiveCamera(30, 1, .1, 50); cam.position.set(0, .8, 4.2); cam.lookAt(0, .6, 0);
+    const box = new THREE.Mesh(new THREE.BoxGeometry(.3, .3, .3), new THREE.MeshBasicMaterial({ color: 0xff0000 })); box.position.set(-.75, 1.2, 0); sc.add(box);
+    const rig = createCharacter('rogue'); sc.add(rig.root); rig.root.position.x = .2;
+    for (let i = 0; i < 40; i++) { await new Promise(f => setTimeout(f, 60)); rig.update(.06, {}); r.render(sc, cam); }
+    const gl = r.getContext(), px = new Uint8Array(160 * 160 * 4); gl.readPixels(0, 0, 160, 160, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    let red = 0, other = 0; for (let i = 0; i < px.length; i += 4) { if (px[i + 3] < 10) continue; if (px[i] > 200 && px[i + 1] < 40 && px[i + 2] < 40) red++; else other++; }
+    put('3D cubo: ' + red + ' px · personaje: ' + other + ' px');
+    put(red > 100 && other > 300 ? '→ 3D OK' : red > 100 ? '→ el cubo se ve pero el personaje NO' : '→ no se dibuja nada en 3D');
+  } catch (e) { put('3D error: ' + e.message); }
+  put('Errores ahora (' + window.__log.length + '):'); window.__log.slice(-8).forEach(x => put('· ' + x));
+}
+$('#diagTest').onclick = () => { sfx.click(); diagTest(); };
 function renderSettings() {
   renderDiag();
   $('#sndBox').innerHTML = `<div class="setrow mute"><div class="stxt"><b>Silenciar todo</b><small>Apaga todos los sonidos del juego</small></div>
