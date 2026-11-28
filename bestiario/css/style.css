@@ -675,3 +675,22 @@ img{-webkit-user-drag:none}
 @keyframes vsOutR{from{transform:none}to{transform:translate(75%,75%)}}
 @keyframes vsFade{to{opacity:0;transform:translate(-50%,-50%) scale(1.6)}}
 .vs-slash{transform-origin:center}
+
+/* ---------- Recompensa de maestría ---------- */
+#mreward{position:fixed;inset:0;z-index:270;display:grid;place-items:center;overflow:hidden;background:radial-gradient(circle at 50% 40%,#fffaf0 0%,#f3e6cc 45%,#dcc39a 100%);animation:rwfade .35s ease-out}
+#mreward.out{opacity:0;transition:opacity .35s}
+.mrrays{position:absolute;left:50%;top:40%;width:170vmax;height:170vmax;margin:-85vmax 0 0 -85vmax;background:repeating-conic-gradient(rgba(200,150,60,.18) 0deg 7deg,transparent 7deg 20deg);animation:spin 20s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.mrin{position:relative;display:flex;flex-direction:column;align-items:center;gap:10px;padding:20px;width:min(94vw,460px);text-align:center}
+.mrtop{font-size:clamp(28px,8vw,40px);color:#fff;animation:rwpop .5s cubic-bezier(.2,1.6,.4,1) both}
+.mrrank{font-size:clamp(22px,6vw,30px);padding:2px 18px;border:3px solid var(--ink);border-radius:14px;background:#5b4a98;color:#fff;animation:rwpop .5s .15s cubic-bezier(.2,1.6,.4,1) both}
+.mrrank.r-madera{background:linear-gradient(#c58a52,#7a4a1e)}.mrrank.r-bronce{background:linear-gradient(#e0915a,#8a4a1a)}.mrrank.r-plata{background:linear-gradient(#f4f7fb,#8a96a8);color:#2a3240}
+.mrrank.r-oro{background:linear-gradient(#ffe27a,#d99a00)}.mrrank.r-as{background:linear-gradient(90deg,#ff5a5a,#ffd84a,#5affb0,#5ac8ff,#d45aff)}
+.mritems{display:flex;flex-wrap:wrap;justify-content:center;gap:18px;margin:8px 0}
+.mritem{display:flex;flex-direction:column;align-items:center;gap:8px;animation:rwpop .6s .3s cubic-bezier(.2,1.6,.4,1) both}
+.mritem+.mritem{animation-delay:.45s}
+.mrart{width:min(38vw,170px);height:min(38vw,170px);filter:drop-shadow(0 10px 14px rgba(90,60,20,.35))}
+.mrbig-medal{font-size:min(20vw,90px);background:linear-gradient(#ffe27a,#d99a00)}
+.mrname{font-size:clamp(17px,4.6vw,22px);color:#fff;max-width:min(42vw,200px)}
+.mrnote{margin:0;font:600 13px system-ui;color:#6b5430}
+#mrOk{font-size:22px;padding:11px 34px}

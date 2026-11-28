@@ -1066,6 +1066,24 @@ function levelUp(t) {
   if (!next || c.cards < next.cards || PROG.coins < next.coins) return sfx.no();
   c.cards -= next.cards; PROG.coins -= next.coins; c.level++;
   saveProg(); sfx.merge(); openDetail(t);
+  const m = MASTERY.find(x => x.lv === c.level); if (m) showMasteryReward(t, m);
+}
+// pantalla de recompensa de maestría: fondo beis, objeto(s) en grande y el rango alcanzado
+function showMasteryReward(t, m) {
+  const ch = CHARS[t], rank = masteryRank(m.lv);
+  const big = ([k, v, n]) => {
+    const art = k === 'foto' ? avatarHtml(t + ':' + v, '') : k === 'marco' ? avatarHtml(t, t + ':' + v) : '<div class="ava empty mrbig-medal">🏅</div>';
+    const label = k === 'maestria' ? (masteryName(t) ? '«' + masteryName(t) + '»' : 'Maestría (por definir)') : n;
+    return `<div class="mritem"><div class="mrart">${art}</div><div class="mrname o">${label}</div></div>`;
+  };
+  const el = document.createElement('div'); el.id = 'mreward';
+  el.innerHTML = `<div class="mrrays"></div><div class="mrin"><div class="mrtop o">¡Maestría de ${ch.name}!</div>
+    <div class="mrrank o ${rank ? 'r-' + rank.id : ''}">${rank ? 'Rango ' + rank.name : ''}</div>
+    <div class="mritems">${m.items.map(big).join('')}</div>
+    <p class="mrnote">Úsalo desde la Maestría del personaje o en Perfil → Personalizar</p>
+    <button class="btn green" id="mrOk">¡Genial!</button></div>`;
+  document.body.appendChild(el); sfx.win();
+  el.querySelector('#mrOk').onclick = () => { sfx.click(); el.classList.add('out'); setTimeout(() => el.remove(), 350); };
 }
 function setAnim(a) {
   if (!VW) return; VW.anim = a; VW.loop = 0;
@@ -2457,8 +2475,8 @@ function showVersus(done) {
   const el = document.createElement('div'); el.id = 'versus';
   el.innerHTML = card(A, 'blue') + card(B, 'red') + '<div class="vs-slash"></div><div class="vs-badge o">VS</div>';
   document.body.appendChild(el); sfx.round();
-  later(2450, () => el.classList.add('out'));   // al acabar, cada color se va hacia su lado
-  later(3000, () => { el.remove(); done(); });
+  later(4450, () => el.classList.add('out'));   // dura 5 s; al acabar, cada color se va hacia su lado
+  later(5000, () => { el.remove(); done(); });
 }
 
 /* =========================================================

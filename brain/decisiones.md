@@ -59,3 +59,4 @@
 - 2026-11-28: Pantalla VS (3 s) al empezar cada partida: diagonal azul (tú) / roja (rival) con foto+marco, nombre, maestría, copas y clan; entra deslizando, rayas en movimiento, VS que late. Bots: maestría al azar a veces. Amistoso: copas/maestría/clan en 'hello'.
 - 2026-11-28: Pantalla VS: al acabar, la mitad azul se va hacia arriba-izquierda y la roja hacia abajo-derecha (0,55 s), dejando ver el tablero.
 - 2026-11-28: Anti-atasco: cada unidad mantiene su objetivo (u.chase) hasta que otro esté estrictamente más cerca o muera; los empates se deshacen siempre igual (vida, luego id). Los de distancia siguen con el que ya atacaban si sigue a tiro. No se pudo reproducir el atasco en pruebas.
+- 2026-11-28: Al subir un personaje a un nivel con recompensa de maestría (3,5,8,9,10) sale una pantalla de fondo beis con los objetos en grande y el rango alcanzado (showMasteryReward). Pantalla VS: 5 s.
