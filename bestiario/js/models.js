@@ -7,8 +7,10 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 /* ---------- Compatibilidad con WebGL 1 (algunos PC y navegadores antiguos) ----------
    three r160 anima los modelos con un shader que solo funciona en WebGL 2 (textureSize/texelFetch): en WebGL 1
    los personajes no se dibujaban (solo su sombra). Ahí se usa una textura de huesos de tamaño fijo y texture2D. */
-const WEBGL2 = (() => { try { return !!document.createElement('canvas').getContext('webgl2'); } catch (e) { return false; } })();
-if (!WEBGL2) {
+// También en WebGL 2: con algunas gráficas Intel (Iris Xe, Direct3D 11) el texelFetch de los huesos devuelve ceros
+// y los personajes animados desaparecen (solo quedaba la sombra). Con texture2D funciona en todas.
+const SKIN_COMPAT = new URLSearchParams(location.search).get('huesos') !== 'nuevo';
+if (SKIN_COMPAT) {
   const BT = 32;   // textura de huesos 32x32 = hasta 256 huesos
   THREE.Skeleton.prototype.computeBoneTexture = function () {
     const m = new Float32Array(BT * BT * 4); m.set(this.boneMatrices);
