@@ -619,3 +619,6 @@ img{-webkit-user-drag:none}
 .afr-bronce{background:linear-gradient(135deg,#ffd2a1,#b8692f 30%,#f0b37a 50%,#7a3f17 75%,#e0a070)}
 .afr-bronce>.ava{inset:9% 9% 20% 9%}
 .afr-bronce .afr-eng{color:#5a2a0c;text-shadow:0 .6cqw 0 rgba(255,220,190,.6),0 -.4cqw 0 rgba(40,15,0,.5)}
+.afr-plata{background:linear-gradient(135deg,#ffffff,#aeb8c6 30%,#f4f7fb 50%,#6d7889 75%,#dfe5ee)}
+.afr-plata>.ava{inset:9% 9% 20% 9%}
+.afr-plata .afr-eng{color:#3d4757;text-shadow:0 .6cqw 0 rgba(255,255,255,.8),0 -.4cqw 0 rgba(20,25,35,.45)}

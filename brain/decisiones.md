@@ -52,3 +52,4 @@
 - 2026-11-28: MAESTRÍA por personaje (botón en su ficha). Nv.3 foto bronce; Nv.5 marco con su nombre girando (SVG textPath, color del personaje aclarado); Nv.8 foto plata + marco oro (nombre grabado abajo); Nv.9 foto oro + marco diamante (grabado); Nv.10 'Maestría de X' (sin efecto aún, el usuario dirá cada una). Ids: foto 'tipo:bronce|plata|oro', marco 'tipo:nombre|oro|diamante', maestría 'tipo'. Se usan desde la ficha o en Perfil > Personalizar.
 - 2026-11-28: Ayew: saque bombeado 150 de daño. Bajo el favorito del perfil se ve su rango de maestría por nivel: 3 Madera, 5 Bronce, 8 Plata, 9 Oro, 10 As (RANKS; se sube favLv al servidor para los amigos).
 - 2026-11-28: Maestría reordenada: Nv.3 foto + marco de bronce (nombre grabado); Nv.8 foto plata + marco oro; Nv.9 foto oro + marco diamante; Nv.10 (As) marco con su nombre girando + maestría. Nv.5 ya no da nada.
+- 2026-11-28: Maestría Nv.5 = marco de plata (FRAME_LV).
