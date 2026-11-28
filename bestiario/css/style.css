@@ -433,3 +433,11 @@ img{-webkit-user-drag:none}
   .fightbtn{width:min(92vw,400px,44vh)}
   .tabpage .wrap,#home .wrap,#decks .wrap{padding-bottom:calc(env(safe-area-inset-bottom) + 14vh)}
 }
+@media (min-aspect-ratio:3/4){
+  #loading::before{content:'';position:absolute;inset:-40px;background:url(../assets/carga.webp) center/cover;filter:blur(18px) brightness(.5) saturate(1.2)}
+  #loading>img{object-fit:contain;object-position:50% 50%}
+}
+@media (min-aspect-ratio:3/4){
+  #loading .lbar{padding-top:30px;padding-bottom:calc(env(safe-area-inset-bottom) + 3vh);background:linear-gradient(transparent,rgba(10,12,40,.6) 45%)}
+  #loading .ltrack{width:min(100%,420px,50vh)}
+}
