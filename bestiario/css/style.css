@@ -666,3 +666,12 @@ img{-webkit-user-drag:none}
 @keyframes vsPulse{to{transform:translate(-50%,-50%) scale(1.12) rotate(-4deg)}}
 .vs-slash{left:0;right:0;top:0;bottom:0;height:auto;transform:none;clip-path:polygon(99% 0,100% 0,100% 1%,1% 100%,0 100%,0 99%);background:linear-gradient(135deg,#fff,#fff7b0 50%,#fff);box-shadow:none;filter:drop-shadow(0 0 10px #ffd84a);animation:vsSlash2 .6s ease-out both}
 @keyframes vsSlash2{from{opacity:0}to{opacity:1}}
+/* salida: cada mitad se aleja hacia su esquina y se ve el tablero detrás */
+#versus.out{opacity:1;background:transparent}
+#versus.out .vs-blue{animation:vsOutL .55s cubic-bezier(.5,0,.8,.4) forwards}
+#versus.out .vs-red{animation:vsOutR .55s cubic-bezier(.5,0,.8,.4) forwards}
+#versus.out .vs-slash,#versus.out .vs-badge{animation:vsFade .3s ease-in forwards}
+@keyframes vsOutL{from{transform:none}to{transform:translate(-75%,-75%)}}
+@keyframes vsOutR{from{transform:none}to{transform:translate(75%,75%)}}
+@keyframes vsFade{to{opacity:0;transform:translate(-50%,-50%) scale(1.6)}}
+.vs-slash{transform-origin:center}

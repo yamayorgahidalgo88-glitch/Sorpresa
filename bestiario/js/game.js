@@ -2452,7 +2452,7 @@ function showVersus(done) {
   const el = document.createElement('div'); el.id = 'versus';
   el.innerHTML = card(A, 'blue') + card(B, 'red') + '<div class="vs-slash"></div><div class="vs-badge o">VS</div>';
   document.body.appendChild(el); sfx.round();
-  later(2600, () => el.classList.add('out'));
+  later(2450, () => el.classList.add('out'));   // al acabar, cada color se va hacia su lado
   later(3000, () => { el.remove(); done(); });
 }
 
