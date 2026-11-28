@@ -615,11 +615,14 @@ const MASTERY = [
   { lv: 9, items: [['foto', 'oro', 'Foto dorada'], ['marco', 'diamante', 'Marco de diamante']] },
   { lv: 10, items: [['marco', 'nombre', 'Marco con su nombre'], ['maestria', '', 'Maestría']] },
 ];
+// Maestrías (nivel 10): título que se lleva en el perfil. Las que faltan se irán añadiendo.
+const MASTERY_NAMES = { tanko: 'Sargento pico congelado', osko: 'Entre vivo y muerto' };
+const masteryName = t => MASTERY_NAMES[t] || null;
 const MLV = { bronce: 3, nombre: 10, plata: 8, oro: 8, diamante: 9 }, FRAME_LV = { bronce: 3, plata: 5, oro: 8, diamante: 9, nombre: 10 };
 const cardLv = t => (COLLECTION[t] || {}).level || 0;
 const avatarOk = id => { const [t, v] = String(id || '').split(':'); return !!CHARS[t] && owns(t) && (!v || cardLv(t) >= (v === 'oro' ? 9 : MLV[v] || 99)); };
 const frameOk = id => { if (!id) return true; const [t, v] = String(id).split(':'); return !!CHARS[t] && owns(t) && cardLv(t) >= (FRAME_LV[v] || 99); };
-const masteryOk = t => !t || (CHARS[t] && cardLv(t) >= 10);
+const masteryOk = t => !t || (CHARS[t] && cardLv(t) >= 10 && !!MASTERY_NAMES[t]);
 const frameName = id => { if (!id) return 'Sin marco'; const [t, v] = id.split(':'); return { bronce: 'Marco de bronce', plata: 'Marco de plata', nombre: 'Marco con su nombre', oro: 'Marco de oro', diamante: 'Marco de diamante' }[v] + ' · ' + CHARS[t].name; };
 function tickerSvg(name, color) {   // el nombre muchas veces alrededor de la foto, girando despacio como un rótulo de noticias
   const unit = name + ' · ', half = 344, reps = Math.max(2, Math.round(half / (unit.length * 5.6))), txt = unit.repeat(reps);
@@ -653,6 +656,7 @@ function openProfile(view = null) { PFVIEW = view; renderProfile(); show('user')
 function renderProfile() {
   const mineV = !PFVIEW, pr = mineV ? myProfile() : PFVIEW.profile || {}, name = mineV ? PROG.name : PFVIEW.name;
   $('#pfName').textContent = name || '—';
+  $('#pfTitle').textContent = pr.mastery && masteryName(pr.mastery) ? '«' + masteryName(pr.mastery) + '»' : '';
   $('#pfAva').innerHTML = avatarHtml(pr.avatar, pr.frame);
   $('#pfTrophy').textContent = pr.trophies || 0;
   $('#pfWins').textContent = pr.streak || 0;
@@ -685,7 +689,7 @@ function openCustomize(tab = 'foto') {
       const ids = ['', ...TYPES.flatMap(t => ['bronce', 'plata', 'oro', 'diamante', 'nombre'].map(v => t + ':' + v)).filter(frameOk)];
       return `<div class="dcoll fpgrid">${ids.map(id => `<div class="cuava cufr${me.frame === id ? ' on' : ''}" data-fr="${id}" title="${frameName(id)}">${avatarHtml(me.avatar, id)}</div>`).join('')}</div><p class="cuhint">${ids.length > 1 ? '' : 'Aún no tienes marcos. '}Los marcos se ganan subiendo personajes (Maestría, nivel 3, 5, 8, 9 y 10)</p>`;
     }
-    const list = tab === 'maestria' ? Object.fromEntries([['', 'Sin maestría'], ...TYPES.filter(t => masteryOk(t) && t).map(t => [t, 'Maestría de ' + CHARS[t].name])]) : BACKS;
+    const list = tab === 'maestria' ? Object.fromEntries([['', 'Sin maestría'], ...TYPES.filter(t => masteryOk(t) && masteryName(t)).map(t => [t, '«' + masteryName(t) + '» · ' + CHARS[t].name])]) : BACKS;
     const cur = tab === 'maestria' ? me.mastery : me.bg;
     return `<div class="culist">${Object.entries(list).map(([k, n]) => `<button class="mdopt cuopt${k === cur ? ' on' : ''}" data-k="${k}"><span class="mdic">${tab === 'fondo' ? '🖼️' : '🏅'}</span><b class="o">${n}</b><small>${k === cur ? 'En uso' : ''}</small></button>`).join('')}</div><p class="cuhint">${tab === 'fondo' ? 'El fondo de tu pantalla de inicio. Más adelante habrá más para elegir' : 'Las maestrías se ganan con un personaje a nivel 10'}</p>`;
   };
@@ -1076,10 +1080,10 @@ function openMastery(t) {
       <div class="mastlist">${MASTERY.map(m => { const ok = L >= m.lv; return `<div class="mastrow${ok ? ' ok' : ''}"><div class="mastlv o">Nv.${m.lv}</div><div class="mastitems">${m.items.map(([k, v, n]) => {
         const prev = k === 'foto' ? avatarHtml(t + ':' + v, '') : k === 'marco' ? avatarHtml(t, t + ':' + v) : `<div class="ava empty">🏅</div>`;
         const id = k === 'foto' ? t + ':' + v : k === 'marco' ? t + ':' + v : t, used = k === 'foto' ? me.avatar === id : k === 'marco' ? me.frame === id : me.mastery === id;
-        const btn = !ok ? '<small>🔒 Bloqueado</small>' : k === 'maestria' ? '<small>Próximamente</small>' : used ? '<small class="inuse">✓ En uso</small>' : `<button class="btn green mastuse" data-k="${k}" data-id="${id}">Usar</button>`;
-        return `<div class="mastitem"><div class="mastprev${ok ? '' : ' locked'}">${prev}</div><div class="mastname"><b>${k === 'maestria' ? 'Maestría de ' + ch.name : n}</b>${btn}</div></div>`; }).join('')}</div></div>`; }).join('')}</div></div>`;
+        const btn = !ok ? '<small>🔒 Bloqueado</small>' : k === 'maestria' && !masteryName(t) ? '<small>Próximamente</small>' : used ? '<small class="inuse">✓ En uso</small>' : `<button class="btn green mastuse" data-k="${k}" data-id="${id}">Usar</button>`;
+        return `<div class="mastitem"><div class="mastprev${ok ? '' : ' locked'}">${prev}</div><div class="mastname"><b>${k === 'maestria' ? (masteryName(t) ? '«' + masteryName(t) + '»' : 'Maestría (por definir)') : n}</b>${btn}</div></div>`; }).join('')}</div></div>`; }).join('')}</div></div>`;
     el.querySelector('.mdx').onclick = () => { sfx.click(); el.remove(); };
-    el.querySelectorAll('.mastuse').forEach(b => b.onclick = () => { sfx.merge(); if (b.dataset.k === 'foto') PROG.avatar = b.dataset.id; else PROG.frame = b.dataset.id; saveProg(); renderHomeAvatar(); draw(); });
+    el.querySelectorAll('.mastuse').forEach(b => b.onclick = () => { sfx.merge(); if (b.dataset.k === 'foto') PROG.avatar = b.dataset.id; else if (b.dataset.k === 'maestria') PROG.mastery = b.dataset.id; else PROG.frame = b.dataset.id; saveProg(); renderHomeAvatar(); draw(); });
   };
   draw(); document.body.appendChild(el); el.onclick = e => { if (e.target === el) el.remove(); };
 }
@@ -2417,12 +2421,16 @@ function stopMatch() {
   for (const u of [...units]) removeUnit(u);
   G.state = 'idle'; parts = []; fxs = []; dropAllMeshes(); sim.proj = []; sim.domes = []; sim.beams = []; sim.zones = []; closeInfo();
 }
+// nombres al azar para los rivales de entrenamiento
+const BOT_A = ['Garra', 'Sombra', 'Trueno', 'Colmillo', 'Niebla', 'Brasa', 'Escarcha', 'Rayo', 'Cuervo', 'Lobo', 'Zarza', 'Roca', 'Ceniza', 'Tormenta', 'Vortex', 'Pixel', 'Nova', 'Kraken', 'Fénix', 'Titán'];
+const BOT_B = ['Feroz', 'Oscuro', 'Veloz', 'Salvaje', 'Loco', 'Dorado', 'Rojo', 'Bravo', 'Rey', 'Pro', 'XD', '77', '99', '_GG', 'Max', 'Jr', 'Z', '2000', 'Uno', 'Gamer'];
+const botName = () => { const a = pick(BOT_A), b = pick(BOT_B); return /^[0-9_]/.test(b) ? a + b : Math.random() < .5 ? a + b : a + ' ' + b; };
 function newMatch() {
   stopMatch();
   Object.assign(G, { round: 0, score: { p: 0, e: 0 }, elixir: { p: 0, e: 0 }, lastLoser: null, speed: 1, seenP: null, used: new Set(), aiSkin: {}, acc: 0,
     aiCardLv: Math.round(deckTypes().reduce((a, t) => a + COLLECTION[t].level, 0) / Math.max(1, deckTypes().length)) || 1 });
   $('#battleHud .side.p .nm').textContent = PROG.name || 'Tú';
-  $('#battleHud .side.e .nm').textContent = NET.on ? (NET.oppName || 'Amigo') : 'Rival';
+  $('#battleHud .side.e .nm').textContent = NET.on ? (NET.oppName || 'Amigo') : (G.aiName = botName());
   setMirror(false); simRng = null;
   layout(); startRound();
 }

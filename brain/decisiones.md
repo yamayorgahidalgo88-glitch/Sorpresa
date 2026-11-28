@@ -53,3 +53,4 @@
 - 2026-11-28: Ayew: saque bombeado 150 de daño. Bajo el favorito del perfil se ve su rango de maestría por nivel: 3 Madera, 5 Bronce, 8 Plata, 9 Oro, 10 As (RANKS; se sube favLv al servidor para los amigos).
 - 2026-11-28: Maestría reordenada: Nv.3 foto + marco de bronce (nombre grabado); Nv.8 foto plata + marco oro; Nv.9 foto oro + marco diamante; Nv.10 (As) marco con su nombre girando + maestría. Nv.5 ya no da nada.
 - 2026-11-28: Maestría Nv.5 = marco de plata (FRAME_LV).
+- 2026-11-28: Maestrías (Nv.10) = título bajo tu nombre en el perfil (MASTERY_NAMES): Mory «Sargento pico congelado», Wyrex «Entre vivo y muerto»; las demás pendientes del usuario. Rivales IA con nombre al azar (botName).

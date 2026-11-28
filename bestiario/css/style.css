@@ -622,3 +622,4 @@ img{-webkit-user-drag:none}
 .afr-plata{background:linear-gradient(135deg,#ffffff,#aeb8c6 30%,#f4f7fb 50%,#6d7889 75%,#dfe5ee)}
 .afr-plata>.ava{inset:9% 9% 20% 9%}
 .afr-plata .afr-eng{color:#3d4757;text-shadow:0 .6cqw 0 rgba(255,255,255,.8),0 -.4cqw 0 rgba(20,25,35,.45)}
+.pftitle{position:absolute;left:52%;width:45%;top:29.6%;text-align:center;font-size:3.6cqw;color:#ffd84a;-webkit-text-stroke:.8cqw var(--ink);paint-order:stroke fill;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
