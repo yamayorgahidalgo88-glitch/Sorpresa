@@ -43,3 +43,4 @@
 - 2026-11-28: Bestiario: borde verde en las cartas que se pueden subir de nivel (cartas y monedas suficientes).
 - 2026-11-28: Botón de modos: cuadrado, a la derecha de LUCHAR (icono + 'Entreno'/'Amistoso').
 - 2026-11-28: Perfil: el favorito se elige tocando su hueco (lista de tus personajes) o 'Automático' (el más jugado). PROG.favPick.
+- 2026-11-28: Logo GREVOS del inicio más pequeño. Ajustes > Partida > 'Números de daño' (SET.dmgNums) para ocultar los números de daño; los textos de habilidades y curas siguen saliendo.

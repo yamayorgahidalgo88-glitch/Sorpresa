@@ -154,7 +154,7 @@ const load = url => new Promise((res, rej) => { const i = new Image(); i.onload 
 let ac = null;
 // AJUSTES DE SONIDO (se guardan en el móvil). Volúmenes de 0 a 100.
 const SET_KEY = 'bdb_ajustes_v1';
-const SET = Object.assign({ mute: false, master: 100, music: 100, battle: 100, chars: 100, ui: 100 },
+const SET = Object.assign({ dmgNums: true, mute: false, master: 100, music: 100, battle: 100, chars: 100, ui: 100 },
   (() => { try { return JSON.parse(localStorage.getItem(SET_KEY)) || {}; } catch (e) { return {}; } })());
 const saveSet = () => { try { localStorage.setItem(SET_KEY, JSON.stringify(SET)); } catch (e) { } };
 let sfxCat = 'ui';
@@ -755,6 +755,8 @@ function renderShopPage() {
 
 function renderSettings() {
   renderDiag();
+  const ds = $('#dmgSw'); ds.classList.toggle('on', SET.dmgNums !== false); ds.setAttribute('aria-checked', SET.dmgNums !== false);
+  ds.onclick = () => { SET.dmgNums = SET.dmgNums === false; saveSet(); sfx.click(); renderSettings(); };
   $('#sndBox').innerHTML = `<div class="setrow mute"><div class="stxt"><b>Silenciar todo</b><small>Apaga todos los sonidos del juego</small></div>
     <button class="switch${SET.mute ? ' on' : ''}" id="muteAll" role="switch" aria-checked="${!!SET.mute}"><i></i></button></div>` +
     SND_ROWS.map(([k, ic, nm, sub]) => `<div class="setrow vol" data-k="${k}"><span class="sic">${ic}</span><div class="stxt"><b>${nm}</b><small>${sub}</small>
@@ -2150,7 +2152,7 @@ function damage(t, amt, source, kind = '') {
   amt = Math.round(amt); let a = amt;
   if (t.shield > 0) { const s = Math.min(t.shield, a); t.shield -= s; a -= s; }
   t.hp -= a; if (t.def.abil === 'super' && !t.def.charge) t.energy = Math.min(100, t.energy + 5);
-  t.flash = .12; floatText(t, '-' + amt, kind || (t.team === 'p' ? 'e' : ''));
+  t.flash = .12; if (SET.dmgNums !== false) floatText(t, '-' + amt, kind || (t.team === 'p' ? 'e' : ''));
   if (t.hp <= 0) die(t);
 }
 function die(t) {

@@ -505,3 +505,8 @@ img{-webkit-user-drag:none}
 .fpgrid{grid-template-columns:repeat(4,1fr);gap:7px}
 .fpgrid .dcard .nm{font-size:12px}
 .fpgrid .inDeck{color:var(--gold)}
+/* logo del inicio más pequeño para no tapar a los personajes */
+#home .logo.logo-img img{width:clamp(120px,32vw,180px)}
+@media (min-aspect-ratio:3/4){ #home .logo.logo-img img{width:min(180px,22vh)} }
+/* interruptor encendido = verde (en "Silenciar todo" sigue rojo) */
+#dmgSw.on{background:#3fae2a}
