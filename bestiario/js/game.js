@@ -1622,14 +1622,14 @@ function updateUnit(u, dt) {
   const near = nearestEnemy(u);
   let t = near && inRange(u, near) ? near : null, s = null;
   if (!t && u.range > 1) t = anyInRange(u);   // a distancia: si ya tiene a alguien a tiro, dispara y no se mueve aunque se acerque otro
-  if (!t && near && u.root <= 0) s = nextStep(u, near);           // camino hacia el más cercano
+  if (!t && near && !(u.root > 0)) s = nextStep(u, near);           // camino hacia el más cercano
   if (!t && !s) t = anyInRange(u);                                 // no puede acercarse: ataca al que tenga a tiro
   if (t) {
     u.faceT = t;
     if (u.cd <= 0) { u.cd = u.as; if (u.def.abil === 'super' && u.energy >= 99.9) { u.energy = 0; doSuper(u, t); } else attack(u, t); }
   } else {
-    if (!s && u.root <= 0) s = nextStep(u);
-    if (!s && u.def.fwd && u.root <= 0) u.anyDir = true;   // nadie delante: puede disparar hacia atrás
+    if (!s && !(u.root > 0)) s = nextStep(u);
+    if (!s && u.def.fwd && !(u.root > 0)) u.anyDir = true;   // nadie delante: puede disparar hacia atrás
     if (s) { setOcc(u, s.c, s.r); u.move = { fc: u.c, fr: u.r, c: s.c, r: s.r, t: 0 }; }
     const en = enemiesOf(u); if (en.length) u.faceT = en.reduce((a, b) => cheb(u, a) <= cheb(u, b) ? a : b);
   }
@@ -2286,7 +2286,7 @@ function doSuper(u, t, cp = null) {
       for (let dc = -1; dc <= 1; dc++) for (let dr = -1; dr <= 1; dr++) { const c = u.c + dc, r = u.r + dr; if ((dc || dr) && c >= 0 && c < COLS && r >= 0 && r < ROWS && !occ.has(key(c, r))) free.push({ c, r }); }
       free.sort((a, b) => Math.hypot(a.c - t.c, a.r - t.r) - Math.hypot(b.c - t.c, b.r - t.r));
       for (const s of free.slice(0, L >= 3 ? 2 : 1)) {
-        const d = createUnit('reno', u.team, s.c, s.r, L); d.summon = true; d.hp = d.maxHp; d.atk = Math.round(d.atk * P);   // copiados por Sevora: +5% / +10% de daño d.cd = .3; setOcc(d, s.c, s.r);
+        const d = createUnit('reno', u.team, s.c, s.r, L); d.summon = true; d.hp = d.maxHp; d.atk = Math.round(d.atk * P); d.cd = .3; d.root = 0; setOcc(d, s.c, s.r);   // P: copiado por Sevora, más fuerte
         vfx({ kind: 'portal', gx: d.gx, gy: d.gy, color: '93,255,184', dur: .8, s: .75 }); burstAt(d.gx, d.gy, .4, '#5dffb8', 20, { spd: 2.4, up: 2, glow: true });
       }
       sfx.boom();
