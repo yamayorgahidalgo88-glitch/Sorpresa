@@ -1024,7 +1024,23 @@ const GLB = {
   sevora: { h: 1.3, style: 'biped', dur: { attack: 0.55, super: 0.85 } },
   reno: { h: 0.95, style: 'cart', ghost: true, file: 'wyrex_ciervo', dur: { attack: 0.3, super: 0.5 } },
 };
-const _glb = {}, _loader = new GLTFLoader();
+const _glb = {}, _gltf = new GLTFLoader();
+// Carga robusta de .glb: sin caché del navegador (una copia a medias en la caché rompía los modelos en algún PC),
+// comprueba que llega entero (cabecera 'glTF' y tamaño) y reintenta hasta 3 veces.
+async function fetchGLB(url) {
+  let last = '';
+  for (let i = 0; i < 3; i++) {
+    try {
+      const r = await fetch(i ? url + (url.includes('?') ? '&' : '?') + 'r=' + Date.now() : url, { cache: i ? 'reload' : 'no-cache' });
+      const buf = await r.arrayBuffer(), dv = new DataView(buf);
+      const ok = r.ok && buf.byteLength >= 20 && dv.getUint32(0, true) === 0x46546C67 && dv.getUint32(8, true) === buf.byteLength;
+      if (ok) return buf;
+      last = `HTTP ${r.status}, ${buf.byteLength} bytes${buf.byteLength >= 12 ? ', esperados ' + dv.getUint32(8, true) : ''}, empieza por "${new TextDecoder().decode(new Uint8Array(buf, 0, Math.min(24, buf.byteLength))).replace(/[^\x20-\x7e]/g, '.')}"`;
+    } catch (e) { last = e.message; }
+  }
+  throw new Error(url.split('/').pop() + ': descarga incompleta (' + last + ')');
+}
+const _loader = { load(url, onLoad, _p, onError) { fetchGLB(url).then(buf => _gltf.parse(buf, url.replace(/[^/]*$/, ''), onLoad, onError)).catch(onError); } };
 function loadGLB(type) {
   return _glb[type] || (_glb[type] = new Promise((res, rej) => _loader.load(`assets/models/${(GLB[type] && GLB[type].file) || type}.glb`, g => {
     let mesh = null; g.scene.traverse(o => { if (o.isMesh && !mesh) mesh = o; });
