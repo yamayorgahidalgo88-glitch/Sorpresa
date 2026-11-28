@@ -86,6 +86,7 @@ if (__li.complete) __lstart(); else { __li.onload = __li.onerror = __lstart; set
     <div class="htop"><h1 class="logo o logo-img"><img src="assets/logo_grevos.webp" alt="GREVOS"></h1></div>
     <div class="hspace"></div>
     <div class="menu">
+      <button class="btn purple modesbtn" id="goModes">🤖 Entrenamiento</button>
       <button class="fightbtn" id="goBattle" aria-label="Luchar"><img src="assets/luchar.webp" alt="Luchar"></button>
     </div>
   </div>
@@ -181,6 +182,21 @@ if (__li.complete) __lstart(); else { __li.onload = __li.onerror = __lstart; set
     <div class="dpanel" id="dInfo"></div>
     <p class="vlabel">Diseño original (toca para girar el modelo a esa vista)</p>
     <div class="views" id="views"></div>
+  </div>
+</div>
+
+<!-- MODOS DE JUEGO -->
+<div id="modes" class="overlay hide">
+  <div class="mdbox">
+    <button class="mdx" id="mdClose" aria-label="Cerrar">✕</button>
+    <h2 class="o">Modos de juego</h2>
+    <button class="mdopt" data-m="entreno"><span class="mdic">🤖</span><b class="o">Entrenamiento</b><small>Contra bots</small></button>
+    <button class="mdopt" data-m="amistoso"><span class="mdic">🤝</span><b class="o">Amistoso</b><small>Juega con un amigo con un código de sala</small></button>
+    <div id="mdFriend" class="mdfriend hide">
+      <button class="btn green" id="mdCreate">Crear sala</button>
+      <div class="mdjoin"><input id="mdCode" maxlength="6" placeholder="Código" autocomplete="off" autocapitalize="characters" spellcheck="false"><button class="btn blue" id="mdJoin">Unirse</button></div>
+      <div id="mdRoom" class="mdroom"></div>
+    </div>
   </div>
 </div>
 

@@ -100,7 +100,7 @@ const HIT_COLOR = { bolab: '#ff8a2a', rogue: '#45f5cf', gloop: '#b6ff2e', bushi:
 const VIEW_NAMES = { pose: 'Pose', left: 'Lateral izquierda', right: 'Lateral derecha', iso: 'Isométrica', front: 'Frente', q: '3/4', bq: '3/4 espalda', side: 'Perfil', back: 'Espalda', top: 'Arriba', top2: 'Arriba 2', bottom: 'Abajo', fronttop: 'Abajo frente', frontbottom: 'Abajo frente' };
 const VIEW_ANGLES = { pose: [-25, 12], left: [-90, 6], right: [90, 6], iso: [-35, 30], front: [0, 6], q: [-45, 6], bq: [-135, 6], side: [-90, 6], back: [180, 6], top: [0, 70], top2: [180, 70], bottom: [0, -35], fronttop: [0, -30], frontbottom: [0, -30] };
 const TYPES = Object.keys(CHARS);
-const COLS = 5, ROWS = 8, MAX_UNITS = 7, WIN_ROUNDS = 3, ROUND_CAP = 60, ELIXIR_CAP = 20;
+const COLS = 5, ROWS = 8, MAX_UNITS = 6, WIN_ROUNDS = 3, ROUND_CAP = 60, ELIXIR_CAP = 20;
 // ritmo de combate: todas las recargas x1,5 y los pasos x1,35 (mismas proporciones entre personajes)
 const PACE = 1, MOVE_PACE = 1.35;   // PACE: las recargas son exactamente las del diseño
 const LVL_MULT = [0, 1, 1.3, 1.6], LVL_SCALE = [0, 0.66, 0.71, 0.77];
@@ -192,8 +192,12 @@ function initAudio() { if (!ac) try { ac = new (window.AudioContext || window.we
    ========================================================= */
 const canvas = $('#c'), ctx = canvas.getContext('2d'), fxc = $('#fx'), fx = fxc.getContext('2d');
 let W = 0, Hs = 0, dpr = 1, S = 1, OX = 0, OY = 0;
-const gridToScreen = (gx, gy) => { const [x, y] = apply(Hm, gx / COLS, 1 - gy / ROWS); return [OX + x * S, OY + y * S]; };
-const screenToGrid = (sx, sy) => { const [u, v] = apply(Hinv, (sx - OX) / S, (sy - OY) / S); return [u * COLS, (1 - v) * ROWS]; };
+// MIRROR: en el amistoso, el invitado ve el combate (que se simula siempre desde el lado del anfitrión) girado 180°
+let MIRROR = false;
+const gridToScreen = (gx, gy) => { if (MIRROR) { gx = COLS - gx; gy = ROWS - gy; } const [x, y] = apply(Hm, gx / COLS, 1 - gy / ROWS); return [OX + x * S, OY + y * S]; };
+const screenToGrid = (sx, sy) => { const [u, v] = apply(Hinv, (sx - OX) / S, (sy - OY) / S); return MIRROR ? [COLS - u * COLS, ROWS - (1 - v) * ROWS] : [u * COLS, (1 - v) * ROWS]; };
+function setMirror(on) { MIRROR = on; if (B3.scene) B3.scene.rotation.y = on ? Math.PI : 0; for (const u of units) if (u.lbl) u.lbl.el.className = 'lbl ' + (mine(u) ? 'p' : 'e'); }
+const mine = u => (u.team === 'p') !== MIRROR;
 const tileW = gy => { const a = gridToScreen(0, gy), b = gridToScreen(COLS, gy); return Math.hypot(b[0] - a[0], b[1] - a[1]) / COLS; };
 
 // escena 3D de la batalla, superpuesta a la imagen del tablero con su misma perspectiva
@@ -271,27 +275,29 @@ function banner(text, cls = '') { const b = $('#banner'); b.className = 'o ' + c
 /* =========================================================
    ESTADO
    ========================================================= */
-const G = { screen: 'load', state: 'idle', round: 0, score: { p: 0, e: 0 }, elixir: { p: 0, e: 0 }, lastLoser: null, shop: [], freeRoll: 1, speed: 1 };
+const G = window.__G = { screen: 'load', state: 'idle', round: 0, score: { p: 0, e: 0 }, elixir: { p: 0, e: 0 }, lastLoser: null, shop: [], freeRoll: 1, speed: 1 };
 let units = [], uid = 0;
 const team = t => units.filter(u => u.team === t);
 const unitAtHome = (c, r) => units.find(u => u.hc === c && u.hr === r);
 const isZone = (tm, r) => tm === 'p' ? r <= 3 : r >= 4;
 
 function makeLabel(u) {
-  const d = document.createElement('div'); d.className = 'lbl ' + u.team;
+  const d = document.createElement('div'); d.className = 'lbl ' + ((u.team === 'p') !== MIRROR ? 'p' : 'e');
   d.innerHTML = '<div class="row"><div class="st"></div><div class="hp"><b></b><i></i></div></div><div class="en"><i></i></div>';
   labelsEl.appendChild(d);
   const en = d.querySelector('.en'); if (u.def.abil !== 'super') en.style.visibility = 'hidden';
   return { el: d, st: d.querySelector('.st'), hp: d.querySelector('.hp i'), sh: d.querySelector('.hp b'), en: en.firstChild };
 }
-function createUnit(type, tm, c, r, level = 1) {
+function createUnit(type, tm, c, r, level = 1, o = {}) {
   const u = { id: ++uid, type, def: CHARS[type] || SUMMONS[type], team: tm, level, hc: c, hr: r, c, r, gx: c + .5, gy: r + .5, alive: true, hp: 1, maxHp: 1, atk: 1,
     energy: 0, shield: 0, domeT: 0, domeAmt: 0, stun: 0, cd: 0, move: null, lunge: 0, flash: 0, dying: 0, pop: 0.0001, face: 0, faceT: null, occKey: null, sx: 0, sy: 0, top: 0, dw: 40, lx: 0, ly: 0 };
   let tex = null;
-  if (CHARS[type]) {
+  if (o.tex !== undefined) tex = o.tex;
+  else if (CHARS[type]) {
     if (tm === 'p') tex = activeSkinTex(type);
     else { G.aiSkin = G.aiSkin || {}; if (!(type in G.aiSkin)) { const o = [null, ...(SKINS[type] || []).map(k => k.tex)]; G.aiSkin[type] = o[Math.floor(Math.random() * o.length)]; } tex = G.aiSkin[type]; }
   }
+  if (o.cardLv) u.cardLv = o.cardLv; if (o.opp) u.opp = true;
   u.rig = createCharacter(type, tex); B3.scene.add(u.rig.root);
   u.lbl = makeLabel(u); units.push(u); stats(u);
   burstAt(u.gx, u.gy, .2, '#ffffff', 10, { spd: 1.5, up: 1.6, size: .06 });
@@ -304,7 +310,7 @@ function removeUnit(u) {
 }
 function stats(u) {
   const m = LVL_MULT[u.level];
-  const cm = CHARS[u.type] ? cardMult(u.team === 'p' ? (COLLECTION[u.type] || {}).level : G.aiCardLv) : 1;   // nivel de carta (bestiario); el rival usa el nivel medio de tu mazo
+  const cm = CHARS[u.type] ? cardMult(u.cardLv ?? (u.team === 'p' ? (COLLECTION[u.type] || {}).level : G.aiCardLv)) : 1;   // nivel de carta (bestiario); el rival usa el nivel medio de tu mazo
   u.maxHp = u.def.fixedHp ? u.def.hp : Math.round(u.def.hp * m * cm); u.atk = Math.round(u.def.atk * m * cm);   // los ciervos de Wyrex caen de un golpe
   u.range = rangeOf(u.type, u.level); u.as = (u.type === 'peipo' && u.level >= 2 ? .4 : u.type === 'orion' && u.level >= 3 ? .25 : u.def.as) * PACE; u.baseAs = u.as; u.ms = u.def.ms * MOVE_PACE;
   if (G.state !== 'fight') u.hp = u.maxHp;
@@ -383,7 +389,7 @@ document.querySelectorAll('[data-back]').forEach(b => b.onclick = () => {
   sfx.click();
   if (b.dataset.back === 'decks') { renderDecks(); show('decks'); $('#decks').scrollTop = decksScroll; } else show(b.dataset.back);
 });
-$('#goBattle').onclick = () => { initAudio(); sfx.click(); openPrebattle(); };
+$('#goBattle').onclick = () => { initAudio(); sfx.click(); if (G.mode === 'amistoso') openModes(); else openPrebattle(); };
 $('#pbDecks').onclick = () => { sfx.click(); openDecks(); };
 $('#pbGo').onclick = () => { if (deckTypes().length < DECK_MAX) return sfx.no(); sfx.click(); show('battle'); newMatch(); };
 document.querySelectorAll('#nav button').forEach(b => b.onclick = () => {
@@ -396,7 +402,7 @@ document.querySelectorAll('#nav button').forEach(b => b.onclick = () => {
   else if (t === 'shop') { renderShopPage(); show('shop-page'); }
   else show(TAB_SCREEN[t]);
 });
-$('#exit').onclick = () => { sfx.click(); stopMatch(); show('home'); };
+$('#exit').onclick = () => { sfx.click(); if (NET.on) netClose(true); stopMatch(); show('home'); };
 $('#endMenu').onclick = () => { $('#end').classList.add('hide'); stopMatch(); show('home'); };
 $('#again').onclick = () => { $('#end').classList.add('hide'); newMatch(); };
 
@@ -542,7 +548,8 @@ const deckTypes = () => PROG.decks[PROG.deck].filter(owns);
 let editDeck = 0;
 function miniCard(t, extra = '') {
   const ch = CHARS[t], c = COLLECTION[t];
-  return `<div class="dcard${c ? '' : ' locked'}" data-t="${t}" style="--fam:${ch.color}"><img src="${src(t, 'pose')}" alt=""><div class="dcost">${ch.cost}</div>${c ? `<div class="dlv">Nv.${c.level}</div>` : '<div class="dlock">🔒</div>'}<div class="band"><div class="nm">${ch.name}</div></div>${extra}</div>`;
+  const nx = c && LEVEL_COST[c.level + 1], canUp = nx && c.cards >= nx.cards && PROG.coins >= nx.coins;   // borde verde: se puede subir de nivel
+  return `<div class="dcard${c ? '' : ' locked'}${canUp ? ' canup' : ''}" data-t="${t}" style="--fam:${ch.color}"><img src="${src(t, 'pose')}" alt=""><div class="dcost">${ch.cost}</div>${c ? `<div class="dlv">Nv.${c.level}</div>` : '<div class="dlock">🔒</div>'}<div class="band"><div class="nm">${ch.name}</div></div>${extra}</div>`;
 }
 function slotsHtml(deck) {
   return Array.from({ length: DECK_MAX }, (_, i) => deck[i] ? miniCard(deck[i]) : '<div class="dslot"><span>+</span></div>').join('');
@@ -947,7 +954,8 @@ const bestUpgrade = (tm, type) => team(tm).filter(u => u.type === type && u.leve
 // subir de ★2 a ★3 cuesta 1 de elíxir más
 const priceFor = (type, target) => CHARS[type].cost + (target && target.level === 2 ? 1 : 0);
 // El jugador solo recibe en la tienda las bestias de su mazo seleccionado; la máquina puede usar todas.
-const drawShop = (tm = 'p') => { const pool = tm === 'p' ? deckTypes() : TYPES; return [0, 1, 2].map(() => pick(pool.length ? pool : TYPES)); };
+// cada jugador solo puede tener un personaje de cada tipo: la tienda no ofrece los que ya tiene al máximo (★3)
+const drawShop = (tm = 'p') => { const base = tm === 'p' ? deckTypes() : TYPES, maxed = t => team(tm).some(u => u.type === t && u.level >= 3); const pool = base.filter(t => !maxed(t)); return [0, 1, 2].map(() => pool.length ? pick(pool) : null); };
 function renderShop(fresh = false) {
   cards.forEach((el, i) => {
     const t = G.shop[i];
@@ -990,18 +998,15 @@ function buy(i, tile = null) {
   const type = G.shop[i]; if (!type) return false;
   const d = CHARS[type], n = team('p').length;
   const fail = m => { sfx.no(); hint(m); return false; };
-  const tgt = tile ? unitAtHome(tile.c, tile.r) : bestUpgrade('p', type), price = priceFor(type, tgt && tgt.type === type ? tgt : null);
+  const own = team('p').find(u => u.type === type && !u.summon), price = priceFor(type, own || null);   // no se puede tener dos iguales: si ya lo tienes, se mejora
+  if (own && own.level >= 3) return fail(`${d.name} ya está al nivel máximo`);
   if (G.elixir.p < price) { bumpElixir(false); return fail('No tienes suficiente elíxir'); }
-  if (tile) {
+  if (own) { upgrade(own); sfx.merge(); }
+  else if (tile) {
     if (!isZone('p', tile.r)) return fail('Solo puedes colocar en tu mitad (abajo)');
-    const o = unitAtHome(tile.c, tile.r);
-    if (o) { if (o.type === type && o.level < 3) { upgrade(o); sfx.merge(); } else return fail(o.type === type ? 'Ya está al nivel máximo' : 'Casilla ocupada'); }
-    else { if (n >= MAX_UNITS) return fail('Tablero lleno: mejora o vende criaturas'); createUnit(type, 'p', tile.c, tile.r); sfx.place(); }
-  } else {
-    const ex = bestUpgrade('p', type);
-    if (ex) { upgrade(ex); sfx.merge(); }
-    else { const t = n < MAX_UNITS && autoTile('p', type); if (!t) return fail('Tablero lleno: mejora o vende criaturas'); createUnit(type, 'p', t.c, t.r); sfx.place(); }
-  }
+    if (unitAtHome(tile.c, tile.r)) return fail('Casilla ocupada');
+    if (n >= MAX_UNITS) return fail('Tablero lleno: mejora o vende criaturas'); createUnit(type, 'p', tile.c, tile.r); sfx.place();
+  } else { const t = n < MAX_UNITS && autoTile('p', type); if (!t) return fail('Tablero lleno: mejora o vende criaturas'); createUnit(type, 'p', t.c, t.r); sfx.place(); }
   G.elixir.p -= price; G.shop[i] = null; bumpElixir();
   hint('Arrastra tus criaturas para moverlas · tócalas para ver su ficha');
   renderHud(); return true;
@@ -1051,7 +1056,7 @@ function unitAtScreen(x, y) {
   const t = tileAt(x, y); return t ? unitAtHome(t.c, t.r) : null;
 }
 let drag = null, hl = null;
-const cardValid = type => (c, r) => { if (!isZone('p', r)) return false; const o = unitAtHome(c, r); return !o || (o.type === type && o.level < 3); };
+const cardValid = type => (c, r) => { if (!isZone('p', r)) return false; if (team('p').some(u => u.type === type)) return true; return !unitAtHome(c, r); };
 cards.forEach((el, i) => el.addEventListener('pointerdown', e => {
   if (G.state !== 'plan' || !G.shop[i]) return;
   if (e.target.classList.contains('inf')) { openInfo(G.shop[i]); return; }
@@ -1110,7 +1115,7 @@ function aiPlan() {
     shop.forEach((t, i) => {
       if (!t) return; const d = CHARS[t], ex = bestUpgrade('e', t), cost = priceFor(t, ex); if (cost > G.elixir.e) return;
       if (ex) opts.push({ i, kind: 'up', u: ex, cost, score: 2.6 + ex.level * .4 + Math.random() });
-      else if (team('e').length < MAX_UNITS && autoTile('e', t)) opts.push({ i, kind: 'new', type: t, cost: d.cost, score: 2.4 + Math.random() * 1.2 });
+      else if (!team('e').some(u => u.type === t) && team('e').length < MAX_UNITS && autoTile('e', t)) opts.push({ i, kind: 'new', type: t, cost: d.cost, score: 2.4 + Math.random() * 1.2 });
     });
     if (!opts.length) {
       if (free && G.elixir.e >= 2) { free = 0; shop = drawShop('e'); continue; }
@@ -1198,15 +1203,134 @@ function setOcc(u, c, r) { if (u.occKey && occ.get(u.occKey) === u) occ.delete(u
 const enemiesOf = u => units.filter(v => v.alive && v.team !== u.team);
 const schedule = (delay, fn) => sim.events.push({ at: sim.t + delay, fn });
 
+/* =========================================================
+   MODO AMISTOSO: dos navegadores conectados por código de sala (PeerJS, conexión directa)
+   Cada uno prepara su mitad; al pulsar Luchar se envían las formaciones y los dos simulan el mismo
+   combate (paso fijo + azar con la misma semilla), siempre desde el lado del anfitrión. El invitado lo ve girado.
+   ========================================================= */
+const NET = { on: false, host: false, code: '', peer: null, conn: null, oppName: '', my: null, opp: null };
+const hashStr = str => { let h = 2166136261; for (const ch of str) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return h >>> 0; };
+let _peerLib = null;
+function loadPeer() {
+  return _peerLib || (_peerLib = new Promise((res, rej) => { if (window.Peer) return res(window.Peer); const sc = document.createElement('script'); sc.src = 'https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js'; sc.onload = () => res(window.Peer); sc.onerror = () => { _peerLib = null; rej(new Error('No se pudo cargar la conexión')); }; document.head.appendChild(sc); }));
+}
+function peerOpts() { const q = new URLSearchParams(location.search).get('peer'); if (!q) return { debug: 1 }; const [host, port] = q.split(':'); return { host, port: +port || 9000, path: '/', secure: false, debug: 1 }; }
+const netSend = m => { try { NET.conn && NET.conn.open && NET.conn.send(m); } catch (e) { } };
+function netClose(notify) {
+  if (notify) netSend({ t: 'bye' });
+  const c = NET.conn, p = NET.peer; Object.assign(NET, { on: false, conn: null, peer: null, my: null, opp: null });
+  setTimeout(() => { try { c && c.close(); } catch (e) { } try { p && p.destroy(); } catch (e) { } }, 300);
+}
+function netWire(conn) {
+  NET.conn = conn;
+  conn.on('data', m => {
+    if (!m || typeof m !== 'object') return;
+    if (m.t === 'hello') { NET.oppName = (m.name || 'Amigo').slice(0, 14); if (NET.host) { netSend({ t: 'hello', name: PROG.name || 'Anfitrión' }); netSend({ t: 'start' }); friendlyStart(); } }
+    else if (m.t === 'start') friendlyStart();
+    else if (m.t === 'ready') { NET.opp = m; pvpTry(); }
+    else if (m.t === 'bye') friendlyLost('Tu amigo ha salido de la partida');
+  });
+  conn.on('close', () => { if (NET.on && NET.conn === conn) friendlyLost('Se ha perdido la conexión con tu amigo'); });
+  conn.on('error', () => { if (NET.on && NET.conn === conn) friendlyLost('Error de conexión'); });
+}
+function friendlyStart() {
+  NET.on = true; closeModes(); G.mode = 'amistoso';
+  show('battle'); newMatch();
+}
+function friendlyLost(msg) {
+  const inMatch = G.screen === 'battle' && G.state !== 'end';
+  netClose(false);
+  if (inMatch) { stopMatch(); show('home'); }
+  modesMsg(msg, true);
+}
+async function friendlyCreate() {
+  if (!deckFull(PROG.decks[PROG.deck])) return modesMsg('Tu mazo tiene que tener 6 personajes', true);
+  const L = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', code = Array.from({ length: 5 }, () => L[Math.floor(Math.random() * L.length)]).join('');
+  modesMsg('Creando sala…');
+  try {
+    const Peer = await loadPeer(); netClose(false);
+    const peer = new Peer('grevos-' + code.toLowerCase(), peerOpts());
+    Object.assign(NET, { host: true, code, peer });
+    peer.on('open', () => { $('#mdRoom').innerHTML = `<div class="mdcode o">${code}</div><p>Pásale este código a tu amigo. Esperando a que se una…</p><button class="btn gray" id="mdCancel">Cancelar</button>`; $('#mdCancel').onclick = () => { sfx.click(); netClose(false); modesMsg(''); }; });
+    peer.on('connection', conn => { if (NET.conn) { conn.close(); return; } netWire(conn); });
+    peer.on('error', e => modesMsg(e.type === 'unavailable-id' ? 'Ese código ya está en uso, prueba otra vez' : 'No se pudo crear la sala (' + (e.type || e.message) + ')', true));
+  } catch (e) { modesMsg(e.message, true); }
+}
+async function friendlyJoin(code) {
+  code = (code || '').trim().toUpperCase();
+  if (code.length < 4) return modesMsg('Escribe el código de la sala', true);
+  if (!deckFull(PROG.decks[PROG.deck])) return modesMsg('Tu mazo tiene que tener 6 personajes', true);
+  modesMsg('Conectando…');
+  try {
+    const Peer = await loadPeer(); netClose(false);
+    const peer = new Peer(undefined, peerOpts());
+    Object.assign(NET, { host: false, code, peer });
+    peer.on('open', () => {
+      const conn = peer.connect('grevos-' + code.toLowerCase(), { reliable: true });
+      netWire(conn); conn.on('open', () => { netSend({ t: 'hello', name: PROG.name || 'Invitado' }); modesMsg('¡Conectado! Empezando…'); });
+      setTimeout(() => { if (!NET.on && NET.peer === peer) modesMsg('No se encuentra esa sala', true); }, 9000);
+    });
+    peer.on('error', e => modesMsg(e.type === 'peer-unavailable' ? 'No existe ninguna sala con ese código' : 'No se pudo conectar (' + (e.type || e.message) + ')', true));
+  } catch (e) { modesMsg(e.message, true); }
+}
+function pvpReady() {
+  G.state = 'waiting'; renderHud();
+  const list = team('p').filter(u => !u.summon).map(u => ({ t: u.type, l: u.level, c: u.hc, r: u.hr, lv: (COLLECTION[u.type] || {}).level || 1, tex: activeSkinTex(u.type) }));
+  NET.my = { round: G.round, list }; netSend({ t: 'ready', round: G.round, list });
+  hint('Esperando a ' + (NET.oppName || 'tu amigo') + '…'); pvpTry();
+}
+function pvpTry() {
+  if (!NET.my || !NET.opp || NET.my.round !== NET.opp.round) return;
+  const opp = NET.opp.list; NET.my = NET.opp = null;
+  if (NET.host) for (const o of opp) createUnit(o.t, 'e', COLS - 1 - o.c, ROWS - 1 - o.r, o.l, { tex: o.tex || null, cardLv: o.lv, opp: true });
+  else {
+    for (const u of team('p')) { u.cardLv = (COLLECTION[u.type] || {}).level || 1; u.team = 'e'; u.hc = COLS - 1 - u.hc; u.hr = ROWS - 1 - u.hr; Object.assign(u, { c: u.hc, r: u.hr, gx: u.hc + .5, gy: u.hr + .5 }); stats(u); }
+    for (const o of opp) createUnit(o.t, 'p', o.c, o.r, o.l, { tex: o.tex || null, cardLv: o.lv, opp: true });
+    setMirror(true);
+  }
+  units.sort((a, b) => (a.team === b.team ? 0 : a.team === 'p' ? -1 : 1) || a.hr - b.hr || a.hc - b.hc);
+  simRng = mulberry(hashStr(NET.code + ':' + G.round));
+  G.state = 'prefight'; renderHud();
+  banner('¡A luchar!'); sfx.round(); hint('Combate automático: ¡mira cómo luchan!');
+  later(1000, beginCombat);
+}
+function pvpAfterRound() {
+  for (const u of units.filter(u => u.opp)) removeUnit(u);
+  if (!NET.host) { for (const u of units) { u.team = 'p'; u.hc = COLS - 1 - u.hc; u.hr = ROWS - 1 - u.hr; } setMirror(false); }
+  simRng = null;
+}
+/* ---------- Ventana de modos de juego ---------- */
+function openModes() {
+  $('#modes').classList.remove('hide');
+  document.querySelectorAll('#modes .mdopt').forEach(b => b.classList.toggle('on', b.dataset.m === (G.mode || 'entreno')));
+  $('#mdFriend').classList.toggle('hide', G.mode !== 'amistoso'); modesMsg('');
+}
+function closeModes() { $('#modes').classList.add('hide'); }
+function modesMsg(t, err) { const r = $('#mdRoom'); if (!r) return; r.innerHTML = t ? `<p class="${err ? 'warn' : ''}">${t}</p>` : ''; if (err) { $('#modes').classList.remove('hide'); $('#mdFriend').classList.remove('hide'); } }
+function setMode(m) {
+  G.mode = m; try { localStorage.setItem('grevos_modo', m); } catch (e) { }
+  $('#goModes').innerHTML = m === 'amistoso' ? '🤝 Amistoso' : '🤖 Entrenamiento';
+  document.querySelectorAll('#modes .mdopt').forEach(b => b.classList.toggle('on', b.dataset.m === m));
+  $('#mdFriend').classList.toggle('hide', m !== 'amistoso');
+}
+$('#goModes').onclick = () => { initAudio(); sfx.click(); openModes(); };
+$('#mdClose').onclick = () => { sfx.click(); closeModes(); };
+document.querySelectorAll('#modes .mdopt').forEach(b => b.onclick = () => { sfx.click(); setMode(b.dataset.m); if (b.dataset.m === 'entreno') closeModes(); });
+$('#mdCreate').onclick = () => { sfx.click(); friendlyCreate(); };
+$('#mdJoin').onclick = () => { sfx.click(); friendlyJoin($('#mdCode').value); };
+$('#mdCode').addEventListener('keydown', e => { if (e.key === 'Enter') friendlyJoin(e.target.value); });
+setMode((() => { try { return localStorage.getItem('grevos_modo') === 'amistoso' ? 'amistoso' : 'entreno'; } catch (e) { return 'entreno'; } })());
+
 function startFight() {
   if (G.state !== 'plan') return;
-  closeInfo(); G.state = 'prefight'; (G.used = G.used || new Set()); team('p').forEach(u => { if (!u.summon) G.used.add(u.type); }); aiPlan(); aiArrange(G.seenP || []);
+  closeInfo(); G.state = 'prefight'; (G.used = G.used || new Set()); team('p').forEach(u => { if (!u.summon) G.used.add(u.type); }); if (NET.on) return pvpReady(); aiPlan(); aiArrange(G.seenP || []);
   G.seenP = team('p').map(u => ({ type: u.type, level: u.level, hc: u.hc, hr: u.hr }));   // lo que verá el rival en la ronda siguiente
   renderHud();
   banner('¡A luchar!'); sfx.round(); hint('Combate automático: ¡mira cómo luchan tus criaturas!');
   later(1000, beginCombat);
 }
-function beginCombat() {
+function beginCombat() { return withSimRng(beginCombat0); }
+function beginCombat0() {
   occ.clear(); dropAllMeshes(); sim = newSim(); for (const u of units.filter(u => u.summon)) removeUnit(u);
   for (const u of units) { Object.assign(u, { c: u.hc, r: u.hr, alive: true, hp: u.maxHp, energy: 0, shield: 0, domeT: 0, domeAmt: 0, stun: 0, stunKind: null, slow: 0, inv: 0, root: 0, air: 0, anyDir: false, slid: false, hold: 0, bone: false, dash: null, rage: 0, glow: false, lungeAmp: 0, move: null, faceT: null, cd: rand(.3, .8), occKey: null }); u.rig.tint && u.rig.tint(1, 1, 1); setOcc(u, u.c, u.r); }
   for (const u of units) {
@@ -2047,16 +2171,18 @@ function combatStep(dt) {
     endRound(w);
   }
 }
-function endRound(w) {
+function endRound(cw) {
+  const w = NET.on && !NET.host ? (cw === 'p' ? 'e' : 'p') : cw;   // cw = ganador en la simulación; w = desde mi lado
   G.state = 'result'; G.score[w]++; G.lastLoser = w === 'p' ? 'e' : 'p'; dropAllMeshes(); sim.proj = []; sim.domes = []; sim.beams = []; sim.zones = []; sim.vfx = []; sim.quakes = []; sim.marks = []; sim.trails = []; sim.vfx = []; sim.events = [];
   banner(w === 'p' ? '¡Ronda ganada!' : 'Ronda perdida', w === 'p' ? 'win' : 'lose'); (w === 'p' ? sfx.win : sfx.lose)();
-  for (const u of units) { u.move = null; if (u.alive && u.team === w) u.cheer = 2; }
+  for (const u of units) { u.move = null; if (u.alive && u.team === cw) u.cheer = 2; }
   hint(w === 'p' ? '¡Bien hecho! El perdedor recibe más elíxir: ¡prepárate!' : 'Recibes 9 de elíxir para remontar');
   renderHud();
   later(2300, () => { if (G.score[w] >= WIN_ROUNDS) return endMatch(w); resetBoard(); startRound(); });
 }
 function resetBoard() {
   for (const u of units.filter(u => u.summon)) removeUnit(u);
+  if (NET.on) pvpAfterRound();
   for (const u of units) { Object.assign(u, { alive: true, c: u.hc, r: u.hr, gx: u.hc + .5, gy: u.hr + .5, move: null, dying: 0, shield: 0, domeT: 0, domeAmt: 0, stun: 0, slow: 0, inv: 0, root: 0, rage: 0, glow: false, energy: 0, lunge: 0, cheer: 0, faceT: null, face: 0, pop: .0001 }); u.rig.root.visible = true; u.rig.tint && u.rig.tint(1, 1, 1); stats(u); }
 }
 function startRound() {
@@ -2072,22 +2198,27 @@ function endMatch(w) {
   $('#endTitle').textContent = w === 'p' ? '¡VICTORIA!' : 'DERROTA'; $('#endTitle').style.color = w === 'p' ? '#ffd84a' : '#ff9a9a';
   $('#endScore').textContent = `${G.score.p} - ${G.score.e}`; $('#end').classList.remove('hide');
   for (const t of (G.used || [])) PROG.plays[t] = (PROG.plays[t] || 0) + 1;   // personajes con los que has jugado esta batalla
-  if (w === 'p') { PROG.wins++; PROG.streak++; PROG.bestStreak = Math.max(PROG.bestStreak, PROG.streak); }
-  else PROG.streak = 0;
+  if (!NET.on) { if (w === 'p') { PROG.wins++; PROG.streak++; PROG.bestStreak = Math.max(PROG.bestStreak, PROG.streak); } else PROG.streak = 0; }   // el amistoso no cuenta
+  const friendly = NET.on;
   saveProg();
-  if (w === 'p') { PROG.packs++; saveProg(); precargarSobre(); }
-  $('#endPack').classList.toggle('hide', w !== 'p');
+  if (w === 'p' && !friendly) { PROG.packs++; saveProg(); precargarSobre(); }
+  $('#endPack').classList.toggle('hide', w !== 'p' || friendly);
+  $('#again').classList.toggle('hide', friendly);
+  if (friendly) netClose(false);
 }
 function stopMatch() {
+  setMirror(false); simRng = null;
   timers.forEach(clearTimeout); timers = [];
   for (const u of [...units]) removeUnit(u);
   G.state = 'idle'; parts = []; fxs = []; dropAllMeshes(); sim.proj = []; sim.domes = []; sim.beams = []; sim.zones = []; closeInfo();
 }
 function newMatch() {
   stopMatch();
-  Object.assign(G, { round: 0, score: { p: 0, e: 0 }, elixir: { p: 0, e: 0 }, lastLoser: null, speed: 1, seenP: null, used: new Set(), aiSkin: {},
+  Object.assign(G, { round: 0, score: { p: 0, e: 0 }, elixir: { p: 0, e: 0 }, lastLoser: null, speed: 1, seenP: null, used: new Set(), aiSkin: {}, acc: 0,
     aiCardLv: Math.round(deckTypes().reduce((a, t) => a + COLLECTION[t].level, 0) / Math.max(1, deckTypes().length)) || 1 });
   $('#battleHud .side.p .nm').textContent = PROG.name || 'Tú';
+  $('#battleHud .side.e .nm').textContent = NET.on ? (NET.oppName || 'Amigo') : 'Rival';
+  setMirror(false); simRng = null;
   layout(); startRound();
 }
 
@@ -2258,12 +2389,18 @@ function updateLabels() {
   }
 }
 let last = performance.now(), time = 0;
+const STEP = 1 / 60;
+let simRng = null;
+function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function withSimRng(fn) { if (!simRng) return fn(); const R = Math.random; Math.random = simRng; try { return fn(); } finally { Math.random = R; } }
 function loop(now) {
   const rdt = Math.min(.05, (now - last) / 1000); last = now; time += rdt;
   if (G.screen === 'battle') {
     const dt = rdt * (G.state === 'fight' ? G.speed : 1);
-    if (G.state === 'fight') { let left = dt; while (left > 0 && G.state === 'fight') { const s = Math.min(.03, left); combatStep(s); left -= s; } }
-    for (const u of units) updateUnitVisual(u, dt);
+    if (G.state === 'fight') {
+      G.acc = Math.min((G.acc || 0) + dt, .5);
+      while (G.acc >= STEP && G.state === 'fight') { withSimRng(() => combatStep(STEP)); for (const u of units) updateUnitVisual(u, STEP); G.acc -= STEP; }
+    } else { G.acc = 0; for (const u of units) updateUnitVisual(u, dt); }
     updateParts(dt);
     if (shake > .2) { $('#scene').style.transform = `translate(${rand(-1, 1) * shake}px,${rand(-1, 1) * shake}px)`; shake *= Math.pow(.02, rdt); }
     else if (shake) { shake = 0; $('#scene').style.transform = ''; }
