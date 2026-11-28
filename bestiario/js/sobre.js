@@ -60,6 +60,8 @@ const CSS = `
 .sb-flash{position:absolute;left:0;top:0;width:200px;height:200px;margin:-100px 0 0 -100px;border-radius:50%;pointer-events:none;
   transform:scale(0);will-change:transform;background:radial-gradient(circle,#fff 0%,#fff 55%,rgba(255,255,255,0) 70%)}
 .sb-white{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;will-change:opacity}
+.sb-rainbow{animation:sb-hue 1.2s linear infinite}
+@keyframes sb-hue{to{filter:hue-rotate(360deg)}}
 `;
 
 /* ---------- Utilidades ---------- */
@@ -174,11 +176,14 @@ export async function abrirSobre(opts = {}) {
   const k = pw / W;
   root.querySelectorAll('.sb-cuts').forEach(c => { c.width = pw; c.height = ph; });
   const scratches = [], cache = [], clipShapes = [];
+  // Luz de la garra según el tipo de cofre: se revela en el tercer zarpazo (el que abre el sobre)
+  const LUZ = { normal: null, roja: '#ff2438', dorada: '#ffc21a', arcoiris: '#ff3a3a' }, luz = LUZ[C.luz] || null, rainbow = C.luz === 'arcoiris';
   const prepare = s => {
-    const c = makeCanvas(pw, ph), x = c.getContext('2d');
+    const c = makeCanvas(pw, ph), x = c.getContext('2d'), tinted = luz && scratches.length === 2;
     x.scale(k, k);
     const leak = clawShapes(s, 1.3, true), dark = clawShapes(s, 1, false), inner = clawShapes(s, 0.16, true);
-    glowFill(x, leak, 'rgba(255,255,255,1)', 14, k, .75);
+    if (tinted) { glowFill(x, clawShapes(s, 2.1, true), luz, 34, k, .9); glowFill(x, leak, luz, 16, k, 1); }
+    else glowFill(x, leak, 'rgba(255,255,255,1)', 14, k, .75);
     x.fillStyle = '#1c0628'; x.beginPath(); dark.forEach(c => polyPath(x, c)); x.fill();
     x.strokeStyle = 'rgba(243,217,192,.8)'; x.lineWidth = 1.6; x.lineJoin = 'bevel'; x.stroke();
     glowFill(x, inner, '#fff', 5, k);
@@ -246,7 +251,7 @@ export async function abrirSobre(opts = {}) {
       const isSpark = Math.random() < .55, sp = (isSpark ? 6 : 3.5) * (0.4 + Math.random()), dir = Math.random() * Math.PI * 2;
       parts.push({ x: p.x, y: p.y, vx: Math.cos(dir) * sp, vy: Math.sin(dir) * sp - 2, life: 1, decay: .02 + Math.random() * .02,
         spark: isSpark, size: isSpark ? 8 + Math.random() * 10 : 5 + Math.random() * 8, rot: Math.random() * 6, vr: (Math.random() - .5) * .4,
-        color: ['#e9c7a6', '#d9ad8c', '#5b2a86', '#c8ff2e'][Math.floor(Math.random() * 4)] });
+        color: s.luz ? (rainbow ? `hsl(${Math.random() * 360},100%,60%)` : s.luz) : ['#e9c7a6', '#d9ad8c', '#5b2a86', '#c8ff2e'][Math.floor(Math.random() * 4)] });
     }
     if (!looping) { looping = true; requestAnimationFrame(loop); }
   }
@@ -315,7 +320,7 @@ export async function abrirSobre(opts = {}) {
       if (!drag || e.pointerId !== drag.id) return;
       const a = drag, b = { x: e.clientX, y: e.clientY }; drag = null;
       if (scratches.length >= 3) return;
-      const s = scratchFrom(a, b); prepare(s); const i = scratches.length - 1;
+      const s = scratchFrom(a, b); if (luz && scratches.length === 2) s.luz = luz; prepare(s); const i = scratches.length - 1;
       busy = busy.then(async () => {
         if (first) { first = false; stage.classList.add('sb-opening'); hint.style.visibility = 'hidden'; }
         const drawing = slash(i);
@@ -323,6 +328,11 @@ export async function abrirSobre(opts = {}) {
           shake(8 + i * 5); vibrate(30 + i * 25); burst(s, 22 + i * 14);
           rays.style.opacity = [0.35, 0.65, 1][i];
           halo.style.opacity = [0.25, 0.5, 0.9][i];
+          if (i === 2 && luz) {   // se revela el tipo de cofre: halo, rayos y zarpazos del color de la luz
+            halo.style.background = rainbow ? 'conic-gradient(from 0deg,#ff3a3a,#ffb21a,#f6ff3a,#3aff6a,#3ad8ff,#6a5cff,#d43aff,#ff3a3a)' : `radial-gradient(circle,${luz} 0%,${luz}88 35%,transparent 70%)`;
+            if (rainbow) { halo.style.borderRadius = '50%'; halo.style.filter = 'blur(30px)'; root.querySelectorAll('.sb-cuts').forEach(cv => cv.classList.add('sb-rainbow')); }
+            root.style.background = rainbow ? 'radial-gradient(circle at 50% 45%,#ff6ad5 0%,#6a5cff 45%,#1a0660 100%)' : `radial-gradient(circle at 50% 45%,${luz} 0%,#6a16d6 55%,#2a0660 100%)`;
+          }
         }, C.slashDuration * .6);
         await drawing;
         if (i === 2) { root.removeEventListener('pointerdown', down); removeEventListener('pointermove', move); removeEventListener('pointerup', up); resolveOpen(); }
@@ -350,6 +360,7 @@ export async function abrirSobre(opts = {}) {
   /* ---------- Luz blanca ---------- */
   const c = toScreen(last.cx, last.cy);
   flash.style.left = c.x + 'px'; flash.style.top = c.y + 'px';
+  if (luz) flash.style.background = rainbow ? 'radial-gradient(circle,#fff 0%,#fff 30%,rgba(255,80,200,.9) 45%,rgba(80,120,255,.8) 55%,rgba(255,255,255,0) 70%)' : `radial-gradient(circle,#fff 0%,#fff 35%,${luz} 55%,rgba(255,255,255,0) 70%)`;
   const cover = Math.hypot(innerWidth, innerHeight) * 2 / 200 * 1.6;
   flash.animate([
     { transform: 'scale(0)' },

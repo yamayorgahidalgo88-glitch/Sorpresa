@@ -299,7 +299,8 @@ function removeUnit(u) {
 }
 function stats(u) {
   const m = LVL_MULT[u.level];
-  u.maxHp = u.def.fixedHp ? u.def.hp : Math.round(u.def.hp * m); u.atk = Math.round(u.def.atk * m);   // los ciervos de Wyrex caen de un golpe
+  const cm = CHARS[u.type] ? cardMult(u.team === 'p' ? (COLLECTION[u.type] || {}).level : G.aiCardLv) : 1;   // nivel de carta (bestiario); el rival usa el nivel medio de tu mazo
+  u.maxHp = u.def.fixedHp ? u.def.hp : Math.round(u.def.hp * m * cm); u.atk = Math.round(u.def.atk * m * cm);   // los ciervos de Wyrex caen de un golpe
   u.range = rangeOf(u.type, u.level); u.as = (u.type === 'peipo' && u.level >= 2 ? .4 : u.type === 'orion' && u.level >= 3 ? .25 : u.def.as) * PACE; u.baseAs = u.as; u.ms = u.def.ms * MOVE_PACE;
   if (G.state !== 'fight') u.hp = u.maxHp;
 }
@@ -403,15 +404,24 @@ const STARTER = ['bolab', 'bushi', 'rogue', 'ogul', 'jess', 'sevora'];
 // desbloqueados para todos, también en partidas guardadas de antes
 // PRUEBAS: de momento todos desbloqueados (para volver a bloquearlos, deja aquí solo los que quieras)
 const ALWAYS_UNLOCKED = Object.keys(CHARS);
-// Coste PROVISIONAL para subir de nivel en el bestiario: [nivel destino] = { cartas, monedas }
-const LEVEL_COST = { 2: { cards: 10, coins: 100 }, 3: { cards: 25, coins: 300 } };
-const MAX_LEVEL = 3;
-// Contenido de los sobres. PROBABILIDADES PROVISIONALES (pendientes de definir).
-const PACK = {
-  odds: { nuevo: 20, cartas: 45, monedas: 35 },   // en %, se normalizan
-  cards: [3, 8],                                  // cartas de un personaje que ya tienes (mín, máx)
-  coins: [40, 120],                               // monedas (mín, máx)
+// NIVEL DE CARTA (bestiario): del 1 al 10. Cada nivel sube un 6% la vida y el daño (sobre el nivel 1).
+// Con eso, entre dos personajes iguales gana el de más nivel con algo de margen (~8-11% de vida restante).
+const MAX_LEVEL = 10, CARD_STEP = 0.06;
+const cardMult = L => 1 + CARD_STEP * (Math.max(1, L || 1) - 1);
+// Coste PROVISIONAL para subir de nivel: [nivel destino] = { cartas, monedas } (cada nivel cuesta más)
+const LEVEL_COST = {
+  2: { cards: 5, coins: 25 }, 3: { cards: 10, coins: 50 }, 4: { cards: 20, coins: 100 }, 5: { cards: 35, coins: 175 }, 6: { cards: 50, coins: 275 },
+  7: { cards: 75, coins: 400 }, 8: { cards: 100, coins: 550 }, 9: { cards: 150, coins: 750 }, 10: { cards: 200, coins: 1000 },
 };
+// COFRES (sobres): 4 tipos según la luz de la garra. % de cada tipo, cartas repartidas entre 2 personajes, monedas y % de personaje nuevo.
+// Si sale personaje nuevo: el nuevo + 5 cartas de otro que ya tengas + las monedas.
+const PACK_TIERS = [
+  { id: 'normal',   p: 75,  cards: 10, coins: [40, 70],   nuevo: 8 },
+  { id: 'roja',     p: 15,  cards: 15, coins: [50, 80],   nuevo: 12 },
+  { id: 'dorada',   p: 9.9, cards: 20, coins: [60, 100],  nuevo: 20 },
+  { id: 'arcoiris', p: 0.1, coins: [100, 150] },   // personaje nuevo seguro (o 25 cartas a uno al azar si los tienes todos) + 15 cartas a uno que tengas
+];
+const NEW_EXTRA_CARDS = 5;
 const SAVE_KEY = 'bdb_progreso_v1';
 const PROG = (() => {
   try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && s.chars) return s; } catch (e) { }
@@ -435,17 +445,31 @@ const randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 function renderWallet() { const w = $('#coinNum'); if (w) w.textContent = PROG.coins; }
 
 function rollPack() {
-  const locked = TYPES.filter(t => !owns(t)), owned = TYPES.filter(owns);
-  const odds = { ...PACK.odds }; if (!locked.length) odds.nuevo = 0;
-  let r = Math.random() * Object.values(odds).reduce((a, b) => a + b, 0), kind = 'monedas';
-  for (const [k, v] of Object.entries(odds)) { if ((r -= v) < 0) { kind = k; break; } }
-  let res;
-  if (kind === 'nuevo') { const t = pick(locked); COLLECTION[t] = { level: 1, cards: 0 }; res = { kind, t }; }
-  else if (kind === 'cartas') { const t = pick(owned), n = randInt(...PACK.cards); COLLECTION[t].cards += n; res = { kind, t, n }; }
-  else { const n = randInt(...PACK.coins); PROG.coins += n; res = { kind, n }; }
+  let r = Math.random() * 100, tier = PACK_TIERS[0];
+  for (const T of PACK_TIERS) { if ((r -= T.p) < 0) { tier = T; break; } }
+  const force = new URLSearchParams(location.search).get('cofre');   // PRUEBAS: ?cofre=roja|dorada|arcoiris fuerza el tipo
+  if (force) tier = PACK_TIERS.find(T => T.id === force) || tier;
+  const locked = TYPES.filter(t => !owns(t)), items = [];
+  // cartas a personajes que tengas (mejor a los que aún no están al máximo)
+  const pool = ex => { const o = TYPES.filter(t => owns(t) && !ex.includes(t)), up = o.filter(t => COLLECTION[t].level < MAX_LEVEL); return up.length ? up : o; };
+  const give = (t, n) => { if (!t || n <= 0) return; COLLECTION[t].cards += n; items.push({ kind: 'cartas', t, n }); };
+  const newChar = () => { const t = pick(locked); COLLECTION[t] = { level: 1, cards: 0 }; items.push({ kind: 'nuevo', t }); return t; };
+  if (tier.id === 'arcoiris') {
+    let nt = null;
+    if (locked.length) nt = newChar(); else give(pick(pool([])), 25);
+    const used = items.map(i => i.t);
+    give(pick(pool(used)), 15);
+  } else if (locked.length && Math.random() * 100 < tier.nuevo) {
+    const nt = newChar(); give(pick(pool([nt])), NEW_EXTRA_CARDS);
+  } else {
+    const opts = shuffle(pool([]).slice()), n = tier.cards;
+    if (opts.length >= 2) { const a = randInt(Math.round(n * .3), Math.round(n * .7)); give(opts[0], a); give(opts[1], n - a); }
+    else give(opts[0], n);
+  }
+  const coins = randInt(...tier.coins); PROG.coins += coins; items.push({ kind: 'monedas', n: coins });
   PROG.packs = Math.max(0, PROG.packs - 1);
   saveProg();
-  return res;
+  return { tier: tier.id, items };
 }
 function cardBar(t) {
   const c = COLLECTION[t], next = LEVEL_COST[c.level + 1];
@@ -461,15 +485,16 @@ async function openPendingPacks() {
   packBusy = true;
   try {
     while (PROG.packs > 0 && G.screen === 'home') {
-      await abrirSobre();
       const res = rollPack();
-      await showReward(res);
+      await abrirSobre({ luz: res.tier });
+      for (const it of res.items) await showReward(it, res.tier);
       cerrarSobre();
       await new Promise(r => setTimeout(r, 500));
     }
   } finally { packBusy = false; }
 }
-function showReward(res) {
+const TIER_NAME = { roja: 'Cofre rojo', dorada: 'Cofre dorado', arcoiris: 'Cofre arcoíris' };
+function showReward(res, tier = 'normal') {
   return new Promise(done => {
     const el = document.createElement('div');
     el.id = 'reward';
@@ -483,7 +508,8 @@ function showReward(res) {
       if (res.kind === 'nuevo') { title = '¡Nuevo personaje!'; sub = `${ch.name} se une a tu bestiario`; }
       else { title = `+${res.n} cartas`; sub = `de ${ch.name}`; extra = cardBar(res.t); }
     }
-    el.innerHTML = `<div class="rw-rays"></div><div class="rw-in">${res.kind === 'nuevo' ? '<div class="rw-tag o">NUEVO</div>' : ''}${art}
+    el.className = 'tier-' + tier;
+    el.innerHTML = `<div class="rw-rays"></div><div class="rw-in">${TIER_NAME[tier] ? `<div class="rw-tier o">${TIER_NAME[tier]}</div>` : ''}${res.kind === 'nuevo' ? '<div class="rw-tag o">NUEVO</div>' : ''}${art}
       <h2 class="o">${title}</h2><p>${sub}</p>${extra}<button class="btn green" id="rwOk">¡Genial!</button></div>`;
     document.body.appendChild(el);
     sfx.merge();
@@ -730,15 +756,15 @@ function setAnim(a) {
   document.querySelectorAll('#anims .btn').forEach(b => b.classList.toggle('on', b.dataset.a === a));
 }
 function openDetail(t) {
-  const ch = CHARS[t], lvl = (COLLECTION[t] || { level: 1 }).level, m = LVL_MULT[lvl];
+  const ch = CHARS[t], lvl = (COLLECTION[t] || { level: 1 }).level, m = cardMult(lvl);
   $('#dName').textContent = ch.name; $('#dLevel').textContent = COLLECTION[t] ? 'Nivel ' + lvl : 'Bloqueado';
   const anims = [['idle', 'Reposo'], ['walk', 'Andar'], ['attack', 'Atacar']]; if (ch.abil === 'super') anims.push(['super', 'Truco']);
   $('#anims').innerHTML = anims.map(([a, n]) => `<button class="btn blue" data-a="${a}">${n}</button>`).join('');
   $('#views').innerHTML = ch.all.map(v => `<button data-v="${v}" title="${VIEW_NAMES[v]}"><img src="${src(t, v)}" alt="${VIEW_NAMES[v]}"></button>`).join('');
   $('#dInfo').innerHTML = levelPanel(t) + `
-    <div class="itags"><span style="background:${ch.color};color:#fff">${ch.role}</span><span>${ch.cost} de elíxir</span><span>${rangeTag(ch, rangeOf(t, lvl))}</span></div>
-    <div class="istats"><div>Vida<b>${Math.round(ch.hp * m)}</b></div><div>Ataque<b>${Math.round(ch.atk * m)}</b></div><div>Alcance<b>${rangeTxt(ch, rangeOf(t, lvl))}</b></div><div>Ritmo<b>${paceTxt(ch)}</b></div></div>
-    <p class="idesc"><b>${ch.abilName}</b> · ${ch.desc}<br><em>Estadísticas provisionales.</em></p>${ch.lv ? `<div class="ilv">${ch.lv.map((x, i) => `<p class="${i < lvl ? 'on' : ''}"><b>${'★'.repeat(i + 1)}</b>${x}</p>`).join('')}</div>` : ''}${ch.atkName ? `<p class="idesc"><b>Ataque básico: ${ch.atkName}</b> · ${ch.atkDesc}</p>` : ''}${ch.sheet ? `<img class="atkimg" src="assets/${t}_ataques.webp" alt="Ataques">` : ''}`;
+    <div class="itags"><span style="background:${ch.color};color:#fff">${ch.role}</span><span>${ch.cost} de elíxir</span><span>${rangeTag(ch, rangeOf(t, 1))}</span></div>
+    <div class="istats"><div>Vida<b>${Math.round(ch.hp * m)}</b></div><div>Ataque<b>${Math.round(ch.atk * m)}</b></div><div>Alcance<b>${rangeTxt(ch, rangeOf(t, 1))}</b></div><div>Ritmo<b>${paceTxt(ch)}</b></div></div>
+    <p class="idesc"><b>${ch.abilName}</b> · ${ch.desc}<br><em>Estadísticas provisionales.</em></p>${ch.lv ? `<div class="ilv"><p class="ilvh">Mejoras al fusionar en batalla</p>${ch.lv.map((x, i) => `<p class="on"><b>${'★'.repeat(i + 1)}</b>${x}</p>`).join('')}</div>` : ''}${ch.atkName ? `<p class="idesc"><b>Ataque básico: ${ch.atkName}</b> · ${ch.atkDesc}</p>` : ''}${ch.sheet ? `<img class="atkimg" src="assets/${t}_ataques.webp" alt="Ataques">` : ''}`;
   VW = { t, yaw: -20, pitch: 8, auto: true, vel: 0, goal: null, dragging: false, anim: 'idle', loop: 0 };
   show('detail'); setAnim('idle'); $('#detail').scrollTop = 0;
   const lb = $('#lvBtn'); if (lb) lb.onclick = () => levelUp(t);
@@ -1909,7 +1935,8 @@ function stopMatch() {
 }
 function newMatch() {
   stopMatch();
-  Object.assign(G, { round: 0, score: { p: 0, e: 0 }, elixir: { p: 0, e: 0 }, lastLoser: null, speed: 1, seenP: null, used: new Set() });
+  Object.assign(G, { round: 0, score: { p: 0, e: 0 }, elixir: { p: 0, e: 0 }, lastLoser: null, speed: 1, seenP: null, used: new Set(),
+    aiCardLv: Math.round(deckTypes().reduce((a, t) => a + COLLECTION[t].level, 0) / Math.max(1, deckTypes().length)) || 1 });
   $('#battleHud .side.p .nm').textContent = PROG.name || 'Tú';
   layout(); startRound();
 }

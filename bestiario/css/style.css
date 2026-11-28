@@ -403,3 +403,14 @@ img{-webkit-user-drag:none}
   .hbg::before{content:'';position:absolute;inset:-40px;background:url(../assets/inicio.webp) center/cover;filter:blur(18px) brightness(.5) saturate(1.2)}
   .hbg .hb-img{object-fit:contain}
 }
+
+/* ---------- Cofres por tipo ---------- */
+.rw-tier{font-size:20px;color:#fff;border:3px solid var(--ink);border-radius:12px;padding:2px 14px;margin-bottom:8px}
+#reward.tier-roja{background:radial-gradient(circle at 50% 42%,#fff 0%,#ffe3e6 45%,#ff8f9c 100%)}
+#reward.tier-roja .rw-tier{background:linear-gradient(#ff6a78,#d81f35)}
+#reward.tier-dorada{background:radial-gradient(circle at 50% 42%,#fff 0%,#fff6d6 45%,#ffd36a 100%)}
+#reward.tier-dorada .rw-tier{background:linear-gradient(#ffd863,#e09a10)}
+#reward.tier-arcoiris{background:conic-gradient(from 0deg at 50% 42%,#ffd1d1,#fff0c4,#f6ffc9,#d1ffd9,#ccf3ff,#ddd6ff,#f6d1ff,#ffd1d1)}
+#reward.tier-arcoiris .rw-tier{background:linear-gradient(90deg,#ff3a3a,#ffb21a,#3aff6a,#3ad8ff,#d43aff);animation:rwhue 1.5s linear infinite}
+@keyframes rwhue{to{filter:hue-rotate(360deg)}}
+.ilv .ilvh{opacity:1;background:none;padding:0 2px;font:400 14px 'Lilita One',system-ui;color:var(--ink)}
