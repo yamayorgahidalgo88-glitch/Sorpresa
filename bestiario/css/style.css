@@ -414,3 +414,16 @@ img{-webkit-user-drag:none}
 #reward.tier-arcoiris .rw-tier{background:linear-gradient(90deg,#ff3a3a,#ffb21a,#3aff6a,#3ad8ff,#d43aff);animation:rwhue 1.5s linear infinite}
 @keyframes rwhue{to{filter:hue-rotate(360deg)}}
 .ilv .ilvh{opacity:1;background:none;padding:0 2px;font:400 14px 'Lilita One',system-ui;color:var(--ink)}
+
+/* ---------- Skins (ficha del personaje) ---------- */
+.skarrow{position:absolute;top:42%;transform:translateY(-50%);z-index:3;width:46px;height:62px;border:3px solid var(--ink);border-radius:14px;background:linear-gradient(#69b8ff,#2f7de1);color:#fff;font:400 40px/1 'Lilita One',system-ui;-webkit-text-stroke:3px var(--ink);paint-order:stroke fill;box-shadow:0 4px 0 var(--ink);cursor:pointer;padding:0 0 6px}
+.skarrow.l{left:18px}.skarrow.r{right:18px}
+.skarrow:active{transform:translateY(calc(-50% + 3px));box-shadow:0 1px 0 var(--ink)}
+.skarrow:disabled{filter:grayscale(1) brightness(.7);opacity:.5;cursor:default}
+.sklock{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);font-size:64px;z-index:2;pointer-events:none;filter:drop-shadow(0 4px 6px rgba(0,0,0,.5))}
+.skbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 0 10px;background:rgba(22,20,46,.72);border:3px solid var(--ink);border-radius:16px;padding:8px 10px}
+.skinfo{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.skinfo b{font-weight:400;font-size:19px}
+.skinfo small{font:600 12px system-ui;color:#b9b2e6}
+.skrar{font-size:13px;color:#fff;border:2px solid var(--ink);border-radius:8px;padding:0 8px;-webkit-text-stroke:2px var(--ink);paint-order:stroke fill}
+.skbar .btn{font-size:17px;padding:8px 16px;flex:none}

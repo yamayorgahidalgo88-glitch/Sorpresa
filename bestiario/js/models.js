@@ -3,6 +3,29 @@
 // Todas miran hacia +Z, con los pies en y = 0. Unidad = 1 casilla del tablero.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+
+/* ---------- Compatibilidad con WebGL 1 (algunos PC y navegadores antiguos) ----------
+   three r160 anima los modelos con un shader que solo funciona en WebGL 2 (textureSize/texelFetch): en WebGL 1
+   los personajes no se dibujaban (solo su sombra). Ahí se usa una textura de huesos de tamaño fijo y texture2D. */
+const WEBGL2 = (() => { try { return !!document.createElement('canvas').getContext('webgl2'); } catch (e) { return false; } })();
+if (!WEBGL2) {
+  const BT = 32;   // textura de huesos 32x32 = hasta 256 huesos
+  THREE.Skeleton.prototype.computeBoneTexture = function () {
+    const m = new Float32Array(BT * BT * 4); m.set(this.boneMatrices);
+    const t = new THREE.DataTexture(m, BT, BT, THREE.RGBAFormat, THREE.FloatType); t.needsUpdate = true;
+    this.boneMatrices = m; this.boneTexture = t; return this;
+  };
+  THREE.ShaderChunk.skinning_pars_vertex = `#ifdef USE_SKINNING
+	uniform mat4 bindMatrix;
+	uniform mat4 bindMatrixInverse;
+	uniform highp sampler2D boneTexture;
+	vec4 boneTexel( const in float k ) { return texture2D( boneTexture, vec2( ( mod( k, ${BT}.0 ) + 0.5 ) / ${BT}.0, ( floor( k / ${BT}.0 ) + 0.5 ) / ${BT}.0 ) ); }
+	mat4 getBoneMatrix( const in float i ) {
+		float j = i * 4.0;
+		return mat4( boneTexel( j ), boneTexel( j + 1.0 ), boneTexel( j + 2.0 ), boneTexel( j + 3.0 ) );
+	}
+#endif`;
+}
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js';
@@ -1061,7 +1084,15 @@ function eyeTexture(tex) {   // amarillo intenso → morado brillante
   x.putImageData(d, 0, 0); const t = new THREE.CanvasTexture(c); t.flipY = tex.flipY; t.colorSpace = tex.colorSpace; t.wrapS = tex.wrapS; t.wrapT = tex.wrapT; t.needsUpdate = true;
   _eyeTex.set(tex, t); return t;
 }
-function createSkinned(type) {
+// Texturas de skins (aspectos): misma malla y UV que el modelo original, solo cambia la textura
+const _skinTex = {}, _texLoader = new THREE.TextureLoader();
+function skinTexture(url, like) {
+  return _skinTex[url] || (_skinTex[url] = new Promise((res, rej) => _texLoader.load(url, t => {
+    t.flipY = like ? like.flipY : false; t.colorSpace = like ? like.colorSpace : THREE.SRGBColorSpace;
+    if (like) { t.wrapS = like.wrapS; t.wrapT = like.wrapT; } res(t);
+  }, undefined, rej)));
+}
+function createSkinned(type, skinTex = null) {
   const cfg = SKIN[type], root = new THREE.Group(), all = new THREE.Group(); root.add(all);
   const mats = [], acts = {}, tintC = new THREE.Color(1, 1, 1); let mixer = null, plant = null, tongue = null, alt = null;
   const rig = {
@@ -1120,6 +1151,7 @@ function createSkinned(type) {
     sc.traverse(ob => { if (ob.isMesh) { ob.material = new THREE.MeshBasicMaterial({ map: ob.material.map }); mats.push(ob.material); ob.castShadow = true; ob.frustumCulled = false;
       if (cfg.eyes && ob.material.map) { const mt = ob.material; mt.userData.baseMap = mt.map; mt.userData.eyeMap = eyeTexture(mt.map); } } });
     sc.scale.setScalar(cfg.h); all.add(sc); rig.mainSc = sc;
+    if (skinTex && mats[0]) skinTexture(skinTex, mats[0].map).then(t => mats.forEach(mt => { mt.map = t; mt.needsUpdate = true; })).catch(e => console.error('skin', skinTex, e));
     if (cfg.grip) {   // bate agarrado por el mango: el pivote va pegado al puño y el bate gira alrededor de la mano
       const G = cfg.grip, bone = sc.getObjectByName(G.bone), pivot = new THREE.Group(), bat = createProp(G.file, G.size, false);
       bat.position.y = -G.grip * G.size; pivot.add(bat); all.add(pivot);
@@ -1206,8 +1238,8 @@ function createSkinned(type) {
   }
   return rig;
 }
-export function createCharacter(type) {
-  if (SKIN[type]) return createSkinned(type);
+export function createCharacter(type, skinTex = null) {
+  if (SKIN[type]) return createSkinned(type, skinTex);
   if (GLB[type]) return createStatic(type);
   const bp = BP[type] || (BP[type] = BUILDERS[type]());
   const g = {}, mats = {}, sp = {};

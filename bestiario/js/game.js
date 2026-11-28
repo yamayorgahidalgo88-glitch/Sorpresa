@@ -287,7 +287,12 @@ function makeLabel(u) {
 function createUnit(type, tm, c, r, level = 1) {
   const u = { id: ++uid, type, def: CHARS[type] || SUMMONS[type], team: tm, level, hc: c, hr: r, c, r, gx: c + .5, gy: r + .5, alive: true, hp: 1, maxHp: 1, atk: 1,
     energy: 0, shield: 0, domeT: 0, domeAmt: 0, stun: 0, cd: 0, move: null, lunge: 0, flash: 0, dying: 0, pop: 0.0001, face: 0, faceT: null, occKey: null, sx: 0, sy: 0, top: 0, dw: 40, lx: 0, ly: 0 };
-  u.rig = createCharacter(type); B3.scene.add(u.rig.root);
+  let tex = null;
+  if (CHARS[type]) {
+    if (tm === 'p') tex = activeSkinTex(type);
+    else { G.aiSkin = G.aiSkin || {}; if (!(type in G.aiSkin)) { const o = [null, ...(SKINS[type] || []).map(k => k.tex)]; G.aiSkin[type] = o[Math.floor(Math.random() * o.length)]; } tex = G.aiSkin[type]; }
+  }
+  u.rig = createCharacter(type, tex); B3.scene.add(u.rig.root);
   u.lbl = makeLabel(u); units.push(u); stats(u);
   burstAt(u.gx, u.gy, .2, '#ffffff', 10, { spd: 1.5, up: 1.6, size: .06 });
   return u;
@@ -326,7 +331,7 @@ function stageMount(mode) {
   ST.mode = mode; ST.w = 0;
   // solo se carga el modelo de la criatura que se está viendo (ahorra memoria en el móvil)
   for (const t of Object.keys(ST.rigs)) if (!VW || t !== VW.t) { ST.scene.remove(ST.rigs[t].pv); for (const m of Object.values(ST.rigs[t].rig.mats)) m.dispose && m.dispose(); delete ST.rigs[t]; }
-  if (VW && !ST.rigs[VW.t]) { const pv = new THREE.Group(), rig = createCharacter(VW.t); pv.add(rig.root); ST.scene.add(pv); ST.rigs[VW.t] = { rig, pv, next: 2 }; }
+  if (VW && !ST.rigs[VW.t]) { const pv = new THREE.Group(), rig = createCharacter(VW.t, VW.skin !== undefined ? (skinOf(VW.t, VW.skin) || {}).tex || null : activeSkinTex(VW.t)); pv.add(rig.root); ST.scene.add(pv); ST.rigs[VW.t] = { rig, pv, next: 2 }; }
   if (VW) { const { pv, rig } = ST.rigs[VW.t]; rig.atkT = rig.supT = -1; pv.visible = true; pv.position.set(0, 0, 0); }
 }
 function stageRender(dt) {
@@ -367,6 +372,7 @@ function show(screen) {
   $('#battleHud').classList.toggle('hide', !battle);
   $('#scene').style.visibility = labelsEl.style.visibility = battle ? 'visible' : 'hidden';
   if (screen !== 'detail' && screen !== 'user') VW = null;
+  if (screen !== 'detail' && ST.renderer) ST.renderer.domElement.style.filter = '';
   if (screen === 'detail') stageMount(screen);
   if (screen === 'user' && VW && $('#pf3d')) stageMount('profile');
   if (battle) layout();
@@ -422,6 +428,11 @@ const PACK_TIERS = [
   { id: 'arcoiris', p: 0.1, coins: [100, 150] },   // personaje nuevo seguro (o 25 cartas a uno al azar si los tienes todos) + 15 cartas a uno que tengas
 ];
 const NEW_EXTRA_CARDS = 5;
+// SKINS (aspectos). Rarezas: 'especial' = solo cambia el color, no cambia los básicos ni nada de la partida.
+const RARITY = { especial: { name: 'Especial', color: '#ff8a2a' } };
+const SKINS = {
+  rogue: [{ id: 'lava', name: 'Rogue de lava', rarity: 'especial', tex: 'assets/skins/rogue_lava.jpg' }],
+};
 const SAVE_KEY = 'bdb_progreso_v1';
 const PROG = (() => {
   try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && s.chars) return s; } catch (e) { }
@@ -439,6 +450,13 @@ if (!(PROG.deck >= 0 && PROG.deck < DECK_COUNT)) PROG.deck = 0;
 if (typeof PROG.name !== 'string') PROG.name = '';
 for (const k of ['trophies', 'wins', 'streak', 'bestStreak']) if (!(PROG[k] >= 0)) PROG[k] = 0;
 if (!PROG.plays || typeof PROG.plays !== 'object') PROG.plays = {};
+if (!Array.isArray(PROG.skins)) PROG.skins = [];
+if (!PROG.skinOn || typeof PROG.skinOn !== 'object') PROG.skinOn = {};
+// PRUEBAS: la skin de lava de Rogue ya está desbloqueada
+if (!PROG.skins.includes('rogue:lava')) PROG.skins.push('rogue:lava');
+const skinOf = (t, id) => (SKINS[t] || []).find(k => k.id === id) || null;
+const ownsSkin = (t, id) => !id || PROG.skins.includes(t + ':' + id);
+const activeSkinTex = t => { const k = skinOf(t, PROG.skinOn[t]); return k && ownsSkin(t, k.id) ? k.tex : null; };
 const owns = t => !!COLLECTION[t];
 function saveProg() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(PROG)); } catch (e) { } renderWallet(); }
 const randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
@@ -672,7 +690,7 @@ function syncHomeDeck() {
   if (!HS.ready) initHome();
   const types = deckTypes().slice(0, HROCKS.length);
   for (const k of Object.keys(HS.rigs)) if (!types.includes(HS.rigs[k].type) || types.indexOf(HS.rigs[k].type) !== +k) { HS.scene.remove(HS.rigs[k].rig.root); delete HS.rigs[k]; }
-  types.forEach((t, i) => { if (!HS.rigs[i]) { const rig = createCharacter(t); HS.scene.add(rig.root); HS.rigs[i] = { type: t, rig, yaw: (Math.random() - .5) * .5, next: 3 + Math.random() * 6, cheer: 0 }; } });
+  types.forEach((t, i) => { if (!HS.rigs[i] || HS.rigs[i].tex !== activeSkinTex(t)) { if (HS.rigs[i]) HS.scene.remove(HS.rigs[i].rig.root); const rig = createCharacter(t, activeSkinTex(t)); HS.scene.add(rig.root); HS.rigs[i] = { type: t, tex: activeSkinTex(t), rig, yaw: (Math.random() - .5) * .5, next: 3 + Math.random() * 6, cheer: 0 }; } });
 }
 function homeTick(dt) {
   if (!HS.ready) return;
@@ -765,12 +783,33 @@ function openDetail(t) {
     <div class="itags"><span style="background:${ch.color};color:#fff">${ch.role}</span><span>${ch.cost} de elíxir</span><span>${rangeTag(ch, rangeOf(t, 1))}</span></div>
     <div class="istats"><div>Vida<b>${Math.round(ch.hp * m)}</b></div><div>Ataque<b>${Math.round(ch.atk * m)}</b></div><div>Alcance<b>${rangeTxt(ch, rangeOf(t, 1))}</b></div><div>Ritmo<b>${paceTxt(ch)}</b></div></div>
     <p class="idesc"><b>${ch.abilName}</b> · ${ch.desc}<br><em>Estadísticas provisionales.</em></p>${ch.lv ? `<div class="ilv"><p class="ilvh">Mejoras al fusionar en batalla</p>${ch.lv.map((x, i) => `<p class="on"><b>${'★'.repeat(i + 1)}</b>${x}</p>`).join('')}</div>` : ''}${ch.atkName ? `<p class="idesc"><b>Ataque básico: ${ch.atkName}</b> · ${ch.atkDesc}</p>` : ''}${ch.sheet ? `<img class="atkimg" src="assets/${t}_ataques.webp" alt="Ataques">` : ''}`;
-  VW = { t, yaw: -20, pitch: 8, auto: true, vel: 0, goal: null, dragging: false, anim: 'idle', loop: 0 };
+  VW = { t, yaw: -20, pitch: 8, auto: true, vel: 0, goal: null, dragging: false, anim: 'idle', loop: 0, skin: PROG.skinOn[t] && ownsSkin(t, PROG.skinOn[t]) ? PROG.skinOn[t] : null };
+  renderSkinBar();
   show('detail'); setAnim('idle'); $('#detail').scrollTop = 0;
   const lb = $('#lvBtn'); if (lb) lb.onclick = () => levelUp(t);
   document.querySelectorAll('#anims .btn').forEach(b => b.onclick = () => { sfx.click(); setAnim(b.dataset.a); });
   document.querySelectorAll('#views button').forEach(b => b.onclick = () => { const [y, p] = VIEW_ANGLES[b.dataset.v] || [0, 6]; VW.auto = false; VW.vel = 0; VW.goal = { yaw: y, pitch: p }; $('#detail').scrollTo({ top: 0, behavior: 'smooth' }); });
 }
+/* ---------- Skins en la ficha: flechas a los lados del personaje ---------- */
+function skinList(t) { return [null, ...(SKINS[t] || []).map(k => k.id)]; }
+function renderSkinBar() {
+  if (!VW) return;
+  const t = VW.t, list = skinList(t), k = skinOf(t, VW.skin), owned = ownsSkin(t, VW.skin) && !!COLLECTION[t], inUse = (PROG.skinOn[t] || null) === (VW.skin || null);
+  $('#skPrev').disabled = $('#skNext').disabled = list.length < 2;
+  $('#skLock').classList.toggle('hide', ownsSkin(t, VW.skin));
+  if (ST.renderer) ST.renderer.domElement.style.filter = ownsSkin(t, VW.skin) ? '' : 'grayscale(1) brightness(.85)';
+  const r = k ? RARITY[k.rarity] : null;
+  $('#skBar').innerHTML = `<div class="skinfo"><b>${k ? k.name : 'Original'}</b>${r ? `<span class="skrar" style="background:${r.color}">${r.name}</span>` : ''}<small>${list.indexOf(VW.skin || null) + 1}/${list.length}</small></div>` +
+    (!ownsSkin(t, VW.skin) ? '<button class="btn gray" disabled>🔒 Bloqueada</button>' : inUse ? '<button class="btn gold" disabled>✓ En uso</button>' : `<button class="btn green" id="skUse"${owned ? '' : ' disabled'}>Usar</button>`);
+  const b = $('#skUse'); if (b) b.onclick = () => { sfx.merge(); if (VW.skin) PROG.skinOn[t] = VW.skin; else delete PROG.skinOn[t]; saveProg(); renderSkinBar(); };
+}
+function stepSkin(d) {
+  if (!VW) return; const list = skinList(VW.t); if (list.length < 2) return;
+  sfx.click(); VW.skin = list[(list.indexOf(VW.skin || null) + d + list.length) % list.length];
+  const r = ST.rigs[VW.t]; if (r) { ST.scene.remove(r.pv); delete ST.rigs[VW.t]; }
+  stageMount('detail'); setAnim(VW.anim || 'idle'); renderSkinBar();
+}
+for (const [id, d] of [['#skPrev', -1], ['#skNext', 1]]) { const b = $(id); b.addEventListener('pointerdown', e => e.stopPropagation()); b.onclick = e => { e.stopPropagation(); stepSkin(d); }; }
 function viewerTick() {
   if (!VW) return;
   if (VW.goal) { VW.yaw += angDiff(VW.goal.yaw, VW.yaw) * .12; VW.pitch += (VW.goal.pitch - VW.pitch) * .12; if (Math.abs(angDiff(VW.goal.yaw, VW.yaw)) < .3 && Math.abs(VW.goal.pitch - VW.pitch) < .3) VW.goal = null; }
@@ -1936,7 +1975,7 @@ function stopMatch() {
 }
 function newMatch() {
   stopMatch();
-  Object.assign(G, { round: 0, score: { p: 0, e: 0 }, elixir: { p: 0, e: 0 }, lastLoser: null, speed: 1, seenP: null, used: new Set(),
+  Object.assign(G, { round: 0, score: { p: 0, e: 0 }, elixir: { p: 0, e: 0 }, lastLoser: null, speed: 1, seenP: null, used: new Set(), aiSkin: {},
     aiCardLv: Math.round(deckTypes().reduce((a, t) => a + COLLECTION[t].level, 0) / Math.max(1, deckTypes().length)) || 1 });
   $('#battleHud .side.p .nm').textContent = PROG.name || 'Tú';
   layout(); startRound();

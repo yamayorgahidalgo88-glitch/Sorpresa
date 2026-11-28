@@ -162,7 +162,8 @@ if (__li.complete) __lstart(); else { __li.onload = __li.onerror = __lstart; set
 <div id="detail" class="page hide">
   <div class="wrap">
     <div class="bar"><button class="btn gray" data-back="decks">←</button><h2 class="o" id="dName"></h2><span class="count" id="dLevel"></span></div>
-    <div id="viewer"><div class="plat"></div><div class="tip">↔ Desliza para girar 360° · ↕ para inclinar</div></div>
+    <div id="viewer"><div class="plat"></div><button class="skarrow l" id="skPrev" aria-label="Skin anterior">‹</button><button class="skarrow r" id="skNext" aria-label="Skin siguiente">›</button><div class="sklock o hide" id="skLock">🔒</div><div class="tip">↔ Desliza para girar 360° · ↕ para inclinar</div></div>
+    <div class="skbar" id="skBar"></div>
     <div class="anims" id="anims"></div>
     <div class="dpanel" id="dInfo"></div>
     <p class="vlabel">Diseño original (toca para girar el modelo a esa vista)</p>
