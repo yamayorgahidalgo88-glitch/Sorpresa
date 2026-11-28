@@ -33,3 +33,4 @@
 - 2026-11-28: Arreglo PC: en navegadores con solo WebGL 1 los personajes animados no se veían (shader de huesos de three r160 solo para WebGL 2). Parche en models.js: textura de huesos fija 32x32 + texture2D cuando no hay WebGL 2.
 - 2026-11-28: PC del usuario sigue sin ver personajes tras el parche WebGL1. Añadido panel 'Diagnóstico' en Ajustes (WebGL, GPU, soporte float, errores capturados) para averiguar la causa.
 - 2026-11-28: Causa real en el PC del usuario (Intel Iris Xe, Chrome 157): los .glb llegaban incompletos/corruptos (errores 'JSON content not found' / 'Offset outside DataView'); el servidor los sirve bien. Ahora models.js carga los .glb con fetch sin caché, comprueba cabecera y tamaño y reintenta 3 veces; si falla, el diagnóstico de Ajustes muestra qué llegó.
+- 2026-11-28: Tras la carga robusta de .glb, el diagnóstico del PC del usuario ya no muestra errores (0).
