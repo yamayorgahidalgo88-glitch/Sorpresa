@@ -497,3 +497,11 @@ img{-webkit-user-drag:none}
 .modesbtn small{font-size:min(3.2vw,13px);-webkit-text-stroke:2.5px var(--ink);paint-order:stroke fill}
 .modesbtn:active{transform:translateY(3px);box-shadow:0 2px 0 var(--ink),0 0 0 3px #3fe86a}
 @media (min-aspect-ratio:3/4){ .fightrow .fightbtn{width:min(74vw,330px,36vh)} .modesbtn{width:min(20vw,88px,10vh)} }
+/* elegir favorito */
+.pfav{cursor:pointer}
+.pfedit{font-size:.8em;color:var(--gold)}
+.favpick{z-index:46}
+.favpick .mdbox{max-height:86vh;overflow:auto}
+.fpgrid{grid-template-columns:repeat(4,1fr);gap:7px}
+.fpgrid .dcard .nm{font-size:12px}
+.fpgrid .inDeck{color:var(--gold)}

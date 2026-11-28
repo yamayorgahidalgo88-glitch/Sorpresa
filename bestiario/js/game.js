@@ -608,13 +608,29 @@ function renderProfile() {
   $('#pfTrophy').textContent = PROG.trophies;
   $('#pfWins').textContent = PROG.wins;
   $('#pfStreak').textContent = PROG.bestStreak;
-  // personaje favorito: el que más batallas has jugado (si hay empate, al azar entre los empatados)
+  // personaje favorito: el que elijas tú; si no eliges, el que más batallas has jugado (empate: al azar entre los empatados)
   const best = Math.max(0, ...TYPES.map(t => PROG.plays[t] || 0)), fav = $('#pfFav');
-  if (!best) { VW = null; fav.innerHTML = '<div class="pfq o">?</div><div class="pfn o">Juega una batalla para descubrir a tu favorito</div>'; return; }
-  const t = pick(TYPES.filter(x => (PROG.plays[x] || 0) === best)), ch = CHARS[t];
-  fav.innerHTML = `<div class="pf3d" id="pf3d"></div><div class="pfn o">${ch.name}</div><div class="pfs o">${best} ${best === 1 ? 'batalla' : 'batallas'}</div>`;
+  let t = PROG.favPick && owns(PROG.favPick) ? PROG.favPick : null;
+  if (!t && best) t = pick(TYPES.filter(x => (PROG.plays[x] || 0) === best));
+  if (!t) { VW = null; fav.innerHTML = '<div class="pfq o">?</div><div class="pfn o">Toca para elegir a tu favorito</div>'; return; }
+  const ch = CHARS[t], n = PROG.plays[t] || 0;
+  fav.innerHTML = `<div class="pf3d" id="pf3d"></div><div class="pfn o">${ch.name} <span class="pfedit">✎</span></div><div class="pfs o">${n} ${n === 1 ? 'batalla' : 'batallas'}</div>`;
   VW = { t, yaw: -20, pitch: 8, auto: true, vel: 0, goal: null, dragging: false, anim: 'idle', loop: 0 };   // el modelo 3D del favorito (se monta al mostrar la pantalla)
 }
+// elegir el favorito: tocar el hueco abre la lista de tus personajes
+function openFavPicker() {
+  const el = document.createElement('div'); el.className = 'overlay favpick';
+  el.innerHTML = `<div class="mdbox"><button class="mdx" aria-label="Cerrar">✕</button><h2 class="o">Tu favorito</h2>
+    <button class="mdopt fpauto${PROG.favPick ? '' : ' on'}"><span class="mdic">🎲</span><b class="o">Automático</b><small>El que más batallas has jugado</small></button>
+    <div class="dcoll fpgrid">${TYPES.filter(owns).map(t => miniCard(t, PROG.favPick === t ? '<div class="inDeck o">★</div>' : '')).join('')}</div></div>`;
+  document.body.appendChild(el);
+  const close = () => el.remove(), choose = t => { sfx.merge(); if (t) PROG.favPick = t; else delete PROG.favPick; saveProg(); close(); renderProfile(); if (VW && $('#pf3d')) stageMount('profile'); };
+  el.querySelector('.mdx').onclick = () => { sfx.click(); close(); };
+  el.onclick = e => { if (e.target === el) close(); };
+  el.querySelector('.fpauto').onclick = () => choose(null);
+  el.querySelectorAll('.fpgrid .dcard').forEach(c => c.onclick = () => choose(c.dataset.t));
+}
+$('#pfFav').onclick = () => { sfx.click(); openFavPicker(); };
 $('#pfName').addEventListener('input', e => { PROG.name = e.target.value.replace(/\s+/g, ' ').slice(0, 14); saveProg(); });
 $('#pfName').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
 
