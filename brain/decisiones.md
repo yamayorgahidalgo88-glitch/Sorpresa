@@ -41,3 +41,4 @@
 - 2026-11-28: Regla: cada jugador (y la IA) solo puede tener un personaje de cada tipo; si compras uno que ya tienes, se mejora (★); MAX_UNITS = 6.
 - 2026-11-28: Modos de juego (botón en el inicio): Entrenamiento (bots) y Amistoso. Amistoso = PeerJS (servidor público 0.peerjs.com; `?peer=host:puerto` para uno propio), sala con código de 5 letras. Combate determinista: paso fijo 1/60 y Math.random con semilla (código+ronda) dentro de combatStep; se simula siempre desde el lado del anfitrión y el invitado lo ve girado 180° (MIRROR). Sin recompensas ni rachas en amistoso. Probado en local con 2 navegadores: marcadores coinciden.
 - 2026-11-28: Bestiario: borde verde en las cartas que se pueden subir de nivel (cartas y monedas suficientes).
+- 2026-11-28: Botón de modos: cuadrado, a la derecha de LUCHAR (icono + 'Entreno'/'Amistoso').

@@ -86,8 +86,10 @@ if (__li.complete) __lstart(); else { __li.onload = __li.onerror = __lstart; set
     <div class="htop"><h1 class="logo o logo-img"><img src="assets/logo_grevos.webp" alt="GREVOS"></h1></div>
     <div class="hspace"></div>
     <div class="menu">
-      <button class="btn purple modesbtn" id="goModes">🤖 Entrenamiento</button>
-      <button class="fightbtn" id="goBattle" aria-label="Luchar"><img src="assets/luchar.webp" alt="Luchar"></button>
+      <div class="fightrow">
+        <button class="fightbtn" id="goBattle" aria-label="Luchar"><img src="assets/luchar.webp" alt="Luchar"></button>
+        <button class="modesbtn" id="goModes" aria-label="Modos de juego"></button>
+      </div>
     </div>
   </div>
 </div>

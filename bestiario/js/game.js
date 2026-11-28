@@ -1309,7 +1309,7 @@ function closeModes() { $('#modes').classList.add('hide'); }
 function modesMsg(t, err) { const r = $('#mdRoom'); if (!r) return; r.innerHTML = t ? `<p class="${err ? 'warn' : ''}">${t}</p>` : ''; if (err) { $('#modes').classList.remove('hide'); $('#mdFriend').classList.remove('hide'); } }
 function setMode(m) {
   G.mode = m; try { localStorage.setItem('grevos_modo', m); } catch (e) { }
-  $('#goModes').innerHTML = m === 'amistoso' ? '🤝 Amistoso' : '🤖 Entrenamiento';
+  $('#goModes').innerHTML = m === 'amistoso' ? '<span>🤝</span><small>Amistoso</small>' : '<span>🤖</span><small>Entreno</small>';
   document.querySelectorAll('#modes .mdopt').forEach(b => b.classList.toggle('on', b.dataset.m === m));
   $('#mdFriend').classList.toggle('hide', m !== 'amistoso');
 }
