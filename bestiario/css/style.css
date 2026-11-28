@@ -427,3 +427,4 @@ img{-webkit-user-drag:none}
 .skinfo small{font:600 12px system-ui;color:#b9b2e6}
 .skrar{font-size:13px;color:#fff;border:2px solid var(--ink);border-radius:8px;padding:0 8px;-webkit-text-stroke:2px var(--ink);paint-order:stroke fill}
 .skbar .btn{font-size:17px;padding:8px 16px;flex:none}
+.diag{margin:6px 0;white-space:pre-wrap;word-break:break-word;font:600 11px/1.35 ui-monospace,Menlo,Consolas,monospace;color:#d8d2ff;user-select:text;-webkit-user-select:text;max-height:260px;overflow:auto}

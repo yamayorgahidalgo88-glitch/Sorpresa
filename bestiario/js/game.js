@@ -620,7 +620,24 @@ const SND_ROWS = [
   ['chars', '🐾', 'Sonidos de personajes', 'Ataques, disparos y trucos', 'slash'],
   ['ui', '👆', 'Botones y menús', 'Clics, colocar y subir de nivel', 'click'],
 ];
+function renderDiag() {
+  const L = [];
+  try {
+    const c = document.createElement('canvas'), g2 = c.getContext('webgl2'), g = g2 || c.getContext('webgl');
+    L.push('WebGL: ' + (g2 ? '2' : g ? '1' : 'NO'));
+    if (g) {
+      const d = g.getExtension('WEBGL_debug_renderer_info');
+      L.push('GPU: ' + (d ? g.getParameter(d.UNMASKED_RENDERER_WEBGL) : g.getParameter(g.RENDERER)));
+      L.push('Texturas en vértices: ' + g.getParameter(g.MAX_VERTEX_TEXTURE_IMAGE_UNITS) + ' · Float: ' + (g2 ? 'sí' : (g.getExtension('OES_texture_float') ? 'sí' : 'NO')) + ' · Máx. textura: ' + g.getParameter(g.MAX_TEXTURE_SIZE));
+    }
+  } catch (e) { L.push('WebGL error: ' + e.message); }
+  L.push('Navegador: ' + navigator.userAgent);
+  L.push('Pantalla: ' + innerWidth + 'x' + innerHeight + ' @' + devicePixelRatio);
+  L.push('Errores (' + window.__log.length + '):'); window.__log.slice(-12).forEach(x => L.push('· ' + x));
+  $('#diag').textContent = L.join('\n');
+}
 function renderSettings() {
+  renderDiag();
   $('#sndBox').innerHTML = `<div class="setrow mute"><div class="stxt"><b>Silenciar todo</b><small>Apaga todos los sonidos del juego</small></div>
     <button class="switch${SET.mute ? ' on' : ''}" id="muteAll" role="switch" aria-checked="${!!SET.mute}"><i></i></button></div>` +
     SND_ROWS.map(([k, ic, nm, sub]) => `<div class="setrow vol" data-k="${k}"><span class="sic">${ic}</span><div class="stxt"><b>${nm}</b><small>${sub}</small>
