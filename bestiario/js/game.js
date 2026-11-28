@@ -393,6 +393,7 @@ document.querySelectorAll('#nav button').forEach(b => b.onclick = () => {
   if (t === 'bestiary') openDecks();
   else if (t === 'settings') { renderSettings(); show('settings'); }
   else if (t === 'user') { renderProfile(); show('user'); }
+  else if (t === 'shop') { renderShopPage(); show('shop-page'); }
   else show(TAB_SCREEN[t]);
 });
 $('#exit').onclick = () => { sfx.click(); stopMatch(); show('home'); };
@@ -658,6 +659,77 @@ async function diagTest() {
   put('Errores ahora (' + window.__log.length + '):'); window.__log.slice(-8).forEach(x => put('· ' + x));
 }
 $('#diagTest').onclick = () => { sfx.click(); diagTest(); };
+/* =========================================================
+   TIENDA: ofertas diarias, skin de la semana y personajes
+   ========================================================= */
+// Precios PROVISIONALES
+const SHOP = {
+  packs: [{ n: 5, price: 50 }, { n: 10, price: 95 }, { n: 20, price: 180 }],   // cartas de un personaje
+  gift: { coins: [20, 40], cards: [3, 6] },                                     // regalo gratis diario (hueco 1)
+  skinPrice: { especial: 300 },
+  charPrice: { 2: 800, 3: 1000, 4: 1300, 5: 1600 },                             // personaje bloqueado, según su coste de elíxir
+};
+const dayKey = (d = new Date()) => d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+const weekKey = (d = new Date()) => { const t = new Date(d); t.setHours(0, 0, 0, 0); t.setDate(t.getDate() - ((t.getDay() + 6) % 7)); return dayKey(t); };   // lunes
+function seeded(str) { let h = 2166136261; for (const ch of str) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return () => ((h = Math.imul(h ^ (h >>> 15), 2246822507) ^ Math.imul(h ^ (h >>> 13), 3266489909)) >>> 0) / 4294967296; }
+function dailyOffers() {
+  const day = dayKey();
+  if (!PROG.shop || PROG.shop.day !== day) PROG.shop = { day, bought: [] };
+  const R = seeded('grevos' + day), own = TYPES.filter(owns), pickR = a => a[Math.floor(R() * a.length)];
+  const offers = [];
+  const giftCards = R() < .5 && own.length;
+  offers.push(giftCards ? { kind: 'gift', t: pickR(own), n: Math.round(SHOP.gift.cards[0] + R() * (SHOP.gift.cards[1] - SHOP.gift.cards[0])), price: 0 }
+    : { kind: 'gift', coins: Math.round(SHOP.gift.coins[0] + R() * (SHOP.gift.coins[1] - SHOP.gift.coins[0])), price: 0 });
+  const pool = own.slice(); for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+  for (let i = 0; i < 5 && pool.length; i++) { const pk = SHOP.packs[Math.floor(R() * SHOP.packs.length)]; offers.push({ kind: 'cards', t: pool[i % pool.length], n: pk.n, price: pk.price }); }
+  return offers;
+}
+function weeklySkin() {
+  const all = Object.entries(SKINS).flatMap(([t, l]) => l.map(k => ({ t, ...k }))); if (!all.length) return null;
+  return all[Math.floor(seeded('skin' + weekKey())() * all.length)];
+}
+const fmtLeft = ms => { const h = Math.floor(ms / 3600000), m = Math.floor(ms / 60000) % 60; return h >= 24 ? Math.floor(h / 24) + ' d ' + (h % 24) + ' h' : h + ' h ' + m + ' min'; };
+function shopTimers() {
+  const now = new Date(), tom = new Date(now); tom.setHours(24, 0, 0, 0);
+  const mon = new Date(now); mon.setHours(0, 0, 0, 0); mon.setDate(mon.getDate() + 7 - ((mon.getDay() + 6) % 7));
+  $('#shopTimer').textContent = 'Nuevas en ' + fmtLeft(tom - now); $('#skinTimer').textContent = 'Cambia en ' + fmtLeft(mon - now);
+}
+setInterval(() => { if (G.screen === 'shop-page') { if (PROG.shop && PROG.shop.day !== dayKey()) renderShopPage(); else shopTimers(); } }, 30000);
+const priceBtn = (price, done, label) => done ? `<button class="btn gray" disabled>${label || '✓ Comprado'}</button>` : price ? `<button class="btn green sbuy"><img src="assets/moneda.webp" alt="">${price}</button>` : '<button class="btn gold sbuy">¡Gratis!</button>';
+function buyWith(price, apply) {
+  if (PROG.coins < price) { sfx.no(); toastShop('Te faltan ' + (price - PROG.coins) + ' monedas'); return false; }
+  PROG.coins -= price; apply(); saveProg(); sfx.merge(); renderShopPage(); return true;
+}
+function toastShop(t) { const el = document.createElement('div'); el.className = 'stoast o'; el.textContent = t; $('#shop-page').appendChild(el); setTimeout(() => el.remove(), 1800); }
+function renderShopPage() {
+  $('#shopCoins').textContent = PROG.coins; shopTimers();
+  const offers = dailyOffers(), bought = PROG.shop.bought;
+  $('#shopDaily').innerHTML = offers.map((o, i) => {
+    const done = bought.includes(i);
+    if (o.kind === 'gift' && o.coins) return `<div class="sitem gift" data-i="${i}"><div class="stag o">Regalo</div><div class="sart coin"><img src="assets/moneda.webp" alt=""></div><div class="sname o">+${o.coins} monedas</div>${priceBtn(0, done, '✓ Recogido')}</div>`;
+    const ch = CHARS[o.t];
+    return `<div class="sitem${o.kind === 'gift' ? ' gift' : ''}" data-i="${i}" style="--fam:${ch.color}">${o.kind === 'gift' ? '<div class="stag o">Regalo</div>' : ''}<div class="sart"><img src="${src(o.t, 'pose')}" alt=""><b class="sx o">x${o.n}</b></div><div class="sname o">${ch.name}</div>${priceBtn(o.price, done, o.price ? null : '✓ Recogido')}</div>`;
+  }).join('');
+  document.querySelectorAll('#shopDaily .sitem').forEach(el => { const b = el.querySelector('.sbuy'); if (!b) return; b.onclick = () => {
+    const i = +el.dataset.i, o = offers[i];
+    buyWith(o.price, () => { PROG.shop.bought.push(i); if (o.coins) PROG.coins += o.coins; else COLLECTION[o.t].cards += o.n; });
+  }; });
+  // skin de la semana
+  const k = weeklySkin(), box = $('#shopSkin');
+  if (!k) box.innerHTML = '<p class="note">Aún no hay skins a la venta.</p>';
+  else {
+    const has = ownsSkin(k.t, k.id), r = RARITY[k.rarity], price = SHOP.skinPrice[k.rarity] || 300;
+    box.innerHTML = `<div class="sskin"><img src="${src(k.t, 'pose')}" alt="" class="${k.t}-${k.id}"><div class="sskinfo"><b class="o">${k.name}</b><span class="skrar" style="background:${r.color}">${r.name}</span><small>${r.name === 'Especial' ? 'Solo cambia el aspecto' : ''}</small>${has ? '<button class="btn gray" disabled>✓ Ya la tienes</button>' : priceBtn(price, false)}</div></div>`;
+    const b = box.querySelector('.sbuy'); if (b) b.onclick = () => buyWith(price, () => PROG.skins.push(k.t + ':' + k.id));
+  }
+  // personajes que aún no tienes
+  const locked = TYPES.filter(t => !owns(t));
+  $('#shopChars').innerHTML = locked.length ? locked.map(t => { const ch = CHARS[t], price = SHOP.charPrice[ch.cost] || 1000;
+    return `<div class="sitem" data-t="${t}" style="--fam:${ch.color}"><div class="sart"><img src="${src(t, 'pose')}" alt=""></div><div class="sname o">${ch.name}</div>${priceBtn(price, false)}</div>`; }).join('')
+    : '<p class="note snote">¡Ya tienes todos los personajes!</p>';
+  document.querySelectorAll('#shopChars .sitem').forEach(el => { const b = el.querySelector('.sbuy'); if (b) b.onclick = () => { const t = el.dataset.t; buyWith(SHOP.charPrice[CHARS[t].cost] || 1000, () => { COLLECTION[t] = { level: 1, cards: 0 }; }); }; });
+}
+
 function renderSettings() {
   renderDiag();
   $('#sndBox').innerHTML = `<div class="setrow mute"><div class="stxt"><b>Silenciar todo</b><small>Apaga todos los sonidos del juego</small></div>
