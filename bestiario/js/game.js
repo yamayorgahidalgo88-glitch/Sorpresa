@@ -58,8 +58,8 @@ const CHARS = {
     all: ['pose', 'front', 'back', 'left', 'right', 'iso', 'top', 'bottom'] },
   ayew: { name: 'Ayew', cost: 4, role: 'Rematador', color: '#ff9a3c', hp: 650, atk: 130, range: 4, ortho: true, as: 1.25, ms: 0.7, abil: 'clash',
     atkName: 'Toque y remate', atkDesc: 'alterna dos golpes: primero un toque de dedos que le cura un 5% de vida, y después un remate con el balón a 4 casillas en línea recta (nunca en diagonal). Daño muy alto.',
-    abilName: 'Saque bombeado', desc: 'No tiene súper. Al empezar cada ronda lanza un balón bombeado al rival más alejado: tarda 0,5 segundos en caer y siempre acierta. Hace 70 de daño.',
-    lv: ['Saque bombeado al rival más alejado al empezar la ronda.', 'El remate rebota contra los que estén detrás del objetivo en la misma línea, y el toque de dedos cura un 10%.', 'El saque lanza 3 balones a los 3 rivales más alejados, de 70 de daño cada uno.'],
+    abilName: 'Saque bombeado', desc: 'No tiene súper. Al empezar cada ronda lanza un balón bombeado al rival más alejado: tarda 0,5 segundos en caer y siempre acierta. Hace 150 de daño.',
+    lv: ['Saque bombeado al rival más alejado al empezar la ronda.', 'El remate rebota contra los que estén detrás del objetivo en la misma línea, y el toque de dedos cura un 10%.', 'El saque lanza 3 balones a los 3 rivales más alejados, de 150 de daño cada uno.'],
     all: ['pose', 'front', 'back', 'left', 'right', 'iso', 'top', 'bottom'] },
   paira: { name: 'Paira', cost: 5, role: 'Luchador', color: '#e8282e', hp: 600, atk: 45, range: 1, front3: true, as: 1.5, ms: 0.65, abil: 'clash',
     atkName: 'Batazo', atkDesc: 'golpea con su bate la casilla de enfrente y una de las esquinas de delante, alternando izquierda y derecha. Daño medio-bajo. Empieza lento (1,5 s) y cada batazo es más rápido, hasta 0,25 s.',
@@ -635,9 +635,17 @@ function avatarHtml(av, frame) {
   if (fv === 'nombre') return `<div class="afr afr-nombre">${tickerSvg(nm, CHARS[ft].color)}${img}</div>`;
   return `<div class="afr afr-${fv}">${img}<b class="afr-eng">${nm}</b></div>`;
 }
+// rango de maestría según el nivel del personaje (lo que se ve bajo tu favorito)
+const RANKS = [{ lv: 10, id: 'as', name: 'As' }, { lv: 9, id: 'oro', name: 'Oro' }, { lv: 8, id: 'plata', name: 'Plata' }, { lv: 5, id: 'bronce', name: 'Bronce' }, { lv: 3, id: 'madera', name: 'Madera' }];
+const masteryRank = L => RANKS.find(r => L >= r.lv) || null;
+function autoFav() {   // el favorito elegido o, si no hay, el más jugado
+  if (PROG.favPick && owns(PROG.favPick)) return PROG.favPick;
+  let best = '', n = 0; for (const t of TYPES) if ((PROG.plays[t] || 0) > n && owns(t)) { n = PROG.plays[t]; best = t; }
+  return best;
+}
 function myProfile() {
   const own = TYPES.filter(owns), av = avatarOk(PROG.avatar) ? PROG.avatar : (PROG.favPick && owns(PROG.favPick) ? PROG.favPick : own[0]);
-  return { avatar: av, frame: frameOk(PROG.frame) ? PROG.frame || '' : '', mastery: masteryOk(PROG.mastery) ? PROG.mastery || '' : '', bg: PROG.bg && BACKS[PROG.bg] ? PROG.bg : 'fantasia', fav: PROG.favPick && owns(PROG.favPick) ? PROG.favPick : '', streak: PROG.streak || 0, bestStreak: PROG.bestStreak || 0, trophies: PROG.trophies || 0, clan: 'Sin clan', wins: PROG.wins || 0 };
+  return { avatar: av, frame: frameOk(PROG.frame) ? PROG.frame || '' : '', mastery: masteryOk(PROG.mastery) ? PROG.mastery || '' : '', bg: PROG.bg && BACKS[PROG.bg] ? PROG.bg : 'fantasia', fav: autoFav(), favLv: autoFav() ? cardLv(autoFav()) : 0, streak: PROG.streak || 0, bestStreak: PROG.bestStreak || 0, trophies: PROG.trophies || 0, clan: 'Sin clan', wins: PROG.wins || 0 };
 }
 function renderHomeAvatar() { const b = $('#homeAva'); if (b) { const m = myProfile(); b.innerHTML = avatarHtml(m.avatar, m.frame); } }
 let PFVIEW = null;   // null = mi perfil; { name, profile } = perfil de un amigo
@@ -657,7 +665,8 @@ function renderProfile() {
   let t = pr.fav && CHARS[pr.fav] ? pr.fav : null;
   if (!t && mineV) { const best = Math.max(0, ...TYPES.map(x => PROG.plays[x] || 0)); if (best) t = pick(TYPES.filter(x => (PROG.plays[x] || 0) === best)); }
   if (!t) { VW = null; fav.innerHTML = `<div class="pfq o">?</div><div class="pfn o">${mineV ? 'Toca para elegir a tu favorito' : 'Sin favorito'}</div>`; return; }
-  fav.innerHTML = `<div class="pf3d" id="pf3d"></div><div class="pfn o">${CHARS[t].name}${mineV ? ' <span class="pfedit">✎</span>' : ''}</div><div class="pfs o">Favorito</div>`;
+  const fl = mineV ? cardLv(t) : (pr.favLv || 0), rank = masteryRank(fl);
+  fav.innerHTML = `<div class="pf3d" id="pf3d"></div><div class="pfn o">${CHARS[t].name}${mineV ? ' <span class="pfedit">✎</span>' : ''}</div><div class="pfs o mrank ${rank ? 'r-' + rank.id : ''}">${rank ? 'Maestría: ' + rank.name : 'Sin maestría'}</div>`;
   VW = { t, yaw: -20, pitch: 8, auto: true, vel: 0, goal: null, dragging: false, anim: 'idle', loop: 0, skin: mineV ? undefined : null };
 }
 $('#pfBack').onclick = () => { sfx.click(); const back = PFVIEW ? 'friends' : 'home'; PFVIEW = null; show(back); if (back === 'friends') renderFriends(); };
@@ -2077,7 +2086,7 @@ function volley(u, t) {
     } });
   });
 }
-const AYEW_SERVE = { dmg: 70, dur: .5 };   // saque bombeado: daño fijo y segundos que tarda en caer
+const AYEW_SERVE = { dmg: 150, dur: .5 };   // saque bombeado: daño fijo y segundos que tarda en caer
 function serveBalls(u) {   // saque bombeado al rival (o a los 3 rivales) más alejados
   if (!u.alive) return;
   const L = u.level, n = L >= 3 ? 3 : 1, dmg = AYEW_SERVE.dmg;

@@ -612,3 +612,7 @@ img{-webkit-user-drag:none}
 .mastname .inuse{color:#a8ffb0}
 .mastname .btn{font-size:14px;padding:5px 12px;flex:none}
 .cufr .afr,.cuava .afr{border-radius:16%}
+/* rango de maestría bajo el favorito */
+.mrank{font-size:4.6cqw}
+.mrank.r-madera{color:#d9a066}.mrank.r-bronce{color:#e0915a}.mrank.r-plata{color:#e6edf5}.mrank.r-oro{color:#ffd84a}
+.mrank.r-as{background:linear-gradient(90deg,#ff5a5a,#ffd84a,#5affb0,#5ac8ff,#d45aff);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-stroke:0;filter:drop-shadow(0 .3cqw 0 var(--ink))}

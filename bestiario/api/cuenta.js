@@ -36,7 +36,7 @@ const keyOf = n => String(n || '').normalize('NFKD').replace(/[̀-ͯ]/g, '').toL
 const validName = n => typeof n === 'string' && /^[\p{L}\p{N} _.-]{3,14}$/u.test(n.trim()) && n.trim() === n.replace(/\s+/g, ' ').trim();
 const pathOf = n => 'users/' + encodeURIComponent(keyOf(n)) + '.json';
 const hash = t => crypto.createHash('sha256').update(String(t || '')).digest('hex');
-const PUBLIC = ['avatar', 'frame', 'mastery', 'bg', 'fav', 'streak', 'bestStreak', 'trophies', 'clan', 'wins'];
+const PUBLIC = ['avatar', 'frame', 'mastery', 'bg', 'fav', 'favLv', 'streak', 'bestStreak', 'trophies', 'clan', 'wins'];
 const cleanProfile = p => { const o = {}; for (const k of PUBLIC) if (p && p[k] !== undefined) o[k] = typeof p[k] === 'number' ? Math.max(0, Math.min(1e6, Math.round(p[k]))) : String(p[k]).slice(0, 40); return o; };
 const pub = u => ({ name: u.name, profile: u.profile || {} });
 class Err extends Error { constructor(code, msg) { super(msg); this.code = code; } }
