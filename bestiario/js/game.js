@@ -606,21 +606,20 @@ $('#dkSelect').onclick = () => {
 /* ---------- Perfil: foto, marco, maestría, fondo, favorito, rachas, clan y copas ---------- */
 const BACKS = { fantasia: 'Fantasía' };   // fondo = la lobby (pantalla de inicio)   // de momento solo estos
 /* ---------- MAESTRÍA: recompensas de cada personaje según su nivel de carta ----------
-   Nv.3 foto de bronce · Nv.5 marco con su nombre girando · Nv.8 foto plateada + marco de oro · Nv.9 foto dorada + marco de diamante · Nv.10 maestría (por definir)
+   Nv.3 foto y marco de bronce · Nv.8 foto plateada + marco de oro · Nv.9 foto dorada + marco de diamante · Nv.10 marco con su nombre girando + maestría (por definir)
    Fotos: "tipo" o "tipo:bronce|plata|oro". Marcos: "" o "tipo:nombre|oro|diamante". Maestrías: "" o "tipo". */
 const MASTERY = [
-  { lv: 3, items: [['foto', 'bronce', 'Foto de bronce']] },
-  { lv: 5, items: [['marco', 'nombre', 'Marco con su nombre']] },
+  { lv: 3, items: [['foto', 'bronce', 'Foto de bronce'], ['marco', 'bronce', 'Marco de bronce']] },
   { lv: 8, items: [['foto', 'plata', 'Foto plateada'], ['marco', 'oro', 'Marco de oro']] },
   { lv: 9, items: [['foto', 'oro', 'Foto dorada'], ['marco', 'diamante', 'Marco de diamante']] },
-  { lv: 10, items: [['maestria', '', 'Maestría']] },
+  { lv: 10, items: [['marco', 'nombre', 'Marco con su nombre'], ['maestria', '', 'Maestría']] },
 ];
-const MLV = { bronce: 3, nombre: 5, plata: 8, oro: 8, diamante: 9 };
+const MLV = { bronce: 3, nombre: 10, plata: 8, oro: 8, diamante: 9 };
 const cardLv = t => (COLLECTION[t] || {}).level || 0;
 const avatarOk = id => { const [t, v] = String(id || '').split(':'); return !!CHARS[t] && owns(t) && (!v || cardLv(t) >= (v === 'oro' ? 9 : MLV[v] || 99)); };
 const frameOk = id => { if (!id) return true; const [t, v] = String(id).split(':'); return !!CHARS[t] && owns(t) && cardLv(t) >= (MLV[v] || 99); };
 const masteryOk = t => !t || (CHARS[t] && cardLv(t) >= 10);
-const frameName = id => { if (!id) return 'Sin marco'; const [t, v] = id.split(':'); return { nombre: 'Marco con su nombre', oro: 'Marco de oro', diamante: 'Marco de diamante' }[v] + ' · ' + CHARS[t].name; };
+const frameName = id => { if (!id) return 'Sin marco'; const [t, v] = id.split(':'); return { bronce: 'Marco de bronce', nombre: 'Marco con su nombre', oro: 'Marco de oro', diamante: 'Marco de diamante' }[v] + ' · ' + CHARS[t].name; };
 function tickerSvg(name, color) {   // el nombre muchas veces alrededor de la foto, girando despacio como un rótulo de noticias
   const unit = name + ' · ', half = 344, reps = Math.max(2, Math.round(half / (unit.length * 5.6))), txt = unit.repeat(reps);
   return `<svg class="afr-svg" viewBox="0 0 100 100"><path id="tk" d="M 7 7 H 93 V 93 H 7 Z" fill="none"/><text style="fill:color-mix(in srgb,${color} 55%,#fff)" font-size="8.2" font-family="Lilita One, system-ui" dominant-baseline="middle"><textPath href="#tk" startOffset="0" textLength="${half * 2}" lengthAdjust="spacingAndGlyphs">${txt}${txt}<animate attributeName="startOffset" from="0" to="-${half}" dur="16s" repeatCount="indefinite"/></textPath></text></svg>`;
@@ -682,8 +681,8 @@ function openCustomize(tab = 'foto') {
       return `<p class="cuhint">Fotos de tus personajes. Las de bronce, plata y oro se ganan en su Maestría</p><div class="dcoll fpgrid">${ids.map(id => { const ok = avatarOk(id); return `<div class="cuava${ok ? '' : ' locked'}${me.avatar === id ? ' on' : ''}" data-id="${id}">${avatarHtml(id, me.frame)}${ok ? '' : '<b class="o">🔒</b>'}</div>`; }).join('')}</div>`;
     }
     if (tab === 'marco') {
-      const ids = ['', ...TYPES.flatMap(t => ['nombre', 'oro', 'diamante'].map(v => t + ':' + v)).filter(frameOk)];
-      return `<div class="dcoll fpgrid">${ids.map(id => `<div class="cuava cufr${me.frame === id ? ' on' : ''}" data-fr="${id}" title="${frameName(id)}">${avatarHtml(me.avatar, id)}</div>`).join('')}</div><p class="cuhint">${ids.length > 1 ? '' : 'Aún no tienes marcos. '}Los marcos se ganan subiendo personajes (Maestría, nivel 5, 8 y 9)</p>`;
+      const ids = ['', ...TYPES.flatMap(t => ['bronce', 'oro', 'diamante', 'nombre'].map(v => t + ':' + v)).filter(frameOk)];
+      return `<div class="dcoll fpgrid">${ids.map(id => `<div class="cuava cufr${me.frame === id ? ' on' : ''}" data-fr="${id}" title="${frameName(id)}">${avatarHtml(me.avatar, id)}</div>`).join('')}</div><p class="cuhint">${ids.length > 1 ? '' : 'Aún no tienes marcos. '}Los marcos se ganan subiendo personajes (Maestría, nivel 3, 8, 9 y 10)</p>`;
     }
     const list = tab === 'maestria' ? Object.fromEntries([['', 'Sin maestría'], ...TYPES.filter(t => masteryOk(t) && t).map(t => [t, 'Maestría de ' + CHARS[t].name])]) : BACKS;
     const cur = tab === 'maestria' ? me.mastery : me.bg;
