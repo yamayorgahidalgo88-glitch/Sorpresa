@@ -1530,7 +1530,7 @@ function startFight() {
 function beginCombat() { return withSimRng(beginCombat0); }
 function beginCombat0() {
   occ.clear(); dropAllMeshes(); sim = newSim(); for (const u of units.filter(u => u.summon)) removeUnit(u);
-  for (const u of units) { Object.assign(u, { c: u.hc, r: u.hr, alive: true, hp: u.maxHp, energy: 0, shield: 0, domeT: 0, domeAmt: 0, stun: 0, stunKind: null, slow: 0, inv: 0, root: 0, air: 0, anyDir: false, slid: false, hold: 0, bone: false, dash: null, rage: 0, glow: false, lungeAmp: 0, move: null, faceT: null, cd: rand(.3, .8), occKey: null }); u.rig.tint && u.rig.tint(1, 1, 1); setOcc(u, u.c, u.r); }
+  for (const u of units) { Object.assign(u, { chase: null, c: u.hc, r: u.hr, alive: true, hp: u.maxHp, energy: 0, shield: 0, domeT: 0, domeAmt: 0, stun: 0, stunKind: null, slow: 0, inv: 0, root: 0, air: 0, anyDir: false, slid: false, hold: 0, bone: false, dash: null, rage: 0, glow: false, lungeAmp: 0, move: null, faceT: null, cd: rand(.3, .8), occKey: null }); u.rig.tint && u.rig.tint(1, 1, 1); setOcc(u, u.c, u.r); }
   for (const u of units) {
     const L = u.level;
     if (u.type === 'bolab') {
@@ -1572,12 +1572,17 @@ function nextStep(u, only = null) {
 // Cada personaje va siempre a por el rival más cercano (aunque esté peleando con otro); si hay varios igual de cerca, al que tenga menos vida
 function nearestEnemy(u) {
   let best = null, bd = 1e18;
-  for (const v of enemiesOf(u)) { const d = cheb(u, v) * 1e6 + v.hp; if (d < bd) { bd = d; best = v; } }
+  for (const v of enemiesOf(u)) { const d = cheb(u, v) * 1e6 + v.hp * 10 + v.id * 1e-3; if (d < bd) { bd = d; best = v; } }
+  // no cambiar de objetivo por un empate: se mantiene el que ya perseguía hasta que otro esté claramente más cerca o muera
+  const cur = u.chase;
+  if (cur && cur.alive && cur.team !== u.team && best && best !== cur && cheb(u, cur) <= cheb(u, best)) best = cur;
+  u.chase = best;
   return best;
 }
 function anyInRange(u) {   // reserva: si no puede llegar al más cercano, ataca al que tenga a tiro (el más cercano y con menos vida)
   let best = null, bd = 1e18;
-  for (const v of enemiesOf(u)) { const d = cheb(u, v) * 1e6 + v.hp; if (inRange(u, v) && d < bd) { bd = d; best = v; } }
+  if (u.faceT && u.faceT.alive && u.faceT.team !== u.team && inRange(u, u.faceT)) return u.faceT;   // sigue con el que ya estaba atacando
+  for (const v of enemiesOf(u)) { const d = cheb(u, v) * 1e6 + v.hp * 10 + v.id * 1e-3; if (inRange(u, v) && d < bd) { bd = d; best = v; } }
   return best;
 }
 function targetInRange(u) { const n = nearestEnemy(u); return n && inRange(u, n) ? n : null; }
@@ -2658,4 +2663,4 @@ load(BOARD.src).then(i => {
 }).catch(e => { $('#loading .ltxt').textContent = 'Error al cargar: ' + e; console.error(e); });
 
 // gancho para pruebas automáticas
-window.__game = { G, B3, ST, createProp, units: () => units, createUnit, upgrade, sim: () => sim, buy, reroll, startFight, setSpeed: s => { G.speed = s; }, openDetail, setAnim };
+window.__game = { G, B3, ST, createProp, units: () => units, createUnit, removeUnit, beginCombat, upgrade, sim: () => sim, buy, reroll, startFight, setSpeed: s => { G.speed = s; }, openDetail, setAnim };
