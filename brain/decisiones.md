@@ -61,3 +61,4 @@
 - 2026-11-28: Anti-atasco: cada unidad mantiene su objetivo (u.chase) hasta que otro esté estrictamente más cerca o muera; los empates se deshacen siempre igual (vida, luego id). Los de distancia siguen con el que ya atacaban si sigue a tiro. No se pudo reproducir el atasco en pruebas.
 - 2026-11-28: Al subir un personaje a un nivel con recompensa de maestría (3,5,8,9,10) sale una pantalla de fondo beis con los objetos en grande y el rango alcanzado (showMasteryReward). Pantalla VS: 5 s.
 - 2026-11-28: Arreglo: el reno de Wyrex (y cualquier invocación creada en mitad del combate) no se movía porque u.root era undefined y la condición 'u.root <= 0' fallaba; ahora '!(u.root > 0)'. Además el reno no se registraba en la casilla (setOcc estaba dentro de un comentario desde hace tiempo).
+- 2026-11-28: Oferta temporal en la tienda (PROMO en game.js): cofre arcoíris gratis 3 min, uno por jugador (PROG.promos); se abre en el inicio (PROG.packQ fuerza el tipo de cofre).

@@ -472,7 +472,7 @@ function renderWallet() { const w = $('#coinNum'); if (w) w.textContent = PROG.c
 function rollPack() {
   let r = Math.random() * 100, tier = PACK_TIERS[0];
   for (const T of PACK_TIERS) { if ((r -= T.p) < 0) { tier = T; break; } }
-  const force = new URLSearchParams(location.search).get('cofre');   // PRUEBAS: ?cofre=roja|dorada|arcoiris fuerza el tipo
+  const force = (PROG.packQ && PROG.packQ.length ? PROG.packQ.shift() : null) || new URLSearchParams(location.search).get('cofre');   // PRUEBAS: ?cofre=roja|dorada|arcoiris fuerza el tipo
   if (force) tier = PACK_TIERS.find(T => T.id === force) || tier;
   const locked = TYPES.filter(t => !owns(t)), items = [];
   // cartas a personajes que tengas (mejor a los que aún no están al máximo)
@@ -887,7 +887,23 @@ function buyWith(price, apply) {
   PROG.coins -= price; apply(); saveProg(); sfx.merge(); renderShopPage(); return true;
 }
 function toastShop(t) { const el = document.createElement('div'); el.className = 'stoast o'; el.textContent = t; $('#shop-page').appendChild(el); setTimeout(() => el.remove(), 1800); }
+// OFERTA TEMPORAL: cofre arcoíris gratis (uno por jugador) hasta la hora indicada
+const PROMO = { id: 'arcoiris-1', until: 1795893120000, tier: 'arcoiris' };
+function renderPromo() {
+  const box = $('#shopPromo'), left = PROMO.until - Date.now(), got = (PROG.promos || []).includes(PROMO.id);
+  if (left <= 0 && !got) { box.innerHTML = ''; return; }
+  if (left <= 0) { box.innerHTML = ''; return; }
+  const m = Math.floor(left / 60000), sec = Math.floor(left / 1000) % 60;
+  box.innerHTML = `<div class="promo"><div class="promo-art"><img src="assets/sobre.png" alt=""></div><div class="promo-txt"><b class="o">¡Cofre arcoíris GRATIS!</b><small>Termina en ${m}:${String(sec).padStart(2, '0')}</small>${got ? '<button class="btn gray" disabled>✓ Recogido</button>' : '<button class="btn gold" id="promoBtn">¡Gratis!</button>'}</div></div>`;
+  const b = $('#promoBtn'); if (b) b.onclick = () => {
+    if (Date.now() > PROMO.until) return renderPromo();
+    PROG.promos = [...(PROG.promos || []), PROMO.id]; PROG.packQ = [...(PROG.packQ || []), PROMO.tier]; PROG.packs = (PROG.packs || 0) + 1; saveProg(); sfx.merge();
+    precargarSobre(); show('home');   // el cofre se abre en el inicio
+  };
+}
+setInterval(() => { if (G.screen === 'shop-page') renderPromo(); }, 1000);
 function renderShopPage() {
+  renderPromo();
   $('#shopCoins').textContent = PROG.coins; shopTimers();
   const offers = dailyOffers(), bought = PROG.shop.bought;
   $('#shopDaily').innerHTML = offers.map((o, i) => {
