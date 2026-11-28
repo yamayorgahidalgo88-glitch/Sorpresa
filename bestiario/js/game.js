@@ -1422,7 +1422,7 @@ function netWire(conn) {
   NET.conn = conn;
   conn.on('data', m => {
     if (!m || typeof m !== 'object') return;
-    if (m.t === 'hello') { NET.oppName = (m.name || 'Amigo').slice(0, 14); NET.oppAva = String(m.ava || ''); NET.oppFrame = String(m.frame || ''); if (NET.host) { netSend({ t: 'hello', name: PROG.name || 'Anfitrión', ava: myProfile().avatar, frame: myProfile().frame }); netSend({ t: 'start' }); friendlyStart(); } }
+    if (m.t === 'hello') { NET.oppName = (m.name || 'Amigo').slice(0, 14); NET.oppAva = String(m.ava || ''); NET.oppFrame = String(m.frame || ''); NET.oppCups = +m.cups || 0; NET.oppMastery = String(m.mastery || ''); NET.oppClan = String(m.clan || 'Sin clan').slice(0, 20); if (NET.host) { netSend({ t: 'hello', name: PROG.name || 'Anfitrión', ava: myProfile().avatar, frame: myProfile().frame, cups: myProfile().trophies || 0, mastery: myProfile().mastery, clan: myProfile().clan }); netSend({ t: 'start' }); friendlyStart(); } }
     else if (m.t === 'start') friendlyStart();
     else if (m.t === 'ready') { NET.opp = m; pvpTry(); }
     else if (m.t === 'bye') friendlyLost('Tu amigo ha salido de la partida');
@@ -1464,7 +1464,7 @@ async function friendlyJoin(code) {
     Object.assign(NET, { host: false, code, peer });
     peer.on('open', () => {
       const conn = peer.connect('grevos-' + code.toLowerCase(), { reliable: true });
-      netWire(conn); conn.on('open', () => { netSend({ t: 'hello', name: PROG.name || 'Invitado', ava: myProfile().avatar, frame: myProfile().frame }); modesMsg('¡Conectado! Empezando…'); });
+      netWire(conn); conn.on('open', () => { netSend({ t: 'hello', name: PROG.name || 'Invitado', ava: myProfile().avatar, frame: myProfile().frame, cups: myProfile().trophies || 0, mastery: myProfile().mastery, clan: myProfile().clan }); modesMsg('¡Conectado! Empezando…'); });
       setTimeout(() => { if (!NET.on && NET.peer === peer) modesMsg('No se encuentra esa sala', true); }, 9000);
     });
     peer.on('error', e => modesMsg(e.type === 'peer-unavailable' ? 'No existe ninguna sala con ese código' : 'No se pudo conectar (' + (e.type || e.message) + ')', true));
@@ -2435,9 +2435,25 @@ function newMatch() {
   // foto y marco junto al nombre: los tuyos, los de tu amigo o, en los bots, una foto normal al azar con un marco al azar
   const me = myProfile(); $('#avaP').innerHTML = avatarHtml(me.avatar, me.frame);
   if (NET.on) $('#avaE').innerHTML = avatarHtml(NET.oppAva, NET.oppFrame);
-  else { const fv = pick(['', 'bronce', 'plata', 'oro', 'diamante', 'nombre']); $('#avaE').innerHTML = avatarHtml(pick(TYPES), fv ? pick(TYPES) + ':' + fv : ''); }
+  else { const fv = pick(['', 'bronce', 'plata', 'oro', 'diamante', 'nombre']); G.aiAva = pick(TYPES); G.aiFrame = fv ? pick(TYPES) + ':' + fv : ''; $('#avaE').innerHTML = avatarHtml(G.aiAva, G.aiFrame); }
   setMirror(false); simRng = null;
-  layout(); startRound();
+  layout(); showVersus(() => startRound());
+}
+/* Pantalla VS antes de la partida: dividida en diagonal, azul (tú) y rojo (rival), con foto/marco, nombre, copas, maestría y clan. 3 s */
+function showVersus(done) {
+  const me = myProfile();
+  const A = { name: PROG.name || 'Tú', ava: me.avatar, frame: me.frame, cups: me.trophies || 0, mastery: me.mastery, clan: me.clan || 'Sin clan' };
+  const B = NET.on ? { name: NET.oppName || 'Amigo', ava: NET.oppAva, frame: NET.oppFrame, cups: NET.oppCups || 0, mastery: NET.oppMastery || '', clan: NET.oppClan || 'Sin clan' }
+    : { name: G.aiName || 'Rival', ava: G.aiAva, frame: G.aiFrame, cups: 0, mastery: Math.random() < .35 ? pick(Object.keys(MASTERY_NAMES)) : '', clan: 'Sin clan' };
+  const card = (P, side) => `<div class="vs-half vs-${side}"><div class="vs-stripes"></div><div class="vs-card">
+    <div class="vs-ava">${avatarHtml(P.ava, P.frame)}</div><div class="vs-name o">${P.name}</div>
+    <div class="vs-mast o">${P.mastery && masteryName(P.mastery) ? '«' + masteryName(P.mastery) + '»' : 'Sin maestría'}</div>
+    <div class="vs-row"><span class="o">🏆 ${P.cups}</span><span class="o">🛡️ ${P.clan}</span></div></div></div>`;
+  const el = document.createElement('div'); el.id = 'versus';
+  el.innerHTML = card(A, 'blue') + card(B, 'red') + '<div class="vs-slash"></div><div class="vs-badge o">VS</div>';
+  document.body.appendChild(el); sfx.round();
+  later(2600, () => el.classList.add('out'));
+  later(3000, () => { el.remove(); done(); });
 }
 
 /* =========================================================

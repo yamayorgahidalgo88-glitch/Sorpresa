@@ -56,3 +56,4 @@
 - 2026-11-28: Maestrías (Nv.10) = título bajo tu nombre en el perfil (MASTERY_NAMES): Mory «Sargento pico congelado», Wyrex «Entre vivo y muerto»; las demás pendientes del usuario. Rivales IA con nombre al azar (botName).
 - 2026-11-28: HUD de batalla: foto + marco junto a cada nombre (puntos de ronda debajo). Amistoso: se envían avatar y marco en 'hello'. Bots: foto normal al azar + marco al azar (o ninguno).
 - 2026-11-28: Personajes a distancia (alcance > 1): si tienen a alguien a tiro disparan y no se mueven; solo avanzan si no hay nadie a tiro. Los cuerpo a cuerpo siguen yendo al más cercano.
+- 2026-11-28: Pantalla VS (3 s) al empezar cada partida: diagonal azul (tú) / roja (rival) con foto+marco, nombre, maestría, copas y clan; entra deslizando, rayas en movimiento, VS que late. Bots: maestría al azar a veces. Amistoso: copas/maestría/clan en 'hello'.

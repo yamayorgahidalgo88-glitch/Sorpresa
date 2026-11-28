@@ -640,3 +640,29 @@ img{-webkit-user-drag:none}
 #top .side .nm{grid-area:nm;max-width:none;font-size:14px;line-height:1.1}
 #top .side .pips{grid-area:pips}
 #top .side.e .pips{justify-content:flex-end}
+
+/* ---------- Pantalla VS ---------- */
+#versus{position:fixed;inset:0;z-index:90;overflow:hidden;background:#0b0820;transition:opacity .4s}
+#versus.out{opacity:0}
+.vs-half{position:absolute;inset:0;display:flex;align-items:center;overflow:hidden}
+.vs-blue{background:linear-gradient(160deg,#4aa8ff,#1d4fc4 55%,#0d2a7a);clip-path:polygon(0 0,100% 0,0 100%);justify-content:flex-start;align-items:flex-start;animation:vsInL .55s cubic-bezier(.2,1.3,.4,1) both}
+.vs-red{background:linear-gradient(340deg,#ff6a6a,#c41d2f 55%,#6e0d18);clip-path:polygon(100% 0,100% 100%,0 100%);justify-content:flex-end;align-items:flex-end;animation:vsInR .55s cubic-bezier(.2,1.3,.4,1) both}
+@keyframes vsInL{from{transform:translate(-60%,-60%)}to{transform:none}}
+@keyframes vsInR{from{transform:translate(60%,60%)}to{transform:none}}
+.vs-stripes{position:absolute;inset:-50%;background:repeating-linear-gradient(135deg,rgba(255,255,255,.09) 0 18px,transparent 18px 46px);animation:vsStripes 1.2s linear infinite}
+.vs-red .vs-stripes{animation-direction:reverse}
+@keyframes vsStripes{to{transform:translate(64px,0)}}
+.vs-card{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:7vh 6vw;width:min(62vw,340px);text-align:center;animation:vsFloat 1.6s ease-in-out .5s infinite alternate}
+.vs-red .vs-card{animation-delay:.3s}
+@keyframes vsFloat{to{transform:translateY(-6px) scale(1.02)}}
+.vs-ava{width:min(30vw,130px);height:min(30vw,130px);filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))}
+.vs-name{font-size:min(7.5vw,34px);color:#fff;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vs-mast{font-size:min(4vw,17px);color:#ffd84a}
+.vs-row{display:flex;gap:12px;font-size:min(4.4vw,18px);color:#fff}
+.vs-slash{position:absolute;left:-10%;right:-10%;top:50%;height:10px;transform:rotate(-34deg);background:linear-gradient(90deg,transparent,#fff 30%,#fff7b0 50%,#fff 70%,transparent);box-shadow:0 0 24px #fff,0 0 60px #ffd84a;animation:vsSlash .6s ease-out both}
+@keyframes vsSlash{from{transform:rotate(-34deg) scaleX(0)}to{transform:rotate(-34deg) scaleX(1)}}
+.vs-badge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:min(18vw,96px);color:#ffd84a;-webkit-text-stroke:6px var(--ink);paint-order:stroke fill;filter:drop-shadow(0 0 18px rgba(255,216,74,.8));animation:vsBadge .5s .35s cubic-bezier(.2,1.8,.4,1) both,vsPulse .7s 1s ease-in-out infinite alternate}
+@keyframes vsBadge{from{transform:translate(-50%,-50%) scale(3) rotate(-20deg);opacity:0}to{transform:translate(-50%,-50%) scale(1);opacity:1}}
+@keyframes vsPulse{to{transform:translate(-50%,-50%) scale(1.12) rotate(-4deg)}}
+.vs-slash{left:0;right:0;top:0;bottom:0;height:auto;transform:none;clip-path:polygon(99% 0,100% 0,100% 1%,1% 100%,0 100%,0 99%);background:linear-gradient(135deg,#fff,#fff7b0 50%,#fff);box-shadow:none;filter:drop-shadow(0 0 10px #ffd84a);animation:vsSlash2 .6s ease-out both}
+@keyframes vsSlash2{from{opacity:0}to{opacity:1}}
