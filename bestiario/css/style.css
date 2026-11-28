@@ -569,3 +569,6 @@ img{-webkit-user-drag:none}
   #home .htop{padding-left:calc(var(--col) * .02)}
   #nav{width:min(100%,560px,64vh,calc(100dvh * 941 / 1672))}
 }
+/* momento frenesí */
+#banner.frenzy{color:#ff5a3c;text-shadow:0 0 18px #ffb03c}
+#battleHud.frenzy #roundLbl{color:#ffb03c;animation:fpulse .5s ease-in-out infinite}

@@ -106,7 +106,7 @@ Valores de nivel 1 sacados de `bestiario/js/game.js`. Nivel 2: daño ×1,3; nive
 
 ## Peipo — coste 3, vida 650, valoración: Normal
 - Básico: daño 30, alcance 1 casilla (cuerpo a cuerpo), recarga 0.5 s
-- Súper: daño 55, alcance Sobre el objetivo; explosión en cruz (su casilla + las 4 de alrededor), recarga 8 golpes
+- Súper: daño 55, alcance Sobre el objetivo; explosión en cruz (su casilla + las 4 de alrededor), recarga 10 golpes
 - Habilidad: No; alcance — (no tiene)
 - Niveles: N1 Desbloquea el súper: Postre estrella, explosión en cruz y charco pringoso. | N2 El básico se recarga en 0,4 segundos. | N3 El charco pringoso hace daño bajo cada 0,75 segundos a quien esté dentro.
 - Notas: Súper: deja un charco pringoso. Recarga del básico 0,4 s a nivel 2.
@@ -114,11 +114,11 @@ Valores de nivel 1 sacados de `bestiario/js/game.js`. Nivel 2: daño ×1,3; nive
 
 ## Orión — coste 2, vida 500, valoración: Fuerte
 - Básico: daño 6, alcance 3 casillas en línea recta (nunca en diagonal), recarga 0.4 s
-- Súper: daño 18, alcance 5 casillas en línea recta (atraviesa), recarga 50 golpes
+- Súper: daño 18, alcance 5 casillas en línea recta (atraviesa), recarga 100 golpes
 - Habilidad: No; alcance — (no tiene)
 - Niveles: N1 Desbloquea el súper: Dardo paralizante, que perfora y paraliza 1,5 segundos. | N2 La ráfaga lanza 8 rocas. | N3 El básico se recarga en 0,25 segundos.
 - Notas: Daño por roca (5 rocas por ráfaga, 8 a nivel 2). Súper: paraliza 1,5 s. Recarga 0,25 s a nivel 3.
-- Por qué la valoración: Cuesta 2 y la ráfaga hace unos 75 de daño por segundo (120 a nivel 2), pero el dardo paralizante tarda más en cargarse (50 rocas).
+- Por qué la valoración: Cuesta 2 y la ráfaga hace unos 75 de daño por segundo (120 a nivel 2), pero el dardo paralizante tarda muchísimo en cargarse (100 rocas).
 
 ## Sevora — coste 5, vida 600, valoración: Normal
 - Básico: daño 90, alcance 2 casillas (4 a nivel 2), recarga 0.8 s

@@ -71,14 +71,14 @@ const CHARS = {
     abilName: 'Gran terremoto', desc: 'Súper (se carga con 5 básicos): un golpe al suelo con salto que hace daño medio-alto a todos los rivales de alrededor y los deja aturdidos 1,5 segundos (sin moverse ni atacar).',
     lv: ['Desbloquea el súper: Gran terremoto, con aturdimiento de 1,5 segundos.', 'Furia de amatista: si su vida baja del 30%, golpea cada 1 segundo y sus ojos se vuelven morados.', 'El súper hace daño alto.'],
     all: ['pose', 'front', 'back', 'left', 'right', 'iso', 'top', 'bottom'] },
-  peipo: { name: 'Peipo', cost: 3, role: 'Luchador', color: '#e8452e', hp: 650, atk: 30, range: 1, as: 0.5, ms: 0.7, abil: 'super', charge: 8,
+  peipo: { name: 'Peipo', cost: 3, role: 'Luchador', color: '#e8452e', hp: 650, atk: 30, range: 1, as: 0.5, ms: 0.7, abil: 'super', charge: 10,
     atkName: 'Cuchilladas cruzadas', atkDesc: 'golpea muy rápido con su cuchillo de carnicero en golpes cruzados al enemigo de al lado. Daño bajo-medio.',
-    abilName: 'Postre estrella', desc: 'Súper (se carga con 8 básicos): lanza el postre explosivo de su otra mano. Explota en cruz (la casilla donde cae y las 4 de alrededor) con daño medio y deja un charco pringoso 1,5 segundos: los enemigos atrapados no pueden moverse ni atacar.',
+    abilName: 'Postre estrella', desc: 'Súper (se carga con 10 básicos): lanza el postre explosivo de su otra mano. Explota en cruz (la casilla donde cae y las 4 de alrededor) con daño medio y deja un charco pringoso 1,5 segundos: los enemigos atrapados no pueden moverse ni atacar.',
     lv: ['Desbloquea el súper: Postre estrella, explosión en cruz y charco pringoso.', 'El básico se recarga en 0,4 segundos.', 'El charco pringoso hace daño bajo cada 0,75 segundos a quien esté dentro.'],
     all: ['pose', 'front', 'back', 'left', 'right', 'iso', 'top', 'bottom'] },
-  orion: { name: 'Orión', cost: 2, role: 'Lanzador', color: '#a46bff', hp: 500, atk: 6, range: 3, ortho: true, as: 0.4, ms: 0.7, abil: 'super', charge: 50,
+  orion: { name: 'Orión', cost: 2, role: 'Lanzador', color: '#a46bff', hp: 500, atk: 6, range: 3, ortho: true, as: 0.4, ms: 0.7, abil: 'super', charge: 100,
     atkName: 'Ráfaga de rocas', atkDesc: 'lanza hacia delante una ráfaga de 5 de las rocas que flotan a su alrededor, hasta 3 casillas en línea recta (nunca en diagonal). Daño bajo por roca. Se recarga en 0,4 segundos.',
-    abilName: 'Dardo paralizante', desc: 'Súper (se carga con 50 impactos de roca): lanza un dardo que atraviesa a todos los rivales en línea recta hasta 5 casillas. Daño bajo, pero los deja paralizados 1,5 segundos.',
+    abilName: 'Dardo paralizante', desc: 'Súper (se carga con 100 impactos de roca): lanza un dardo que atraviesa a todos los rivales en línea recta hasta 5 casillas. Daño bajo, pero los deja paralizados 1,5 segundos.',
     lv: ['Desbloquea el súper: Dardo paralizante, que perfora y paraliza 1,5 segundos.', 'La ráfaga lanza 8 rocas.', 'El básico se recarga en 0,25 segundos.'],
     all: ['pose', 'front', 'back', 'left', 'right', 'iso', 'top', 'bottom'] },
   sevora: { name: 'Sevora', cost: 5, role: 'Imitadora', color: '#8fd23a', hp: 600, atk: 90, range: 2, as: 0.8, ms: 0.75, abil: 'super', charge: 6, sheet: true,
@@ -2287,8 +2287,10 @@ function die(t) {
     burstAt(j.gx, j.gy, .5, '#c77dff', 18, { spd: 1.6, up: 2.4, glow: true });
   }
 }
+const FRENZY_AT = 20, FRENZY_SPEED = 5;   // a los 20 s de ronda: momento frenesí, todo va x5
 function combatStep(dt) {
   sim.t += dt;
+  if (!sim.frenzy && sim.t >= FRENZY_AT) { sim.frenzy = true; G.speed = FRENZY_SPEED; banner('¡FRENESÍ! x' + FRENZY_SPEED, 'frenzy'); sfx.super(); $('#roundLbl').textContent = 'Ronda ' + Math.max(1, G.round) + ' · x' + FRENZY_SPEED; $('#battleHud').classList.add('frenzy'); }
   const due = sim.events.filter(e => e.at <= sim.t); sim.events = sim.events.filter(e => e.at > sim.t); due.forEach(e => e.fn());
   for (const u of units) if (u.alive) updateUnit(u, dt);
   updateProjectiles(dt);
@@ -2327,7 +2329,7 @@ function resetBoard() {
 function startRound() {
   G.round++;
   for (const s of ['p', 'e']) G.elixir[s] = Math.min(ELIXIR_CAP, G.elixir[s] + (G.lastLoser === s ? 9 : 6));
-  Object.assign(G, { shop: drawShop(), freeRoll: 1, state: 'plan', speed: 1 });
+  Object.assign(G, { shop: drawShop(), freeRoll: 1, state: 'plan', speed: 1 }); $('#battleHud').classList.remove('frenzy');
   banner('Ronda ' + G.round); sfx.round();
   hint(G.round === 1 ? 'Arrastra o toca una carta para colocar criaturas en tu mitad' : 'Mejora, coloca o ahorra: el elíxir sobrante se guarda');
   renderHud(); renderShop(true);
